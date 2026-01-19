@@ -1,48 +1,26 @@
-import type { AgentQuery, AgentResponse, ApiErrorResponse } from "@/types/api";
+import type { AgentQuery, AgentResponse } from '@/types/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "message" in value &&
-    typeof (value as ApiErrorResponse).message === "string"
-  );
-}
+export const sampleApi = {
+  query: async (query: AgentQuery['query']): Promise<AgentResponse> => {
+    const response = await fetch(`${API_BASE}/sample/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
 
-function isAgentResponse(value: unknown): value is AgentResponse {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "answer" in value &&
-    typeof (value as AgentResponse).answer === "string"
-  );
-}
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Request failed: ${response.status}`);
+    }
 
-export async function fetchSample(
-  query: AgentQuery["query"]
-): Promise<AgentResponse> {
-  const url = new URL("/sample/query", API_BASE);
+    const data = await response.json();
 
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-  });
+    if (!data.answer || typeof data.answer !== 'string') {
+      throw new Error('Unexpected response format');
+    }
 
-  const data: AgentResponse | ApiErrorResponse = await res.json();
-
-  if (!res.ok) {
-    const message = isApiErrorResponse(data)
-      ? data.message
-      : `Request failed: ${res.status}`;
-    throw new Error(message);
-  }
-
-  if (!isAgentResponse(data)) {
-    throw new Error("Unexpected response format.");
-  }
-
-  return data;
-}
+    return data as AgentResponse;
+  },
+};

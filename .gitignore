@@ -101,3 +101,6 @@ $RECYCLE.BIN/
 
 chroma_data/
 chroma_db/
+
+# Vector DB source data
+server/data/
