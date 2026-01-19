@@ -39,6 +39,7 @@
 - `dev`: 개발
 - `baseline`: 초기 프로젝트 세팅
 - `feature/agent-{에이전트명}`: 에이전트 개발
+- `feature/tool-{툴명}`: 툴 개발
 - `feature/func-{기능명}`: 기능 개발
 - `feature/uiux`: client 화면 개발
 
