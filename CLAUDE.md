@@ -54,19 +54,59 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 ## Agent Architecture (LangGraph)
 
-The server uses a **Supervisor Pattern** where a central agent routes tasks to specialists:
+The server uses a **Supervisor Pattern** with 6 specialized agents:
 
-- **Supervisor (`sample_supervisor/`)**: Routes queries to appropriate worker agents
-- **Researcher (`sample_researcher/`)**: Web search via Tavily API
-- **Calculator (`sample_calculator/`)**: Math operations and time queries
+### 1. Service Structurer Agent (`service_structurer/`)
+Parses application forms and structures business service descriptions.
+- **Tools**: Template Parser, Form Schema Generator, Auto-Fill, Patch, Canonical Converter, Uncertainty Detector
 
+### 2. Eligibility Evaluator Agent (`eligibility_evaluator/`)
+Determines regulatory sandbox eligibility.
+- **Tools**: Rule Screener, Similar Case RAG, Decision Composer, Counter-example Generator
+
+### 3. Track Recommender Agent (`track_recommender/`)
+Recommends appropriate sandbox track (신속확인/실증특례/임시허가).
+- **Tools**: Track Scorer, Track Definition RAG, Explainable Recommender, Preparation Checklist
+
+### 4. Application Drafter Agent (`application_drafter/`)
+Generates application document drafts.
+- **Tools**: Template Selector, Section Mapper, Section Writer, Consistency Checker, Document Renderer
+
+### 5. Strategy Advisor Agent (`strategy_advisor/`)
+Provides strategic recommendations based on similar approved cases.
+- **Tools**: Case Cluster Selector, Approval Pattern Extractor, Strategy Generator, Citation Snippet Provider
+
+### 6. Risk Checker Agent (`risk_checker/`)
+Performs QA checks and identifies risks from reviewer's perspective.
+- **Tools**: Checklist Generator, Gap Detector, Risk Scenario Generator, Improvement Suggester, Final Report Generator
+
+### Shared Tools (Cross-Agent)
+
+**RAG Tools** - 모든 에이전트가 공용으로 사용:
+| Tool | 데이터 | 주 사용처 |
+|------|--------|----------|
+| R1. 규제제도 & 절차 RAG | 트랙 정의, 절차, 요건, 심사 포인트 | 2, 3, 4, 6 |
+| R2. 승인 사례 RAG | 승인/반려 사례, 조건, 실증 범위 | 2, 5, 6 |
+| R3. 도메인별 규제·법령 RAG | 분야별 법령/인허가 체계 | 1, 2, 6 |
+
+**Utility Tools** - 재사용 가능한 공통 기능:
+| Tool | 기능 | 주 사용처 |
+|------|------|----------|
+| C0. Evidence/인용 관리 | 출처·스니펫 표준 포맷 저장 | 전체 (특히 4, 6) |
+| C1. Canonical 구조 변환 | Form data → 표준 JSON | 1에서 생성, 2~6 입력 |
+| C2. Patch/Merge | 증분 수정, 변경 이력 | 1, 4, 6 |
+
+### Agent State Pattern
 Agent state uses `TypedDict` with message accumulation. Recursion limit is set to 15 to prevent infinite loops.
 
 ### Adding New Agents
 1. Create agent directory under `app/agents/`
-2. Define `graph.py` with StateGraph and nodes
-3. Implement `tools.py` with `@tool` decorated functions
-4. Register with supervisor's routing logic
+2. Define `state.py` with TypedDict state
+3. Define `tools.py` with `@tool` decorated functions
+4. Define `nodes.py` with node functions
+5. Define `graph.py` with StateGraph and edges
+6. Register with supervisor's routing logic
+7. Use shared RAG tools via `app/tools/shared/`
 
 ## API Patterns
 
