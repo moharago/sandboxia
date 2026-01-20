@@ -2,14 +2,6 @@
 
 분야별 주요 법령/인허가 체계, 규제 쟁점 검색.
 
-대상 법령:
-- 의료법 (healthcare)
-- 전자금융거래법 (finance)
-- 데이터 기본법 (data)
-- 신용정보법 (finance)
-- 개인정보 보호법 (privacy)
-- 전기통신사업법 (telecom)
-
 주 사용처: 1(서비스 구조화), 2(대상성 판단), 6(리스크 체크) 에이전트
 """
 
@@ -28,10 +20,8 @@ class DomainLawResult(BaseModel):
     article_title: str = Field(description="조문제목")
     paragraph_no: str = Field(description="항번호 (①②③ 등)")
     citation: str = Field(description="인용 형식 (예: 의료법 제34조 제1항)")
-    chunk_type: str = Field(description="청크 유형 (article: 조, paragraph: 항)")
     domain: str = Field(description="도메인 코드")
     domain_label: str = Field(description="도메인 한글명")
-    ministry: str = Field(description="소관부처")
     relevance_score: float = Field(description="관련도 점수")
 
 
@@ -121,10 +111,8 @@ def search_domain_law(
                 article_title=meta.get("article_title", ""),
                 paragraph_no=meta.get("paragraph_no", ""),
                 citation=meta.get("citation", ""),
-                chunk_type=meta.get("chunk_type", "article"),
                 domain=meta.get("domain", ""),
                 domain_label=meta.get("domain_label", ""),
-                ministry=meta.get("ministry", ""),
                 relevance_score=round(score, 4),
             )
         )
@@ -180,10 +168,8 @@ def get_law_article(
                 article_title=meta.get("article_title", ""),
                 paragraph_no=meta.get("paragraph_no", ""),
                 citation=meta.get("citation", ""),
-                chunk_type=meta.get("chunk_type", "article"),
                 domain=meta.get("domain", ""),
                 domain_label=meta.get("domain_label", ""),
-                ministry=meta.get("ministry", ""),
                 relevance_score=1.0,
             )
         )
