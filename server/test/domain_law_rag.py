@@ -14,7 +14,14 @@ from app.tools.shared.rag import search_domain_law
 
 
 def test_search_domain_law():
-    """search_domain_law 테스트"""
+    """
+    Run three CLI-style tests of search_domain_law.invoke and print formatted results.
+    
+    Performs:
+    - Test 1: search without a domain filter for query "원격 진료"; prints total count, each result's citation, relevance_score, domain_label, and a content snippet.
+    - Test 2: search with domain="finance" for query "전자금융거래 보안"; prints total count, the applied domain filter, and each result's citation and relevance_score.
+    - Test 3: search for "개인정보 제3자 제공 동의"; prints total count and each result's citation and law_name.
+    """
     print("=" * 60)
     print("search_domain_law 테스트")
     print("=" * 60)

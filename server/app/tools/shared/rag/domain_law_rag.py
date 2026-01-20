@@ -66,23 +66,18 @@ def search_domain_law(
     domain: str | None = None,
     top_k: int = 5,
 ) -> DomainLawSearchOutput:
-    """R3. 도메인별 규제·법령 RAG 검색
-
-    분야별 주요 법령(의료법, 전자금융거래법, 데이터기본법, 신용정보법,
-    개인정보보호법, 전기통신사업법)의 조문을 검색합니다.
-
-    Args:
-        query: 검색 쿼리 (예: "원격의료 허용 범위", "전자금융거래 보안")
-        domain: 도메인 필터 (healthcare, finance, data, privacy, telecom)
-                또는 한글 (의료, 금융, 데이터, 개인정보, 통신)
-        top_k: 반환할 결과 수 (기본값: 5)
-
+    """
+    Search major statutory provisions with an optional domain filter and return structured, relevance-ranked results.
+    
+    Performs a domain-filtered retrieval over a curated vector store of statutes and regulations and returns matched provisions with metadata and a relevance score.
+    
+    Parameters:
+        query (str): Search query describing the legal issue or phrase.
+        domain (str | None): Optional domain filter; accepts standardized codes (e.g., "healthcare", "finance", "data", "privacy", "telecom") or common Korean labels (e.g., "의료", "금융", "데이터", "개인정보", "통신"). If None or empty, no domain filtering is applied.
+        top_k (int): Maximum number of results to return.
+    
     Returns:
-        관련 법령 조문 리스트 (출처 정보 포함)
-
-    Example:
-        >>> search_domain_law("비대면 진료", domain="의료")
-        >>> search_domain_law("개인신용정보 제3자 제공")
+        DomainLawSearchOutput: Object containing the list of matched DomainLawResult entries (each with content, citation, domain metadata, and a relevance_score), the total result count, the original query, and the applied normalized domain filter (or None).
     """
     vectorstore = get_vectorstore("domain_laws")
 
