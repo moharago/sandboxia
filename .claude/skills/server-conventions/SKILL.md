@@ -57,15 +57,15 @@ server/
 
 ## 네이밍 컨벤션
 
-| 대상 | 컨벤션 | 예시 |
-|------|--------|------|
-| 파일/모듈 | snake_case | `user_service.py` |
-| 클래스 | PascalCase | `UserService` |
-| 함수/변수 | snake_case | `get_user_by_id` |
-| 상수 | SCREAMING_SNAKE_CASE | `MAX_RETRIES` |
-| Pydantic 모델 | PascalCase + 접미사 | `UserCreate`, `UserResponse` |
-| 에이전트 폴더 | snake_case | `research_agent/` |
-| 노드 함수 | snake_case + _node 접미사 | `retrieve_node`, `generate_node` |
+| 대상          | 컨벤션                     | 예시                             |
+| ------------- | -------------------------- | -------------------------------- |
+| 파일/모듈     | snake_case                 | `user_service.py`                |
+| 클래스        | PascalCase                 | `UserService`                    |
+| 함수/변수     | snake_case                 | `get_user_by_id`                 |
+| 상수          | SCREAMING_SNAKE_CASE       | `MAX_RETRIES`                    |
+| Pydantic 모델 | PascalCase + 접미사        | `UserCreate`, `UserResponse`     |
+| 에이전트 폴더 | snake_case                 | `research_agent/`                |
+| 노드 함수     | snake_case + \_node 접미사 | `retrieve_node`, `generate_node` |
 
 ## FastAPI 패턴
 
@@ -159,7 +159,7 @@ class UserResponse(UserBase):
     """사용자 응답"""
     id: str
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 ```
 
@@ -210,11 +210,11 @@ async def generate_node(state: ResearchState) -> dict:
     """답변 생성 노드"""
     documents = state["documents"]
     query = state["query"]
-    
+
     response = await llm.ainvoke(
         GENERATE_PROMPT.format(context=documents, question=query)
     )
-    
+
     return {
         "answer": response.content,
         "messages": [AIMessage(content=response.content)],
@@ -252,12 +252,12 @@ def should_continue(state: ResearchState) -> str:
 def build_research_graph() -> StateGraph:
     """Research Agent 그래프 생성"""
     graph = StateGraph(ResearchState)
-    
+
     # 노드 추가
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("generate", generate_node)
     graph.add_node("grade", grade_node)
-    
+
     # 엣지 정의
     graph.set_entry_point("retrieve")
     graph.add_edge("retrieve", "generate")
@@ -270,7 +270,7 @@ def build_research_graph() -> StateGraph:
             "end": END,
         },
     )
-    
+
     return graph.compile()
 
 
@@ -288,10 +288,10 @@ from langchain_core.tools import tool
 @tool
 def search_documents(query: str) -> list[str]:
     """벡터 DB에서 관련 문서 검색
-    
+
     Args:
         query: 검색 쿼리
-        
+
     Returns:
         관련 문서 리스트
     """
@@ -299,13 +299,13 @@ def search_documents(query: str) -> list[str]:
     pass
 
 
-@tool  
+@tool
 def calculate(expression: str) -> float:
     """수학 표현식 계산
-    
+
     Args:
         expression: 계산할 수학 표현식
-        
+
     Returns:
         계산 결과
     """
@@ -376,11 +376,11 @@ def route_to_agent(state: SupervisorState) -> str:
 
 def build_supervisor_graph():
     graph = StateGraph(SupervisorState)
-    
+
     graph.add_node("supervisor", supervisor_node)
     graph.add_node("researcher", research_agent)
     graph.add_node("writer", writer_agent)
-    
+
     graph.set_entry_point("supervisor")
     graph.add_conditional_edges(
         "supervisor",
@@ -393,7 +393,7 @@ def build_supervisor_graph():
     )
     graph.add_edge("researcher", "supervisor")
     graph.add_edge("writer", "supervisor")
-    
+
     return graph.compile()
 ```
 
@@ -406,15 +406,15 @@ from app.api.schemas.user import UserCreate, UserUpdate, UserResponse
 
 class UserService:
     """사용자 관련 비즈니스 로직"""
-    
+
     async def get_by_id(self, user_id: str) -> UserResponse | None:
         """ID로 사용자 조회"""
         pass
-    
+
     async def create(self, data: UserCreate) -> UserResponse:
         """사용자 생성"""
         pass
-    
+
     async def update(self, user_id: str, data: UserUpdate) -> UserResponse:
         """사용자 수정"""
         pass
@@ -430,23 +430,23 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """애플리케이션 설정"""
-    
+
     # API
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     debug: bool = False
-    
+
     # Database
     database_url: str
-    
+
     # Vector DB
     chroma_host: str = "localhost"
     chroma_port: int = 8000
-    
+
     # LLM
     openai_api_key: str
     model_name: str = "gpt-4o-mini"
-    
+
     model_config = {"env_file": ".env"}
 
 
@@ -467,7 +467,7 @@ from fastapi import HTTPException, status
 
 class AppException(Exception):
     """애플리케이션 기본 예외"""
-    
+
     def __init__(self, message: str, status_code: int = 500):
         self.message = message
         self.status_code = status_code
@@ -1357,6 +1357,89 @@ def get_patch_history(
         변경 이력 리스트
     """
     pass
+```
+
+### Vector DB 사용 패턴
+
+RAG Tool에서 Vector DB 접근 시 `app/db/vector.py`의 헬퍼 함수를 사용합니다.
+
+```python
+# db/vector.py
+from functools import lru_cache
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+from app.core.config import settings
+
+
+@lru_cache
+def get_embeddings() -> OpenAIEmbeddings:
+    """임베딩 모델 싱글톤"""
+    return OpenAIEmbeddings(
+        model=settings.LLM_EMBEDDING_MODEL,
+        openai_api_key=settings.OPENAI_API_KEY,
+    )
+
+
+@lru_cache
+def get_vectorstore(collection_name: str = "domain_laws") -> Chroma:
+    """컬렉션별 Vector Store 싱글톤"""
+    return Chroma(
+        collection_name=collection_name,
+        embedding_function=get_embeddings(),
+        persist_directory=settings.CHROMA_PERSIST_DIR,
+    )
+```
+
+**컬렉션별 사용:**
+
+```python
+from app.db.vector import get_vectorstore
+
+# R1: 규제제도 & 절차 (향후)
+vectorstore = get_vectorstore("regulations")
+
+# R2: 승인 사례 (향후)
+vectorstore = get_vectorstore("approval_cases")
+
+# R3: 도메인별 법령
+vectorstore = get_vectorstore("domain_laws")
+```
+
+**검색 메서드:**
+
+```python
+# 유사도 검색 (점수 포함)
+docs_with_scores = vectorstore.similarity_search_with_relevance_scores(
+    query="원격의료 허용 범위",
+    k=5,
+    filter={"domain": "healthcare"},  # 메타데이터 필터
+)
+
+# 단순 검색
+docs = vectorstore.similarity_search(
+    query="전자금융거래 보안",
+    k=5,
+)
+
+# 복합 필터 (Chroma $and 연산자)
+docs = vectorstore.similarity_search(
+    query="의료법 제34조",
+    k=10,
+    filter={
+        "$and": [
+            {"law_name": {"$eq": "의료법"}},
+            {"article_no": {"$eq": "34"}},
+        ]
+    },
+)
+```
+
+**환경 변수:**
+
+```bash
+# .env
+CHROMA_PERSIST_DIR=./data/chroma
+LLM_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 ### 공용 Tool 사용 예시

@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ko-KR"
+
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  changed_files_summary: true
+  path_instructions:
+    - path: "client/**"
+      instructions: |
+        React 19, Next.js 16, TypeScript 프로젝트입니다.
+        - TanStack Query를 사용한 데이터 페칭
+        - Zustand를 사용한 상태 관리
+        - TailwindCSS 4를 사용한 스타일링
+        - 컴포넌트는 함수형 컴포넌트와 hooks 패턴 사용
+    - path: "server/**"
+      instructions: |
+        Python 3.12, FastAPI, LangGraph 기반 AI 에이전트 서버입니다.
+        - Pydantic v2를 사용한 스키마 정의
+        - LangGraph를 사용한 멀티 에이전트 구현
+        - ChromaDB를 사용한 Vector DB
+        - uv를 패키지 매니저로 사용
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "dev"
+
+chat:
+  auto_reply: true
