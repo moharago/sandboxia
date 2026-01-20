@@ -2,14 +2,6 @@
 
 분야별 주요 법령/인허가 체계, 규제 쟁점 검색.
 
-대상 법령:
-- 의료법 (healthcare)
-- 전자금융거래법 (finance)
-- 데이터 기본법 (data)
-- 신용정보법 (finance)
-- 개인정보 보호법 (privacy)
-- 전기통신사업법 (telecom)
-
 주 사용처: 1(서비스 구조화), 2(대상성 판단), 6(리스크 체크) 에이전트
 """
 
@@ -28,10 +20,8 @@ class DomainLawResult(BaseModel):
     article_title: str = Field(description="조문제목")
     paragraph_no: str = Field(description="항번호 (①②③ 등)")
     citation: str = Field(description="인용 형식 (예: 의료법 제34조 제1항)")
-    chunk_type: str = Field(description="청크 유형 (article: 조, paragraph: 항)")
     domain: str = Field(description="도메인 코드")
     domain_label: str = Field(description="도메인 한글명")
-    ministry: str = Field(description="소관부처")
     relevance_score: float = Field(description="관련도 점수")
 
 
@@ -121,10 +111,8 @@ def search_domain_law(
                 article_title=meta.get("article_title", ""),
                 paragraph_no=meta.get("paragraph_no", ""),
                 citation=meta.get("citation", ""),
-                chunk_type=meta.get("chunk_type", "article"),
                 domain=meta.get("domain", ""),
                 domain_label=meta.get("domain_label", ""),
-                ministry=meta.get("ministry", ""),
                 relevance_score=round(score, 4),
             )
         )
@@ -135,72 +123,3 @@ def search_domain_law(
         query=query,
         domain_filter=normalized_domain,
     )
-
-
-@tool
-def get_law_article(
-    law_name: str,
-    article_no: str,
-) -> list[DomainLawResult]:
-    """특정 법령의 특정 조문 조회
-
-    Args:
-        law_name: 법령명 (예: "의료법", "개인정보 보호법")
-        article_no: 조문번호 (예: "34", "15")
-
-    Returns:
-        해당 조문의 모든 항 리스트
-    """
-    vectorstore = get_vectorstore("domain_laws")
-
-    # Chroma에서 여러 조건은 $and 연산자 사용
-    results = vectorstore.similarity_search(
-        f"{law_name} 제{article_no}조",
-        k=10,
-        filter={
-            "$and": [
-                {"law_name": {"$eq": law_name}},
-                {"article_no": {"$eq": article_no}},
-            ]
-        },
-    )
-
-    if not results:
-        return []
-
-    output = []
-    for doc in results:
-        meta = doc.metadata
-        output.append(
-            DomainLawResult(
-                content=doc.page_content,
-                law_name=meta.get("law_name", ""),
-                article_no=meta.get("article_no", ""),
-                article_title=meta.get("article_title", ""),
-                paragraph_no=meta.get("paragraph_no", ""),
-                citation=meta.get("citation", ""),
-                chunk_type=meta.get("chunk_type", "article"),
-                domain=meta.get("domain", ""),
-                domain_label=meta.get("domain_label", ""),
-                ministry=meta.get("ministry", ""),
-                relevance_score=1.0,
-            )
-        )
-
-    return output
-
-
-@tool
-def list_available_laws() -> dict:
-    """사용 가능한 법령 목록 조회
-
-    Returns:
-        도메인별 법령 목록
-    """
-    return {
-        "healthcare": ["의료법"],
-        "finance": ["전자금융거래법", "신용정보의 이용 및 보호에 관한 법률"],
-        "data": ["데이터 산업진흥 및 이용촉진에 관한 기본법"],
-        "privacy": ["개인정보 보호법"],
-        "telecom": ["전기통신사업법"],
-    }
