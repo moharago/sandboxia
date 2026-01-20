@@ -1,21 +1,21 @@
 @import "tailwindcss";
-@import "@radix-ui/colors/blue.css";
-@import "@radix-ui/colors/jade.css";
+@import "@radix-ui/colors/cyan.css";
+@import "@radix-ui/colors/green.css";
 
 :root {
   /* 기본 색상 */
   --background: #ffffff;
   --foreground: #171717;
 
-  /* 그라데이션 (파랑-초록, oklch로 자연스러운 중간색) */
-  --gradient-primary: linear-gradient(135deg in oklch, var(--blue-9), var(--jade-9));
-  --gradient-primary-hover: linear-gradient(135deg in oklch, var(--blue-10), var(--jade-10));
-  --gradient-primary-soft: linear-gradient(135deg in oklch, var(--blue-4), var(--jade-4));
+  /* 그라데이션 (cyan → green, 135deg 대각선) */
+  --gradient-primary: linear-gradient(135deg, var(--cyan-11), var(--green-11));
+  --gradient-primary-hover: linear-gradient(135deg, var(--cyan-12), var(--green-12));
+  --gradient-primary-soft: linear-gradient(135deg, var(--cyan-5), var(--green-5));
 
   /* shadcn/ui 호환 색상 */
-  --primary: var(--blue-9);
+  --primary: var(--cyan-9);
   --primary-foreground: #ffffff;
-  --secondary: var(--jade-9);
+  --secondary: var(--green-9);
   --secondary-foreground: #ffffff;
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
@@ -25,7 +25,7 @@
   --destructive-foreground: #ffffff;
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --ring: var(--blue-9);
+  --ring: var(--cyan-9);
   --radius: 0.5rem;
 }
 
@@ -47,33 +47,33 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Blue 색상 */
-  --color-blue-1: var(--blue-1);
-  --color-blue-2: var(--blue-2);
-  --color-blue-3: var(--blue-3);
-  --color-blue-4: var(--blue-4);
-  --color-blue-5: var(--blue-5);
-  --color-blue-6: var(--blue-6);
-  --color-blue-7: var(--blue-7);
-  --color-blue-8: var(--blue-8);
-  --color-blue-9: var(--blue-9);
-  --color-blue-10: var(--blue-10);
-  --color-blue-11: var(--blue-11);
-  --color-blue-12: var(--blue-12);
+  /* Cyan 색상 */
+  --color-cyan-1: var(--cyan-1);
+  --color-cyan-2: var(--cyan-2);
+  --color-cyan-3: var(--cyan-3);
+  --color-cyan-4: var(--cyan-4);
+  --color-cyan-5: var(--cyan-5);
+  --color-cyan-6: var(--cyan-6);
+  --color-cyan-7: var(--cyan-7);
+  --color-cyan-8: var(--cyan-8);
+  --color-cyan-9: var(--cyan-9);
+  --color-cyan-10: var(--cyan-10);
+  --color-cyan-11: var(--cyan-11);
+  --color-cyan-12: var(--cyan-12);
 
-  /* Jade 색상 */
-  --color-jade-1: var(--jade-1);
-  --color-jade-2: var(--jade-2);
-  --color-jade-3: var(--jade-3);
-  --color-jade-4: var(--jade-4);
-  --color-jade-5: var(--jade-5);
-  --color-jade-6: var(--jade-6);
-  --color-jade-7: var(--jade-7);
-  --color-jade-8: var(--jade-8);
-  --color-jade-9: var(--jade-9);
-  --color-jade-10: var(--jade-10);
-  --color-jade-11: var(--jade-11);
-  --color-jade-12: var(--jade-12);
+  /* Green 색상 */
+  --color-green-1: var(--green-1);
+  --color-green-2: var(--green-2);
+  --color-green-3: var(--green-3);
+  --color-green-4: var(--green-4);
+  --color-green-5: var(--green-5);
+  --color-green-6: var(--green-6);
+  --color-green-7: var(--green-7);
+  --color-green-8: var(--green-8);
+  --color-green-9: var(--green-9);
+  --color-green-10: var(--green-10);
+  --color-green-11: var(--green-11);
+  --color-green-12: var(--green-12);
 
   /* shadcn/ui 호환 */
   --color-primary: var(--primary);
