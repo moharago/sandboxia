@@ -13,6 +13,7 @@ reviews:
   collapse_walkthrough: false
   sequence_diagrams: true
   changed_files_summary: true
+  tone_instructions: "항상 한국어로 리뷰해주세요. 기술 용어는 영어 그대로 사용해도 됩니다."
   path_instructions:
     - path: "client/**"
       instructions: |

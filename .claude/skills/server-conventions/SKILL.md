@@ -425,7 +425,8 @@ class UserService:
 ```python
 # core/config.py
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -436,18 +437,19 @@ class Settings(BaseSettings):
     api_port: int = 8000
     debug: bool = False
 
-    # Database
-    database_url: str
+    # LLM
+    openai_api_key: str = Field(alias="OPENAI_API_KEY")
+    llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
+    llm_embedding_model: str = Field(default="text-embedding-3-small", alias="LLM_EMBEDDING_MODEL")
 
     # Vector DB
-    chroma_host: str = "localhost"
-    chroma_port: int = 8000
+    chroma_persist_dir: str = Field(default="./data/chroma", alias="CHROMA_PERSIST_DIR")
 
-    # LLM
-    openai_api_key: str
-    model_name: str = "gpt-4o-mini"
-
-    model_config = {"env_file": ".env"}
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache
@@ -1375,8 +1377,8 @@ from app.core.config import settings
 def get_embeddings() -> OpenAIEmbeddings:
     """임베딩 모델 싱글톤"""
     return OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
+        model=settings.llm_embedding_model,
+        openai_api_key=settings.openai_api_key,
     )
 
 
@@ -1386,7 +1388,7 @@ def get_vectorstore(collection_name: str = "domain_laws") -> Chroma:
     return Chroma(
         collection_name=collection_name,
         embedding_function=get_embeddings(),
-        persist_directory=settings.CHROMA_PERSIST_DIR,
+        persist_directory=settings.chroma_persist_dir,
     )
 ```
 
@@ -1438,8 +1440,10 @@ docs = vectorstore.similarity_search(
 
 ```bash
 # .env
-CHROMA_PERSIST_DIR=./data/chroma
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
 LLM_EMBEDDING_MODEL=text-embedding-3-small
+CHROMA_PERSIST_DIR=./data/chroma
 ```
 
 ### 공용 Tool 사용 예시
