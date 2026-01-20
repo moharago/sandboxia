@@ -153,27 +153,28 @@ def get_law_article(
     """
     vectorstore = get_vectorstore("domain_laws")
 
-    # Chroma에서 여러 조건은 $and 연산자 사용
-    results = vectorstore.similarity_search(
-        f"{law_name} 제{article_no}조",
-        k=10,
-        filter={
+    # Chroma get API로 필터 조건에 맞는 모든 문서 조회
+    results = vectorstore._collection.get(
+        where={
             "$and": [
                 {"law_name": {"$eq": law_name}},
                 {"article_no": {"$eq": article_no}},
             ]
         },
+        include=["documents", "metadatas"],
     )
 
-    if not results:
+    if not results or not results.get("documents"):
         return []
 
     output = []
-    for doc in results:
-        meta = doc.metadata
+    documents = results.get("documents", [])
+    metadatas = results.get("metadatas", [])
+
+    for content, meta in zip(documents, metadatas):
         output.append(
             DomainLawResult(
-                content=doc.page_content,
+                content=content,
                 law_name=meta.get("law_name", ""),
                 article_no=meta.get("article_no", ""),
                 article_title=meta.get("article_title", ""),

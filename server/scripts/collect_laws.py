@@ -218,7 +218,7 @@ async def collect_and_store_laws():
         # 본문 조회
         law_detail = await law_api_client.get_law_detail(law_summary.mst)
         if not law_detail:
-            print(f"  ⚠️  본문 조회 실패")
+            print("  ⚠️  본문 조회 실패")
             continue
 
         print(f"  ✓ 조문 수: {len(law_detail.articles)}개")
