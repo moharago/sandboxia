@@ -55,3 +55,43 @@ def get_domain_law_retriever(
         search_kwargs["filter"] = {"domain": domain}
 
     return vectorstore.as_retriever(search_kwargs=search_kwargs)
+
+
+def get_regulation_retriever(
+    track: str | None = None,
+    category: str | None = None,
+    top_k: int = 5,
+) -> VectorStoreRetriever:
+    """규제제도 검색 리트리버 반환
+
+    Args:
+        track: 트랙 필터 (신속확인, 실증특례, 임시허가)
+        category: 카테고리 필터 (overview, definition, procedure, requirement, criteria, comparison, ministry, changes)
+        top_k: 반환할 결과 수
+
+    Returns:
+        VectorStoreRetriever 인스턴스
+    """
+    vectorstore = get_vectorstore("r1_data")
+
+    search_kwargs = {"k": top_k}
+    filter_conditions = []
+
+    if track:
+        filter_conditions.append({
+            "$or": [
+                {"track": {"$eq": track}},
+                {"track": {"$eq": "all"}},
+            ]
+        })
+
+    if category:
+        filter_conditions.append({"category": {"$eq": category}})
+
+    if filter_conditions:
+        if len(filter_conditions) == 1:
+            search_kwargs["filter"] = filter_conditions[0]
+        else:
+            search_kwargs["filter"] = {"$and": filter_conditions}
+
+    return vectorstore.as_retriever(search_kwargs=search_kwargs)
