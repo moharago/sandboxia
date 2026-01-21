@@ -19,22 +19,27 @@
 
 ---
 
-## 공용 “비-RAG” tool (재사용성이 큰 것들)
+## 공용 Utility (Tool이 아닌 함수/클래스)
 
-### C0. Evidence/인용 관리 tool
+> C0, C1, C2는 LLM이 호출하는 Tool이 아니라, 코드에서 직접 호출하는 유틸리티입니다.
+
+### C0. Evidence/인용 관리 (클래스)
 
 - 모든 RAG 결과에 대해 출처(문서ID/페이지/단락)와 스니펫을 표준 포맷으로 저장/반환
 - 주 사용처: 1~6 전부 (특히 4/6에서 강력)
+- **타입**: `EvidenceStore` 클래스
 
-### C1. Canonical 구조 변환 tool
+### C1. Canonical 구조 (데이터 모델 + 서비스)
 
-- Form data → 의미 표준(JSON) 변환
-- 주 사용처: 1에서 생성, 2~6는 입력으로만 사용
+- HWP 상담신청서 → 표준 JSON 변환 (pyhwpx, 타이틀 기반 파싱)
+- 주 사용처: API 업로드 시 서비스에서 생성, 2~6는 State 입력으로 사용
+- **타입**: `CanonicalStructure` Pydantic 모델 + `hwp_parser` 서비스
 
-### C2. Patch/Merge(증분 수정) tool
+### C2. Patch/Merge (함수)
 
 - 사용자 수정 diff를 반영하고 변경 이력 남김
 - 주 사용처: 1(구조화), 4(초안 버전), 6(수정안 반영)
+- **타입**: `apply_patch()`, `merge_patches()` 함수
 
 ---
 

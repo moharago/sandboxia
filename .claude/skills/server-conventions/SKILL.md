@@ -1172,11 +1172,13 @@ def search_domain_law(
     pass
 ```
 
-### Utility Tools (C0, C1, C2)
+### Shared Utilities (C0, C1, C2)
+
+> C0, C1, C2는 `@tool` 데코레이터를 사용하지 않는 순수 유틸리티입니다.
+> LLM이 호출하는 것이 아니라 코드에서 직접 호출합니다.
 
 ```python
 # tools/shared/utils/evidence.py
-from langchain_core.tools import tool
 from pydantic import BaseModel
 
 
@@ -1220,7 +1222,7 @@ class EvidenceStore:
 
 ```python
 # tools/shared/utils/canonical.py
-from langchain_core.tools import tool
+# C1: 데이터 모델 정의 (Tool 아님)
 from pydantic import BaseModel, Field
 
 
@@ -1286,34 +1288,8 @@ DEFAULT_TITLE_MAPPINGS = {
 }
 
 
-@tool
-def parse_hwp_application(
-    file_path: str,
-    title_mappings: dict | None = None,
-) -> CanonicalStructure:
-    """C1. HWP 상담신청서 파일을 Canonical 구조로 변환
-
-    ICT 규제샌드박스 상담신청서 HWP 파일을 파싱하여 표준 구조로 변환.
-    pyhwpx 라이브러리를 사용한 타이틀 기반 파싱 전략.
-
-    Args:
-        file_path: HWP 파일 경로
-        title_mappings: 타이틀-필드 매핑 (optional, 기본값 사용 가능)
-            예: {"회사명(소속)": "applicant.company_name"}
-
-    Returns:
-        Canonical 표준 구조 (2~6번 에이전트 공통 입력)
-
-    Example:
-        >>> parse_hwp_application("/path/to/application.hwp")
-        >>> parse_hwp_application("/path/to/app.hwp", {"신청인": "applicant.applicant_name"})
-    """
-    pass
-
-
-@tool
 def extract_canonical_summary(canonical: CanonicalStructure) -> str:
-    """Canonical 구조에서 요약 추출
+    """Canonical 구조에서 요약 추출 (유틸리티 함수)
 
     Args:
         canonical: Canonical 구조
@@ -1321,10 +1297,46 @@ def extract_canonical_summary(canonical: CanonicalStructure) -> str:
     Returns:
         서비스 요약 텍스트 (회사명, 서비스명, 상담내용 요약)
     """
-    pass
+    return f"{canonical.applicant.company_name} - {canonical.service.name}"
 ```
 
-**HWP 파싱 라이브러리:**
+**HWP 파싱 서비스 (services/hwp_parser.py):**
+
+> `parse_hwp_application`은 Tool이 아닌 서비스 함수로 구현합니다.
+
+```python
+# services/hwp_parser.py
+# C1: HWP 파싱 서비스 (Tool 아님, API에서 호출)
+from pyhwpx import Hwp
+from app.tools.shared.utils.canonical import (
+    CanonicalStructure,
+    ApplicantInfo,
+    ServiceInfo,
+    ConsultationInfo,
+    DEFAULT_TITLE_MAPPINGS,
+)
+
+
+def parse_hwp_application(
+    file_path: str,
+    title_mappings: dict | None = None,
+) -> CanonicalStructure:
+    """HWP 상담신청서 파일을 Canonical 구조로 변환
+
+    ICT 규제샌드박스 상담신청서 HWP 파일을 파싱하여 표준 구조로 변환.
+    pyhwpx 라이브러리를 사용한 타이틀 기반 파싱 전략.
+
+    Args:
+        file_path: HWP 파일 경로
+        title_mappings: 타이틀-필드 매핑 (optional, 기본값 사용 가능)
+
+    Returns:
+        CanonicalStructure 표준 구조
+    """
+    mappings = title_mappings or DEFAULT_TITLE_MAPPINGS
+    # pyhwpx로 HWP 파싱 구현
+    pass
+```
 
 ```bash
 # pyhwpx 설치 (pyproject.toml에 추가)
@@ -1332,13 +1344,13 @@ uv add pyhwpx
 ```
 
 **파싱 전략:**
-- 타이틀 기반 파싱: HWP 문서 내 정해진 타이틀(예: "회사명", "신청인")을 찾아 해당 필드에 매핑
+- 타이틀 기반 파싱: HWP 문서 내 정해진 타이틀(예: "회사명(소속)", "성명")을 찾아 해당 필드에 매핑
 - DEFAULT_TITLE_MAPPINGS에 기본 매핑 정의, 필요시 커스텀 매핑 전달 가능
 - pyhwpx로 HWP 파일 텍스트 추출 후 타이틀-값 쌍 파싱
 
 ```python
 # tools/shared/utils/patch.py
-from langchain_core.tools import tool
+# C2: Patch/Merge 유틸리티 (Tool 아님)
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -1362,14 +1374,13 @@ class PatchResult(BaseModel):
     conflicts: list[dict] | None = None
 
 
-@tool
 def apply_patch(
     original_data: dict,
     diff: dict,
     changed_by: str,
     reason: str | None = None,
 ) -> PatchResult:
-    """C2. 증분 수정 적용
+    """C2. 증분 수정 적용 (유틸리티 함수)
 
     사용자 수정 diff를 반영하고 변경 이력 기록.
 
@@ -1385,12 +1396,11 @@ def apply_patch(
     pass
 
 
-@tool
 def merge_patches(
     base_data: dict,
     patches: list[dict],
 ) -> PatchResult:
-    """C2. 여러 패치 병합
+    """C2. 여러 패치 병합 (유틸리티 함수)
 
     여러 버전의 수정 사항을 병합.
 
@@ -1404,12 +1414,11 @@ def merge_patches(
     pass
 
 
-@tool
 def get_patch_history(
     data_id: str,
     field_path: str | None = None,
 ) -> list[PatchRecord]:
-    """C2. 변경 이력 조회
+    """C2. 변경 이력 조회 (유틸리티 함수)
 
     Args:
         data_id: 데이터 ID
@@ -1506,27 +1515,28 @@ LLM_EMBEDDING_MODEL=text-embedding-3-small
 CHROMA_PERSIST_DIR=./data/chroma
 ```
 
-### 공용 Tool 사용 예시
+### 공용 RAG Tool 및 Utility 사용 예시
 
 ```python
 # agents/eligibility_evaluator/nodes.py
 from app.tools.shared.rag.regulation_rag import search_regulation, search_cases
-from app.tools.shared.utils.evidence import EvidenceStore
+from app.tools.shared.utils.evidence import EvidenceStore, Evidence
+from app.tools.shared.utils.canonical import CanonicalStructure
 
 
 async def evaluate_node(state: EligibilityState) -> dict:
     """대상성 판단 노드"""
-    canonical = state["canonical"]
-    evidence_store = EvidenceStore()
+    canonical: CanonicalStructure = state["canonical"]
+    evidence_store = EvidenceStore()  # C0 유틸리티 클래스
 
-    # 공용 RAG Tool 사용
+    # 공용 RAG Tool 사용 (R1, R2)
     regulation_results = await search_regulation(
-        query=canonical.what["description"],
+        query=canonical.service.description,  # C1 모델의 서비스 설명 사용
         top_k=5,
     )
 
     case_results = await search_cases(
-        query=canonical.what["description"],
+        query=canonical.service.description,
         domain=canonical.metadata.get("domain"),
         top_k=5,
     )
