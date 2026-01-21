@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [tool.uv]
-package = true
+package = false
 
 [tool.uv.sources]
 # 필요 시 private repo나 로컬 패키지 추가 가능
