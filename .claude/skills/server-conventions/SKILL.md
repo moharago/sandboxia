@@ -1221,44 +1221,92 @@ class EvidenceStore:
 ```python
 # tools/shared/utils/canonical.py
 from langchain_core.tools import tool
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class ApplicantInfo(BaseModel):
+    """신청자 정보"""
+    company_name: str = Field(description="회사명(소속)")
+    position: str = Field(description="직위")
+    name: str = Field(description="성명")
+    business_address: str = Field(description="사업장 주소")
+    phone: str = Field(description="연락처")
+    email: str = Field(description="전자우편(E-Mail)")
+
+
+class ServiceInfo(BaseModel):
+    """서비스 정보"""
+    name: str = Field(description="기술‧서비스 명칭")
+    description: str = Field(description="신규 정보통신융합 등 기술ᆞ서비스에 대한 설명서")
+
+
+class ConsultationInfo(BaseModel):
+    """상담 정보"""
+    desired_date: str = Field(description="상담 희망 일자 (형식: 0000년 00월 00일)")
+    consultation_content: str = Field(description="ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)")
 
 
 class CanonicalStructure(BaseModel):
-    """C1. 서비스 표준 구조"""
-    service_id: str
+    """C1. ICT 규제샌드박스 상담신청 표준 구조
 
-    # What - 서비스 정의
-    what: dict  # name, description, core_features
+    HWP 상담신청서 파일에서 파싱된 표준화된 구조.
+    2~6번 에이전트의 공통 입력으로 사용됨.
+    """
+    consultation_id: str = Field(description="상담 ID")
 
-    # Who - 이해관계자
-    who: dict  # provider, users, regulators
+    # 신청자 정보
+    applicant: ApplicantInfo
 
-    # How - 운영 방식
-    how: dict  # technology, data_flow, process
+    # 서비스 정보
+    service: ServiceInfo
 
-    # 기능 분해
-    functions: list[dict]
+    # 상담 정보
+    consultation: ConsultationInfo
 
-    # 규제 쟁점
-    regulatory_issues: list[dict]
+    # 파싱 메타데이터
+    metadata: dict = Field(description="source_file, parsed_at, confidence 등")
 
-    # 메타데이터
-    metadata: dict
+
+# HWP 파일의 타이틀-필드 매핑 (기본값)
+# 실제 ICT 규제샌드박스 상담신청서 양식 기준
+DEFAULT_TITLE_MAPPINGS = {
+    # 신청자 정보
+    "회사명(소속)": "applicant.company_name",
+    "직위": "applicant.position",
+    "성명": "applicant.name",
+    "사업장 주소": "applicant.business_address",
+    "연락처": "applicant.phone",
+    "전자우편(E-Mail)": "applicant.email",
+    # 서비스 정보
+    "기술‧서비스 명칭": "service.name",
+    "신규 정보통신융합 등 기술ᆞ서비스에 대한 설명서": "service.description",
+    # 상담 정보
+    "상담 희망 일자": "consultation.desired_date",
+    "ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)": "consultation.consultation_content",
+}
 
 
 @tool
-def convert_to_canonical(form_data: dict) -> CanonicalStructure:
-    """C1. Form 데이터를 Canonical 구조로 변환
+def parse_hwp_application(
+    file_path: str,
+    title_mappings: dict | None = None,
+) -> CanonicalStructure:
+    """C1. HWP 상담신청서 파일을 Canonical 구조로 변환
 
-    확정된 Form 데이터를 내부 표준 구조(What/Who/How)로 변환.
-    이 구조는 2~6번 에이전트의 공통 입력으로 사용됨.
+    ICT 규제샌드박스 상담신청서 HWP 파일을 파싱하여 표준 구조로 변환.
+    pyhwpx 라이브러리를 사용한 타이틀 기반 파싱 전략.
 
     Args:
-        form_data: 사용자 확정 Form 데이터
+        file_path: HWP 파일 경로
+        title_mappings: 타이틀-필드 매핑 (optional, 기본값 사용 가능)
+            예: {"회사명(소속)": "applicant.company_name"}
 
     Returns:
-        Canonical 표준 구조
+        Canonical 표준 구조 (2~6번 에이전트 공통 입력)
+
+    Example:
+        >>> parse_hwp_application("/path/to/application.hwp")
+        >>> parse_hwp_application("/path/to/app.hwp", {"신청인": "applicant.applicant_name"})
     """
     pass
 
@@ -1271,10 +1319,22 @@ def extract_canonical_summary(canonical: CanonicalStructure) -> str:
         canonical: Canonical 구조
 
     Returns:
-        서비스 요약 텍스트
+        서비스 요약 텍스트 (회사명, 서비스명, 상담내용 요약)
     """
     pass
 ```
+
+**HWP 파싱 라이브러리:**
+
+```bash
+# pyhwpx 설치 (pyproject.toml에 추가)
+uv add pyhwpx
+```
+
+**파싱 전략:**
+- 타이틀 기반 파싱: HWP 문서 내 정해진 타이틀(예: "회사명", "신청인")을 찾아 해당 필드에 매핑
+- DEFAULT_TITLE_MAPPINGS에 기본 매핑 정의, 필요시 커스텀 매핑 전달 가능
+- pyhwpx로 HWP 파일 텍스트 추출 후 타이틀-값 쌍 파싱
 
 ```python
 # tools/shared/utils/patch.py

@@ -93,7 +93,7 @@ Performs QA checks and identifies risks from reviewer's perspective.
 | Tool | 기능 | 주 사용처 |
 |------|------|----------|
 | C0. Evidence/인용 관리 | 출처·스니펫 표준 포맷 저장 | 전체 (특히 4, 6) |
-| C1. Canonical 구조 변환 | Form data → 표준 JSON | 1에서 생성, 2~6 입력 |
+| C1. Canonical 구조 변환 | HWP 파일 → 표준 JSON (pyhwpx, 타이틀 기반 파싱) | 1에서 생성, 2~6 입력 |
 | C2. Patch/Merge | 증분 수정, 변경 이력 | 1, 4, 6 |
 
 ### Agent State Pattern
