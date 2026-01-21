@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     LLM_MODEL: str
     LLM_EMBEDDING_MODEL: str
 
+    # Google Drive 설정 (RAG 데이터 다운로드용)
+    GOOGLE_DRIVE_URL: str = "https://drive.google.com/drive/folders/"
+    R1_DATA_ID: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
