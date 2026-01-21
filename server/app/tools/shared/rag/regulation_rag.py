@@ -1,9 +1,13 @@
-"""R1. 규제제도 & 절차 RAG Tool
+"""R1. 규제제도 & 절차 RAG Tool (ICT 규제샌드박스 특화)
 
-제도 정의(신속확인/실증특례/임시허가), 절차, 제출 요건, 심사 포인트, 부처별 차이 검색.
+제도 정의(신속확인/실증특례/임시허가), 절차, 제출 요건, 심사 포인트 검색.
+ICT 규제샌드박스(과학기술정보통신부) 관련 정보만 제공합니다.
 
 주 사용처: 2(대상성 판단), 3(트랙 추천), 4(신청서 작성), 6(체크리스트) 에이전트
 """
+
+# 관련도 임계값: 이 값 미만의 결과는 반환하지 않음
+RELEVANCE_THRESHOLD = 0.32
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
@@ -188,6 +192,10 @@ def search_regulation(
 
     results = []
     for doc, score in docs_with_scores:
+        # 관련도 임계값 미만인 결과는 제외
+        if score < RELEVANCE_THRESHOLD:
+            continue
+
         meta = doc.metadata
         results.append(
             RegulationResult(
