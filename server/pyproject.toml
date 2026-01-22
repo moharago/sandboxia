@@ -25,6 +25,9 @@ dependencies = [
   "chromadb>=0.5.0",
   "langchain-chroma>=0.2.0",
   "gdown>=5.2.1",
+  # Supabase & File Upload
+  "supabase>=2.0.0",
+  "python-multipart>=0.0.9",
 ]
 
 [tool.uv]

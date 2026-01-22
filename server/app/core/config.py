@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from supabase import create_client
+import os
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
@@ -21,6 +22,10 @@ class Settings(BaseSettings):
     GOOGLE_DRIVE_URL: str = "https://drive.google.com/drive/folders/"
     R1_DATA_ID: str | None = None
 
+    # Supabase 설정 (pydantic 필드로 변경)
+    SUPABASE_URL: str
+    SUPABASE_SERVICE_KEY: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -29,3 +34,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# settings 생성 후에 supabase 클라이언트 만들기
+supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
