@@ -48,8 +48,8 @@ export default function ServicePage({ params }: ServicePageProps) {
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="py-6">
+      <div className="container mx-auto px-4 space-y-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
           <p className="text-muted-foreground">

@@ -67,8 +67,8 @@ export default function TrackPage({ params }: TrackPageProps) {
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="py-6">
+      <div className="container mx-auto px-4 space-y-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
           <p className="text-muted-foreground">

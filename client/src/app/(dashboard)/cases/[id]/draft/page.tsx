@@ -53,8 +53,8 @@ export default function DraftPage({ params }: DraftPageProps) {
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="py-6">
+      <div className="container mx-auto px-4 space-y-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-2">신청서 작성</h1>
