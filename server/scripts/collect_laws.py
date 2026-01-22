@@ -7,6 +7,7 @@
 - 신용정보법 (신용정보의 이용 및 보호에 관한 법률)
 - 개인정보보호법 (개인정보 보호법)
 - 전기통신사업법
+- ICT특별법 (정보통신 진흥 및 융합 활성화 등에 관한 특별법)
 
 청킹 전략:
 - 항(①②③) 단위로 청킹 (하위 호/목 포함)
@@ -41,6 +42,7 @@ TARGET_LAWS = [
     ("신용정보의 이용 및 보호에 관한 법률", "finance"),
     ("개인정보 보호법", "privacy"),
     ("전기통신사업법", "telecom"),
+    ("정보통신 진흥 및 융합 활성화 등에 관한 특별법", "telecom"),
 ]
 
 # 도메인 매핑
@@ -218,7 +220,7 @@ async def collect_and_store_laws():
         # 본문 조회
         law_detail = await law_api_client.get_law_detail(law_summary.mst)
         if not law_detail:
-            print(f"  ⚠️  본문 조회 실패")
+            print("  ⚠️  본문 조회 실패")
             continue
 
         print(f"  ✓ 조문 수: {len(law_detail.articles)}개")

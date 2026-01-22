@@ -127,9 +127,25 @@ app/tools/shared/
 └── utils/
     ├── __init__.py
     ├── evidence.py             # C0: Evidence/인용 관리
-    ├── canonical.py            # C1: Canonical 구조 변환
+    ├── canonical.py            # C1: HWP → Canonical 구조 (pyhwpx, 타이틀 기반 파싱)
     └── patch.py                # C2: Patch/Merge
 ```
+
+### C1 Canonical 구조 (HWP 파싱)
+
+ICT 규제샌드박스 상담신청서 HWP 파일을 표준 구조로 변환:
+
+```python
+class CanonicalStructure(BaseModel):
+    consultation_id: str          # 상담 ID
+    applicant: ApplicantInfo      # 회사명(소속), 직위, 성명, 사업장 주소, 연락처, 전자우편
+    service: ServiceInfo          # 기술‧서비스 명칭, 설명서
+    consultation: ConsultationInfo  # 상담 희망 일자, 상담내용(규제사안 및 문의사항)
+    metadata: dict                # source_file, parsed_at 등
+```
+
+- **파싱 라이브러리**: pyhwpx
+- **파싱 전략**: 타이틀 기반 (예: "회사명(소속)", "성명" 등 정해진 타이틀로 필드 매핑)
 
 ## 개발 명령어
 

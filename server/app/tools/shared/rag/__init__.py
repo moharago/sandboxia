@@ -4,7 +4,7 @@
 from app.tools.shared.rag.domain_law_rag import (
     search_domain_law,
     get_law_article,
-    list_available_laws,
+    list_available_laws
 )
 
 # R1. 규제제도 & 절차 RAG

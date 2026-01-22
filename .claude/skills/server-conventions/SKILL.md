@@ -57,15 +57,15 @@ server/
 
 ## 네이밍 컨벤션
 
-| 대상 | 컨벤션 | 예시 |
-|------|--------|------|
-| 파일/모듈 | snake_case | `user_service.py` |
-| 클래스 | PascalCase | `UserService` |
-| 함수/변수 | snake_case | `get_user_by_id` |
-| 상수 | SCREAMING_SNAKE_CASE | `MAX_RETRIES` |
-| Pydantic 모델 | PascalCase + 접미사 | `UserCreate`, `UserResponse` |
-| 에이전트 폴더 | snake_case | `research_agent/` |
-| 노드 함수 | snake_case + _node 접미사 | `retrieve_node`, `generate_node` |
+| 대상          | 컨벤션                     | 예시                             |
+| ------------- | -------------------------- | -------------------------------- |
+| 파일/모듈     | snake_case                 | `user_service.py`                |
+| 클래스        | PascalCase                 | `UserService`                    |
+| 함수/변수     | snake_case                 | `get_user_by_id`                 |
+| 상수          | SCREAMING_SNAKE_CASE       | `MAX_RETRIES`                    |
+| Pydantic 모델 | PascalCase + 접미사        | `UserCreate`, `UserResponse`     |
+| 에이전트 폴더 | snake_case                 | `research_agent/`                |
+| 노드 함수     | snake_case + \_node 접미사 | `retrieve_node`, `generate_node` |
 
 ## FastAPI 패턴
 
@@ -159,7 +159,7 @@ class UserResponse(UserBase):
     """사용자 응답"""
     id: str
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 ```
 
@@ -210,11 +210,11 @@ async def generate_node(state: ResearchState) -> dict:
     """답변 생성 노드"""
     documents = state["documents"]
     query = state["query"]
-    
+
     response = await llm.ainvoke(
         GENERATE_PROMPT.format(context=documents, question=query)
     )
-    
+
     return {
         "answer": response.content,
         "messages": [AIMessage(content=response.content)],
@@ -252,12 +252,12 @@ def should_continue(state: ResearchState) -> str:
 def build_research_graph() -> StateGraph:
     """Research Agent 그래프 생성"""
     graph = StateGraph(ResearchState)
-    
+
     # 노드 추가
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("generate", generate_node)
     graph.add_node("grade", grade_node)
-    
+
     # 엣지 정의
     graph.set_entry_point("retrieve")
     graph.add_edge("retrieve", "generate")
@@ -270,7 +270,7 @@ def build_research_graph() -> StateGraph:
             "end": END,
         },
     )
-    
+
     return graph.compile()
 
 
@@ -288,10 +288,10 @@ from langchain_core.tools import tool
 @tool
 def search_documents(query: str) -> list[str]:
     """벡터 DB에서 관련 문서 검색
-    
+
     Args:
         query: 검색 쿼리
-        
+
     Returns:
         관련 문서 리스트
     """
@@ -299,13 +299,13 @@ def search_documents(query: str) -> list[str]:
     pass
 
 
-@tool  
+@tool
 def calculate(expression: str) -> float:
     """수학 표현식 계산
-    
+
     Args:
         expression: 계산할 수학 표현식
-        
+
     Returns:
         계산 결과
     """
@@ -376,11 +376,11 @@ def route_to_agent(state: SupervisorState) -> str:
 
 def build_supervisor_graph():
     graph = StateGraph(SupervisorState)
-    
+
     graph.add_node("supervisor", supervisor_node)
     graph.add_node("researcher", research_agent)
     graph.add_node("writer", writer_agent)
-    
+
     graph.set_entry_point("supervisor")
     graph.add_conditional_edges(
         "supervisor",
@@ -393,7 +393,7 @@ def build_supervisor_graph():
     )
     graph.add_edge("researcher", "supervisor")
     graph.add_edge("writer", "supervisor")
-    
+
     return graph.compile()
 ```
 
@@ -406,15 +406,15 @@ from app.api.schemas.user import UserCreate, UserUpdate, UserResponse
 
 class UserService:
     """사용자 관련 비즈니스 로직"""
-    
+
     async def get_by_id(self, user_id: str) -> UserResponse | None:
         """ID로 사용자 조회"""
         pass
-    
+
     async def create(self, data: UserCreate) -> UserResponse:
         """사용자 생성"""
         pass
-    
+
     async def update(self, user_id: str, data: UserUpdate) -> UserResponse:
         """사용자 수정"""
         pass
@@ -425,29 +425,31 @@ class UserService:
 ```python
 # core/config.py
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """애플리케이션 설정"""
-    
+
     # API
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     debug: bool = False
-    
-    # Database
-    database_url: str
-    
-    # Vector DB
-    chroma_host: str = "localhost"
-    chroma_port: int = 8000
-    
+
     # LLM
-    openai_api_key: str
-    model_name: str = "gpt-4o-mini"
-    
-    model_config = {"env_file": ".env"}
+    openai_api_key: str = Field(alias="OPENAI_API_KEY")
+    llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
+    llm_embedding_model: str = Field(default="text-embedding-3-small", alias="LLM_EMBEDDING_MODEL")
+
+    # Vector DB
+    chroma_persist_dir: str = Field(default="./data/chroma", alias="CHROMA_PERSIST_DIR")
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache
@@ -467,7 +469,7 @@ from fastapi import HTTPException, status
 
 class AppException(Exception):
     """애플리케이션 기본 예외"""
-    
+
     def __init__(self, message: str, status_code: int = 500):
         self.message = message
         self.status_code = status_code
@@ -1170,11 +1172,13 @@ def search_domain_law(
     pass
 ```
 
-### Utility Tools (C0, C1, C2)
+### Shared Utilities (C0, C1, C2)
+
+> C0, C1, C2는 `@tool` 데코레이터를 사용하지 않는 순수 유틸리티입니다.
+> LLM이 호출하는 것이 아니라 코드에서 직접 호출합니다.
 
 ```python
 # tools/shared/utils/evidence.py
-from langchain_core.tools import tool
 from pydantic import BaseModel
 
 
@@ -1218,65 +1222,135 @@ class EvidenceStore:
 
 ```python
 # tools/shared/utils/canonical.py
-from langchain_core.tools import tool
-from pydantic import BaseModel
+# C1: 데이터 모델 정의 (Tool 아님)
+from pydantic import BaseModel, Field
+
+
+class ApplicantInfo(BaseModel):
+    """신청자 정보"""
+    company_name: str = Field(description="회사명(소속)")
+    position: str = Field(description="직위")
+    name: str = Field(description="성명")
+    business_address: str = Field(description="사업장 주소")
+    phone: str = Field(description="연락처")
+    email: str = Field(description="전자우편(E-Mail)")
+
+
+class ServiceInfo(BaseModel):
+    """서비스 정보"""
+    name: str = Field(description="기술‧서비스 명칭")
+    description: str = Field(description="신규 정보통신융합 등 기술ᆞ서비스에 대한 설명서")
+
+
+class ConsultationInfo(BaseModel):
+    """상담 정보"""
+    desired_date: str = Field(description="상담 희망 일자 (형식: 0000년 00월 00일)")
+    consultation_content: str = Field(description="ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)")
 
 
 class CanonicalStructure(BaseModel):
-    """C1. 서비스 표준 구조"""
-    service_id: str
+    """C1. ICT 규제샌드박스 상담신청 표준 구조
 
-    # What - 서비스 정의
-    what: dict  # name, description, core_features
-
-    # Who - 이해관계자
-    who: dict  # provider, users, regulators
-
-    # How - 운영 방식
-    how: dict  # technology, data_flow, process
-
-    # 기능 분해
-    functions: list[dict]
-
-    # 규제 쟁점
-    regulatory_issues: list[dict]
-
-    # 메타데이터
-    metadata: dict
-
-
-@tool
-def convert_to_canonical(form_data: dict) -> CanonicalStructure:
-    """C1. Form 데이터를 Canonical 구조로 변환
-
-    확정된 Form 데이터를 내부 표준 구조(What/Who/How)로 변환.
-    이 구조는 2~6번 에이전트의 공통 입력으로 사용됨.
-
-    Args:
-        form_data: 사용자 확정 Form 데이터
-
-    Returns:
-        Canonical 표준 구조
+    HWP 상담신청서 파일에서 파싱된 표준화된 구조.
+    2~6번 에이전트의 공통 입력으로 사용됨.
     """
-    pass
+    consultation_id: str = Field(description="상담 ID")
+
+    # 신청자 정보
+    applicant: ApplicantInfo
+
+    # 서비스 정보
+    service: ServiceInfo
+
+    # 상담 정보
+    consultation: ConsultationInfo
+
+    # 파싱 메타데이터
+    metadata: dict = Field(description="source_file, parsed_at, confidence 등")
 
 
-@tool
+# HWP 파일의 타이틀-필드 매핑 (기본값)
+# 실제 ICT 규제샌드박스 상담신청서 양식 기준
+DEFAULT_TITLE_MAPPINGS = {
+    # 신청자 정보
+    "회사명(소속)": "applicant.company_name",
+    "직위": "applicant.position",
+    "성명": "applicant.name",
+    "사업장 주소": "applicant.business_address",
+    "연락처": "applicant.phone",
+    "전자우편(E-Mail)": "applicant.email",
+    # 서비스 정보
+    "기술‧서비스 명칭": "service.name",
+    "신규 정보통신융합 등 기술ᆞ서비스에 대한 설명서": "service.description",
+    # 상담 정보
+    "상담 희망 일자": "consultation.desired_date",
+    "ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)": "consultation.consultation_content",
+}
+
+
 def extract_canonical_summary(canonical: CanonicalStructure) -> str:
-    """Canonical 구조에서 요약 추출
+    """Canonical 구조에서 요약 추출 (유틸리티 함수)
 
     Args:
         canonical: Canonical 구조
 
     Returns:
-        서비스 요약 텍스트
+        서비스 요약 텍스트 (회사명, 서비스명, 상담내용 요약)
     """
+    return f"{canonical.applicant.company_name} - {canonical.service.name}"
+```
+
+**HWP 파싱 서비스 (services/hwp_parser.py):**
+
+> `parse_hwp_application`은 Tool이 아닌 서비스 함수로 구현합니다.
+
+```python
+# services/hwp_parser.py
+# C1: HWP 파싱 서비스 (Tool 아님, API에서 호출)
+from pyhwpx import Hwp
+from app.tools.shared.utils.canonical import (
+    CanonicalStructure,
+    ApplicantInfo,
+    ServiceInfo,
+    ConsultationInfo,
+    DEFAULT_TITLE_MAPPINGS,
+)
+
+
+def parse_hwp_application(
+    file_path: str,
+    title_mappings: dict | None = None,
+) -> CanonicalStructure:
+    """HWP 상담신청서 파일을 Canonical 구조로 변환
+
+    ICT 규제샌드박스 상담신청서 HWP 파일을 파싱하여 표준 구조로 변환.
+    pyhwpx 라이브러리를 사용한 타이틀 기반 파싱 전략.
+
+    Args:
+        file_path: HWP 파일 경로
+        title_mappings: 타이틀-필드 매핑 (optional, 기본값 사용 가능)
+
+    Returns:
+        CanonicalStructure 표준 구조
+    """
+    mappings = title_mappings or DEFAULT_TITLE_MAPPINGS
+    # pyhwpx로 HWP 파싱 구현
     pass
 ```
 
+```bash
+# pyhwpx 설치 (pyproject.toml에 추가)
+uv add pyhwpx
+```
+
+**파싱 전략:**
+- 타이틀 기반 파싱: HWP 문서 내 정해진 타이틀(예: "회사명(소속)", "성명")을 찾아 해당 필드에 매핑
+- DEFAULT_TITLE_MAPPINGS에 기본 매핑 정의, 필요시 커스텀 매핑 전달 가능
+- pyhwpx로 HWP 파일 텍스트 추출 후 타이틀-값 쌍 파싱
+
 ```python
 # tools/shared/utils/patch.py
-from langchain_core.tools import tool
+# C2: Patch/Merge 유틸리티 (Tool 아님)
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -1300,14 +1374,13 @@ class PatchResult(BaseModel):
     conflicts: list[dict] | None = None
 
 
-@tool
 def apply_patch(
     original_data: dict,
     diff: dict,
     changed_by: str,
     reason: str | None = None,
 ) -> PatchResult:
-    """C2. 증분 수정 적용
+    """C2. 증분 수정 적용 (유틸리티 함수)
 
     사용자 수정 diff를 반영하고 변경 이력 기록.
 
@@ -1323,12 +1396,11 @@ def apply_patch(
     pass
 
 
-@tool
 def merge_patches(
     base_data: dict,
     patches: list[dict],
 ) -> PatchResult:
-    """C2. 여러 패치 병합
+    """C2. 여러 패치 병합 (유틸리티 함수)
 
     여러 버전의 수정 사항을 병합.
 
@@ -1342,12 +1414,11 @@ def merge_patches(
     pass
 
 
-@tool
 def get_patch_history(
     data_id: str,
     field_path: str | None = None,
 ) -> list[PatchRecord]:
-    """C2. 변경 이력 조회
+    """C2. 변경 이력 조회 (유틸리티 함수)
 
     Args:
         data_id: 데이터 ID
@@ -1359,27 +1430,113 @@ def get_patch_history(
     pass
 ```
 
-### 공용 Tool 사용 예시
+### Vector DB 사용 패턴
+
+RAG Tool에서 Vector DB 접근 시 `app/db/vector.py`의 헬퍼 함수를 사용합니다.
+
+```python
+# db/vector.py
+from functools import lru_cache
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+from app.core.config import settings
+
+
+@lru_cache
+def get_embeddings() -> OpenAIEmbeddings:
+    """임베딩 모델 싱글톤"""
+    return OpenAIEmbeddings(
+        model=settings.llm_embedding_model,
+        openai_api_key=settings.openai_api_key,
+    )
+
+
+@lru_cache
+def get_vectorstore(collection_name: str = "domain_laws") -> Chroma:
+    """컬렉션별 Vector Store 싱글톤"""
+    return Chroma(
+        collection_name=collection_name,
+        embedding_function=get_embeddings(),
+        persist_directory=settings.chroma_persist_dir,
+    )
+```
+
+**컬렉션별 사용:**
+
+```python
+from app.db.vector import get_vectorstore
+
+# R1: 규제제도 & 절차 (향후)
+vectorstore = get_vectorstore("regulations")
+
+# R2: 승인 사례 (향후)
+vectorstore = get_vectorstore("approval_cases")
+
+# R3: 도메인별 법령
+vectorstore = get_vectorstore("domain_laws")
+```
+
+**검색 메서드:**
+
+```python
+# 유사도 검색 (점수 포함)
+docs_with_scores = vectorstore.similarity_search_with_relevance_scores(
+    query="원격의료 허용 범위",
+    k=5,
+    filter={"domain": "healthcare"},  # 메타데이터 필터
+)
+
+# 단순 검색
+docs = vectorstore.similarity_search(
+    query="전자금융거래 보안",
+    k=5,
+)
+
+# 복합 필터 (Chroma $and 연산자)
+docs = vectorstore.similarity_search(
+    query="의료법 제34조",
+    k=10,
+    filter={
+        "$and": [
+            {"law_name": {"$eq": "의료법"}},
+            {"article_no": {"$eq": "34"}},
+        ]
+    },
+)
+```
+
+**환경 변수:**
+
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
+LLM_EMBEDDING_MODEL=text-embedding-3-small
+CHROMA_PERSIST_DIR=./data/chroma
+```
+
+### 공용 RAG Tool 및 Utility 사용 예시
 
 ```python
 # agents/eligibility_evaluator/nodes.py
 from app.tools.shared.rag.regulation_rag import search_regulation, search_cases
-from app.tools.shared.utils.evidence import EvidenceStore
+from app.tools.shared.utils.evidence import EvidenceStore, Evidence
+from app.tools.shared.utils.canonical import CanonicalStructure
 
 
 async def evaluate_node(state: EligibilityState) -> dict:
     """대상성 판단 노드"""
-    canonical = state["canonical"]
-    evidence_store = EvidenceStore()
+    canonical: CanonicalStructure = state["canonical"]
+    evidence_store = EvidenceStore()  # C0 유틸리티 클래스
 
-    # 공용 RAG Tool 사용
+    # 공용 RAG Tool 사용 (R1, R2)
     regulation_results = await search_regulation(
-        query=canonical.what["description"],
+        query=canonical.service.description,  # C1 모델의 서비스 설명 사용
         top_k=5,
     )
 
     case_results = await search_cases(
-        query=canonical.what["description"],
+        query=canonical.service.description,
         domain=canonical.metadata.get("domain"),
         top_k=5,
     )

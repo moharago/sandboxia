@@ -89,12 +89,12 @@ Performs QA checks and identifies risks from reviewer's perspective.
 | R2. 승인 사례 RAG | 승인/반려 사례, 조건, 실증 범위 | 2, 5, 6 |
 | R3. 도메인별 규제·법령 RAG | 분야별 법령/인허가 체계 | 1, 2, 6 |
 
-**Utility Tools** - 재사용 가능한 공통 기능:
-| Tool | 기능 | 주 사용처 |
-|------|------|----------|
-| C0. Evidence/인용 관리 | 출처·스니펫 표준 포맷 저장 | 전체 (특히 4, 6) |
-| C1. Canonical 구조 변환 | Form data → 표준 JSON | 1에서 생성, 2~6 입력 |
-| C2. Patch/Merge | 증분 수정, 변경 이력 | 1, 4, 6 |
+**Shared Utilities** - 재사용 가능한 공통 유틸리티 (Tool이 아닌 함수/클래스):
+| Utility | 기능 | 주 사용처 |
+|---------|------|----------|
+| C0. Evidence/인용 관리 | 출처·스니펫 표준 포맷 저장 (클래스) | 전체 (특히 4, 6) |
+| C1. Canonical 구조 | HWP 파일 → 표준 JSON (pyhwpx, 타이틀 기반 파싱) - 데이터 모델 + 파싱 서비스 | 1에서 생성, 2~6 입력 |
+| C2. Patch/Merge | 증분 수정, 변경 이력 (함수) | 1, 4, 6 |
 
 ### Agent State Pattern
 Agent state uses `TypedDict` with message accumulation. Recursion limit is set to 15 to prevent infinite loops.
@@ -127,3 +127,4 @@ Agent state uses `TypedDict` with message accumulation. Recursion limit is set t
 - `feature/agent-{name}`: Agent development
 - `feature/func-{name}`: Feature development
 - `feature/uiux`: Client UI development
+- `feature/db-{name}`: Database schema & API development

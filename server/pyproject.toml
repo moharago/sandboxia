@@ -24,10 +24,14 @@ dependencies = [
   # Vector DB
   "chromadb>=0.5.0",
   "langchain-chroma>=0.2.0",
+  "gdown>=5.2.1",
+  # Supabase & File Upload
+  "supabase>=2.0.0",
+  "python-multipart>=0.0.9",
 ]
 
 [tool.uv]
-package = true
+package = false
 
 [tool.uv.sources]
 # 필요 시 private repo나 로컬 패키지 추가 가능
