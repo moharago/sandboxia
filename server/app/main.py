@@ -2,11 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.sample import router as agent_router
+from app.api.routes import users, projects, files 
 from app.core.config import settings
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="MindBridge API", version="0.1.0")
+    app = FastAPI(
+        title="SandboxIA API", 
+        description="규제 샌드박스 컨설팅 AI 서비스 API",
+        version="0.1.0"
+    )
 
     origins = [
         origin.strip()
@@ -27,8 +32,17 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # 라우터 등록
     app.include_router(agent_router)
+    app.include_router(users.router, prefix="/api", tags=["Users"])
+    app.include_router(projects.router, prefix="/api", tags=["Projects"])
+    app.include_router(files.router, prefix="/api", tags=["Files"])
+
     return app
 
 
 app = create_app()
+
+@app.get("/")
+async def root():
+    return {"message": "SandboxIA API 서버 실행 중"}

@@ -127,3 +127,4 @@ Agent state uses `TypedDict` with message accumulation. Recursion limit is set t
 - `feature/agent-{name}`: Agent development
 - `feature/func-{name}`: Feature development
 - `feature/uiux`: Client UI development
+- `feature/db-{name}`: Database schema & API development

@@ -6,6 +6,7 @@
 - **Package**: uv (Python 3.12)
 - **AI**: LangGraph, LangChain, OpenAI GPT-4o-mini
 - **VectorDB**: ChromaDB
+- **Database**: Supabase (PostgreSQL)
 - **Integrations**: 법령정보 API (law.go.kr)
 - **Libraries**: Pydantic, httpx
 
@@ -64,25 +65,48 @@ LLM_EMBEDDING_MODEL=text-embedding-3-small
 
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
+# Google Drive (RAG 데이터)
+GOOGLE_DRIVE_URL=https://drive.google.com/drive/folders/
+R1_DATA_ID=your-folder-id
+
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+
 ```
+
+### Supabase 설정
+
+1. [Supabase](https://supabase.com)에서 프로젝트 생성
+2. Project Settings > API에서 URL과 service_role key 복사
+3. `.env`에 `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` 설정
 
 ### 3. Vector DB 구축 (필수)
 
-법령 데이터를 수집하여 Vector DB를 생성합니다.
+RAG 데이터를 수집하여 Vector DB를 생성합니다.
 
 ```bash
+# R1: 규제제도 데이터 (Google Drive에서 다운로드)
+uv run python scripts/collect_regulations.py
+
+# R3: 법령 데이터 (법령 API에서 수집)
 uv run python scripts/collect_laws.py
 ```
 
-수집 대상 법령:
+**R1 수집 대상 (규제제도):**
+- ICT 규제샌드박스 제도 정의, 절차, 요건, 심사기준
+
+**R3 수집 대상 (법령):**
 - 의료법
 - 전자금융거래법
 - 데이터 산업진흥 및 이용촉진에 관한 기본법
 - 신용정보의 이용 및 보호에 관한 법률
 - 개인정보 보호법
 - 전기통신사업법
+- 정보통신 진흥 및 융합 활성화 등에 관한 특별법
 
-> **Note**: Vector DB(`data/chroma/`)는 Git에 포함되지 않습니다. 코드를 pull 받은 후 반드시 이 스크립트를 실행하세요.
+> **Note**: Vector DB(`data/chroma/`)는 Git에 포함되지 않습니다. 코드를 pull 받은 후 반드시 스크립트를 실행하세요.
 
 ### 4. 서버 실행
 
@@ -115,16 +139,24 @@ http://127.0.0.1:8000/docs
 ## 테스트
 
 ```bash
-# RAG Tool 테스트
+# R1 규제제도 RAG 테스트
+uv run python test/regulation_rag.py
+
+# R3 법령 RAG 테스트
 uv run python test/domain_law_rag.py
 ```
 
 ## 데이터 갱신
 
-법령이 개정되었거나 Vector DB를 재구축해야 할 경우:
+데이터가 변경되었거나 Vector DB를 재구축해야 할 경우:
 
 ```bash
 # 기존 데이터 삭제 후 재수집
 rm -rf data/chroma
+
+# R1: 규제제도 데이터
+uv run python scripts/collect_regulations.py
+
+# R3: 법령 데이터
 uv run python scripts/collect_laws.py
 ```
