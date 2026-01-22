@@ -43,44 +43,42 @@ client/src/
 
 ## 네이밍 컨벤션
 
-| 대상 | 컨벤션 | 예시 |
-|------|--------|------|
-| 컴포넌트 파일 | PascalCase | `UserProfile.tsx` |
-| 훅 파일 | kebab-case, use- 접두사 | `use-auth.ts` |
-| 유틸리티 | kebab-case | `format-date.ts` |
-| 타입 파일 | kebab-case | `user-types.ts` |
-| 상수 | SCREAMING_SNAKE_CASE | `API_BASE_URL` |
-| 컴포넌트명 | PascalCase | `UserProfile` |
-| 함수/변수 | camelCase | `getUserData` |
-| 타입/인터페이스 | PascalCase | `UserProfile` |
-| Zustand 스토어 | use + 도메인 + Store | `useAuthStore` |
-| Query 훅 | use + 동작 + Query | `useUserQuery` |
-| Mutation 훅 | use + 동작 + Mutation | `useLoginMutation` |
+| 대상            | 컨벤션                  | 예시               |
+| --------------- | ----------------------- | ------------------ |
+| 컴포넌트 파일   | PascalCase              | `UserProfile.tsx`  |
+| 훅 파일         | kebab-case, use- 접두사 | `use-auth.ts`      |
+| 유틸리티        | kebab-case              | `format-date.ts`   |
+| 타입 파일       | kebab-case              | `user-types.ts`    |
+| 상수            | SCREAMING_SNAKE_CASE    | `API_BASE_URL`     |
+| 컴포넌트명      | PascalCase              | `UserProfile`      |
+| 함수/변수       | camelCase               | `getUserData`      |
+| 타입/인터페이스 | PascalCase              | `UserProfile`      |
+| Zustand 스토어  | use + 도메인 + Store    | `useAuthStore`     |
+| Query 훅        | use + 동작 + Query      | `useUserQuery`     |
+| Mutation 훅     | use + 동작 + Mutation   | `useLoginMutation` |
 
 ## 컴포넌트 패턴
 
 ### 기본 구조
 
 ```tsx
-'use client'; // 필요시에만
+"use client"; // 필요시에만
 
-import { useState } from 'react';
-import type { UserCardProps } from '@/types/components';
+import { useState } from "react";
+import type { UserCardProps } from "@/types/components";
 
 export function UserCard({ user, onSelect }: UserCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div 
+    <div
       className="rounded-lg border p-4 hover:shadow-md"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <h3 className="text-lg font-semibold">{user.name}</h3>
       <p className="text-gray-600">{user.email}</p>
-      {isHovered && (
-        <button onClick={() => onSelect(user.id)}>선택</button>
-      )}
+      {isHovered && <button onClick={() => onSelect(user.id)}>선택</button>}
     </div>
   );
 }
@@ -100,15 +98,15 @@ export function UserCard({ user, onSelect }: UserCardProps) {
 
 ```tsx
 // hooks/queries/use-user-query.ts
-import { useQuery } from '@tanstack/react-query';
-import { userApi } from '@/lib/api/user';
-import type { User } from '@/types/api';
+import { useQuery } from "@tanstack/react-query";
+import { userApi } from "@/lib/api/user";
+import type { User } from "@/types/api";
 
 export const userKeys = {
-  all: ['users'] as const,
-  lists: () => [...userKeys.all, 'list'] as const,
+  all: ["users"] as const,
+  lists: () => [...userKeys.all, "list"] as const,
   list: (filters: UserFilters) => [...userKeys.lists(), filters] as const,
-  details: () => [...userKeys.all, 'detail'] as const,
+  details: () => [...userKeys.all, "detail"] as const,
   detail: (id: string) => [...userKeys.details(), id] as const,
 };
 
@@ -126,9 +124,9 @@ export function useUserQuery(userId: string) {
 
 ```tsx
 // hooks/mutations/use-update-user-mutation.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { userApi } from '@/lib/api/user';
-import { userKeys } from '@/hooks/queries/use-user-query';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { userApi } from "@/lib/api/user";
+import { userKeys } from "@/hooks/queries/use-user-query";
 
 export function useUpdateUserMutation() {
   const queryClient = useQueryClient();
@@ -136,7 +134,9 @@ export function useUpdateUserMutation() {
   return useMutation({
     mutationFn: userApi.updateUser,
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: userKeys.detail(variables.id),
+      });
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },
   });
@@ -154,9 +154,9 @@ export function useUpdateUserMutation() {
 
 ```tsx
 // stores/auth-store.ts
-import { create } from 'zustand';
-import { persist, devtools } from 'zustand/middleware';
-import type { User } from '@/types/api';
+import { create } from "zustand";
+import { persist, devtools } from "zustand/middleware";
+import type { User } from "@/types/api";
 
 interface AuthState {
   user: User | null;
@@ -182,14 +182,15 @@ export const useAuthStore = create<AuthStore>()(
         setUser: (user) => set({ user, isAuthenticated: true }),
         logout: () => set({ user: null, isAuthenticated: false }),
       }),
-      { name: 'auth-storage' }
+      { name: "auth-storage" }
     )
   )
 );
 
 // Selector 훅 (리렌더링 최적화)
 export const useUser = () => useAuthStore((state) => state.user);
-export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
+export const useIsAuthenticated = () =>
+  useAuthStore((state) => state.isAuthenticated);
 ```
 
 ### 규칙
@@ -206,10 +207,13 @@ export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenti
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 class ApiClient {
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options?: RequestInit
+  ): Promise<T> {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options?.headers,
       },
       ...options,
@@ -228,7 +232,7 @@ class ApiClient {
 
   post<T>(endpoint: string, data: unknown) {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -241,13 +245,14 @@ export const apiClient = new ApiClient();
 
 ```tsx
 // lib/api/user.ts
-import { apiClient } from './client';
-import type { User, UpdateUserRequest } from '@/types/api';
+import { apiClient } from "./client";
+import type { User, UpdateUserRequest } from "@/types/api";
 
 export const userApi = {
   getUser: (id: string) => apiClient.get<User>(`/users/${id}`),
-  getUsers: () => apiClient.get<User[]>('/users'),
-  updateUser: (data: UpdateUserRequest) => apiClient.put<User>(`/users/${data.id}`, data),
+  getUsers: () => apiClient.get<User[]>("/users"),
+  updateUser: (data: UpdateUserRequest) =>
+    apiClient.put<User>(`/users/${data.id}`, data),
 };
 ```
 
@@ -275,13 +280,13 @@ export interface UpdateUserRequest {
 }
 
 // types/api/index.ts
-export * from './user';
-export * from './auth';
+export * from "./user";
+export * from "./auth";
 ```
 
 ```tsx
 // types/components/user.ts
-import type { User } from '@/types/api';
+import type { User } from "@/types/api";
 
 export interface UserCardProps {
   user: User;
@@ -309,8 +314,8 @@ export interface UserListProps {
 
 ```tsx
 // lib/utils/cn.ts
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -321,34 +326,38 @@ export function cn(...inputs: ClassValue[]) {
 
 ```tsx
 // components/ui/button.tsx
-import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils/cn';
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils/cn";
 
 const buttonVariants = cva(
   // 기본 스타일
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
-        outline: 'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+        default:
+          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-10 rounded-md px-8',
-        icon: 'h-9 w-9',
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
-      variant: 'default',
-      size: 'default',
+      variant: "default",
+      size: "default",
     },
   }
 );
@@ -361,7 +370,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
+    const Comp = asChild ? Slot : "button";
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
@@ -371,7 +380,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   }
 );
-Button.displayName = 'Button';
+Button.displayName = "Button";
 
 export { Button, buttonVariants };
 ```
@@ -380,10 +389,11 @@ export { Button, buttonVariants };
 
 ```tsx
 // components/ui/input.tsx
-import * as React from 'react';
-import { cn } from '@/lib/utils/cn';
+import * as React from "react";
+import { cn } from "@/lib/utils/cn";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
@@ -391,7 +401,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         ref={ref}
@@ -400,7 +410,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     );
   }
 );
-Input.displayName = 'Input';
+Input.displayName = "Input";
 
 export { Input };
 ```
@@ -409,13 +419,13 @@ export { Input };
 
 ```tsx
 // components/ui/label.tsx
-import * as React from 'react';
-import * as LabelPrimitive from '@radix-ui/react-label';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils/cn';
+import * as React from "react";
+import * as LabelPrimitive from "@radix-ui/react-label";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils/cn";
 
 const labelVariants = cva(
-  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+  "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 );
 
 const Label = React.forwardRef<
@@ -423,7 +433,11 @@ const Label = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
     VariantProps<typeof labelVariants>
 >(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root ref={ref} className={cn(labelVariants(), className)} {...props} />
+  <LabelPrimitive.Root
+    ref={ref}
+    className={cn(labelVariants(), className)}
+    {...props}
+  />
 ));
 Label.displayName = LabelPrimitive.Root.displayName;
 
@@ -434,12 +448,12 @@ export { Label };
 
 ```tsx
 // components/ui/select.tsx
-'use client';
+"use client";
 
-import * as React from 'react';
-import * as SelectPrimitive from '@radix-ui/react-select';
-import { Check, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import * as React from "react";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import { Check, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
@@ -452,7 +466,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className
     )}
     {...props}
@@ -468,18 +482,20 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = 'popper', ...props }, ref) => (
+>(({ className, children, position = "popper", ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
         className
       )}
       position={position}
       {...props}
     >
-      <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
+      <SelectPrimitive.Viewport className="p-1">
+        {children}
+      </SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ));
@@ -492,7 +508,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
@@ -507,19 +523,26 @@ const SelectItem = React.forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem };
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+};
 ```
 
 ### Dialog (모달) 컴포넌트
 
 ```tsx
 // components/ui/dialog.tsx
-'use client';
+"use client";
 
-import * as React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -533,7 +556,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -550,7 +573,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg',
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
       {...props}
@@ -565,15 +588,33 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
-const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col space-y-1.5 text-center sm:text-left', className)} {...props} />
+const DialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col space-y-1.5 text-center sm:text-left",
+      className
+    )}
+    {...props}
+  />
 );
-DialogHeader.displayName = 'DialogHeader';
+DialogHeader.displayName = "DialogHeader";
 
-const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)} {...props} />
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className
+    )}
+    {...props}
+  />
 );
-DialogFooter.displayName = 'DialogFooter';
+DialogFooter.displayName = "DialogFooter";
 
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
@@ -581,7 +622,10 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className
+    )}
     {...props}
   />
 ));
@@ -593,7 +637,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));
@@ -617,11 +661,23 @@ export {
 
 ```tsx
 // 사용 예시
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 function MyForm() {
   return (
@@ -685,19 +741,24 @@ function MyForm() {
 ```tsx
 // components/ui/icon-button.tsx
 // 기존 Button을 확장한 아이콘 버튼
-import { Button, type ButtonProps } from '@/components/ui/button';
-import { cn } from '@/lib/utils/cn';
+import { Button, type ButtonProps } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
 
 interface IconButtonProps extends ButtonProps {
   icon: React.ReactNode;
   label: string; // 접근성용
 }
 
-export function IconButton({ icon, label, className, ...props }: IconButtonProps) {
+export function IconButton({
+  icon,
+  label,
+  className,
+  ...props
+}: IconButtonProps) {
   return (
     <Button
       size="icon"
-      className={cn('', className)}
+      className={cn("", className)}
       aria-label={label}
       {...props}
     >
@@ -761,14 +822,14 @@ Amber (노란색 계열) ─────────► Indigo (남색 계열)
 
 ```tsx
 // components/ui/gradient-button.tsx
-import { cn } from '@/lib/utils/cn';
-import { Button, type ButtonProps } from './button';
+import { cn } from "@/lib/utils/cn";
+import { Button, type ButtonProps } from "./button";
 
 export function GradientButton({ className, children, ...props }: ButtonProps) {
   return (
     <Button
       className={cn(
-        'gradient-primary gradient-primary-hover border-0 text-white',
+        "gradient-primary gradient-primary-hover border-0 text-white",
         className
       )}
       {...props}
@@ -779,12 +840,16 @@ export function GradientButton({ className, children, ...props }: ButtonProps) {
 }
 
 // 그라데이션 보더 버튼
-export function GradientOutlineButton({ className, children, ...props }: ButtonProps) {
+export function GradientOutlineButton({
+  className,
+  children,
+  ...props
+}: ButtonProps) {
   return (
     <div className="gradient-border inline-block">
       <Button
         variant="ghost"
-        className={cn('bg-background hover:bg-muted', className)}
+        className={cn("bg-background hover:bg-muted", className)}
         {...props}
       >
         {children}
@@ -796,15 +861,15 @@ export function GradientOutlineButton({ className, children, ...props }: ButtonP
 
 #### shadcn/ui 호환 색상 매핑
 
-| CSS 변수 | 용도 | 기본값 |
-|----------|------|--------|
-| `--primary` | 주요 버튼, 링크 | indigo-9 |
-| `--secondary` | 보조 버튼 | amber-9 |
-| `--muted` | 비활성 배경 | gray |
-| `--accent` | 호버 배경 | gray |
-| `--destructive` | 삭제, 경고 | red |
-| `--border` | 기본 보더 | gray |
-| `--ring` | 포커스 링 | indigo-9 |
+| CSS 변수        | 용도            | 기본값   |
+| --------------- | --------------- | -------- |
+| `--primary`     | 주요 버튼, 링크 | indigo-9 |
+| `--secondary`   | 보조 버튼       | amber-9  |
+| `--muted`       | 비활성 배경     | gray     |
+| `--accent`      | 호버 배경       | gray     |
+| `--destructive` | 삭제, 경고      | red      |
+| `--border`      | 기본 보더       | gray     |
+| `--ring`        | 포커스 링       | indigo-9 |
 
 ### Tailwind 추가 규칙
 
@@ -819,33 +884,33 @@ export function GradientOutlineButton({ className, children, ...props }: ButtonP
 
 ```tsx
 // 1. React/Next.js
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // 2. 외부 라이브러리
-import { useQuery } from '@tanstack/react-query';
-import { clsx } from 'clsx';
+import { useQuery } from "@tanstack/react-query";
+import { clsx } from "clsx";
 
 // 3. 내부 모듈 (절대 경로)
-import { useAuthStore } from '@/stores/auth-store';
-import { userApi } from '@/lib/api/user';
-import { UserCard } from '@/components/features/user/UserCard';
+import { useAuthStore } from "@/stores/auth-store";
+import { userApi } from "@/lib/api/user";
+import { UserCard } from "@/components/features/user/UserCard";
 
 // 4. 타입 (type-only import)
-import type { User } from '@/types/api';
-import type { UserCardProps } from '@/types/components';
+import type { User } from "@/types/api";
+import type { UserCardProps } from "@/types/components";
 
 // 5. 스타일/에셋
-import './styles.css';
+import "./styles.css";
 ```
 
 ## 에러 처리
 
 ```tsx
 // components/ErrorBoundary.tsx
-'use client';
+"use client";
 
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -891,28 +956,32 @@ function UserProfile({ userId }: { userId: string }) {
 
 ```tsx
 // components/features/form/ServiceForm.tsx
-'use client';
+"use client";
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 // 1. Zod 스키마 정의
 const serviceSchema = z.object({
-  serviceName: z.string().min(1, '서비스명을 입력하세요'),
-  description: z.string().min(10, '최소 10자 이상 입력하세요'),
-  domain: z.enum(['healthcare', 'finance', 'mobility'], {
-    errorMap: () => ({ message: '도메인을 선택하세요' }),
+  serviceName: z.string().min(1, "서비스명을 입력하세요"),
+  description: z.string().min(10, "최소 10자 이상 입력하세요"),
+  domain: z.enum(["healthcare", "finance", "mobility"], {
+    errorMap: () => ({ message: "도메인을 선택하세요" }),
   }),
   hasPersonalData: z.boolean(),
-  targetUsers: z.array(z.string()).min(1, '대상 사용자를 선택하세요'),
+  targetUsers: z.array(z.string()).min(1, "대상 사용자를 선택하세요"),
 });
 
 // 2. 타입 추론
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
 // 3. 컴포넌트
-export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) => void }) {
+export function ServiceForm({
+  onSubmit,
+}: {
+  onSubmit: (data: ServiceFormData) => void;
+}) {
   const {
     register,
     handleSubmit,
@@ -922,8 +991,8 @@ export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) =>
   } = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      serviceName: '',
-      description: '',
+      serviceName: "",
+      description: "",
       hasPersonalData: false,
       targetUsers: [],
     },
@@ -938,11 +1007,13 @@ export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) =>
         </label>
         <input
           id="serviceName"
-          {...register('serviceName')}
+          {...register("serviceName")}
           className="mt-1 block w-full rounded-md border p-2"
         />
         {errors.serviceName && (
-          <p className="mt-1 text-sm text-red-500">{errors.serviceName.message}</p>
+          <p className="mt-1 text-sm text-red-500">
+            {errors.serviceName.message}
+          </p>
         )}
       </div>
 
@@ -951,7 +1022,11 @@ export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) =>
         <label htmlFor="domain" className="block text-sm font-medium">
           도메인
         </label>
-        <select id="domain" {...register('domain')} className="mt-1 block w-full rounded-md border p-2">
+        <select
+          id="domain"
+          {...register("domain")}
+          className="mt-1 block w-full rounded-md border p-2"
+        >
           <option value="">선택하세요</option>
           <option value="healthcare">의료</option>
           <option value="finance">금융</option>
@@ -964,7 +1039,11 @@ export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) =>
 
       {/* 체크박스 */}
       <div className="flex items-center gap-2">
-        <input type="checkbox" id="hasPersonalData" {...register('hasPersonalData')} />
+        <input
+          type="checkbox"
+          id="hasPersonalData"
+          {...register("hasPersonalData")}
+        />
         <label htmlFor="hasPersonalData">개인정보 처리 여부</label>
       </div>
 
@@ -973,7 +1052,7 @@ export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) =>
         disabled={isSubmitting}
         className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
       >
-        {isSubmitting ? '제출 중...' : '제출'}
+        {isSubmitting ? "제출 중..." : "제출"}
       </button>
     </form>
   );
@@ -984,10 +1063,10 @@ export function ServiceForm({ onSubmit }: { onSubmit: (data: ServiceFormData) =>
 
 ```tsx
 // components/features/form-builder/DynamicForm.tsx
-'use client';
+"use client";
 
-import { useForm, Controller } from 'react-hook-form';
-import type { FormSchema, FormField } from '@/types/api';
+import { useForm, Controller } from "react-hook-form";
+import type { FormSchema, FormField } from "@/types/api";
 
 interface DynamicFormProps {
   schema: FormSchema;
@@ -995,55 +1074,74 @@ interface DynamicFormProps {
   onSubmit: (data: Record<string, unknown>) => void;
 }
 
-export function DynamicForm({ schema, initialValues, onSubmit }: DynamicFormProps) {
-  const { control, handleSubmit, formState: { errors } } = useForm({
+export function DynamicForm({
+  schema,
+  initialValues,
+  onSubmit,
+}: DynamicFormProps) {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     defaultValues: initialValues,
   });
 
   const renderField = (field: FormField) => {
     switch (field.type) {
-      case 'text':
+      case "text":
         return (
           <Controller
             name={field.id}
             control={control}
-            rules={{ required: field.required && '필수 항목입니다' }}
+            rules={{ required: field.required && "필수 항목입니다" }}
             render={({ field: f }) => (
-              <input {...f} placeholder={field.placeholder} className="w-full rounded border p-2" />
+              <input
+                {...f}
+                placeholder={field.placeholder}
+                className="w-full rounded border p-2"
+              />
             )}
           />
         );
 
-      case 'textarea':
+      case "textarea":
         return (
           <Controller
             name={field.id}
             control={control}
-            rules={{ required: field.required && '필수 항목입니다' }}
+            rules={{ required: field.required && "필수 항목입니다" }}
             render={({ field: f }) => (
-              <textarea {...f} rows={4} placeholder={field.placeholder} className="w-full rounded border p-2" />
+              <textarea
+                {...f}
+                rows={4}
+                placeholder={field.placeholder}
+                className="w-full rounded border p-2"
+              />
             )}
           />
         );
 
-      case 'select':
+      case "select":
         return (
           <Controller
             name={field.id}
             control={control}
-            rules={{ required: field.required && '필수 항목입니다' }}
+            rules={{ required: field.required && "필수 항목입니다" }}
             render={({ field: f }) => (
               <select {...f} className="w-full rounded border p-2">
                 <option value="">선택하세요</option>
                 {field.options?.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             )}
           />
         );
 
-      case 'checkbox':
+      case "checkbox":
         return (
           <Controller
             name={field.id}
@@ -1085,7 +1183,10 @@ export function DynamicForm({ schema, initialValues, onSubmit }: DynamicFormProp
           </div>
         </fieldset>
       ))}
-      <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-white">
+      <button
+        type="submit"
+        className="rounded bg-blue-600 px-4 py-2 text-white"
+      >
         저장
       </button>
     </form>
@@ -1099,7 +1200,7 @@ export function DynamicForm({ schema, initialValues, onSubmit }: DynamicFormProp
 // types/api/form.ts
 export interface FormField {
   id: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'file';
+  type: "text" | "textarea" | "select" | "checkbox" | "radio" | "file";
   label: string;
   placeholder?: string;
   helpText?: string;
@@ -1132,9 +1233,9 @@ export interface FormSchema {
 
 ```tsx
 // hooks/use-sse.ts
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 interface UseSSEOptions<T> {
   onMessage?: (data: T) => void;
@@ -1151,7 +1252,10 @@ interface UseSSEReturn<T> {
   disconnect: () => void;
 }
 
-export function useSSE<T>(url: string, options?: UseSSEOptions<T>): UseSSEReturn<T> {
+export function useSSE<T>(
+  url: string,
+  options?: UseSSEOptions<T>
+): UseSSEReturn<T> {
   const [data, setData] = useState<T | null>(null);
   const [chunks, setChunks] = useState<T[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -1187,7 +1291,7 @@ export function useSSE<T>(url: string, options?: UseSSEOptions<T>): UseSSEReturn
       es.close();
     };
 
-    es.addEventListener('complete', () => {
+    es.addEventListener("complete", () => {
       options?.onComplete?.();
       es.close();
       setIsConnected(false);
@@ -1215,19 +1319,19 @@ export function useSSE<T>(url: string, options?: UseSSEOptions<T>): UseSSEReturn
 
 ```tsx
 // hooks/use-agent-stream.ts
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 interface AgentChunk {
-  type: 'thinking' | 'content' | 'tool_call' | 'complete' | 'error';
+  type: "thinking" | "content" | "tool_call" | "complete" | "error";
   content?: string;
   toolName?: string;
   toolInput?: Record<string, unknown>;
 }
 
 interface AgentStreamState {
-  status: 'idle' | 'streaming' | 'complete' | 'error';
+  status: "idle" | "streaming" | "complete" | "error";
   thinking: string;
   content: string;
   toolCalls: { name: string; input: Record<string, unknown> }[];
@@ -1236,70 +1340,100 @@ interface AgentStreamState {
 
 export function useAgentStream(endpoint: string) {
   const [state, setState] = useState<AgentStreamState>({
-    status: 'idle',
-    thinking: '',
-    content: '',
+    status: "idle",
+    thinking: "",
+    content: "",
     toolCalls: [],
     error: null,
   });
 
-  const stream = useCallback(async (input: Record<string, unknown>) => {
-    setState((prev) => ({ ...prev, status: 'streaming', content: '', thinking: '', toolCalls: [] }));
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-
-      if (!response.body) throw new Error('No response body');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value);
-        const lines = text.split('\n').filter((line) => line.startsWith('data: '));
-
-        for (const line of lines) {
-          const data = JSON.parse(line.slice(6)) as AgentChunk;
-
-          setState((prev) => {
-            switch (data.type) {
-              case 'thinking':
-                return { ...prev, thinking: prev.thinking + (data.content || '') };
-              case 'content':
-                return { ...prev, content: prev.content + (data.content || '') };
-              case 'tool_call':
-                return {
-                  ...prev,
-                  toolCalls: [...prev.toolCalls, { name: data.toolName!, input: data.toolInput! }],
-                };
-              case 'complete':
-                return { ...prev, status: 'complete' };
-              case 'error':
-                return { ...prev, status: 'error', error: data.content || 'Unknown error' };
-              default:
-                return prev;
-            }
-          });
-        }
-      }
-    } catch (err) {
+  const stream = useCallback(
+    async (input: Record<string, unknown>) => {
       setState((prev) => ({
         ...prev,
-        status: 'error',
-        error: err instanceof Error ? err.message : 'Stream failed',
+        status: "streaming",
+        content: "",
+        thinking: "",
+        toolCalls: [],
       }));
-    }
-  }, [endpoint]);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+
+        if (!response.body) throw new Error("No response body");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value);
+          const lines = text
+            .split("\n")
+            .filter((line) => line.startsWith("data: "));
+
+          for (const line of lines) {
+            const data = JSON.parse(line.slice(6)) as AgentChunk;
+
+            setState((prev) => {
+              switch (data.type) {
+                case "thinking":
+                  return {
+                    ...prev,
+                    thinking: prev.thinking + (data.content || ""),
+                  };
+                case "content":
+                  return {
+                    ...prev,
+                    content: prev.content + (data.content || ""),
+                  };
+                case "tool_call":
+                  return {
+                    ...prev,
+                    toolCalls: [
+                      ...prev.toolCalls,
+                      { name: data.toolName!, input: data.toolInput! },
+                    ],
+                  };
+                case "complete":
+                  return { ...prev, status: "complete" };
+                case "error":
+                  return {
+                    ...prev,
+                    status: "error",
+                    error: data.content || "Unknown error",
+                  };
+                default:
+                  return prev;
+              }
+            });
+          }
+        }
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          status: "error",
+          error: err instanceof Error ? err.message : "Stream failed",
+        }));
+      }
+    },
+    [endpoint]
+  );
 
   const reset = useCallback(() => {
-    setState({ status: 'idle', thinking: '', content: '', toolCalls: [], error: null });
+    setState({
+      status: "idle",
+      thinking: "",
+      content: "",
+      toolCalls: [],
+      error: null,
+    });
   }, []);
 
   return { ...state, stream, reset };
@@ -1310,14 +1444,13 @@ export function useAgentStream(endpoint: string) {
 
 ```tsx
 // components/features/agent/AgentResponse.tsx
-'use client';
+"use client";
 
-import { useAgentStream } from '@/hooks/use-agent-stream';
+import { useAgentStream } from "@/hooks/use-agent-stream";
 
 export function AgentResponse({ agentType }: { agentType: string }) {
-  const { status, thinking, content, toolCalls, stream, reset } = useAgentStream(
-    `/api/agents/${agentType}/stream`
-  );
+  const { status, thinking, content, toolCalls, stream, reset } =
+    useAgentStream(`/api/agents/${agentType}/stream`);
 
   const handleSubmit = async (input: Record<string, unknown>) => {
     await stream(input);
@@ -1326,7 +1459,7 @@ export function AgentResponse({ agentType }: { agentType: string }) {
   return (
     <div className="space-y-4">
       {/* 상태 표시 */}
-      {status === 'streaming' && (
+      {status === "streaming" && (
         <div className="flex items-center gap-2 text-blue-600">
           <span className="animate-pulse">●</span>
           <span>응답 생성 중...</span>
@@ -1336,7 +1469,9 @@ export function AgentResponse({ agentType }: { agentType: string }) {
       {/* 생각 과정 (접을 수 있음) */}
       {thinking && (
         <details className="rounded border p-2">
-          <summary className="cursor-pointer text-sm text-gray-500">생각 과정 보기</summary>
+          <summary className="cursor-pointer text-sm text-gray-500">
+            생각 과정 보기
+          </summary>
           <pre className="mt-2 whitespace-pre-wrap text-xs">{thinking}</pre>
         </details>
       )}
@@ -1354,9 +1489,7 @@ export function AgentResponse({ agentType }: { agentType: string }) {
 
       {/* 응답 내용 */}
       {content && (
-        <div className="prose max-w-none rounded-lg border p-4">
-          {content}
-        </div>
+        <div className="prose max-w-none rounded-lg border p-4">{content}</div>
       )}
     </div>
   );
@@ -1369,11 +1502,11 @@ export function AgentResponse({ agentType }: { agentType: string }) {
 
 ```tsx
 // components/ui/Skeleton.tsx
-import { cn } from '@/lib/utils/cn';
+import { cn } from "@/lib/utils/cn";
 
 interface SkeletonProps {
   className?: string;
-  variant?: 'text' | 'circular' | 'rectangular';
+  variant?: "text" | "circular" | "rectangular";
   width?: string | number;
   height?: string | number;
   lines?: number;
@@ -1381,27 +1514,27 @@ interface SkeletonProps {
 
 export function Skeleton({
   className,
-  variant = 'text',
+  variant = "text",
   width,
   height,
   lines = 1,
 }: SkeletonProps) {
-  const baseClass = 'animate-pulse bg-gray-200';
+  const baseClass = "animate-pulse bg-gray-200";
 
   const variantClass = {
-    text: 'rounded',
-    circular: 'rounded-full',
-    rectangular: 'rounded-md',
+    text: "rounded",
+    circular: "rounded-full",
+    rectangular: "rounded-md",
   };
 
-  if (variant === 'text' && lines > 1) {
+  if (variant === "text" && lines > 1) {
     return (
-      <div className={cn('space-y-2', className)}>
+      <div className={cn("space-y-2", className)}>
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
-            className={cn(baseClass, variantClass.text, 'h-4')}
-            style={{ width: i === lines - 1 ? '60%' : '100%' }}
+            className={cn(baseClass, variantClass.text, "h-4")}
+            style={{ width: i === lines - 1 ? "60%" : "100%" }}
           />
         ))}
       </div>
@@ -1411,7 +1544,10 @@ export function Skeleton({
   return (
     <div
       className={cn(baseClass, variantClass[variant], className)}
-      style={{ width, height: height || (variant === 'text' ? '1em' : undefined) }}
+      style={{
+        width,
+        height: height || (variant === "text" ? "1em" : undefined),
+      }}
     />
   );
 }
@@ -1445,15 +1581,15 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 
 ```tsx
 // components/features/agent-status/AgentProgress.tsx
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils/cn';
+import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils/cn";
 
 type AgentStep = {
   id: string;
   name: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
+  status: "pending" | "running" | "completed" | "error";
   message?: string;
 };
 
@@ -1463,13 +1599,17 @@ interface AgentProgressProps {
   className?: string;
 }
 
-export function AgentProgress({ taskId, steps, className }: AgentProgressProps) {
-  const currentStep = steps.find((s) => s.status === 'running');
-  const completedCount = steps.filter((s) => s.status === 'completed').length;
+export function AgentProgress({
+  taskId,
+  steps,
+  className,
+}: AgentProgressProps) {
+  const currentStep = steps.find((s) => s.status === "running");
+  const completedCount = steps.filter((s) => s.status === "completed").length;
   const progress = (completedCount / steps.length) * 100;
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {/* 프로그레스 바 */}
       <div className="h-2 overflow-hidden rounded-full bg-gray-200">
         <div
@@ -1485,25 +1625,27 @@ export function AgentProgress({ taskId, steps, className }: AgentProgressProps) 
             {/* 상태 아이콘 */}
             <div
               className={cn(
-                'flex h-6 w-6 items-center justify-center rounded-full text-xs',
-                step.status === 'completed' && 'bg-green-100 text-green-600',
-                step.status === 'running' && 'bg-blue-100 text-blue-600',
-                step.status === 'error' && 'bg-red-100 text-red-600',
-                step.status === 'pending' && 'bg-gray-100 text-gray-400'
+                "flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                step.status === "completed" && "bg-grass-100 text-grass-600",
+                step.status === "running" && "bg-blue-100 text-blue-600",
+                step.status === "error" && "bg-red-100 text-red-600",
+                step.status === "pending" && "bg-gray-100 text-gray-400"
               )}
             >
-              {step.status === 'completed' && '✓'}
-              {step.status === 'running' && <span className="animate-spin">⟳</span>}
-              {step.status === 'error' && '✕'}
-              {step.status === 'pending' && index + 1}
+              {step.status === "completed" && "✓"}
+              {step.status === "running" && (
+                <span className="animate-spin">⟳</span>
+              )}
+              {step.status === "error" && "✕"}
+              {step.status === "pending" && index + 1}
             </div>
 
             {/* 단계 정보 */}
             <div className="flex-1">
               <p
                 className={cn(
-                  'text-sm font-medium',
-                  step.status === 'pending' && 'text-gray-400'
+                  "text-sm font-medium",
+                  step.status === "pending" && "text-gray-400"
                 )}
               >
                 {step.name}
@@ -1524,15 +1666,15 @@ export function AgentProgress({ taskId, steps, className }: AgentProgressProps) 
 
 ```tsx
 // components/features/agent-status/PipelineStatus.tsx
-'use client';
+"use client";
 
 const PIPELINE_STEPS = [
-  { id: 'structure', name: '서비스 구조화', agent: 1 },
-  { id: 'eligibility', name: '대상성 판단', agent: 2 },
-  { id: 'track', name: '트랙 추천', agent: 3 },
-  { id: 'draft', name: '신청서 초안', agent: 4 },
-  { id: 'strategy', name: '전략 추천', agent: 5 },
-  { id: 'risk', name: '리스크 체크', agent: 6 },
+  { id: "structure", name: "서비스 구조화", agent: 1 },
+  { id: "eligibility", name: "대상성 판단", agent: 2 },
+  { id: "track", name: "트랙 추천", agent: 3 },
+  { id: "draft", name: "신청서 초안", agent: 4 },
+  { id: "strategy", name: "전략 추천", agent: 5 },
+  { id: "risk", name: "리스크 체크", agent: 6 },
 ];
 
 interface PipelineStatusProps {
@@ -1540,7 +1682,10 @@ interface PipelineStatusProps {
   completedSteps: string[];
 }
 
-export function PipelineStatus({ currentStep, completedSteps }: PipelineStatusProps) {
+export function PipelineStatus({
+  currentStep,
+  completedSteps,
+}: PipelineStatusProps) {
   return (
     <div className="flex items-center justify-between">
       {PIPELINE_STEPS.map((step, index) => {
@@ -1554,19 +1699,19 @@ export function PipelineStatus({ currentStep, completedSteps }: PipelineStatusPr
             <div className="flex flex-col items-center">
               <div
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold',
-                  isCompleted && 'border-green-500 bg-green-500 text-white',
-                  isCurrent && 'border-blue-500 bg-blue-50 text-blue-600',
-                  isPending && 'border-gray-300 text-gray-400'
+                  "flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold",
+                  isCompleted && "border-grass-500 bg-grass-500 text-white",
+                  isCurrent && "border-blue-500 bg-blue-50 text-blue-600",
+                  isPending && "border-gray-300 text-gray-400"
                 )}
               >
-                {isCompleted ? '✓' : step.agent}
+                {isCompleted ? "✓" : step.agent}
               </div>
               <span
                 className={cn(
-                  'mt-1 text-xs',
-                  isCurrent && 'font-semibold text-blue-600',
-                  isPending && 'text-gray-400'
+                  "mt-1 text-xs",
+                  isCurrent && "font-semibold text-blue-600",
+                  isPending && "text-gray-400"
                 )}
               >
                 {step.name}
@@ -1577,8 +1722,8 @@ export function PipelineStatus({ currentStep, completedSteps }: PipelineStatusPr
             {index < PIPELINE_STEPS.length - 1 && (
               <div
                 className={cn(
-                  'mx-2 h-0.5 w-8',
-                  isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                  "mx-2 h-0.5 w-8",
+                  isCompleted ? "bg-grass-500" : "bg-gray-300"
                 )}
               />
             )}
@@ -1596,9 +1741,9 @@ export function PipelineStatus({ currentStep, completedSteps }: PipelineStatusPr
 
 ```tsx
 // hooks/use-file-upload.ts
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 interface UploadProgress {
   loaded: number;
@@ -1607,7 +1752,7 @@ interface UploadProgress {
 }
 
 interface UploadState {
-  status: 'idle' | 'uploading' | 'success' | 'error';
+  status: "idle" | "uploading" | "success" | "error";
   progress: UploadProgress | null;
   error: string | null;
   result: unknown | null;
@@ -1622,10 +1767,16 @@ interface UseFileUploadOptions {
 }
 
 export function useFileUpload(options: UseFileUploadOptions) {
-  const { endpoint, maxSize = 10 * 1024 * 1024, allowedTypes, onSuccess, onError } = options;
+  const {
+    endpoint,
+    maxSize = 10 * 1024 * 1024,
+    allowedTypes,
+    onSuccess,
+    onError,
+  } = options;
 
   const [state, setState] = useState<UploadState>({
-    status: 'idle',
+    status: "idle",
     progress: null,
     error: null,
     result: null,
@@ -1634,10 +1785,12 @@ export function useFileUpload(options: UseFileUploadOptions) {
   const validate = useCallback(
     (file: File): string | null => {
       if (file.size > maxSize) {
-        return `파일 크기는 ${Math.round(maxSize / 1024 / 1024)}MB 이하여야 합니다`;
+        return `파일 크기는 ${Math.round(
+          maxSize / 1024 / 1024
+        )}MB 이하여야 합니다`;
       }
       if (allowedTypes && !allowedTypes.includes(file.type)) {
-        return `허용되지 않는 파일 형식입니다. (${allowedTypes.join(', ')})`;
+        return `허용되지 않는 파일 형식입니다. (${allowedTypes.join(", ")})`;
       }
       return null;
     },
@@ -1648,20 +1801,30 @@ export function useFileUpload(options: UseFileUploadOptions) {
     async (file: File) => {
       const validationError = validate(file);
       if (validationError) {
-        setState({ status: 'error', progress: null, error: validationError, result: null });
+        setState({
+          status: "error",
+          progress: null,
+          error: validationError,
+          result: null,
+        });
         onError?.(validationError);
         return;
       }
 
-      setState({ status: 'uploading', progress: { loaded: 0, total: file.size, percentage: 0 }, error: null, result: null });
+      setState({
+        status: "uploading",
+        progress: { loaded: 0, total: file.size, percentage: 0 },
+        error: null,
+        result: null,
+      });
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       try {
         const xhr = new XMLHttpRequest();
 
-        xhr.upload.addEventListener('progress', (e) => {
+        xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
             setState((prev) => ({
               ...prev,
@@ -1682,16 +1845,21 @@ export function useFileUpload(options: UseFileUploadOptions) {
               reject(new Error(xhr.statusText));
             }
           };
-          xhr.onerror = () => reject(new Error('Upload failed'));
-          xhr.open('POST', endpoint);
+          xhr.onerror = () => reject(new Error("Upload failed"));
+          xhr.open("POST", endpoint);
           xhr.send(formData);
         });
 
-        setState({ status: 'success', progress: null, error: null, result });
+        setState({ status: "success", progress: null, error: null, result });
         onSuccess?.(result);
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Upload failed';
-        setState({ status: 'error', progress: null, error: errorMsg, result: null });
+        const errorMsg = err instanceof Error ? err.message : "Upload failed";
+        setState({
+          status: "error",
+          progress: null,
+          error: errorMsg,
+          result: null,
+        });
         onError?.(errorMsg);
       }
     },
@@ -1699,7 +1867,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
   );
 
   const reset = useCallback(() => {
-    setState({ status: 'idle', progress: null, error: null, result: null });
+    setState({ status: "idle", progress: null, error: null, result: null });
   }, []);
 
   return { ...state, upload, reset };
@@ -1710,11 +1878,11 @@ export function useFileUpload(options: UseFileUploadOptions) {
 
 ```tsx
 // components/features/upload/FileDropzone.tsx
-'use client';
+"use client";
 
-import { useState, useCallback, useRef } from 'react';
-import { useFileUpload } from '@/hooks/use-file-upload';
-import { cn } from '@/lib/utils/cn';
+import { useState, useCallback, useRef } from "react";
+import { useFileUpload } from "@/hooks/use-file-upload";
+import { cn } from "@/lib/utils/cn";
 
 interface FileDropzoneProps {
   endpoint: string;
@@ -1726,7 +1894,7 @@ interface FileDropzoneProps {
 
 export function FileDropzone({
   endpoint,
-  accept = '.pdf,.hwp,.docx',
+  accept = ".pdf,.hwp,.docx",
   maxSize = 10 * 1024 * 1024,
   onUploadComplete,
   className,
@@ -1772,11 +1940,13 @@ export function FileDropzone({
   return (
     <div
       className={cn(
-        'relative rounded-lg border-2 border-dashed p-8 text-center transition-colors',
-        isDragOver && 'border-blue-500 bg-blue-50',
-        status === 'error' && 'border-red-300 bg-red-50',
-        status === 'success' && 'border-green-300 bg-green-50',
-        !isDragOver && status === 'idle' && 'border-gray-300 hover:border-gray-400',
+        "relative rounded-lg border-2 border-dashed p-8 text-center transition-colors",
+        isDragOver && "border-blue-500 bg-blue-50",
+        status === "error" && "border-red-300 bg-red-50",
+        status === "success" && "border-grass-300 bg-grass-50",
+        !isDragOver &&
+          status === "idle" &&
+          "border-gray-300 hover:border-gray-400",
         className
       )}
       onDragOver={handleDragOver}
@@ -1791,11 +1961,11 @@ export function FileDropzone({
         className="hidden"
       />
 
-      {status === 'idle' && (
+      {status === "idle" && (
         <>
           <div className="mb-2 text-4xl">📄</div>
           <p className="mb-2 text-gray-600">
-            파일을 드래그하거나{' '}
+            파일을 드래그하거나{" "}
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -1810,7 +1980,7 @@ export function FileDropzone({
         </>
       )}
 
-      {status === 'uploading' && progress && (
+      {status === "uploading" && progress && (
         <div className="space-y-2">
           <div className="text-4xl">⏳</div>
           <p className="text-gray-600">업로드 중... {progress.percentage}%</p>
@@ -1823,21 +1993,29 @@ export function FileDropzone({
         </div>
       )}
 
-      {status === 'success' && (
+      {status === "success" && (
         <div className="space-y-2">
           <div className="text-4xl">✅</div>
-          <p className="text-green-600">업로드 완료!</p>
-          <button type="button" onClick={reset} className="text-sm text-blue-600 underline">
+          <p className="text-grass-600">업로드 완료!</p>
+          <button
+            type="button"
+            onClick={reset}
+            className="text-sm text-blue-600 underline"
+          >
             다른 파일 업로드
           </button>
         </div>
       )}
 
-      {status === 'error' && (
+      {status === "error" && (
         <div className="space-y-2">
           <div className="text-4xl">❌</div>
           <p className="text-red-600">{error}</p>
-          <button type="button" onClick={reset} className="text-sm text-blue-600 underline">
+          <button
+            type="button"
+            onClick={reset}
+            className="text-sm text-blue-600 underline"
+          >
             다시 시도
           </button>
         </div>
@@ -1851,15 +2029,15 @@ export function FileDropzone({
 
 ```tsx
 // components/features/upload/MultiFileUpload.tsx
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { cn } from '@/lib/utils/cn';
+import { useState, useCallback } from "react";
+import { cn } from "@/lib/utils/cn";
 
 interface FileItem {
   id: string;
   file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: "pending" | "uploading" | "success" | "error";
   progress: number;
   error?: string;
 }
@@ -1870,7 +2048,11 @@ interface MultiFileUploadProps {
   onAllComplete?: (results: unknown[]) => void;
 }
 
-export function MultiFileUpload({ endpoint, maxFiles = 5, onAllComplete }: MultiFileUploadProps) {
+export function MultiFileUpload({
+  endpoint,
+  maxFiles = 5,
+  onAllComplete,
+}: MultiFileUploadProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
 
   const addFiles = useCallback(
@@ -1883,7 +2065,7 @@ export function MultiFileUpload({ endpoint, maxFiles = 5, onAllComplete }: Multi
         ...toAdd.map((file) => ({
           id: `${Date.now()}-${file.name}`,
           file,
-          status: 'pending' as const,
+          status: "pending" as const,
           progress: 0,
         })),
       ]);
@@ -1899,28 +2081,41 @@ export function MultiFileUpload({ endpoint, maxFiles = 5, onAllComplete }: Multi
     const results: unknown[] = [];
 
     for (const fileItem of files) {
-      if (fileItem.status !== 'pending') continue;
+      if (fileItem.status !== "pending") continue;
 
       setFiles((prev) =>
-        prev.map((f) => (f.id === fileItem.id ? { ...f, status: 'uploading' } : f))
+        prev.map((f) =>
+          f.id === fileItem.id ? { ...f, status: "uploading" } : f
+        )
       );
 
       try {
         const formData = new FormData();
-        formData.append('file', fileItem.file);
+        formData.append("file", fileItem.file);
 
-        const response = await fetch(endpoint, { method: 'POST', body: formData });
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
         const result = await response.json();
 
         results.push(result);
         setFiles((prev) =>
-          prev.map((f) => (f.id === fileItem.id ? { ...f, status: 'success', progress: 100 } : f))
+          prev.map((f) =>
+            f.id === fileItem.id
+              ? { ...f, status: "success", progress: 100 }
+              : f
+          )
         );
       } catch (err) {
         setFiles((prev) =>
           prev.map((f) =>
             f.id === fileItem.id
-              ? { ...f, status: 'error', error: err instanceof Error ? err.message : 'Failed' }
+              ? {
+                  ...f,
+                  status: "error",
+                  error: err instanceof Error ? err.message : "Failed",
+                }
               : f
           )
         );
@@ -1938,18 +2133,27 @@ export function MultiFileUpload({ endpoint, maxFiles = 5, onAllComplete }: Multi
           <div
             key={item.id}
             className={cn(
-              'flex items-center justify-between rounded border p-2',
-              item.status === 'success' && 'bg-green-50',
-              item.status === 'error' && 'bg-red-50'
+              "flex items-center justify-between rounded border p-2",
+              item.status === "success" && "bg-grass-50",
+              item.status === "error" && "bg-red-50"
             )}
           >
             <span className="truncate text-sm">{item.file.name}</span>
             <div className="flex items-center gap-2">
-              {item.status === 'uploading' && <span className="animate-spin">⟳</span>}
-              {item.status === 'success' && <span className="text-green-600">✓</span>}
-              {item.status === 'error' && <span className="text-red-600">✕</span>}
-              {item.status === 'pending' && (
-                <button onClick={() => removeFile(item.id)} className="text-gray-400 hover:text-red-500">
+              {item.status === "uploading" && (
+                <span className="animate-spin">⟳</span>
+              )}
+              {item.status === "success" && (
+                <span className="text-grass-600">✓</span>
+              )}
+              {item.status === "error" && (
+                <span className="text-red-600">✕</span>
+              )}
+              {item.status === "pending" && (
+                <button
+                  onClick={() => removeFile(item.id)}
+                  className="text-gray-400 hover:text-red-500"
+                >
                   ✕
                 </button>
               )}
@@ -1972,7 +2176,7 @@ export function MultiFileUpload({ endpoint, maxFiles = 5, onAllComplete }: Multi
       )}
 
       {/* 업로드 버튼 */}
-      {files.some((f) => f.status === 'pending') && (
+      {files.some((f) => f.status === "pending") && (
         <button
           onClick={uploadAll}
           className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700"
