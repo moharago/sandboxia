@@ -17,36 +17,35 @@ export function Pagination({
 }: PaginationProps) {
   const getPageNumbers = () => {
     const pages: (number | "ellipsis")[] = [];
-    const showEllipsisStart = currentPage > 4;
-    const showEllipsisEnd = currentPage < totalPages - 3;
 
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
+      // Expand window to show 2 pages on each side of current
+      const start = Math.max(2, currentPage - 2);
+      const end = Math.min(totalPages - 1, currentPage + 2);
+
+      // Derive ellipsis flags from the window
+      const showEllipsisStart = start > 2;
+      const showEllipsisEnd = end < totalPages - 1;
+
       pages.push(1);
 
       if (showEllipsisStart) {
         pages.push("ellipsis");
       }
 
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-
       for (let i = start; i <= end; i++) {
-        if (!pages.includes(i)) {
-          pages.push(i);
-        }
+        pages.push(i);
       }
 
       if (showEllipsisEnd) {
         pages.push("ellipsis");
       }
 
-      if (!pages.includes(totalPages)) {
-        pages.push(totalPages);
-      }
+      pages.push(totalPages);
     }
 
     return pages;

@@ -10,7 +10,8 @@ export interface ToggleSwitchProps extends Omit<React.InputHTMLAttributes<HTMLIn
 
 const ToggleSwitch = React.forwardRef<HTMLInputElement, ToggleSwitchProps>(
   ({ className, label, description, id, ...props }, ref) => {
-    const inputId = id || React.useId();
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
 
     return (
       <div className={cn('flex items-center', className)}>

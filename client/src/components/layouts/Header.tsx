@@ -24,6 +24,11 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const isAuthenticated = useUIStore((state) => state.isAuthenticated);
+  const setAuthenticated = useUIStore((state) => state.setAuthenticated);
+
+  const handleLogout = () => {
+    setAuthenticated(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -85,7 +90,10 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                       </Link>
                     </DropdownMenu.Item>
                     <DropdownMenu.Separator className="my-1 h-px bg-border" />
-                    <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none hover:bg-accent">
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none hover:bg-accent"
+                      onClick={handleLogout}
+                    >
                       <LogOut className="h-4 w-4" />
                       로그아웃
                     </DropdownMenu.Item>
@@ -148,7 +156,11 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                       대시보드
                     </Button>
                   </Link>
-                  <Button variant="destructive" className="w-full">
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleLogout}
+                  >
                     로그아웃
                   </Button>
                 </>

@@ -77,24 +77,35 @@ function AccordionItem({ value, children, className }: AccordionItemProps) {
 interface AccordionTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   value: string;
   children: React.ReactNode;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 const AccordionTrigger = React.forwardRef<HTMLButtonElement, AccordionTriggerProps>(
-  ({ value, children, className, ...props }, ref) => {
+  ({ value, children, className, onClick, ...props }, ref) => {
     const { openItems, toggleItem } = useAccordion();
     const isOpen = openItems.includes(value);
+
+    const triggerId = `accordion-trigger-${value}`;
+    const contentId = `accordion-content-${value}`;
+
+    const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+      onClick?.(event);
+      toggleItem(value);
+    };
 
     return (
       <button
         ref={ref}
+        id={triggerId}
         type="button"
         className={cn(
           'flex w-full items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180',
           className
         )}
         data-state={isOpen ? 'open' : 'closed'}
-        onClick={() => toggleItem(value)}
+        onClick={handleClick}
         aria-expanded={isOpen}
+        aria-controls={contentId}
         {...props}
       >
         {children}
@@ -115,15 +126,20 @@ function AccordionContent({ value, children, className }: AccordionContentProps)
   const { openItems } = useAccordion();
   const isOpen = openItems.includes(value);
 
+  const triggerId = `accordion-trigger-${value}`;
+  const contentId = `accordion-content-${value}`;
+
   if (!isOpen) return null;
 
   return (
     <div
+      id={contentId}
       className={cn(
         'overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down',
         className
       )}
       data-state={isOpen ? 'open' : 'closed'}
+      aria-labelledby={triggerId}
     >
       <div className="pb-4 pt-0">{children}</div>
     </div>

@@ -1368,15 +1368,23 @@ export function useAgentStream(endpoint: string) {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const text = decoder.decode(value);
-          const lines = text
-            .split("\n")
-            .filter((line) => line.startsWith("data: "));
+          // Decode incrementally to handle multi-byte characters across chunks
+          buffer += decoder.decode(value, { stream: true });
+
+          // Split buffer by newlines
+          const segments = buffer.split("\n");
+
+          // Keep the last segment in buffer (may be incomplete)
+          buffer = segments.pop() || "";
+
+          // Process only complete lines
+          const lines = segments.filter((line) => line.startsWith("data: "));
 
           for (const line of lines) {
             const data = JSON.parse(line.slice(6)) as AgentChunk;
@@ -1414,6 +1422,16 @@ export function useAgentStream(endpoint: string) {
               }
             });
           }
+        }
+
+        // Process any remaining data in buffer after stream ends
+        if (buffer.startsWith("data: ")) {
+          const data = JSON.parse(buffer.slice(6)) as AgentChunk;
+          setState((prev) => {
+            if (data.type === "complete") return { ...prev, status: "complete" };
+            if (data.type === "error") return { ...prev, status: "error", error: data.content || "Unknown error" };
+            return prev;
+          });
         }
       } catch (err) {
         setState((prev) => ({
@@ -2097,6 +2115,14 @@ export function MultiFileUpload({
           method: "POST",
           body: formData,
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Upload failed: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
+          );
+        }
+
         const result = await response.json();
 
         results.push(result);
@@ -2114,7 +2140,7 @@ export function MultiFileUpload({
               ? {
                   ...f,
                   status: "error",
-                  error: err instanceof Error ? err.message : "Failed",
+                  error: err instanceof Error ? err.message : "Upload failed",
                 }
               : f
           )

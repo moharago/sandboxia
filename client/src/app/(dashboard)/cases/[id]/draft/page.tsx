@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Save, Sparkles, FileText } from "lucide-react";
@@ -23,12 +23,12 @@ interface DraftPageProps {
 }
 
 const draftSections = [
-  { id: "overview", title: "서비스 개요", content: "" },
-  { id: "technology", title: "핵심 기술", content: "" },
-  { id: "regulation", title: "규제 특례 필요 사유", content: "" },
-  { id: "plan", title: "실증 계획", content: "" },
-  { id: "safety", title: "안전 조치 계획", content: "" },
-  { id: "expectation", title: "기대 효과", content: "" },
+  { id: "overview", title: "서비스 개요" },
+  { id: "technology", title: "핵심 기술" },
+  { id: "regulation", title: "규제 특례 필요 사유" },
+  { id: "plan", title: "실증 계획" },
+  { id: "safety", title: "안전 조치 계획" },
+  { id: "expectation", title: "기대 효과" },
 ];
 
 export default function DraftPage({ params }: DraftPageProps) {
@@ -36,7 +36,35 @@ export default function DraftPage({ params }: DraftPageProps) {
   const router = useRouter();
   const caseData = cases.find((c) => c.id === id);
 
-  const { trackSelection, markStepComplete, setCurrentStep } = useWizardStore();
+  const {
+    trackSelection,
+    markStepComplete,
+    setCurrentStep,
+    draftData,
+    setDraftData,
+    updateDraftSection,
+  } = useWizardStore();
+
+  // Initialize draftData if not exists
+  useEffect(() => {
+    if (!draftData && caseData) {
+      const overviewDefault = `${caseData.company}에서 제공하는 ${caseData.service}는 ${caseData.description || "혁신적인 서비스입니다."}\n\n본 서비스는 기존 규제 환경에서 제공이 어려운 혁신 서비스로, 규제 샌드박스를 통한 실증이 필요합니다.`;
+
+      setDraftData({
+        title: `${caseData.company} - ${caseData.service}`,
+        summary: "",
+        sections: {
+          overview: overviewDefault,
+          technology: "",
+          regulation: "",
+          plan: "",
+          safety: "",
+          expectation: "",
+        },
+        lastSaved: new Date().toISOString(),
+      });
+    }
+  }, [draftData, caseData, setDraftData]);
 
   if (!caseData) {
     notFound();
@@ -127,14 +155,9 @@ export default function DraftPage({ params }: DraftPageProps) {
                       placeholder={`${section.title} 내용을 입력하세요...`}
                       rows={10}
                       className="resize-none"
-                      defaultValue={
-                        section.id === "overview"
-                          ? `${caseData.company}에서 제공하는 ${
-                              caseData.service
-                            }는 ${
-                              caseData.description || "혁신적인 서비스입니다."
-                            }\n\n본 서비스는 기존 규제 환경에서 제공이 어려운 혁신 서비스로, 규제 샌드박스를 통한 실증이 필요합니다.`
-                          : ""
+                      value={draftData?.sections?.[section.id] ?? ""}
+                      onChange={(e) =>
+                        updateDraftSection(section.id, e.target.value)
                       }
                     />
                   </div>

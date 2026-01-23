@@ -1,13 +1,57 @@
 'use client';
 
-import { User, Building2, Mail, Phone, Shield, Bell } from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { User, Building2, Shield, Bell, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalTitle,
+  ModalDescription,
+} from '@/components/ui/modal';
+import { useUIStore } from '@/stores';
+
+const DELETE_CONFIRMATION_TEXT = '삭제';
 
 export default function MyAccountPage() {
+  const router = useRouter();
+  const setAuthenticated = useUIStore((state) => state.setAuthenticated);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isConfirmValid = confirmText === DELETE_CONFIRMATION_TEXT;
+
+  const handleDeleteAccount = async () => {
+    if (!isConfirmValid) return;
+
+    setIsDeleting(true);
+    try {
+      // TODO: API call to delete account
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setAuthenticated(false);
+      setIsDeleteModalOpen(false);
+      router.push('/');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    if (isDeleting) return;
+    setIsDeleteModalOpen(false);
+    setConfirmText('');
+  };
   return (
     <div className="p-6">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -141,9 +185,59 @@ export default function MyAccountPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="destructive">계정 삭제</Button>
+            <Button
+              variant="destructive"
+              onClick={() => setIsDeleteModalOpen(true)}
+            >
+              계정 삭제
+            </Button>
           </CardContent>
         </Card>
+
+        <Modal open={isDeleteModalOpen} onOpenChange={handleModalClose}>
+          <ModalContent>
+            <ModalHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                <ModalTitle>계정 삭제</ModalTitle>
+              </div>
+              <ModalDescription className="pt-2">
+                계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+                정말 삭제하시겠습니까?
+              </ModalDescription>
+            </ModalHeader>
+
+            <div className="space-y-2 py-4">
+              <Label htmlFor="confirmDelete">
+                삭제를 확인하려면 <strong>"{DELETE_CONFIRMATION_TEXT}"</strong>를 입력하세요
+              </Label>
+              <Input
+                id="confirmDelete"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder={DELETE_CONFIRMATION_TEXT}
+                disabled={isDeleting}
+              />
+            </div>
+
+            <ModalFooter>
+              <Button
+                variant="outline"
+                onClick={handleModalClose}
+                disabled={isDeleting}
+              >
+                취소
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={!isConfirmValid || isDeleting}
+              >
+                {isDeleting ? '삭제 중...' : '계정 삭제'}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </div>
     </div>
   );

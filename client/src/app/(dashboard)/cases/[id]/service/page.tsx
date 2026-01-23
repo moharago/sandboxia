@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { ArrowRight, Upload } from "lucide-react";
@@ -35,13 +35,47 @@ export default function ServicePage({ params }: ServicePageProps) {
   const router = useRouter();
   const caseData = cases.find((c) => c.id === id);
 
-  const { markStepComplete, setCurrentStep } = useWizardStore();
+  const { serviceData, setServiceData, markStepComplete, setCurrentStep } =
+    useWizardStore();
+
+  // Initialize form state from serviceData or caseData
+  const [companyName, setCompanyName] = useState("");
+  const [serviceName, setServiceName] = useState("");
+  const [domain, setDomain] = useState("");
+  const [description, setDescription] = useState("");
+  const [technology, setTechnology] = useState("");
+
+  useEffect(() => {
+    if (serviceData) {
+      // Restore from saved wizard state
+      setCompanyName(serviceData.companyName);
+      setServiceName(serviceData.serviceName);
+      setDescription(serviceData.description);
+      setTechnology(serviceData.technology);
+      setDomain(serviceData.targetMarket);
+    } else if (caseData) {
+      // Initialize from case data
+      setCompanyName(caseData.company);
+      setServiceName(caseData.service);
+      setDescription(caseData.description || "");
+      setDomain(caseData.domain);
+    }
+  }, [serviceData, caseData]);
 
   if (!caseData) {
     notFound();
   }
 
   const handleNext = () => {
+    // Save form data to wizard store
+    setServiceData({
+      companyName,
+      serviceName,
+      description,
+      technology,
+      targetMarket: domain,
+    });
+
     markStepComplete(1);
     setCurrentStep(2);
     router.push(`/cases/${id}/market`);
@@ -68,24 +102,32 @@ export default function ServicePage({ params }: ServicePageProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company">회사명</Label>
-                <Input id="company" defaultValue={caseData.company} />
+                <Input
+                  id="company"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="service">서비스명</Label>
-                <Input id="service" defaultValue={caseData.service} />
+                <Input
+                  id="service"
+                  value={serviceName}
+                  onChange={(e) => setServiceName(e.target.value)}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="domain">분야</Label>
-              <Select defaultValue={caseData.domain}>
+              <Select value={domain} onValueChange={setDomain}>
                 <SelectTrigger>
                   <SelectValue placeholder="분야를 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  {domains.map((domain) => (
-                    <SelectItem key={domain.id} value={domain.id}>
-                      {domain.name}
+                  {domains.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -98,7 +140,8 @@ export default function ServicePage({ params }: ServicePageProps) {
                 id="description"
                 placeholder="서비스에 대해 상세히 설명해주세요"
                 rows={4}
-                defaultValue={caseData.description}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
@@ -108,6 +151,8 @@ export default function ServicePage({ params }: ServicePageProps) {
                 id="technology"
                 placeholder="서비스에 사용되는 핵심 기술을 설명해주세요"
                 rows={3}
+                value={technology}
+                onChange={(e) => setTechnology(e.target.value)}
               />
             </div>
           </CardContent>
