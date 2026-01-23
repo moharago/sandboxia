@@ -1364,6 +1364,13 @@ export function useAgentStream(endpoint: string) {
           body: JSON.stringify(input),
         });
 
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Request failed: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
+          );
+        }
+
         if (!response.body) throw new Error("No response body");
 
         const reader = response.body.getReader();
@@ -1624,7 +1631,7 @@ export function AgentProgress({
 }: AgentProgressProps) {
   const currentStep = steps.find((s) => s.status === "running");
   const completedCount = steps.filter((s) => s.status === "completed").length;
-  const progress = (completedCount / steps.length) * 100;
+  const progress = steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
 
   return (
     <div className={cn("space-y-4", className)}>

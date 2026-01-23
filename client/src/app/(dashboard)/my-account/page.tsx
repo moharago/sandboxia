@@ -26,6 +26,7 @@ export default function MyAccountPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const isConfirmValid = confirmText === DELETE_CONFIRMATION_TEXT;
 
@@ -33,6 +34,7 @@ export default function MyAccountPage() {
     if (!isConfirmValid) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       // TODO: API call to delete account
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -42,6 +44,7 @@ export default function MyAccountPage() {
       router.push('/');
     } catch (error) {
       console.error('Failed to delete account:', error);
+      setDeleteError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsDeleting(false);
     }
@@ -51,6 +54,7 @@ export default function MyAccountPage() {
     if (isDeleting) return;
     setIsDeleteModalOpen(false);
     setConfirmText('');
+    setDeleteError(null);
   };
   return (
     <div className="p-6">
@@ -218,6 +222,9 @@ export default function MyAccountPage() {
                 placeholder={DELETE_CONFIRMATION_TEXT}
                 disabled={isDeleting}
               />
+              {deleteError && (
+                <p className="text-sm text-destructive">{deleteError}</p>
+              )}
             </div>
 
             <ModalFooter>

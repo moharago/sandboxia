@@ -87,9 +87,33 @@ export default function ServicePage({ params }: ServicePageProps) {
         <div>
           <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
           <p className="text-muted-foreground">
-            기업의 서비스에 대한 기본 정보를 입력해주세요
+            기업과 서비스에 대한 기본 정보를 입력해주세요.
           </p>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>신청서 업로드</CardTitle>
+            <CardDescription>
+              상담신청, 신속확인, 임시허가, 실증특례 중 하나를 선택하고 선청서를
+              업로드하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground mb-2">
+                파일을 드래그하거나 클릭하여 업로드하세요
+              </p>
+              <p className="text-xs text-muted-foreground">
+                PDF, DOCX, HWP (최대 10MB)
+              </p>
+              <Button variant="outline" className="mt-4">
+                파일 선택
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -154,29 +178,6 @@ export default function ServicePage({ params }: ServicePageProps) {
                 value={technology}
                 onChange={(e) => setTechnology(e.target.value)}
               />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>관련 서류 업로드</CardTitle>
-            <CardDescription>
-              사업계획서, 기술 설명서 등 관련 서류를 업로드해주세요 (선택)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground mb-2">
-                파일을 드래그하거나 클릭하여 업로드하세요
-              </p>
-              <p className="text-xs text-muted-foreground">
-                PDF, DOCX, HWP (최대 10MB)
-              </p>
-              <Button variant="outline" className="mt-4">
-                파일 선택
-              </Button>
             </div>
           </CardContent>
         </Card>
