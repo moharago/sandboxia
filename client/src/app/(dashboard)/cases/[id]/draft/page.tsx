@@ -24,7 +24,7 @@ interface DraftPageProps {
 
 const draftSections = [
   { id: "overview", title: "서비스 개요" },
-  { id: "technology", title: "핵심 기술" },
+  { id: "memo", title: "추가 메모" },
   { id: "regulation", title: "규제 특례 필요 사유" },
   { id: "plan", title: "실증 계획" },
   { id: "safety", title: "안전 조치 계획" },
@@ -55,7 +55,7 @@ export default function DraftPage({ params }: DraftPageProps) {
         summary: "",
         sections: {
           overview: overviewDefault,
-          technology: "",
+          memo: "",
           regulation: "",
           plan: "",
           safety: "",

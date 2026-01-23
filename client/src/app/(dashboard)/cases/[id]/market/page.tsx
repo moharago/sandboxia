@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import { use } from 'react';
-import { useRouter } from 'next/navigation';
-import { notFound } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { cases } from '@/data';
-import { useWizardStore } from '@/stores';
+import { use } from "react";
+import { useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { cases } from "@/data";
+import { useWizardStore } from "@/stores";
 
 interface MarketPageProps {
   params: Promise<{ id: string }>;
@@ -42,7 +48,7 @@ export default function MarketPage({ params }: MarketPageProps) {
     <div className="py-6">
       <div className="container mx-auto px-4 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold mb-2">시장성 분석</h1>
+          <h1 className="text-2xl font-bold mb-2">시장출시 진단</h1>
           <p className="text-muted-foreground">
             서비스의 시장성과 경쟁 환경을 분석합니다
           </p>

@@ -1,18 +1,10 @@
 export type CaseStatus = "consult" | "draft" | "waiting" | "done" | "direct";
-export type CaseDomain =
-  | "mobility"
-  | "ict"
-  | "smart_city"
-  | "healthcare"
-  | "fintech"
-  | "edutech";
 export type CaseStage = 1 | 2 | 3 | 4;
 
 export interface Case {
   id: string;
   company: string;
   service: string;
-  domain: CaseDomain;
   status: CaseStatus;
   stage: CaseStage;
   progress: number;
@@ -30,18 +22,9 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
   direct: "바로출시",
 };
 
-export const CASE_DOMAIN_LABELS: Record<CaseDomain, string> = {
-  mobility: "모빌리티",
-  ict: "ICT",
-  smart_city: "스마트시티",
-  healthcare: "헬스케어",
-  fintech: "핀테크",
-  edutech: "에듀테크",
-};
-
 export const CASE_STAGE_LABELS: Record<CaseStage, string> = {
   1: "기업 정보 입력",
-  2: "시장성 분석",
+  2: "시장출시 진단",
   3: "트랙 선택",
   4: "신청서 작성",
 };

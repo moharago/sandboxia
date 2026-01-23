@@ -3,23 +3,26 @@
     "id": "counseling",
     "type": "counseling",
     "name": "상담신청",
-    "application": ["신청서"]
+    "application": [{ "id": "counseling-0", "name": "신청서" }]
   },
   {
     "id": "fastcheck",
     "type": "fastcheck",
     "name": "신속확인",
-    "application": ["신속처리 신청서", "기술·서비스에 대한 설명서"]
+    "application": [
+      { "id": "fastcheck-1", "name": "신속처리 신청서" },
+      { "id": "fastcheck-2", "name": "기술·서비스에 대한 설명서" }
+    ]
   },
   {
     "id": "temporary",
     "type": "temporary",
     "name": "임시허가",
     "application": [
-      "임시허가 신청서",
-      "사업계획서",
-      "신청사유",
-      "안전성 검증 자료 및 이용자 보호방안"
+      { "id": "temporary-1", "name": "임시허가 신청서" },
+      { "id": "temporary-2", "name": "사업계획서" },
+      { "id": "temporary-3", "name": "신청사유" },
+      { "id": "temporary-4", "name": "안전성 검증 자료 및 이용자 보호방안" }
     ]
   },
   {
@@ -27,10 +30,10 @@
     "type": "demonstration",
     "name": "실증특례",
     "application": [
-      "실증특례 신청서",
-      "실증계획서",
-      "신청사유",
-      "이용자보호방안"
+      { "id": "demonstration-1", "name": "실증특례 신청서" },
+      { "id": "demonstration-2", "name": "실증계획서" },
+      { "id": "demonstration-3", "name": "신청사유" },
+      { "id": "demonstration-4", "name": "이용자보호방안" }
     ]
   }
 ]

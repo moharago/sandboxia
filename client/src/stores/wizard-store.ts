@@ -6,8 +6,7 @@ interface ServiceData {
   companyName: string;
   serviceName: string;
   description: string;
-  technology: string;
-  targetMarket: string;
+  memo: string;
 }
 
 interface MarketData {
