@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,7 @@ export default function ServicePage({ params }: ServicePageProps) {
   const [uploadedFiles, setUploadedFiles] = useState<
     Record<string, File | null>
   >({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const selectedForm = formData.find((f) => f.id === selectedFormType);
 
@@ -68,7 +70,12 @@ export default function ServicePage({ params }: ServicePageProps) {
     notFound();
   }
 
-  const handleNext = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
+
+    // AI 분석 시뮬레이션
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Save form data to wizard store
     setServiceData({
       companyName,
@@ -80,10 +87,12 @@ export default function ServicePage({ params }: ServicePageProps) {
     markStepComplete(1);
     setCurrentStep(2);
     router.push(`/cases/${id}/market`);
+    // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
   };
 
   return (
     <div className="py-6">
+      {isSaving && <AILoadingOverlay />}
       <div className="container mx-auto px-4 space-y-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
@@ -188,8 +197,8 @@ export default function ServicePage({ params }: ServicePageProps) {
         </Card>
 
         <div className="flex justify-end">
-          <Button onClick={handleNext} className="gap-2">
-            다음 단계
+          <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+            저장 및 다음 단계
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

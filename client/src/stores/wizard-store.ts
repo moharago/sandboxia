@@ -9,11 +9,11 @@ interface ServiceData {
   memo: string;
 }
 
-interface MarketData {
-  marketSize: string;
-  competitors: string[];
-  differentiators: string[];
-  targetCustomers: string;
+type MarketDecision = "direct" | "sandbox";
+
+interface MarketAnalysis {
+  decision: MarketDecision;
+  aiRecommendation: MarketDecision;
 }
 
 interface DraftData {
@@ -27,7 +27,7 @@ interface WizardState {
   currentStep: CaseStage;
   completedSteps: CaseStage[];
   serviceData: ServiceData | null;
-  marketData: MarketData | null;
+  marketAnalysis: MarketAnalysis | null;
   trackSelection: Track | null;
   draftData: DraftData | null;
 
@@ -35,7 +35,7 @@ interface WizardState {
   markStepComplete: (step: CaseStage) => void;
   unmarkStepComplete: (step: CaseStage) => void;
   setServiceData: (data: ServiceData) => void;
-  setMarketData: (data: MarketData) => void;
+  setMarketAnalysis: (data: MarketAnalysis) => void;
   setTrackSelection: (track: Track | null) => void;
   setDraftData: (data: DraftData) => void;
   updateDraftSection: (sectionKey: string, content: string) => void;
@@ -46,7 +46,7 @@ const initialState = {
   currentStep: 1 as CaseStage,
   completedSteps: [] as CaseStage[],
   serviceData: null,
-  marketData: null,
+  marketAnalysis: null,
   trackSelection: null,
   draftData: null,
 };
@@ -73,8 +73,8 @@ export const useWizardStore = create<WizardState>()(
       setServiceData: (data) =>
         set({ serviceData: data }),
 
-      setMarketData: (data) =>
-        set({ marketData: data }),
+      setMarketAnalysis: (data) =>
+        set({ marketAnalysis: data }),
 
       setTrackSelection: (track) =>
         set({ trackSelection: track }),
@@ -101,7 +101,7 @@ export const useWizardStore = create<WizardState>()(
         currentStep: state.currentStep,
         completedSteps: state.completedSteps,
         serviceData: state.serviceData,
-        marketData: state.marketData,
+        marketAnalysis: state.marketAnalysis,
         trackSelection: state.trackSelection,
         draftData: state.draftData,
       }),

@@ -10,7 +10,7 @@ import {
   type PipelineFilter,
 } from "@/components/features/dashboard";
 import { cases } from "@/data";
-import { useUIStore } from "@/stores";
+import { useUIStore, useCaseStore } from "@/stores";
 import { cn } from "@/lib/utils/cn";
 import {
   Select,
@@ -30,17 +30,27 @@ export default function DashboardPage() {
   const viewMode = useUIStore((state) => state.viewMode);
   const setViewMode = useUIStore((state) => state.setViewMode);
   const openNewCaseModal = useUIStore((state) => state.openNewCaseModal);
+  const statusOverrides = useCaseStore((state) => state.statusOverrides);
   const [statusFilter, setStatusFilter] = useState<PipelineFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // 케이스 상태 오버라이드 적용
+  const casesWithOverrides = useMemo(() => {
+    return cases.map((c) => ({
+      ...c,
+      status: statusOverrides[c.id]?.status || c.status,
+      updatedAt: statusOverrides[c.id]?.updatedAt || c.updatedAt,
+    }));
+  }, [statusOverrides]);
+
   const stats = {
-    consult: cases.filter((c) => c.status === "consult").length,
-    draft: cases.filter((c) => c.status === "draft").length,
-    waiting: cases.filter((c) => c.status === "waiting").length,
-    done: cases.filter((c) => c.status === "done" || c.status === "direct")
+    consult: casesWithOverrides.filter((c) => c.status === "consult").length,
+    draft: casesWithOverrides.filter((c) => c.status === "draft").length,
+    waiting: casesWithOverrides.filter((c) => c.status === "waiting").length,
+    done: casesWithOverrides.filter((c) => c.status === "done" || c.status === "direct")
       .length,
   };
 
@@ -60,7 +70,7 @@ export default function DashboardPage() {
   ];
 
   const filteredCases = useMemo(() => {
-    let result = cases.filter((caseItem) => {
+    let result = casesWithOverrides.filter((caseItem) => {
       // 1. Search Filter
       const matchesSearch =
         searchQuery === "" ||
@@ -89,7 +99,7 @@ export default function DashboardPage() {
     });
 
     return result;
-  }, [searchQuery, statusFilter, sortOrder]);
+  }, [casesWithOverrides, searchQuery, statusFilter, sortOrder]);
 
   const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE);
 
