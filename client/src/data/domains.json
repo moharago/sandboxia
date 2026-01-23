@@ -1,0 +1,44 @@
+[
+  {
+    "id": "mobility",
+    "name": "모빌리티",
+    "description": "자율주행, 공유 모빌리티, 드론 배송 등 이동 수단 관련 혁신 서비스",
+    "icon": "Car",
+    "examples": ["자율주행차", "배달로봇", "드론 배송", "공유 킥보드"]
+  },
+  {
+    "id": "ict",
+    "name": "ICT",
+    "description": "정보통신기술 기반의 혁신 서비스 및 플랫폼",
+    "icon": "Wifi",
+    "examples": ["5G 서비스", "IoT 플랫폼", "클라우드 서비스", "AI 플랫폼"]
+  },
+  {
+    "id": "smart_city",
+    "name": "스마트시티",
+    "description": "도시 인프라와 ICT를 융합한 스마트 도시 서비스",
+    "icon": "Building",
+    "examples": ["스마트 가로등", "교통 관제", "스마트 그리드", "도시 데이터 플랫폼"]
+  },
+  {
+    "id": "healthcare",
+    "name": "헬스케어",
+    "description": "의료, 건강관리, 바이오 분야의 혁신 서비스",
+    "icon": "Heart",
+    "examples": ["원격 진료", "AI 진단", "디지털 치료제", "건강관리 앱"]
+  },
+  {
+    "id": "fintech",
+    "name": "핀테크",
+    "description": "금융과 기술을 결합한 혁신 금융 서비스",
+    "icon": "Wallet",
+    "examples": ["암호화폐 결제", "로보어드바이저", "P2P 대출", "오픈뱅킹"]
+  },
+  {
+    "id": "edutech",
+    "name": "에듀테크",
+    "description": "교육과 기술을 결합한 혁신 교육 서비스",
+    "icon": "GraduationCap",
+    "examples": ["AI 튜터", "VR 교육", "학습 분석", "맞춤형 교육"]
+  }
+]

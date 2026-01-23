@@ -29,7 +29,7 @@
   }
   ```
 
-## quick
+## fastcheck
 
 - 1-1
   ```json
@@ -329,7 +329,7 @@
   }
   ```
 
-## special-case
+## demonstration
 
 - 3-1
   ```json
