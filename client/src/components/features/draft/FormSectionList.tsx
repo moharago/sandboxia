@@ -5,11 +5,18 @@ import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
 
 // 폼 데이터 타입
+interface TableRow {
+    key: string
+    label: string
+}
+
 interface FormField {
     key: string
     label: string
     formType: string
     contents?: FormField[] | RadioOption[]
+    headers?: string[]
+    rows?: TableRow[]
 }
 
 interface RadioOption {

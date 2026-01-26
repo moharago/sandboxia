@@ -170,41 +170,23 @@
                 { "key": "licensesAndPermits", "label": "주요 인허가 사항", "formType": "textarea" },
                 { "key": "technologiesAndPatents", "label": "보유기술 및 특허", "formType": "textarea" },
 
-                { "key": "financialStatus.totalAssets.yearM2", "label": "총자산 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.totalAssets.yearM1", "label": "총자산 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.totalAssets.average", "label": "총자산 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.equity.yearM2", "label": "자기자본 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.equity.yearM1", "label": "자기자본 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.equity.average", "label": "자기자본 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.currentLiabilities.yearM2", "label": "유동부채 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.currentLiabilities.yearM1", "label": "유동부채 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.currentLiabilities.average", "label": "유동부채 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.fixedLiabilities.yearM2", "label": "고정부채 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.fixedLiabilities.yearM1", "label": "고정부채 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.fixedLiabilities.average", "label": "고정부채 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.currentAssets.yearM2", "label": "유동자산 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.currentAssets.yearM1", "label": "유동자산 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.currentAssets.average", "label": "유동자산 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.netIncome.yearM2", "label": "당기순이익 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.netIncome.yearM1", "label": "당기순이익 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.netIncome.average", "label": "당기순이익 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.totalRevenue.yearM2", "label": "총매출액 (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.totalRevenue.yearM1", "label": "총매출액 (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.totalRevenue.average", "label": "총매출액 (평균)", "formType": "text" },
-
-                { "key": "financialStatus.returnOnEquity.yearM2", "label": "자기자본 이익률(당기순이익/자기자본총액) (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.returnOnEquity.yearM1", "label": "자기자본 이익률(당기순이익/자기자본총액) (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.returnOnEquity.average", "label": "자기자본 이익률(당기순이익/자기자본총액) (평균)", "formType": "text" },
-
-                { "key": "financialStatus.debtRatio.yearM2", "label": "부채비율(부채총액/자기자본) (M-2년도)", "formType": "text" },
-                { "key": "financialStatus.debtRatio.yearM1", "label": "부채비율(부채총액/자기자본) (M-1년도)", "formType": "text" },
-                { "key": "financialStatus.debtRatio.average", "label": "부채비율(부채총액/자기자본) (평균)", "formType": "text" },
+                {
+                    "key": "financialStatus",
+                    "label": "재무현황",
+                    "formType": "table",
+                    "headers": ["M-2년도", "M-1년도", "평균"],
+                    "rows": [
+                        { "key": "totalAssets", "label": "총자산" },
+                        { "key": "equity", "label": "자기자본" },
+                        { "key": "currentLiabilities", "label": "유동부채" },
+                        { "key": "fixedLiabilities", "label": "고정부채" },
+                        { "key": "currentAssets", "label": "유동자산" },
+                        { "key": "netIncome", "label": "당기순이익" },
+                        { "key": "totalRevenue", "label": "총매출액" },
+                        { "key": "returnOnEquity", "label": "자기자본 이익률(당기순이익/자기자본총액)" },
+                        { "key": "debtRatio", "label": "부채비율(부채총액/자기자본)" }
+                    ]
+                },
 
                 { "key": "organizationChart", "label": "조직도", "formType": "textarea" },
 
