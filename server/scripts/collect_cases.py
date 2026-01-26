@@ -15,17 +15,21 @@ R2. 승인 사례 RAG Tool용 데이터 다운로드
     uv run python scripts/collect_cases.py
 """
 
+import os
 import shutil
 import sys
 import tempfile
 from pathlib import Path
 
 import gdown
+from dotenv import load_dotenv
 
-# 프로젝트 루트를 path에 추가
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# .env 파일 로드
+load_dotenv(Path(__file__).parent.parent / ".env")
 
-from app.core.config import settings
+# 환경변수 읽기
+GOOGLE_DRIVE_URL = os.getenv("GOOGLE_DRIVE_URL", "https://drive.google.com/drive/folders/")
+R2_DATA_ID = os.getenv("R2_DATA_ID")
 
 # 데이터 저장 경로
 DATA_DIR = Path(__file__).parent.parent / "data" / "r2"
@@ -33,16 +37,16 @@ DATA_DIR = Path(__file__).parent.parent / "data" / "r2"
 
 def download_from_drive():
     """Google Drive에서 데이터 다운로드"""
-    if not settings.R2_DATA_ID:
+    if not R2_DATA_ID:
         print("R2_DATA_ID 환경변수가 설정되지 않았습니다.")
         print("수동으로 data/r2/ 폴더에 파일을 복사하세요:")
         print("  - cases_structured.json")
         print("  - vector_db/ (폴더)")
         return False
 
-    folder_url = f"{settings.GOOGLE_DRIVE_URL}{settings.R2_DATA_ID}"
+    folder_url = f"{GOOGLE_DRIVE_URL}{R2_DATA_ID}"
     print(f"Google Drive에서 R2 데이터 다운로드 중...")
-    print(f"  Folder ID: {settings.R2_DATA_ID}")
+    print(f"  Folder ID: {R2_DATA_ID}")
 
     # 임시 디렉토리에 다운로드
     tmp_dir = tempfile.mkdtemp()
