@@ -30,9 +30,9 @@
                     "label": "유형",
                     "formType": "radio",
                     "contents": [
-                        { "id": "technology", "name": "technology", "value": "technology" },
-                        { "id": "service", "name": "service", "value": "service" },
-                        { "id": "technologyAndService", "name": "technologyAndService", "value": "technologyAndService" }
+                        { "id": "technology", "name": "기술인 경우", "value": "technology" },
+                        { "id": "service", "name": "서비스인 경우", "value": "service" },
+                        { "id": "technologyAndService", "name": "기술과 서비스가 융합된 경우", "value": "technologyAndService" }
                     ]
                 },
                 { "key": "mainContent", "label": "주요내용", "formType": "textarea" }
@@ -124,7 +124,7 @@
         {
             "key": "operationPlan",
             "label": "4. 실증 운영 계획",
-            "contents": [{ "key": "operationPlan", "label": "실증 운영 계획", "formType": "textarea" }]
+            "contents": [{ "key": "operationPlan", "label": "", "formType": "textarea" }]
         },
         {
             "key": "expectedEffects",

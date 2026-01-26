@@ -93,52 +93,6 @@ export default function MyAccountPage() {
                 <Card>
                     <CardHeader>
                         <div className="flex items-center gap-2">
-                            <Building2 className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>회사 정보</CardTitle>
-                        </div>
-                        <CardDescription>소속 회사 정보를 수정합니다</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="company">회사명</Label>
-                            <Input id="company" defaultValue="스마트모빌리티" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="businessNumber">사업자등록번호</Label>
-                                <Input id="businessNumber" defaultValue="123-45-67890" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="industry">업종</Label>
-                                <Input id="industry" defaultValue="모빌리티" />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="address">주소</Label>
-                            <Input id="address" defaultValue="서울시 강남구 테헤란로 123" />
-                        </div>
-                        <Button>정보 저장</Button>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <Bell className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>알림 설정</CardTitle>
-                        </div>
-                        <CardDescription>알림 수신 설정을 관리합니다</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ToggleSwitch id="emailNotification" label="이메일 알림" description="케이스 진행 상황을 이메일로 받습니다" defaultChecked />
-                        <ToggleSwitch id="smsNotification" label="SMS 알림" description="중요 알림을 SMS로 받습니다" />
-                        <ToggleSwitch id="marketingNotification" label="마케팅 정보 수신" description="SandboxIA의 새로운 소식을 받습니다" />
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
                             <Shield className="h-5 w-5 text-muted-foreground" />
                             <CardTitle>보안 설정</CardTitle>
                         </div>
