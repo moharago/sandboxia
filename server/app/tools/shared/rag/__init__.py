@@ -1,12 +1,5 @@
 """RAG tools module"""
 
-# R3. 도메인별 규제·법령 RAG
-from app.tools.shared.rag.domain_law_rag import (
-    search_domain_law,
-    get_law_article,
-    list_available_laws
-)
-
 # R1. 규제제도 & 절차 RAG
 from app.tools.shared.rag.regulation_rag import (
     search_regulation,
@@ -17,11 +10,23 @@ from app.tools.shared.rag.regulation_rag import (
     list_available_tracks,
 )
 
+# R2. 승인 사례 RAG
+from app.tools.shared.rag.case_rag import (
+    search_case,
+    get_similar_cases_for_application,
+    get_case_detail,
+    get_approval_patterns,
+    list_available_tracks as list_case_tracks,
+)
+
+# R3. 도메인별 규제·법령 RAG
+from app.tools.shared.rag.domain_law_rag import (
+    search_domain_law,
+    get_law_article,
+    list_available_laws,
+)
+
 __all__ = [
-    # R3. 도메인별 법령
-    "search_domain_law",
-    "get_law_article",
-    "list_available_laws",
     # R1. 규제제도 & 절차
     "search_regulation",
     "get_track_definition",
@@ -29,4 +34,14 @@ __all__ = [
     "get_review_criteria",
     "compare_tracks",
     "list_available_tracks",
+    # R2. 승인 사례
+    "search_case",
+    "get_similar_cases_for_application",
+    "get_case_detail",
+    "get_approval_patterns",
+    "list_case_tracks",
+    # R3. 도메인별 법령
+    "search_domain_law",
+    "get_law_article",
+    "list_available_laws",
 ]
