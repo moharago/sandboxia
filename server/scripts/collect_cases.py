@@ -49,7 +49,7 @@ def download_from_drive():
         return False
 
     folder_url = f"{GOOGLE_DRIVE_URL}{R2_DATA_ID}"
-    print(f"Google Drive에서 R2 데이터 다운로드 중...")
+    print("Google Drive에서 R2 데이터 다운로드 중...")
     print(f"  Folder ID: {R2_DATA_ID}")
 
     # 임시 디렉토리에 다운로드
