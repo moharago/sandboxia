@@ -1,173 +1,255 @@
 {
-    "demonstration-1": {
-        "receipt": {
-            "receiptNumber": "",
-            "receiptDate": ""
+    "demonstration-1": [
+        {
+            "key": "receipt",
+            "label": "접수정보",
+            "contents": [
+                { "key": "receiptNumber", "label": "접수번호", "formType": "text" },
+                { "key": "receiptDate", "label": "접수일시", "formType": "date" }
+            ]
         },
-        "applicant": {
-            "companyName": "",
-            "businessRegistrationNumber": "",
-            "address": "",
-            "representativeName": "",
-            "phoneNumber": "",
-            "email": ""
+        {
+            "key": "applicant",
+            "label": "신청인",
+            "contents": [
+                { "key": "companyName", "label": "회사명(성명)", "formType": "text" },
+                { "key": "businessRegistrationNumber", "label": "사업자(법인)등록번호", "formType": "text" },
+                { "key": "address", "label": "주소", "formType": "text" },
+                { "key": "representativeName", "label": "대표자명", "formType": "text" },
+                { "key": "phoneNumber", "label": "전화번호", "formType": "text" },
+                { "key": "email", "label": "전자우편", "formType": "text" }
+            ]
         },
-        "technologyService": {
-            "name": "",
-            "type": [
-                { "id": "technology", "name": "technology", "value": "technology" },
-                { "id": "service", "name": "service", "value": "service" },
-                { "id": "technologyAndService", "name": "technologyAndService", "value": "technologyAndService" }
-            ],
-            "mainContent": ""
-        },
-        "regulatoryExemptionReason": {
-            "reason1_impossibleToApplyPermit": false,
-            "reason2_unclearOrUnreasonableCriteria": false
-        },
-        "application": {
-            "applicationDate": "",
-            "applicantSignature": ""
-        }
-    },
-    "demonstration-2": {
-        "projectInfo": {
-            "projectName": "",
-            "period": {
-                "startDate": "",
-                "endDate": "",
-                "durationMonths": ""
-            }
-        },
-        "applicantOrganizations": [
-            {
-                "organizationName": "",
-                "organizationType": "",
-                "responsiblePersonName": "",
-                "position": "",
-                "phoneNumber": "",
-                "email": ""
-            }
-        ],
-        "submission": {
-            "submissionDate": "",
-            "signatures": [
+        {
+            "key": "technologyService",
+            "label": "신규 기술·서비스",
+            "contents": [
+                { "key": "name", "label": "명칭", "formType": "text" },
                 {
-                    "organizationName": "",
-                    "name": "",
-                    "signature": ""
+                    "key": "type",
+                    "label": "유형",
+                    "formType": "radio",
+                    "contents": [
+                        { "id": "technology", "name": "technology", "value": "technology" },
+                        { "id": "service", "name": "service", "value": "service" },
+                        { "id": "technologyAndService", "name": "technologyAndService", "value": "technologyAndService" }
+                    ]
+                },
+                { "key": "mainContent", "label": "주요내용", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "regulatoryExemptionReason",
+            "label": "실증을 위한 규제특례 신청 사유",
+            "contents": [
+                {
+                    "key": "reason1_impossibleToApplyPermit",
+                    "label": "1. 신규 정보통신융합 등 기술·서비스가 다른 법령의 규정에 의하여 허가 등을 신청하는 것이 불가능한 경우(법 제38조의2제1항제1호)",
+                    "formType": "checkbox"
+                },
+                {
+                    "key": "reason2_unclearOrUnreasonableCriteria",
+                    "label": "2. 허가 등의 근거가 되는 법령에 따른 기준·규격·요건 등을 적용하는 것이 불명확하거나 불합리한 경우(법 제38조의2제1항제2호)",
+                    "formType": "checkbox"
                 }
             ]
         },
-        "technologyService": {
-            "detailedDescription": "",
-            "marketStatusAndOutlook": ""
-        },
-        "regulatoryExemption": {
-            "regulationDetails": "",
-            "necessityAndRequest": ""
-        },
-        "testPlan": {
-            "objectivesAndScope": "",
-            "executionMethod": "",
-            "schedule": ""
-        },
-        "operationPlan": "",
-        "expectedEffects": {
-            "quantitative": "",
-            "qualitative": ""
-        },
-        "postTestPlan": {
-            "expansionPlan": "",
-            "restorationPlan": ""
-        },
-        "organizationAndBudget": {
-            "organizationStructure": "",
-            "budget": ""
-        },
-        "organizationProfile": {
-            "organizationName": "",
-            "generalInfo": {
-                "establishmentDate": "",
-                "representativeName": "",
-                "address": ""
-            },
-            "mainBusiness": "",
-            "licensesAndPermits": "",
-            "technologiesAndPatents": "",
-            "financialStatus": {
-                "totalAssets": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "equity": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "currentLiabilities": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "fixedLiabilities": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "currentAssets": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "netIncome": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "totalRevenue": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "returnOnEquity": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                },
-                "debtRatio": {
-                    "yearM2": "",
-                    "yearM1": "",
-                    "average": ""
-                }
-            },
-            "organizationChart": "",
-            "humanResources": {
-                "totalEmployees": "",
-                "keyPersonnel": [
-                    {
-                        "name": "",
-                        "department": "",
-                        "position": "",
-                        "responsibilities": "",
-                        "qualificationsOrSkills": "",
-                        "experienceYears": ""
-                    }
-                ]
-            }
+        {
+            "key": "application",
+            "label": "신청",
+            "contents": [
+                { "key": "applicationDate", "label": "신청일자", "formType": "date" },
+                { "key": "applicantSignature", "label": "신청인 성명(서명 또는 인)", "formType": "text" }
+            ]
         }
-    },
-    "demonstration-3": {
-        "eligibility": {
-            "impossibleToApplyPermitByOtherLaw": false,
-            "unclearOrUnreasonableCriteria": false
+    ],
+    "demonstration-2": [
+        {
+            "key": "projectInfo",
+            "label": "실증을 위한 규제특례 실증계획서",
+            "contents": [
+                { "key": "projectName", "label": "실증사업명", "formType": "text" },
+                { "key": "period.startDate", "label": "실증기간(시작)", "formType": "date" },
+                { "key": "period.endDate", "label": "실증기간(종료)", "formType": "date" },
+                { "key": "period.durationMonths", "label": "실증기간(개월)", "formType": "text" }
+            ]
         },
-        "justification": ""
-    },
-    "demonstration-4": {
-        "protectionAndResponse": {},
-        "riskAndMitigation": {},
-        "stakeholderConflict": {}
-    }
+        {
+            "key": "applicantOrganizations",
+            "label": "신청기관",
+            "contents": [
+                { "key": "organizationName", "label": "기관명", "formType": "text" },
+                { "key": "organizationType", "label": "유형", "formType": "text" },
+                { "key": "responsiblePersonName", "label": "책임자 성명", "formType": "text" },
+                { "key": "position", "label": "직위", "formType": "text" },
+                { "key": "phoneNumber", "label": "전화", "formType": "text" },
+                { "key": "email", "label": "E-mail", "formType": "text" }
+            ]
+        },
+        {
+            "key": "submission",
+            "label": "제출 및 서명",
+            "contents": [
+                { "key": "submissionDate", "label": "제출일자", "formType": "date" },
+                { "key": "signatures.organizationName", "label": "기관명", "formType": "text" },
+                { "key": "signatures.name", "label": "성명", "formType": "text" },
+                { "key": "signatures.signature", "label": "인", "formType": "text" }
+            ]
+        },
+        {
+            "key": "technologyService",
+            "label": "1. 기술·서비스 내용",
+            "contents": [
+                { "key": "detailedDescription", "label": "가. 기술·서비스 세부 내용", "formType": "textarea" },
+                { "key": "marketStatusAndOutlook", "label": "나. 기술·서비스 관련 시장 현황 및 전망", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "regulatoryExemption",
+            "label": "2. 규제특례 신청 내용(법률)",
+            "contents": [
+                { "key": "regulationDetails", "label": "가. 규제 내용", "formType": "textarea" },
+                { "key": "necessityAndRequest", "label": "나. 규제특례 필요성 및 내용", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "testPlan",
+            "label": "3. 세부 실증 계획",
+            "contents": [
+                { "key": "objectivesAndScope", "label": "가. 실증 목표 및 범위", "formType": "textarea" },
+                { "key": "executionMethod", "label": "나. 단계별 추진 방법(세부 실증 시나리오)", "formType": "textarea" },
+                { "key": "schedule", "label": "다. 실증 기간 및 일정 계획", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "operationPlan",
+            "label": "4. 실증 운영 계획",
+            "contents": [{ "key": "operationPlan", "label": "실증 운영 계획", "formType": "textarea" }]
+        },
+        {
+            "key": "expectedEffects",
+            "label": "5. 기대효과",
+            "contents": [
+                { "key": "quantitative", "label": "가. 정량적 기대효과", "formType": "textarea" },
+                { "key": "qualitative", "label": "나. 정성적 기대효과", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "postTestPlan",
+            "label": "6. 실증 이후 계획",
+            "contents": [
+                { "key": "expansionPlan", "label": "가. 확산 계획", "formType": "textarea" },
+                { "key": "restorationPlan", "label": "나. 실증 후 복구 계획", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "organizationAndBudget",
+            "label": "7. 추진 체계 및 예산",
+            "contents": [
+                { "key": "organizationStructure", "label": "가. 추진 체계", "formType": "textarea" },
+                { "key": "budget", "label": "나. 추진 예산", "formType": "textarea" }
+            ]
+        },
+        {
+            "key": "organizationProfile",
+            "label": "붙임 1. 신청기관 현황자료",
+            "contents": [
+                { "key": "organizationName", "label": "기관·단체명", "formType": "text" },
+
+                { "key": "generalInfo.establishmentDate", "label": "설립일", "formType": "date" },
+                { "key": "generalInfo.representativeName", "label": "대표자", "formType": "text" },
+                { "key": "generalInfo.address", "label": "주소", "formType": "text" },
+
+                { "key": "mainBusiness", "label": "주요 사업", "formType": "textarea" },
+                { "key": "licensesAndPermits", "label": "주요 인허가 사항", "formType": "textarea" },
+                { "key": "technologiesAndPatents", "label": "보유기술 및 특허", "formType": "textarea" },
+
+                { "key": "financialStatus.totalAssets.yearM2", "label": "총자산 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.totalAssets.yearM1", "label": "총자산 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.totalAssets.average", "label": "총자산 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.equity.yearM2", "label": "자기자본 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.equity.yearM1", "label": "자기자본 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.equity.average", "label": "자기자본 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.currentLiabilities.yearM2", "label": "유동부채 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.currentLiabilities.yearM1", "label": "유동부채 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.currentLiabilities.average", "label": "유동부채 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.fixedLiabilities.yearM2", "label": "고정부채 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.fixedLiabilities.yearM1", "label": "고정부채 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.fixedLiabilities.average", "label": "고정부채 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.currentAssets.yearM2", "label": "유동자산 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.currentAssets.yearM1", "label": "유동자산 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.currentAssets.average", "label": "유동자산 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.netIncome.yearM2", "label": "당기순이익 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.netIncome.yearM1", "label": "당기순이익 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.netIncome.average", "label": "당기순이익 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.totalRevenue.yearM2", "label": "총매출액 (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.totalRevenue.yearM1", "label": "총매출액 (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.totalRevenue.average", "label": "총매출액 (평균)", "formType": "text" },
+
+                { "key": "financialStatus.returnOnEquity.yearM2", "label": "자기자본 이익률(당기순이익/자기자본총액) (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.returnOnEquity.yearM1", "label": "자기자본 이익률(당기순이익/자기자본총액) (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.returnOnEquity.average", "label": "자기자본 이익률(당기순이익/자기자본총액) (평균)", "formType": "text" },
+
+                { "key": "financialStatus.debtRatio.yearM2", "label": "부채비율(부채총액/자기자본) (M-2년도)", "formType": "text" },
+                { "key": "financialStatus.debtRatio.yearM1", "label": "부채비율(부채총액/자기자본) (M-1년도)", "formType": "text" },
+                { "key": "financialStatus.debtRatio.average", "label": "부채비율(부채총액/자기자본) (평균)", "formType": "text" },
+
+                { "key": "organizationChart", "label": "조직도", "formType": "textarea" },
+
+                { "key": "humanResources.totalEmployees", "label": "소속 직원 수", "formType": "text" },
+                { "key": "humanResources.keyPersonnel.name", "label": "이름", "formType": "text" },
+                { "key": "humanResources.keyPersonnel.department", "label": "부서명", "formType": "text" },
+                { "key": "humanResources.keyPersonnel.position", "label": "직책", "formType": "text" },
+                { "key": "humanResources.keyPersonnel.responsibilities", "label": "담당업무", "formType": "text" },
+                { "key": "humanResources.keyPersonnel.qualificationsOrSkills", "label": "주요 자격/보유기술", "formType": "text" },
+                { "key": "humanResources.keyPersonnel.experienceYears", "label": "해당업무 경력(년)", "formType": "text" }
+            ]
+        }
+    ],
+    "demonstration-3": [
+        {
+            "key": "eligibility",
+            "label": "1. 실증을 위한 규제특례 신청 사유",
+            "contents": [
+                {
+                    "key": "impossibleToApplyPermitByOtherLaw",
+                    "label": "신규 정보통신융합 등 기술·서비스가 다른 법령의 규정에 의하여 허가 등을 신청하는 것이 불가능한 경우",
+                    "formType": "checkbox"
+                },
+                {
+                    "key": "unclearOrUnreasonableCriteria",
+                    "label": "허가 등의 근거가 되는 법령에 따른 기준·규격·요건 등을 적용하는 것이 불명확하거나 불합리한 경우",
+                    "formType": "checkbox"
+                }
+            ]
+        },
+        {
+            "key": "justification",
+            "label": "2. 해당여부에 대한 근거",
+            "contents": [{ "key": "justification", "label": "해당여부에 대한 근거", "formType": "textarea" }]
+        }
+    ],
+    "demonstration-4": [
+        {
+            "key": "protectionAndResponse",
+            "label": "1. 이용자 보호 및 대응 계획",
+            "contents": [{ "key": "protectionAndResponse", "label": "이용자 보호 및 대응 계획", "formType": "textarea" }]
+        },
+        {
+            "key": "riskAndMitigation",
+            "label": "2. 규제특례에 따른 위험 및 대응 방안",
+            "contents": [{ "key": "riskAndMitigation", "label": "규제특례에 따른 위험 및 대응 방안", "formType": "textarea" }]
+        },
+        {
+            "key": "stakeholderConflict",
+            "label": "3. 기존 시장 및 이용자 등의 이해관계 충돌 가능성 및 해소 방안",
+            "contents": [{ "key": "stakeholderConflict", "label": "이해관계 충돌 가능성 및 해소 방안", "formType": "textarea" }]
+        }
+    ]
 }
