@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { notFound } from "next/navigation"
 import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Scale } from "lucide-react"
@@ -137,15 +137,16 @@ export default function MarketPage({ params }: MarketPageProps) {
     // 케이스 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
     const analysisData = getAnalysisData(currentStatus)
 
-    const [selectedDecision, setSelectedDecision] = useState<DecisionType>(analysisData.recommendation)
-    const [prevId, setPrevId] = useState(id)
+    const [selectedDecision, setSelectedDecision] = useState<DecisionType>(
+        analysisData.recommendation
+    )
     const [isSaving, setIsSaving] = useState(false)
 
-    // 케이스가 변경되면 AI 추천값으로 초기화 (렌더링 중 조건부 업데이트)
-    if (id !== prevId) {
-        setPrevId(id)
+    // 케이스가 변경되면 AI 추천값으로 초기화
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- id 변경 시 상태 동기화 필요
         setSelectedDecision(analysisData.recommendation)
-    }
+    }, [id, analysisData.recommendation])
 
     if (!caseData) {
         notFound()

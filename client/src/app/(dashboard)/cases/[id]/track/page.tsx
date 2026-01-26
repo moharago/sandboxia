@@ -154,18 +154,26 @@ export default function TrackPage({ params }: TrackPageProps) {
 
         setIsSaving(true)
 
-        // AI 분석 시뮬레이션
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        try {
+            // AI 분석 시뮬레이션
+            await new Promise((resolve) => setTimeout(resolve, 2000))
 
-        const track = tracks.find((t) => t.id === selectedTrackId)
-        if (track) {
+            const track = tracks.find((t) => t.id === selectedTrackId)
+            if (!track) {
+                throw new Error(`Track not found: ${selectedTrackId}`)
+            }
+
             setTrackSelection(track)
+            markStepComplete(3)
+            setCurrentStep(4)
+            router.push(`/cases/${id}/draft`)
+            // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
+        } catch (error) {
+            console.error("트랙 저장 중 오류 발생:", error)
+            // TODO: 사용자에게 에러 메시지 표시 (toast 등)
+        } finally {
+            setIsSaving(false)
         }
-
-        markStepComplete(3)
-        setCurrentStep(4)
-        router.push(`/cases/${id}/draft`)
-        // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
     }
 
     // 추천 순서대로 정렬
