@@ -143,9 +143,6 @@ export default function MarketPage({ params }: MarketPageProps) {
     const router = useRouter();
     const caseData = cases.find((c) => c.id === id);
 
-    // 케이스 상태에 따른 AI 분석 데이터 선택
-    const analysisData = getAnalysisData(caseData?.status);
-
     const {
         marketAnalysis,
         setMarketAnalysis,
@@ -153,7 +150,21 @@ export default function MarketPage({ params }: MarketPageProps) {
         setCurrentStep,
     } = useWizardStore();
 
-    const { updateCaseStatus } = useCaseStore();
+    const { updateCaseStatus, getCaseStatus } = useCaseStore();
+
+    // 오버라이드된 상태가 있으면 사용, 없으면 원본 상태 사용 (single source of truth)
+    const currentStatus = getCaseStatus(
+        id,
+        (caseData?.status as
+            | "consult"
+            | "draft"
+            | "waiting"
+            | "done"
+            | "direct") ?? "consult"
+    );
+
+    // 케이스 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
+    const analysisData = getAnalysisData(currentStatus);
 
     const [selectedDecision, setSelectedDecision] = useState<DecisionType>(
         analysisData.recommendation

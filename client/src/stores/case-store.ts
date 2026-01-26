@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-type CaseStatus = "consult" | "draft" | "waiting" | "done" | "direct";
+import type { CaseStatus } from "@/types/data/case";
 
 interface CaseStatusOverride {
     status: CaseStatus;

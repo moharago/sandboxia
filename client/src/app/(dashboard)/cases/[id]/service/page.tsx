@@ -34,32 +34,69 @@ export default function ServicePage({ params }: ServicePageProps) {
     const { serviceData, setServiceData, markStepComplete, setCurrentStep } =
         useWizardStore();
 
-    // Initialize form state from caseData
-    const [companyName, setCompanyName] = useState(caseData?.company || "");
-    const [serviceName, setServiceName] = useState(caseData?.service || "");
-    const [description, setDescription] = useState(caseData?.description || "");
-    const [memo, setMemo] = useState("");
-    const [selectedFormType, setSelectedFormType] = useState("counseling");
-    const [uploadedFiles, setUploadedFiles] = useState<
-        Record<string, File | null>
-    >({});
+    // 폼 상태를 하나의 객체로 통합 관리
+    interface FormState {
+        companyName: string;
+        serviceName: string;
+        description: string;
+        memo: string;
+        selectedFormType: string;
+        uploadedFiles: Record<string, File | null>;
+    }
+
+    const getInitialFormState = (): FormState => ({
+        companyName: caseData?.company || "",
+        serviceName: caseData?.service || "",
+        description: caseData?.description || "",
+        memo: "",
+        selectedFormType: "counseling",
+        uploadedFiles: {},
+    });
+
+    const [formState, setFormState] = useState<FormState>(getInitialFormState);
     const [isSaving, setIsSaving] = useState(false);
+
+    // 개별 필드 업데이트 헬퍼
+    const updateField = <K extends keyof FormState>(
+        field: K,
+        value: FormState[K]
+    ) => {
+        setFormState((prev) => ({ ...prev, [field]: value }));
+    };
+
+    // 편의를 위한 destructuring
+    const {
+        companyName,
+        serviceName,
+        description,
+        memo,
+        selectedFormType,
+        uploadedFiles,
+    } = formState;
 
     const selectedForm = formData.find((f) => f.id === selectedFormType);
 
     const handleFileChange = (appId: string, file: File | null) => {
-        setUploadedFiles((prev) => ({ ...prev, [appId]: file }));
+        setFormState((prev) => ({
+            ...prev,
+            uploadedFiles: { ...prev.uploadedFiles, [appId]: file },
+        }));
     };
 
+    // 케이스 변경 추적
     const [prevId, setPrevId] = useState(id);
 
-    // 케이스가 변경되면 해당 케이스의 데이터로 초기화 (렌더링 중 조건부 업데이트)
+    // 케이스가 변경되면 모든 폼 상태를 해당 케이스의 데이터로 초기화 (렌더링 중 조건부 업데이트)
     if (id !== prevId && caseData) {
         setPrevId(id);
-        setCompanyName(caseData.company);
-        setServiceName(caseData.service);
-        setDescription(caseData.description || "");
-        setMemo("");
+        setFormState({
+            companyName: caseData.company,
+            serviceName: caseData.service,
+            description: caseData.description || "",
+            memo: "",
+            selectedFormType: "counseling",
+            uploadedFiles: {},
+        });
     }
 
     if (!caseData) {
@@ -113,7 +150,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                                     id="company"
                                     value={companyName}
                                     onChange={(e) =>
-                                        setCompanyName(e.target.value)
+                                        updateField("companyName", e.target.value)
                                     }
                                 />
                             </div>
@@ -123,7 +160,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                                     id="service"
                                     value={serviceName}
                                     onChange={(e) =>
-                                        setServiceName(e.target.value)
+                                        updateField("serviceName", e.target.value)
                                     }
                                 />
                             </div>
@@ -136,7 +173,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                                 placeholder="서비스에 대해 상세히 설명해주세요"
                                 rows={4}
                                 value={description}
-                                onChange={(e) => setDescription(e.target.value)}
+                                onChange={(e) => updateField("description", e.target.value)}
                             />
                         </div>
 
@@ -147,7 +184,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                                 placeholder="추가로 기록할 내용이 있다면 작성해주세요"
                                 rows={3}
                                 value={memo}
-                                onChange={(e) => setMemo(e.target.value)}
+                                onChange={(e) => updateField("memo", e.target.value)}
                             />
                         </div>
                     </CardContent>
@@ -174,7 +211,10 @@ export default function ServicePage({ params }: ServicePageProps) {
                                         value={form.id}
                                         checked={selectedFormType === form.id}
                                         onChange={(e) =>
-                                            setSelectedFormType(e.target.value)
+                                            updateField(
+                                                "selectedFormType",
+                                                e.target.value
+                                            )
                                         }
                                         className="h-4 w-4 text-primary accent-primary"
                                     />

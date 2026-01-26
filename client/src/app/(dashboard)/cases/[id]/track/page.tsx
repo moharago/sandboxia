@@ -278,6 +278,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                         <TooltipTrigger asChild>
                                                             <button
                                                                 type="button"
+                                                                aria-label="트랙 정보"
                                                                 className="text-muted-foreground hover:text-foreground transition-colors"
                                                                 onClick={(e) =>
                                                                     e.stopPropagation()

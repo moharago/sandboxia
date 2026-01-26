@@ -37,6 +37,8 @@ export default function DashboardPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    // 이전 필터 값 추적 (렌더링 중 조건부 업데이트 패턴용)
     const [prevFilters, setPrevFilters] = useState({
         searchQuery,
         statusFilter,
