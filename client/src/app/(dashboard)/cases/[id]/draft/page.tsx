@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cases } from "@/data";
-import { useWizardStore } from "@/stores";
+import { useWizardStore } from "@/stores/wizard-store";
 
 interface DraftPageProps {
   params: Promise<{ id: string }>;

@@ -1,12 +1,11 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  Sparkles,
   CheckCircle2,
   AlertTriangle,
   Scale,
@@ -17,12 +16,13 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard";
 import { cases } from "@/data";
-import { useWizardStore, useCaseStore } from "@/stores";
+import { useWizardStore } from "@/stores/wizard-store";
+import { useCaseStore } from "@/stores/case-store";
 import { cn } from "@/lib/utils/cn";
 
 type ReasonCategory = "law" | "regulation" | "case";
@@ -168,12 +168,14 @@ export default function MarketPage({ params }: MarketPageProps) {
   const [selectedDecision, setSelectedDecision] = useState<DecisionType>(
     analysisData.recommendation
   );
+  const [prevId, setPrevId] = useState(id);
   const [isSaving, setIsSaving] = useState(false);
 
-  // 케이스가 변경되면 AI 추천값으로 초기화
-  useEffect(() => {
+  // 케이스가 변경되면 AI 추천값으로 초기화 (렌더링 중 조건부 업데이트)
+  if (id !== prevId) {
+    setPrevId(id);
     setSelectedDecision(analysisData.recommendation);
-  }, [id, analysisData.recommendation]);
+  }
 
   if (!caseData) {
     notFound();
@@ -225,44 +227,15 @@ export default function MarketPage({ params }: MarketPageProps) {
         </div>
 
         {/* AI 분석 요약 */}
-        <Card className="border-primary/30 bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <CardTitle>AI 분석 결과</CardTitle>
-              </div>
-              <Badge variant="outline" className="text-primary border-primary">
-                신뢰도 {analysisData.confidence}%
-              </Badge>
-            </div>
-            <CardDescription className="text-base mt-2">
-              {analysisData.summary}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-white/80 border border-primary/30">
-              {analysisData.recommendation === "sandbox" ? (
-                <>
-                  {/* <AlertTriangle className="h-5 w-5 text-amber-500" /> */}
-                  <span className="font-medium">
-                    AI 추천:{" "}
-                    <span className="text-amber-600 font-bold">
-                      규제 샌드박스 필요
-                    </span>
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="font-medium">
-                    AI 추천:{" "}
-                    <span className="text-green-600">바로 시장 출시 가능</span>
-                  </span>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <AIAnalysisCard
+          summary={analysisData.summary}
+          confidence={analysisData.confidence}
+          recommendation={
+            analysisData.recommendation === "sandbox"
+              ? "규제 샌드박스 필요"
+              : "바로 시장 출시 가능"
+          }
+        />
 
         {/* 판단 근거 */}
         <Card>

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, Search, FolderOpen, PanelLeft, PanelRight } from "lucide-react";
-import { useUIStore } from "@/stores";
+import { useUIStore } from "@/stores/ui-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,12 +16,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils/cn";
 import { cases } from "@/data";
-import type { Case, CaseStatus } from "@/types/data";
-import {
-  CASE_STATUS_LABELS,
-  CASE_DOMAIN_LABELS,
-  SANDBOX_TYPE_LABELS,
-} from "@/types/data";
+import type { Case, CaseStatus } from "@/types/data/case";
+import { CASE_STATUS_LABELS, SANDBOX_TYPE_LABELS } from "@/types/data/case";
 
 type SortOrder = "newest" | "oldest";
 

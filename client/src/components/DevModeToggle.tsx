@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Settings, X, User, LogIn } from "lucide-react";
-import { useUIStore } from "@/stores";
+import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils/cn";
 
 export function DevModeToggle() {

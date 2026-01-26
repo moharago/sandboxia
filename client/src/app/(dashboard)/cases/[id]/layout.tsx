@@ -2,7 +2,7 @@
 
 import { use, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { StepNav } from '@/components/features/case';
+import { StepNav } from '@/components/features/case/StepNav';
 import { cases } from '@/data';
 
 interface CaseLayoutProps {

@@ -1,32 +1,32 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  Sparkles,
   Check,
-  Clock,
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cases, tracks } from "@/data";
-import { useWizardStore } from "@/stores";
+import { useWizardStore } from "@/stores/wizard-store";
 import { cn } from "@/lib/utils/cn";
-import type { Track, TrackType } from "@/types/data";
+import type { Track, TrackType } from "@/types/data/track";
 
 interface TrackPageProps {
   params: Promise<{ id: string }>;
@@ -34,6 +34,7 @@ interface TrackPageProps {
 
 // 더미 AI 트랙 추천 데이터 (RAG 1,2,3 툴 활용 시뮬레이션)
 const dummyTrackAnalysis = {
+  confidence: 89,
   summary:
     "서비스 특성과 규제 현황을 분석한 결과, 실증특례 트랙이 가장 적합합니다. 시장성 검증을 위한 테스트가 필요하고 규제 면제가 필요한 상황에 적합합니다.",
   recommendations: [
@@ -41,22 +42,24 @@ const dummyTrackAnalysis = {
       trackId: "track-demonstration",
       rank: 1,
       score: 92,
-      verdict: "추천" as const,
+      verdict: "AI 추천" as const,
       reasons: [
         {
           type: "positive" as const,
           text: "자율주행 배달로봇은 실제 환경에서의 시장성 검증이 필수적이며, 실증특례를 통해 제한된 구역에서 테스트가 가능합니다.",
-          source: "R1. 규제제도 & 절차 RAG",
+          source:
+            "「정보통신융합법」 제38조의2 (실증특례), 「규제 샌드박스 운영지침」 제5조",
         },
         {
           type: "positive" as const,
           text: "뉴빌리티, 배달의민족 등 유사 사례가 실증특례로 승인받은 선례가 있어 승인 가능성이 높습니다.",
-          source: "R2. 승인 사례 RAG",
+          source:
+            "실증특례 제2023-ICT융합-0147호 '뉴빌리티 자율주행 배달로봇 서비스'",
         },
         {
           type: "neutral" as const,
           text: "실증 기간 내 안전성 데이터 확보가 필요하며, 이후 임시허가 또는 정식 규제 개선으로 연결 가능합니다.",
-          source: "R1. 규제제도 & 절차 RAG",
+          source: "「정보통신융합법」 제38조의2 제4항 (실증특례 기간)",
         },
       ],
     },
@@ -69,17 +72,18 @@ const dummyTrackAnalysis = {
         {
           type: "positive" as const,
           text: "전국 단위 서비스가 가능하며, 정식 허가와 동일한 효력을 가집니다.",
-          source: "R1. 규제제도 & 절차 RAG",
+          source:
+            "「정보통신융합법」 제37조 (임시허가), 「규제 샌드박스 운영지침」 제6조",
         },
         {
           type: "negative" as const,
           text: "현재 단계에서는 충분한 안전성 검증 데이터가 부족합니다. 실증특례 이후 신청이 적합합니다.",
-          source: "R2. 승인 사례 RAG",
+          source: "임시허가 제2022-ICT융합-0089호 심사 반려 사례",
         },
         {
           type: "neutral" as const,
           text: "기존 임시허가 사례는 대부분 실증특례를 거친 후 신청한 경우입니다.",
-          source: "R2. 승인 사례 RAG",
+          source: "임시허가 제2023-ICT융합-0201호 '자율주행 셔틀버스 서비스'",
         },
       ],
     },
@@ -92,12 +96,14 @@ const dummyTrackAnalysis = {
         {
           type: "negative" as const,
           text: "본 서비스는 규제 적용 여부가 명확합니다. 「여객자동차 운수사업법」에 저촉되므로 신속확인 대상이 아닙니다.",
-          source: "R3. 도메인별 규제·법령 RAG",
+          source:
+            "「여객자동차 운수사업법」 제3조 제1항, 「도로교통법」 제2조 제26호",
         },
         {
           type: "negative" as const,
           text: "신속확인은 규제 적용 여부가 불분명한 경우에만 해당됩니다.",
-          source: "R1. 규제제도 & 절차 RAG",
+          source:
+            "「정보통신융합법」 제36조 (신속확인), 「규제 샌드박스 운영지침」 제4조",
         },
       ],
     },
@@ -114,10 +120,10 @@ const verdictStyles: Record<
   string,
   { bg: string; text: string; border: string }
 > = {
-  추천: {
-    bg: "bg-green-50",
-    text: "text-green-700",
-    border: "border-green-200",
+  "AI 추천": {
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
   },
   "조건부 가능": {
     bg: "bg-amber-50",
@@ -141,20 +147,20 @@ export default function TrackPage({ params }: TrackPageProps) {
 
   // 가장 적합한 트랙(rank 1)을 기본 선택으로
   const defaultTrackId =
-    trackSelection?.id ||
     dummyTrackAnalysis.recommendations.find((r) => r.rank === 1)?.trackId ||
     null;
 
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(
     defaultTrackId
   );
+  const [prevId, setPrevId] = useState(id);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (trackSelection) {
-      setSelectedTrackId(trackSelection.id);
-    }
-  }, [trackSelection]);
+  // 케이스가 변경되면 AI 추천 트랙으로 초기화 (렌더링 중 조건부 업데이트)
+  if (id !== prevId) {
+    setPrevId(id);
+    setSelectedTrackId(defaultTrackId);
+  }
 
   if (!caseData) {
     notFound();
@@ -215,93 +221,97 @@ export default function TrackPage({ params }: TrackPageProps) {
   };
 
   return (
-    <div className="py-6">
-      {isSaving && <AILoadingOverlay />}
-      <div className="container mx-auto px-4 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
-          <p className="text-muted-foreground">
-            AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스 트랙을 선택하세요
-          </p>
-        </div>
+    <TooltipProvider>
+      <div className="py-6">
+        {isSaving && <AILoadingOverlay />}
+        <div className="container mx-auto px-4 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
+            <p className="text-muted-foreground">
+              AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스 트랙을 선택하세요
+            </p>
+          </div>
 
-        {/* AI 분석 요약 */}
-        <Card className="border-primary/30 bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle>AI 분석 결과</CardTitle>
-            </div>
-            <CardDescription className="text-base mt-2">
-              {dummyTrackAnalysis.summary}
-            </CardDescription>
-          </CardHeader>
-        </Card>
+          {/* AI 분석 요약 */}
+          <AIAnalysisCard
+            summary={dummyTrackAnalysis.summary}
+            confidence={dummyTrackAnalysis.confidence}
+          />
 
-        {/* 트랙 카드들 */}
-        <div className="space-y-4">
-          {sortedRecommendations.map((rec) => {
-            const track = tracks.find((t) => t.id === rec.trackId);
-            if (!track) return null;
+          {/* 트랙 카드들 */}
+          <div className="space-y-4">
+            {sortedRecommendations.map((rec) => {
+              const track = tracks.find((t) => t.id === rec.trackId);
+              if (!track) return null;
 
-            const isSelected = selectedTrackId === track.id;
-            const isRecommended = rec.rank === 1;
-            const style = verdictStyles[rec.verdict];
+              const isSelected = selectedTrackId === track.id;
+              const isRecommended = rec.rank === 1;
+              const style = verdictStyles[rec.verdict];
 
-            return (
-              <Card
-                key={track.id}
-                className={cn(
-                  "relative overflow-hidden transition-all cursor-pointer",
-                  isSelected && "ring-2 ring-primary",
-                  isRecommended && "border-primary"
-                )}
-                onClick={() => handleSelectTrack(track.id)}
-              >
-                {/* 상단 컬러 바 */}
-                <div
+              return (
+                <Card
+                  key={track.id}
                   className={cn(
-                    "h-1.5 bg-gradient-to-r",
-                    trackColors[track.type]
+                    "relative overflow-hidden transition-all cursor-pointer",
+                    isSelected && "ring-2 ring-primary"
                   )}
-                />
-
-                {/* 추천 배지 */}
-                {isRecommended && (
-                  <div className="absolute top-1.5 right-0">
-                    <Badge className="rounded-none rounded-bl-lg bg-primary">
-                      AI 추천
-                    </Badge>
-                  </div>
-                )}
-
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                          isSelected
-                            ? "bg-primary text-white"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {rec.rank}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">{track.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {track.description}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-primary">
-                          {rec.score}
+                  onClick={() => handleSelectTrack(track.id)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
+                            isSelected
+                              ? "bg-primary text-white"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {rec.rank}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          적합도
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="text-lg font-semibold">
+                            {track.name}
+                          </h3>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Info className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="right"
+                              sideOffset={8}
+                              className="max-w-sm text-left"
+                            >
+                              <div className="space-y-2">
+                                <p>{track.description}</p>
+                                <p className="text-muted-foreground">
+                                  <span className="font-medium text-foreground">
+                                    소요 기간:
+                                  </span>{" "}
+                                  {track.duration}
+                                </p>
+                                <div>
+                                  <span className="font-medium">
+                                    주요 요건:
+                                  </span>
+                                  <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                                    {track.requirements
+                                      .slice(0, 4)
+                                      .map((req, i) => (
+                                        <li key={i}>• {req}</li>
+                                      ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                       <Badge
@@ -311,93 +321,53 @@ export default function TrackPage({ params }: TrackPageProps) {
                         {rec.verdict}
                       </Badge>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
 
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{track.duration}</span>
-                  </div>
+                  <div className="mx-6 border-t border-gray-200" />
 
-                  {/* 추천/비추천 이유 */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">분석 결과</h4>
-                    <ul className="space-y-2">
-                      {rec.reasons.map((reason, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 text-sm"
-                        >
-                          {getReasonIcon(reason.type)}
-                          <div>
-                            <span className="text-muted-foreground">
-                              {reason.text}
-                            </span>
-                            <span className="text-xs text-muted-foreground/70 ml-1">
-                              ({reason.source})
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <CardContent className="space-y-4 mt-3">
+                    {/* AI 분석 결과 */}
+                    <div className="space-y-2">
+                      {/* <h4 className="text-sm font-medium">분석 결과</h4> */}
+                      <ul className="space-y-2">
+                        {rec.reasons.map((reason, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start gap-2 text-sm"
+                          >
+                            {getReasonIcon(reason.type)}
+                            <div className="flex-1">
+                              <p className="text-foreground">{reason.text}</p>
+                              <p className="text-muted-foreground/70 mt-1">
+                                근거: {reason.source}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-                  {/* 주요 요건 */}
-                  <div className="pt-2 border-t">
-                    <h4 className="text-sm font-medium mb-2">주요 요건</h4>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                      {track.requirements.slice(0, 4).map((req, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 text-sm text-muted-foreground"
-                        >
-                          <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          {req}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* 선택 버튼 */}
-                  <Button
-                    variant={isSelected ? "default" : "outline"}
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectTrack(track.id);
-                    }}
-                  >
-                    {isSelected ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        선택됨
-                      </>
-                    ) : (
-                      "이 트랙 선택"
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={handleBack} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            이전 단계
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!selectedTrackId || isSaving}
-            className="gap-2"
-          >
-            저장 및 다음 단계
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={handleBack} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              이전 단계
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!selectedTrackId || isSaving}
+              className="gap-2"
+            >
+              저장 및 다음 단계
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

@@ -7,7 +7,7 @@ import { Menu, X, User, LogOut, Settings } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { useUIStore } from "@/stores";
+import { useUIStore } from "@/stores/ui-store";
 
 interface NavItem {
   label: string;

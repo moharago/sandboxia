@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import type { CaseStage } from "@/types/data";
-import { CASE_STAGE_LABELS } from "@/types/data";
+import type { CaseStage } from "@/types/data/case";
+import { CASE_STAGE_LABELS } from "@/types/data/case";
 
 interface StepNavProps {
   caseId: string;
@@ -68,7 +68,6 @@ export function StepNav({ caseId, company, service }: StepNavProps) {
               );
             })}
           </ol>
-
           <div className="hidden md:flex flex-col items-end text-sm pr-4">
             <span className="font-medium truncate max-w-[200px]">
               {company}

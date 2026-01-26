@@ -8,13 +8,12 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Case, CaseStatus } from "@/types/data";
+import type { Case, CaseStatus } from "@/types/data/case";
 import {
   CASE_STATUS_LABELS,
-  CASE_DOMAIN_LABELS,
   CASE_STAGE_LABELS,
   SANDBOX_TYPE_LABELS,
-} from "@/types/data";
+} from "@/types/data/case";
 import { cn } from "@/lib/utils/cn";
 
 interface CaseCardProps {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useUIStore } from "@/stores";
+import { useUIStore } from "@/stores/ui-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -19,7 +19,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { cases } from "@/data";
-import { useWizardStore } from "@/stores";
+import { useWizardStore } from "@/stores/wizard-store";
 import formData from "@/data/formData.json";
 
 interface ServicePageProps {
@@ -34,10 +34,10 @@ export default function ServicePage({ params }: ServicePageProps) {
   const { serviceData, setServiceData, markStepComplete, setCurrentStep } =
     useWizardStore();
 
-  // Initialize form state from serviceData or caseData
-  const [companyName, setCompanyName] = useState("");
-  const [serviceName, setServiceName] = useState("");
-  const [description, setDescription] = useState("");
+  // Initialize form state from caseData
+  const [companyName, setCompanyName] = useState(caseData?.company || "");
+  const [serviceName, setServiceName] = useState(caseData?.service || "");
+  const [description, setDescription] = useState(caseData?.description || "");
   const [memo, setMemo] = useState("");
   const [selectedFormType, setSelectedFormType] = useState("counseling");
   const [uploadedFiles, setUploadedFiles] = useState<
@@ -51,20 +51,16 @@ export default function ServicePage({ params }: ServicePageProps) {
     setUploadedFiles((prev) => ({ ...prev, [appId]: file }));
   };
 
-  useEffect(() => {
-    if (serviceData) {
-      // Restore from saved wizard state
-      setCompanyName(serviceData.companyName);
-      setServiceName(serviceData.serviceName);
-      setDescription(serviceData.description);
-      setMemo(serviceData.memo);
-    } else if (caseData) {
-      // Initialize from case data
-      setCompanyName(caseData.company);
-      setServiceName(caseData.service);
-      setDescription(caseData.description || "");
-    }
-  }, [serviceData, caseData]);
+  const [prevId, setPrevId] = useState(id);
+
+  // 케이스가 변경되면 해당 케이스의 데이터로 초기화 (렌더링 중 조건부 업데이트)
+  if (id !== prevId && caseData) {
+    setPrevId(id);
+    setCompanyName(caseData.company);
+    setServiceName(caseData.service);
+    setDescription(caseData.description || "");
+    setMemo("");
+  }
 
   if (!caseData) {
     notFound();

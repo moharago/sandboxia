@@ -16,7 +16,7 @@ import {
   ModalTitle,
   ModalDescription,
 } from '@/components/ui/modal';
-import { useUIStore } from '@/stores';
+import { useUIStore } from '@/stores/ui-store';
 
 const DELETE_CONFIRMATION_TEXT = '삭제';
 
@@ -213,7 +213,7 @@ export default function MyAccountPage() {
 
             <div className="space-y-2 py-4">
               <Label htmlFor="confirmDelete">
-                삭제를 확인하려면 <strong>"{DELETE_CONFIRMATION_TEXT}"</strong>를 입력하세요
+                삭제를 확인하려면 <strong>&quot;{DELETE_CONFIRMATION_TEXT}&quot;</strong>를 입력하세요
               </Label>
               <Input
                 id="confirmDelete"

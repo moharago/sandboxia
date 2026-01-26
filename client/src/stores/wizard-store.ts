@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CaseStage, Track } from '@/types/data';
+import type { CaseStage } from '@/types/data/case';
+import type { Track } from '@/types/data/track';
 
 interface ServiceData {
   companyName: string;

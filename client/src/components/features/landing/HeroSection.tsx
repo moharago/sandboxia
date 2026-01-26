@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, FileText, Shield, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useUIStore } from "@/stores";
+import { useUIStore } from "@/stores/ui-store";
 
 export function HeroSection() {
   const isAuthenticated = useUIStore((state) => state.isAuthenticated);

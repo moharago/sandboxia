@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { DashboardLayout } from '@/components/layouts';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 
 interface DashboardLayoutWrapperProps {
   children: ReactNode;

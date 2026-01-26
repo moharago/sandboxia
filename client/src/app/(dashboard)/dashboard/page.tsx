@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { LayoutGrid, List, Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  CaseCard,
-  Pipeline,
-  type PipelineFilter,
-} from "@/components/features/dashboard";
+import { CaseCard } from "@/components/features/dashboard/CaseCard";
+import { Pipeline, type PipelineFilter } from "@/components/features/dashboard/PipelineStep";
 import { cases } from "@/data";
-import { useUIStore, useCaseStore } from "@/stores";
+import { useUIStore } from "@/stores/ui-store";
+import { useCaseStore } from "@/stores/case-store";
 import { cn } from "@/lib/utils/cn";
 import {
   Select,
@@ -20,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
-import { CASE_STATUS_LABELS } from "@/types/data";
+import { CASE_STATUS_LABELS } from "@/types/data/case";
 
 type SortOrder = "newest" | "oldest";
 
@@ -36,6 +34,7 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [prevFilters, setPrevFilters] = useState({ searchQuery, statusFilter, sortOrder });
 
   // 케이스 상태 오버라이드 적용
   const casesWithOverrides = useMemo(() => {
@@ -108,9 +107,15 @@ export default function DashboardPage() {
     return filteredCases.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredCases, currentPage]);
 
-  useEffect(() => {
+  // 필터가 변경되면 첫 페이지로 리셋 (렌더링 중 조건부 업데이트)
+  if (
+    prevFilters.searchQuery !== searchQuery ||
+    prevFilters.statusFilter !== statusFilter ||
+    prevFilters.sortOrder !== sortOrder
+  ) {
+    setPrevFilters({ searchQuery, statusFilter, sortOrder });
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, sortOrder]);
+  }
 
   const getFilterLabel = () => {
     if (statusFilter === "all") return "전체";

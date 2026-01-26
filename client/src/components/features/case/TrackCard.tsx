@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Track, TrackType } from "@/types/data";
+import type { Track, TrackType } from "@/types/data/track";
 import { cn } from "@/lib/utils/cn";
 
 interface TrackCardProps {
@@ -101,26 +101,6 @@ export function TrackCard({
           </ul>
         </div>
       </CardContent>
-
-      <CardFooter className="border-t pt-4">
-        <Button
-          variant={isSelected ? "default" : "outline"}
-          className="w-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect?.(track.id);
-          }}
-        >
-          {isSelected ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              선택됨
-            </>
-          ) : (
-            "이 트랙 선택"
-          )}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
