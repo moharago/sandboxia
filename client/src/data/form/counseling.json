@@ -1,0 +1,18 @@
+{
+    "counseling-1": {
+        "applicant": {
+            "companyName": "",
+            "position": "",
+            "name": "",
+            "businessAddress": "",
+            "phoneNumber": "",
+            "email": "",
+            "consultationDate": ""
+        },
+        "technologyService": {
+            "serviceName": "",
+            "description": ""
+        },
+        "consultation": ""
+    }
+}

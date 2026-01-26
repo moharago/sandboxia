@@ -1,0 +1,173 @@
+{
+    "demonstration-1": {
+        "receipt": {
+            "receiptNumber": "",
+            "receiptDate": ""
+        },
+        "applicant": {
+            "companyName": "",
+            "businessRegistrationNumber": "",
+            "address": "",
+            "representativeName": "",
+            "phoneNumber": "",
+            "email": ""
+        },
+        "technologyService": {
+            "name": "",
+            "type": [
+                { "id": "technology", "name": "technology", "value": "technology" },
+                { "id": "service", "name": "service", "value": "service" },
+                { "id": "technologyAndService", "name": "technologyAndService", "value": "technologyAndService" }
+            ],
+            "mainContent": ""
+        },
+        "regulatoryExemptionReason": {
+            "reason1_impossibleToApplyPermit": false,
+            "reason2_unclearOrUnreasonableCriteria": false
+        },
+        "application": {
+            "applicationDate": "",
+            "applicantSignature": ""
+        }
+    },
+    "demonstration-2": {
+        "projectInfo": {
+            "projectName": "",
+            "period": {
+                "startDate": "",
+                "endDate": "",
+                "durationMonths": ""
+            }
+        },
+        "applicantOrganizations": [
+            {
+                "organizationName": "",
+                "organizationType": "",
+                "responsiblePersonName": "",
+                "position": "",
+                "phoneNumber": "",
+                "email": ""
+            }
+        ],
+        "submission": {
+            "submissionDate": "",
+            "signatures": [
+                {
+                    "organizationName": "",
+                    "name": "",
+                    "signature": ""
+                }
+            ]
+        },
+        "technologyService": {
+            "detailedDescription": "",
+            "marketStatusAndOutlook": ""
+        },
+        "regulatoryExemption": {
+            "regulationDetails": "",
+            "necessityAndRequest": ""
+        },
+        "testPlan": {
+            "objectivesAndScope": "",
+            "executionMethod": "",
+            "schedule": ""
+        },
+        "operationPlan": "",
+        "expectedEffects": {
+            "quantitative": "",
+            "qualitative": ""
+        },
+        "postTestPlan": {
+            "expansionPlan": "",
+            "restorationPlan": ""
+        },
+        "organizationAndBudget": {
+            "organizationStructure": "",
+            "budget": ""
+        },
+        "organizationProfile": {
+            "organizationName": "",
+            "generalInfo": {
+                "establishmentDate": "",
+                "representativeName": "",
+                "address": ""
+            },
+            "mainBusiness": "",
+            "licensesAndPermits": "",
+            "technologiesAndPatents": "",
+            "financialStatus": {
+                "totalAssets": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "equity": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "currentLiabilities": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "fixedLiabilities": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "currentAssets": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "netIncome": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "totalRevenue": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "returnOnEquity": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "debtRatio": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                }
+            },
+            "organizationChart": "",
+            "humanResources": {
+                "totalEmployees": "",
+                "keyPersonnel": [
+                    {
+                        "name": "",
+                        "department": "",
+                        "position": "",
+                        "responsibilities": "",
+                        "qualificationsOrSkills": "",
+                        "experienceYears": ""
+                    }
+                ]
+            }
+        }
+    },
+    "demonstration-3": {
+        "eligibility": {
+            "impossibleToApplyPermitByOtherLaw": false,
+            "unclearOrUnreasonableCriteria": false
+        },
+        "justification": ""
+    },
+    "demonstration-4": {
+        "protectionAndResponse": {},
+        "riskAndMitigation": {},
+        "stakeholderConflict": {}
+    }
+}

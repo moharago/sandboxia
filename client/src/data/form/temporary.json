@@ -1,0 +1,171 @@
+{
+    "temporary-1": {
+        "receipt": {
+            "receiptNumber": "",
+            "receiptDate": ""
+        },
+        "applicant": {
+            "companyName": "",
+            "businessRegistrationNumber": "",
+            "address": "",
+            "representativeName": "",
+            "phoneNumber": "",
+            "email": ""
+        },
+        "technologyService": {
+            "name": "",
+            "type": [
+                { "id": "technology", "name": "technology", "value": "technology" },
+                { "id": "service", "name": "service", "value": "service" },
+                { "id": "technologyAndService", "name": "technologyAndService", "value": "technologyAndService" }
+            ],
+            "mainContent": ""
+        },
+        "temporaryPermitReason": [
+            { "id": "noApplicableStandards", "name": "noApplicableStandards", "value": "noApplicableStandards" },
+            { "id": "unclearOrUnreasonableStandards", "name": "unclearOrUnreasonableStandards", "value": "unclearOrUnreasonableStandards" }
+        ],
+        "application": {
+            "applicationDate": "",
+            "applicantSignature": ""
+        }
+    },
+    "temporary-2": {
+        "projectInfo": {
+            "projectName": "",
+            "period": {
+                "startDate": "",
+                "endDate": "",
+                "durationMonths": ""
+            }
+        },
+        "applicantOrganizations": [
+            {
+                "organizationName": "",
+                "organizationType": "",
+                "responsiblePersonName": "",
+                "position": "",
+                "phoneNumber": "",
+                "email": ""
+            }
+        ],
+        "submission": {
+            "submissionDate": "",
+            "signatures": [
+                {
+                    "organizationName": "",
+                    "name": "",
+                    "signature": ""
+                }
+            ]
+        },
+        "technologyService": {
+            "detailedDescription": "",
+            "marketStatusAndOutlook": ""
+        },
+        "temporaryPermitRequest": {
+            "regulationDetails": "",
+            "necessityAndRequest": ""
+        },
+        "businessPlan": {
+            "objectivesAndScope": "",
+            "businessContent": "",
+            "schedule": ""
+        },
+        "operationPlan": "",
+        "expectedEffects": {
+            "quantitative": "",
+            "qualitative": ""
+        },
+        "expansionPlan": "",
+        "organizationAndBudget": {
+            "organizationStructure": "",
+            "budget": ""
+        },
+        "organizationProfile": {
+            "organizationName": "",
+            "generalInfo": {
+                "establishmentDate": "",
+                "representativeName": "",
+                "address": ""
+            },
+            "mainBusiness": "",
+            "licensesAndPermits": "",
+            "technologiesAndPatents": "",
+            "financialStatus": {
+                "totalAssets": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "equity": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "currentLiabilities": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "fixedLiabilities": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "currentAssets": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "netIncome": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "totalRevenue": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "returnOnEquity": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                },
+                "debtRatio": {
+                    "yearM2": "",
+                    "yearM1": "",
+                    "average": ""
+                }
+            },
+            "organizationChart": "",
+            "humanResources": {
+                "totalEmployees": "",
+                "keyPersonnel": [
+                    {
+                        "name": "",
+                        "department": "",
+                        "position": "",
+                        "responsibilities": "",
+                        "qualificationsOrSkills": "",
+                        "experienceYears": ""
+                    }
+                ]
+            }
+        }
+    },
+    "temporary-3": {
+        "eligibility": {
+            "noApplicableStandards": false,
+            "unclearOrUnreasonableStandards": false
+        },
+        "justification": ""
+    },
+    "temporary-4": {
+        "safetyVerification": "",
+        "userProtectionPlan": "",
+        "riskAndResponse": "",
+        "stakeholderConflictResolution": ""
+    }
+}

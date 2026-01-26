@@ -1,0 +1,38 @@
+{
+    "fastcheck-1": {
+        "receipt": {
+            "receiptNumber": "",
+            "receiptDate": ""
+        },
+        "applicant": {
+            "companyName": "",
+            "businessRegistrationNumber": "",
+            "address": "",
+            "representativeName": "",
+            "phoneNumber": "",
+            "email": ""
+        },
+        "technologyService": {
+            "name": "",
+            "type": [
+                { "id": "technology", "name": "technology", "value": "technology" },
+                { "id": "service", "name": "service", "value": "service" },
+                { "id": "technologyAndService", "name": "technologyAndService", "value": "technologyAndService" }
+            ],
+            "mainContent": ""
+        },
+        "authority": {
+            "expectedGoverningAgency": "",
+            "expectedPermitOrApproval": ""
+        },
+        "application": {
+            "applicationDate": "",
+            "applicantSignature": ""
+        }
+    },
+    "fastcheck-2": {
+        "technologyServiceDetails": "",
+        "legalIssues": "",
+        "additionalQuestions": ""
+    }
+}
