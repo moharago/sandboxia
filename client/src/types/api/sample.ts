@@ -1,11 +1,11 @@
 export interface AgentQuery {
-  query: string;
+    query: string
 }
 
 export interface AgentResponse {
-  answer: string;
+    answer: string
 }
 
 export interface ApiErrorResponse {
-  message?: string;
+    message?: string
 }

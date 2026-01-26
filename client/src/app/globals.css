@@ -3,139 +3,135 @@
 @import "@radix-ui/colors/grass.css";
 
 :root {
-  color-scheme: light;
+    color-scheme: light;
 
-  /* 기본 색상 */
-  --background: #ffffff;
-  --foreground: #171717;
+    /* 기본 색상 */
+    --background: #ffffff;
+    --foreground: #171717;
 
-  /* 그라데이션 (teal → grass, 135deg 대각선) */
-  --gradient-primary: linear-gradient(135deg, var(--teal-11), var(--grass-11));
-  --gradient-primary-hover: linear-gradient(
-    135deg,
-    var(--teal-12),
-    var(--grass-12)
-  );
-  --gradient-primary-soft: linear-gradient(
-    135deg,
-    var(--teal-5),
-    var(--grass-5)
-  );
+    /* 그라데이션 (teal → grass, 135deg 대각선) */
+    --gradient-primary: linear-gradient(135deg, var(--teal-11), var(--grass-11));
+    --gradient-primary-hover: linear-gradient(135deg, var(--teal-12), var(--grass-12));
+    --gradient-primary-soft: linear-gradient(135deg, var(--teal-5), var(--grass-5));
 
-  /* shadcn/ui 호환 색상 */
-  --primary: var(--teal-9);
-  --primary-foreground: #ffffff;
-  --secondary: var(--grass-9);
-  --secondary-foreground: #ffffff;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: var(--teal-9);
-  --radius: 0.5rem;
+    /* shadcn/ui 호환 색상 */
+    --primary: var(--teal-9);
+    --primary-foreground: #ffffff;
+    --secondary: var(--grass-9);
+    --secondary-foreground: #ffffff;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a;
+    --accent: #f4f4f5;
+    --accent-foreground: #18181b;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #e4e4e7;
+    --input: #e4e4e7;
+    --ring: var(--teal-9);
+    --radius: 0.5rem;
 
-  /* card & popover */
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
+    /* card & popover */
+    --card: #ffffff;
+    --card-foreground: #171717;
+    --popover: #ffffff;
+    --popover-foreground: #171717;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 
-  /* teal 색상 */
-  --color-teal-1: var(--teal-1);
-  --color-teal-2: var(--teal-2);
-  --color-teal-3: var(--teal-3);
-  --color-teal-4: var(--teal-4);
-  --color-teal-5: var(--teal-5);
-  --color-teal-6: var(--teal-6);
-  --color-teal-7: var(--teal-7);
-  --color-teal-8: var(--teal-8);
-  --color-teal-9: var(--teal-9);
-  --color-teal-10: var(--teal-10);
-  --color-teal-11: var(--teal-11);
-  --color-teal-12: var(--teal-12);
+    /* teal 색상 */
+    --color-teal-1: var(--teal-1);
+    --color-teal-2: var(--teal-2);
+    --color-teal-3: var(--teal-3);
+    --color-teal-4: var(--teal-4);
+    --color-teal-5: var(--teal-5);
+    --color-teal-6: var(--teal-6);
+    --color-teal-7: var(--teal-7);
+    --color-teal-8: var(--teal-8);
+    --color-teal-9: var(--teal-9);
+    --color-teal-10: var(--teal-10);
+    --color-teal-11: var(--teal-11);
+    --color-teal-12: var(--teal-12);
 
-  /* grass 색상 */
-  --color-grass-1: var(--grass-1);
-  --color-grass-2: var(--grass-2);
-  --color-grass-3: var(--grass-3);
-  --color-grass-4: var(--grass-4);
-  --color-grass-5: var(--grass-5);
-  --color-grass-6: var(--grass-6);
-  --color-grass-7: var(--grass-7);
-  --color-grass-8: var(--grass-8);
-  --color-grass-9: var(--grass-9);
-  --color-grass-10: var(--grass-10);
-  --color-grass-11: var(--grass-11);
-  --color-grass-12: var(--grass-12);
+    /* grass 색상 */
+    --color-grass-1: var(--grass-1);
+    --color-grass-2: var(--grass-2);
+    --color-grass-3: var(--grass-3);
+    --color-grass-4: var(--grass-4);
+    --color-grass-5: var(--grass-5);
+    --color-grass-6: var(--grass-6);
+    --color-grass-7: var(--grass-7);
+    --color-grass-8: var(--grass-8);
+    --color-grass-9: var(--grass-9);
+    --color-grass-10: var(--grass-10);
+    --color-grass-11: var(--grass-11);
+    --color-grass-12: var(--grass-12);
 
-  /* shadcn/ui 호환 */
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
+    /* shadcn/ui 호환 */
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 /* 그라데이션 유틸리티 클래스 */
 .gradient-primary {
-  background: var(--gradient-primary);
+    background: var(--gradient-primary);
 }
 
 .gradient-primary-hover:hover {
-  background: var(--gradient-primary-hover);
+    background: var(--gradient-primary-hover);
 }
 
 .gradient-border {
-  position: relative;
-  background: var(--background);
-  border-radius: var(--radius);
+    position: relative;
+    background: var(--background);
+    border-radius: var(--radius);
 }
 
 .gradient-border::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: var(--gradient-primary);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--gradient-primary);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
 }
 
 .gradient-text {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }

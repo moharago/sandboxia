@@ -1,194 +1,202 @@
-"use client";
+"use client"
 
-import { use, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { notFound } from "next/navigation";
-import { ArrowRight, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { cases, domains } from "@/data";
-import { useWizardStore } from "@/stores";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { use, useState } from "react"
+import { useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
+import { ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { FileUpload } from "@/components/ui/file-upload"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { cases } from "@/data"
+import { useWizardStore } from "@/stores/wizard-store"
+import formData from "@/data/formData.json"
 
 interface ServicePageProps {
-  params: Promise<{ id: string }>;
+    params: Promise<{ id: string }>
 }
 
 export default function ServicePage({ params }: ServicePageProps) {
-  const { id } = use(params);
-  const router = useRouter();
-  const caseData = cases.find((c) => c.id === id);
+    const { id } = use(params)
+    const router = useRouter()
+    const caseData = cases.find((c) => c.id === id)
 
-  const { serviceData, setServiceData, markStepComplete, setCurrentStep } =
-    useWizardStore();
+    const { serviceData, setServiceData, markStepComplete, setCurrentStep } = useWizardStore()
 
-  // Initialize form state from serviceData or caseData
-  const [companyName, setCompanyName] = useState("");
-  const [serviceName, setServiceName] = useState("");
-  const [domain, setDomain] = useState("");
-  const [description, setDescription] = useState("");
-  const [technology, setTechnology] = useState("");
-
-  useEffect(() => {
-    if (serviceData) {
-      // Restore from saved wizard state
-      setCompanyName(serviceData.companyName);
-      setServiceName(serviceData.serviceName);
-      setDescription(serviceData.description);
-      setTechnology(serviceData.technology);
-      setDomain(serviceData.targetMarket);
-    } else if (caseData) {
-      // Initialize from case data
-      setCompanyName(caseData.company);
-      setServiceName(caseData.service);
-      setDescription(caseData.description || "");
-      setDomain(caseData.domain);
+    // 폼 상태를 하나의 객체로 통합 관리
+    interface FormState {
+        companyName: string
+        serviceName: string
+        description: string
+        memo: string
+        selectedFormType: string
+        uploadedFiles: Record<string, File | null>
     }
-  }, [serviceData, caseData]);
 
-  if (!caseData) {
-    notFound();
-  }
+    const getInitialFormState = (): FormState => ({
+        companyName: caseData?.company || "",
+        serviceName: caseData?.service || "",
+        description: caseData?.description || "",
+        memo: "",
+        selectedFormType: "counseling",
+        uploadedFiles: {},
+    })
 
-  const handleNext = () => {
-    // Save form data to wizard store
-    setServiceData({
-      companyName,
-      serviceName,
-      description,
-      technology,
-      targetMarket: domain,
-    });
+    const [formState, setFormState] = useState<FormState>(getInitialFormState)
+    const [isSaving, setIsSaving] = useState(false)
 
-    markStepComplete(1);
-    setCurrentStep(2);
-    router.push(`/cases/${id}/market`);
-  };
+    // 개별 필드 업데이트 헬퍼
+    const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+        setFormState((prev) => ({ ...prev, [field]: value }))
+    }
 
-  return (
-    <div className="py-6">
-      <div className="container mx-auto px-4 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
-          <p className="text-muted-foreground">
-            기업과 서비스에 대한 기본 정보를 입력해주세요.
-          </p>
+    // 편의를 위한 destructuring
+    const { companyName, serviceName, description, memo, selectedFormType, uploadedFiles } = formState
+
+    const selectedForm = formData.find((f) => f.id === selectedFormType)
+
+    const handleFileChange = (appId: string, file: File | null) => {
+        setFormState((prev) => ({
+            ...prev,
+            uploadedFiles: { ...prev.uploadedFiles, [appId]: file },
+        }))
+    }
+
+    // 케이스 변경 추적
+    const [prevId, setPrevId] = useState(id)
+
+    // 케이스가 변경되면 모든 폼 상태를 해당 케이스의 데이터로 초기화 (렌더링 중 조건부 업데이트)
+    if (id !== prevId && caseData) {
+        setPrevId(id)
+        setFormState({
+            companyName: caseData.company,
+            serviceName: caseData.service,
+            description: caseData.description || "",
+            memo: "",
+            selectedFormType: "counseling",
+            uploadedFiles: {},
+        })
+    }
+
+    if (!caseData) {
+        notFound()
+    }
+
+    const handleSave = async () => {
+        setIsSaving(true)
+
+        // AI 분석 시뮬레이션
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        // Save form data to wizard store
+        setServiceData({
+            companyName,
+            serviceName,
+            description,
+            memo,
+        })
+
+        markStepComplete(1)
+        setCurrentStep(2)
+        router.push(`/cases/${id}/market`)
+        // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
+    }
+
+    return (
+        <div className="py-6">
+            {isSaving && <AILoadingOverlay />}
+            <div className="container mx-auto px-4 space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
+                    <p className="text-muted-foreground">기업과 서비스에 대한 기본 정보를 입력해주세요</p>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>서비스 정보</CardTitle>
+                        <CardDescription>규제 샌드박스 신청을 위한 서비스 기본 정보를 입력합니다</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="company">회사명</Label>
+                                <Input id="company" value={companyName} onChange={(e) => updateField("companyName", e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="service">서비스명</Label>
+                                <Input id="service" value={serviceName} onChange={(e) => updateField("serviceName", e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">서비스 설명</Label>
+                            <Textarea
+                                id="description"
+                                placeholder="서비스에 대해 상세히 설명해주세요"
+                                rows={4}
+                                value={description}
+                                onChange={(e) => updateField("description", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="memo">추가 메모</Label>
+                            <Textarea
+                                id="memo"
+                                placeholder="추가로 기록할 내용이 있다면 작성해주세요"
+                                rows={3}
+                                value={memo}
+                                onChange={(e) => updateField("memo", e.target.value)}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>신청 유형 선택 및 신청서 업로드</CardTitle>
+                        <CardDescription>상담신청, 신속확인, 임시허가, 실증특례 중 하나를 선택하고 신청서를 업로드하세요</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap gap-x-6 gap-y-2">
+                            {formData.map((form) => (
+                                <label key={form.id} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="formType"
+                                        value={form.id}
+                                        checked={selectedFormType === form.id}
+                                        onChange={(e) => updateField("selectedFormType", e.target.value)}
+                                        className="h-4 w-4 text-primary accent-primary"
+                                    />
+                                    <span className="text-sm">{form.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </CardContent>
+
+                    {selectedForm && (
+                        <CardContent className="space-y-4">
+                            {selectedForm.application.map((app) => (
+                                <div key={app.id} className="space-y-2">
+                                    <Label>{app.name}</Label>
+                                    <FileUpload value={uploadedFiles[app.id] ?? null} onChange={(file) => handleFileChange(app.id, file)} />
+                                </div>
+                            ))}
+                        </CardContent>
+                    )}
+                </Card>
+
+                <div className="flex justify-end">
+                    <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+                        저장 및 다음 단계
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>신청서 업로드</CardTitle>
-            <CardDescription>
-              상담신청, 신속확인, 임시허가, 실증특례 중 하나를 선택하고 선청서를
-              업로드하세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground mb-2">
-                파일을 드래그하거나 클릭하여 업로드하세요
-              </p>
-              <p className="text-xs text-muted-foreground">
-                PDF, DOCX, HWP (최대 10MB)
-              </p>
-              <Button variant="outline" className="mt-4">
-                파일 선택
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>서비스 정보</CardTitle>
-            <CardDescription>
-              규제 샌드박스 신청을 위한 서비스 기본 정보를 입력합니다
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company">회사명</Label>
-                <Input
-                  id="company"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="service">서비스명</Label>
-                <Input
-                  id="service"
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="domain">분야</Label>
-              <Select value={domain} onValueChange={setDomain}>
-                <SelectTrigger>
-                  <SelectValue placeholder="분야를 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  {domains.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">서비스 설명</Label>
-              <Textarea
-                id="description"
-                placeholder="서비스에 대해 상세히 설명해주세요"
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="technology">핵심 기술</Label>
-              <Textarea
-                id="technology"
-                placeholder="서비스에 사용되는 핵심 기술을 설명해주세요"
-                rows={3}
-                value={technology}
-                onChange={(e) => setTechnology(e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button onClick={handleNext} className="gap-2">
-            다음 단계
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+    )
 }
