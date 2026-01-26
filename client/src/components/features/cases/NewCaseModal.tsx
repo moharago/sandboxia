@@ -1,55 +1,39 @@
-"use client";
+"use client"
 
-import { useUIStore } from "@/stores/ui-store";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Modal,
-    ModalContent,
-    ModalDescription,
-    ModalFooter,
-    ModalHeader,
-    ModalTitle,
-} from "@/components/ui/modal";
-import { useState } from "react";
+import { useUIStore } from "@/stores/ui-store"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal"
+import { useState } from "react"
 
 export function NewCaseModal() {
-    const { isNewCaseModalOpen, closeNewCaseModal } = useUIStore();
+    const { isNewCaseModalOpen, closeNewCaseModal } = useUIStore()
     const [formData, setFormData] = useState({
         companyName: "",
         serviceName: "",
         description: "",
-    });
+    })
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+        e.preventDefault()
         // Logic to handle submission (e.g., API call) would go here
-        console.log("Submitting new case:", formData);
-        closeNewCaseModal();
+        console.log("Submitting new case:", formData)
+        closeNewCaseModal()
         // Reset form
-        setFormData({ companyName: "", serviceName: "", description: "" });
-    };
+        setFormData({ companyName: "", serviceName: "", description: "" })
+    }
 
     return (
-        <Modal
-            open={isNewCaseModalOpen}
-            onOpenChange={(open: boolean) => !open && closeNewCaseModal()}
-        >
+        <Modal open={isNewCaseModalOpen} onOpenChange={(open: boolean) => !open && closeNewCaseModal()}>
             <ModalContent className="sm:max-w-[500px]">
                 <ModalHeader>
                     <ModalTitle>새 케이스 생성</ModalTitle>
-                    <ModalDescription>
-                        새로운 샌드박스 신청 케이스를 생성합니다. 기본 정보를
-                        입력해주세요.
-                    </ModalDescription>
+                    <ModalDescription>새로운 샌드박스 신청 케이스를 생성합니다. 기본 정보를 입력해주세요.</ModalDescription>
                 </ModalHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <label
-                            htmlFor="companyName"
-                            className="text-sm font-medium"
-                        >
+                        <label htmlFor="companyName" className="text-sm font-medium">
                             기업명
                         </label>
                         <Input
@@ -66,10 +50,7 @@ export function NewCaseModal() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label
-                            htmlFor="serviceName"
-                            className="text-sm font-medium"
-                        >
+                        <label htmlFor="serviceName" className="text-sm font-medium">
                             서비스명
                         </label>
                         <Input
@@ -86,10 +67,7 @@ export function NewCaseModal() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label
-                            htmlFor="description"
-                            className="text-sm font-medium"
-                        >
+                        <label htmlFor="description" className="text-sm font-medium">
                             설명
                         </label>
                         <Textarea
@@ -106,11 +84,7 @@ export function NewCaseModal() {
                         />
                     </div>
                     <ModalFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={closeNewCaseModal}
-                        >
+                        <Button type="button" variant="outline" onClick={closeNewCaseModal}>
                             취소
                         </Button>
                         <Button type="submit">생성하기</Button>
@@ -118,5 +92,5 @@ export function NewCaseModal() {
                 </form>
             </ModalContent>
         </Modal>
-    );
+    )
 }

@@ -1,15 +1,15 @@
-import Link from "next/link";
+import Link from "next/link"
 
 interface FooterLink {
-    label: string;
-    href: string;
+    label: string
+    href: string
 }
 
 const footerLinks: FooterLink[] = [
     { label: "이용약관", href: "/terms" },
     { label: "개인정보처리방침", href: "/privacy" },
     { label: "고객센터", href: "/support" },
-];
+]
 
 export function Footer() {
     return (
@@ -22,10 +22,7 @@ export function Footer() {
                             <span className="text-teal-9">IA</span>
                         </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        &copy; {new Date().getFullYear()} SandboxIA. All rights
-                        reserved.
-                    </p>
+                    <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} SandboxIA. All rights reserved.</p>
 
                     {/* <nav className="flex items-center gap-6">
             {footerLinks.map((link) => (
@@ -47,5 +44,5 @@ export function Footer() {
         </div> */}
             </div>
         </footer>
-    );
+    )
 }

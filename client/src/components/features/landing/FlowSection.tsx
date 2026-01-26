@@ -1,10 +1,10 @@
-import { FileText, Search, ListChecks, Send, ArrowRight } from "lucide-react";
+import { FileText, Search, ListChecks, Send, ArrowRight } from "lucide-react"
 
 interface FlowStep {
-    icon: React.ReactNode;
-    step: number;
-    title: string;
-    description: string;
+    icon: React.ReactNode
+    step: number
+    title: string
+    description: string
 }
 
 const steps: FlowStep[] = [
@@ -32,19 +32,15 @@ const steps: FlowStep[] = [
         title: "검토 및 제출",
         description: "리스크 점검 및 최종 검토",
     },
-];
+]
 
 export function FlowSection() {
     return (
         <section className="py-20">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                        간단한 4단계 프로세스
-                    </h2>
-                    <p className="text-muted-foreground max-w-2xl mx-auto">
-                        복잡한 규제 샌드박스 신청을 단순화했습니다.
-                    </p>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4">간단한 4단계 프로세스</h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto">복잡한 규제 샌드박스 신청을 단순화했습니다.</p>
                 </div>
 
                 <div className="relative max-w-4xl mx-auto">
@@ -55,15 +51,9 @@ export function FlowSection() {
                                     <div className="relative z-10 w-16 h-16 rounded-full gradient-primary flex items-center justify-center text-white mb-4 shadow-lg">
                                         {step.icon}
                                     </div>
-                                    <div className="text-xs font-medium text-primary mb-2">
-                                        STEP {step.step}
-                                    </div>
-                                    <h3 className="font-semibold mb-2">
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {step.description}
-                                    </p>
+                                    <div className="text-xs font-medium text-primary mb-2">STEP {step.step}</div>
+                                    <h3 className="font-semibold mb-2">{step.title}</h3>
+                                    <p className="text-sm text-muted-foreground">{step.description}</p>
                                 </div>
 
                                 {index < steps.length - 1 && (
@@ -77,5 +67,5 @@ export function FlowSection() {
                 </div>
             </div>
         </section>
-    );
+    )
 }

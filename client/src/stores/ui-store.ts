@@ -1,28 +1,28 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
 
-type ViewMode = "grid" | "list";
+type ViewMode = "grid" | "list"
 
 interface UIState {
-    sidebarOpen: boolean;
-    viewMode: ViewMode;
-    activeModal: string | null;
+    sidebarOpen: boolean
+    viewMode: ViewMode
+    activeModal: string | null
 
     // Dev mode
-    devMode: boolean;
-    isAuthenticated: boolean;
+    devMode: boolean
+    isAuthenticated: boolean
 
-    toggleSidebar: () => void;
-    setSidebarOpen: (open: boolean) => void;
-    setViewMode: (mode: ViewMode) => void;
-    openModal: (modalId: string) => void;
-    closeModal: () => void;
-    toggleDevMode: () => void;
-    setAuthenticated: (auth: boolean) => void;
+    toggleSidebar: () => void
+    setSidebarOpen: (open: boolean) => void
+    setViewMode: (mode: ViewMode) => void
+    openModal: (modalId: string) => void
+    closeModal: () => void
+    toggleDevMode: () => void
+    setAuthenticated: (auth: boolean) => void
 
-    isNewCaseModalOpen: boolean;
-    openNewCaseModal: () => void;
-    closeNewCaseModal: () => void;
+    isNewCaseModalOpen: boolean
+    openNewCaseModal: () => void
+    closeNewCaseModal: () => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -34,8 +34,7 @@ export const useUIStore = create<UIState>()(
             devMode: true,
             isAuthenticated: false,
 
-            toggleSidebar: () =>
-                set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+            toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
             setSidebarOpen: (open) => set({ sidebarOpen: open }),
             setViewMode: (mode) => set({ viewMode: mode }),
             openModal: (modalId) => set({ activeModal: modalId }),
@@ -56,4 +55,4 @@ export const useUIStore = create<UIState>()(
             }),
         }
     )
-);
+)

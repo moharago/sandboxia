@@ -1,47 +1,39 @@
-"use client";
+"use client"
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
-import { notFound } from "next/navigation";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { FileUpload } from "@/components/ui/file-upload";
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-    CardFooter,
-} from "@/components/ui/card";
-import { cases } from "@/data";
-import { useWizardStore } from "@/stores/wizard-store";
-import formData from "@/data/formData.json";
+import { use, useState } from "react"
+import { useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
+import { ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { FileUpload } from "@/components/ui/file-upload"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { cases } from "@/data"
+import { useWizardStore } from "@/stores/wizard-store"
+import formData from "@/data/formData.json"
 
 interface ServicePageProps {
-    params: Promise<{ id: string }>;
+    params: Promise<{ id: string }>
 }
 
 export default function ServicePage({ params }: ServicePageProps) {
-    const { id } = use(params);
-    const router = useRouter();
-    const caseData = cases.find((c) => c.id === id);
+    const { id } = use(params)
+    const router = useRouter()
+    const caseData = cases.find((c) => c.id === id)
 
-    const { serviceData, setServiceData, markStepComplete, setCurrentStep } =
-        useWizardStore();
+    const { serviceData, setServiceData, markStepComplete, setCurrentStep } = useWizardStore()
 
     // 폼 상태를 하나의 객체로 통합 관리
     interface FormState {
-        companyName: string;
-        serviceName: string;
-        description: string;
-        memo: string;
-        selectedFormType: string;
-        uploadedFiles: Record<string, File | null>;
+        companyName: string
+        serviceName: string
+        description: string
+        memo: string
+        selectedFormType: string
+        uploadedFiles: Record<string, File | null>
     }
 
     const getInitialFormState = (): FormState => ({
@@ -51,44 +43,34 @@ export default function ServicePage({ params }: ServicePageProps) {
         memo: "",
         selectedFormType: "counseling",
         uploadedFiles: {},
-    });
+    })
 
-    const [formState, setFormState] = useState<FormState>(getInitialFormState);
-    const [isSaving, setIsSaving] = useState(false);
+    const [formState, setFormState] = useState<FormState>(getInitialFormState)
+    const [isSaving, setIsSaving] = useState(false)
 
     // 개별 필드 업데이트 헬퍼
-    const updateField = <K extends keyof FormState>(
-        field: K,
-        value: FormState[K]
-    ) => {
-        setFormState((prev) => ({ ...prev, [field]: value }));
-    };
+    const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+        setFormState((prev) => ({ ...prev, [field]: value }))
+    }
 
     // 편의를 위한 destructuring
-    const {
-        companyName,
-        serviceName,
-        description,
-        memo,
-        selectedFormType,
-        uploadedFiles,
-    } = formState;
+    const { companyName, serviceName, description, memo, selectedFormType, uploadedFiles } = formState
 
-    const selectedForm = formData.find((f) => f.id === selectedFormType);
+    const selectedForm = formData.find((f) => f.id === selectedFormType)
 
     const handleFileChange = (appId: string, file: File | null) => {
         setFormState((prev) => ({
             ...prev,
             uploadedFiles: { ...prev.uploadedFiles, [appId]: file },
-        }));
-    };
+        }))
+    }
 
     // 케이스 변경 추적
-    const [prevId, setPrevId] = useState(id);
+    const [prevId, setPrevId] = useState(id)
 
     // 케이스가 변경되면 모든 폼 상태를 해당 케이스의 데이터로 초기화 (렌더링 중 조건부 업데이트)
     if (id !== prevId && caseData) {
-        setPrevId(id);
+        setPrevId(id)
         setFormState({
             companyName: caseData.company,
             serviceName: caseData.service,
@@ -96,18 +78,18 @@ export default function ServicePage({ params }: ServicePageProps) {
             memo: "",
             selectedFormType: "counseling",
             uploadedFiles: {},
-        });
+        })
     }
 
     if (!caseData) {
-        notFound();
+        notFound()
     }
 
     const handleSave = async () => {
-        setIsSaving(true);
+        setIsSaving(true)
 
         // AI 분석 시뮬레이션
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000))
 
         // Save form data to wizard store
         setServiceData({
@@ -115,13 +97,13 @@ export default function ServicePage({ params }: ServicePageProps) {
             serviceName,
             description,
             memo,
-        });
+        })
 
-        markStepComplete(1);
-        setCurrentStep(2);
-        router.push(`/cases/${id}/market`);
+        markStepComplete(1)
+        setCurrentStep(2)
+        router.push(`/cases/${id}/market`)
         // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
-    };
+    }
 
     return (
         <div className="py-6">
@@ -129,40 +111,23 @@ export default function ServicePage({ params }: ServicePageProps) {
             <div className="container mx-auto px-4 space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
-                    <p className="text-muted-foreground">
-                        기업과 서비스에 대한 기본 정보를 입력해주세요
-                    </p>
+                    <p className="text-muted-foreground">기업과 서비스에 대한 기본 정보를 입력해주세요</p>
                 </div>
 
                 <Card>
                     <CardHeader>
                         <CardTitle>서비스 정보</CardTitle>
-                        <CardDescription>
-                            규제 샌드박스 신청을 위한 서비스 기본 정보를
-                            입력합니다
-                        </CardDescription>
+                        <CardDescription>규제 샌드박스 신청을 위한 서비스 기본 정보를 입력합니다</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="company">회사명</Label>
-                                <Input
-                                    id="company"
-                                    value={companyName}
-                                    onChange={(e) =>
-                                        updateField("companyName", e.target.value)
-                                    }
-                                />
+                                <Input id="company" value={companyName} onChange={(e) => updateField("companyName", e.target.value)} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="service">서비스명</Label>
-                                <Input
-                                    id="service"
-                                    value={serviceName}
-                                    onChange={(e) =>
-                                        updateField("serviceName", e.target.value)
-                                    }
-                                />
+                                <Input id="service" value={serviceName} onChange={(e) => updateField("serviceName", e.target.value)} />
                             </div>
                         </div>
 
@@ -193,29 +158,18 @@ export default function ServicePage({ params }: ServicePageProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle>신청 유형 선택 및 신청서 업로드</CardTitle>
-                        <CardDescription>
-                            상담신청, 신속확인, 임시허가, 실증특례 중 하나를
-                            선택하고 신청서를 업로드하세요
-                        </CardDescription>
+                        <CardDescription>상담신청, 신속확인, 임시허가, 실증특례 중 하나를 선택하고 신청서를 업로드하세요</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-x-6 gap-y-2">
                             {formData.map((form) => (
-                                <label
-                                    key={form.id}
-                                    className="flex items-center gap-2 cursor-pointer"
-                                >
+                                <label key={form.id} className="flex items-center gap-2 cursor-pointer">
                                     <input
                                         type="radio"
                                         name="formType"
                                         value={form.id}
                                         checked={selectedFormType === form.id}
-                                        onChange={(e) =>
-                                            updateField(
-                                                "selectedFormType",
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={(e) => updateField("selectedFormType", e.target.value)}
                                         className="h-4 w-4 text-primary accent-primary"
                                     />
                                     <span className="text-sm">{form.name}</span>
@@ -229,12 +183,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                             {selectedForm.application.map((app) => (
                                 <div key={app.id} className="space-y-2">
                                     <Label>{app.name}</Label>
-                                    <FileUpload
-                                        value={uploadedFiles[app.id] ?? null}
-                                        onChange={(file) =>
-                                            handleFileChange(app.id, file)
-                                        }
-                                    />
+                                    <FileUpload value={uploadedFiles[app.id] ?? null} onChange={(file) => handleFileChange(app.id, file)} />
                                 </div>
                             ))}
                         </CardContent>
@@ -242,16 +191,12 @@ export default function ServicePage({ params }: ServicePageProps) {
                 </Card>
 
                 <div className="flex justify-end">
-                    <Button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="gap-2"
-                    >
+                    <Button onClick={handleSave} disabled={isSaving} className="gap-2">
                         저장 및 다음 단계
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
         </div>
-    );
+    )
 }

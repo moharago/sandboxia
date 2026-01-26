@@ -1,35 +1,22 @@
-"use client";
+"use client"
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
-import { notFound } from "next/navigation";
-import {
-    ArrowLeft,
-    ArrowRight,
-    Check,
-    CheckCircle2,
-    XCircle,
-    AlertCircle,
-    Info,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cases, tracks } from "@/data";
-import { useWizardStore } from "@/stores/wizard-store";
-import { cn } from "@/lib/utils/cn";
-import type { Track, TrackType } from "@/types/data/track";
+import { use, useState } from "react"
+import { useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cases, tracks } from "@/data"
+import { useWizardStore } from "@/stores/wizard-store"
+import { cn } from "@/lib/utils/cn"
+import type { Track, TrackType } from "@/types/data/track"
 
 interface TrackPageProps {
-    params: Promise<{ id: string }>;
+    params: Promise<{ id: string }>
 }
 
 // 더미 AI 트랙 추천 데이터 (RAG 1,2,3 툴 활용 시뮬레이션)
@@ -103,18 +90,15 @@ const dummyTrackAnalysis = {
             ],
         },
     ],
-};
+}
 
 const trackColors: Record<TrackType, string> = {
     demonstration: "from-blue-500 to-blue-600",
     temporary: "from-teal-500 to-teal-600",
     fastcheck: "from-slate-400 to-slate-500",
-};
+}
 
-const verdictStyles: Record<
-    string,
-    { bg: string; text: string; border: string }
-> = {
+const verdictStyles: Record<string, { bg: string; text: string; border: string }> = {
     "AI 추천": {
         bg: "bg-blue-50",
         text: "text-blue-700",
@@ -126,96 +110,79 @@ const verdictStyles: Record<
         border: "border-amber-200",
     },
     비추천: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
-};
+}
 
 export default function TrackPage({ params }: TrackPageProps) {
-    const { id } = use(params);
-    const router = useRouter();
-    const caseData = cases.find((c) => c.id === id);
+    const { id } = use(params)
+    const router = useRouter()
+    const caseData = cases.find((c) => c.id === id)
 
-    const {
-        trackSelection,
-        setTrackSelection,
-        markStepComplete,
-        setCurrentStep,
-    } = useWizardStore();
+    const { trackSelection, setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
 
     // 가장 적합한 트랙(rank 1)을 기본 선택으로
-    const defaultTrackId =
-        dummyTrackAnalysis.recommendations.find((r) => r.rank === 1)?.trackId ||
-        null;
+    const defaultTrackId = dummyTrackAnalysis.recommendations.find((r) => r.rank === 1)?.trackId || null
 
-    const [selectedTrackId, setSelectedTrackId] = useState<string | null>(
-        defaultTrackId
-    );
-    const [prevId, setPrevId] = useState(id);
-    const [isSaving, setIsSaving] = useState(false);
+    const [selectedTrackId, setSelectedTrackId] = useState<string | null>(defaultTrackId)
+    const [prevId, setPrevId] = useState(id)
+    const [isSaving, setIsSaving] = useState(false)
 
     // 케이스가 변경되면 AI 추천 트랙으로 초기화 (렌더링 중 조건부 업데이트)
     if (id !== prevId) {
-        setPrevId(id);
-        setSelectedTrackId(defaultTrackId);
+        setPrevId(id)
+        setSelectedTrackId(defaultTrackId)
     }
 
     if (!caseData) {
-        notFound();
+        notFound()
     }
 
     const handleSelectTrack = (trackId: string) => {
-        setSelectedTrackId(trackId);
-        const track = tracks.find((t) => t.id === trackId);
+        setSelectedTrackId(trackId)
+        const track = tracks.find((t) => t.id === trackId)
         if (track) {
-            setTrackSelection(track);
+            setTrackSelection(track)
         }
-    };
+    }
 
     const handleBack = () => {
-        setCurrentStep(2);
-        router.push(`/cases/${id}/market`);
-    };
+        setCurrentStep(2)
+        router.push(`/cases/${id}/market`)
+    }
 
     const handleSave = async () => {
-        if (!selectedTrackId) return;
+        if (!selectedTrackId) return
 
-        setIsSaving(true);
+        setIsSaving(true)
 
         // AI 분석 시뮬레이션
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000))
 
-        const track = tracks.find((t) => t.id === selectedTrackId);
+        const track = tracks.find((t) => t.id === selectedTrackId)
         if (track) {
-            setTrackSelection(track);
+            setTrackSelection(track)
         }
 
-        markStepComplete(3);
-        setCurrentStep(4);
-        router.push(`/cases/${id}/draft`);
+        markStepComplete(3)
+        setCurrentStep(4)
+        router.push(`/cases/${id}/draft`)
         // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
-    };
+    }
 
     // 추천 순서대로 정렬
-    const sortedRecommendations = [...dummyTrackAnalysis.recommendations].sort(
-        (a, b) => a.rank - b.rank
-    );
+    const sortedRecommendations = [...dummyTrackAnalysis.recommendations].sort((a, b) => a.rank - b.rank)
 
     const getReasonIcon = (type: string) => {
         switch (type) {
             case "positive":
-                return (
-                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                );
+                return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
             case "negative":
-                return (
-                    <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                );
+                return <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
             case "neutral":
-                return (
-                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                );
+                return <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
             default:
-                return null;
+                return null
         }
-    };
+    }
 
     return (
         <TooltipProvider>
@@ -224,37 +191,26 @@ export default function TrackPage({ params }: TrackPageProps) {
                 <div className="container mx-auto px-4 space-y-6">
                     <div>
                         <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
-                        <p className="text-muted-foreground">
-                            AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스
-                            트랙을 선택하세요
-                        </p>
+                        <p className="text-muted-foreground">AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스 트랙을 선택하세요</p>
                     </div>
 
                     {/* AI 분석 요약 */}
-                    <AIAnalysisCard
-                        summary={dummyTrackAnalysis.summary}
-                        confidence={dummyTrackAnalysis.confidence}
-                    />
+                    <AIAnalysisCard summary={dummyTrackAnalysis.summary} confidence={dummyTrackAnalysis.confidence} />
 
                     {/* 트랙 카드들 */}
                     <div className="space-y-4">
                         {sortedRecommendations.map((rec) => {
-                            const track = tracks.find(
-                                (t) => t.id === rec.trackId
-                            );
-                            if (!track) return null;
+                            const track = tracks.find((t) => t.id === rec.trackId)
+                            if (!track) return null
 
-                            const isSelected = selectedTrackId === track.id;
-                            const isRecommended = rec.rank === 1;
-                            const style = verdictStyles[rec.verdict];
+                            const isSelected = selectedTrackId === track.id
+                            const isRecommended = rec.rank === 1
+                            const style = verdictStyles[rec.verdict]
 
                             return (
                                 <Card
                                     key={track.id}
-                                    className={cn(
-                                        "relative overflow-hidden transition-all cursor-pointer",
-                                        isSelected && "ring-2 ring-primary"
-                                    )}
+                                    className={cn("relative overflow-hidden transition-all cursor-pointer", isSelected && "ring-2 ring-primary")}
                                     onClick={() => handleSelectTrack(track.id)}
                                 >
                                     <CardHeader className="pb-3">
@@ -263,78 +219,36 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                 <div
                                                     className={cn(
                                                         "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                                                        isSelected
-                                                            ? "bg-primary text-white"
-                                                            : "bg-muted text-muted-foreground"
+                                                        isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                                                     )}
                                                 >
                                                     {rec.rank}
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
-                                                    <h3 className="text-lg font-semibold">
-                                                        {track.name}
-                                                    </h3>
+                                                    <h3 className="text-lg font-semibold">{track.name}</h3>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <button
                                                                 type="button"
                                                                 aria-label="트랙 정보"
                                                                 className="text-muted-foreground hover:text-foreground transition-colors"
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
+                                                                onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 <Info className="h-4 w-4" />
                                                             </button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent
-                                                            side="right"
-                                                            sideOffset={8}
-                                                            className="max-w-sm text-left"
-                                                        >
+                                                        <TooltipContent side="right" sideOffset={8} className="max-w-sm text-left">
                                                             <div className="space-y-2">
-                                                                <p>
-                                                                    {
-                                                                        track.description
-                                                                    }
-                                                                </p>
+                                                                <p>{track.description}</p>
                                                                 <p className="text-muted-foreground">
-                                                                    <span className="font-medium text-foreground">
-                                                                        소요
-                                                                        기간:
-                                                                    </span>{" "}
-                                                                    {
-                                                                        track.duration
-                                                                    }
+                                                                    <span className="font-medium text-foreground">소요 기간:</span> {track.duration}
                                                                 </p>
                                                                 <div>
-                                                                    <span className="font-medium">
-                                                                        주요
-                                                                        요건:
-                                                                    </span>
+                                                                    <span className="font-medium">주요 요건:</span>
                                                                     <ul className="mt-1 space-y-0.5 text-muted-foreground">
-                                                                        {track.requirements
-                                                                            .slice(
-                                                                                0,
-                                                                                4
-                                                                            )
-                                                                            .map(
-                                                                                (
-                                                                                    req,
-                                                                                    i
-                                                                                ) => (
-                                                                                    <li
-                                                                                        key={
-                                                                                            i
-                                                                                        }
-                                                                                    >
-                                                                                        •{" "}
-                                                                                        {
-                                                                                            req
-                                                                                        }
-                                                                                    </li>
-                                                                                )
-                                                                            )}
+                                                                        {track.requirements.slice(0, 4).map((req, i) => (
+                                                                            <li key={i}>• {req}</li>
+                                                                        ))}
                                                                     </ul>
                                                                 </div>
                                                             </div>
@@ -342,14 +256,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                     </Tooltip>
                                                 </div>
                                             </div>
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    style.bg,
-                                                    style.text,
-                                                    style.border
-                                                )}
-                                            >
+                                            <Badge variant="outline" className={cn(style.bg, style.text, style.border)}>
                                                 {rec.verdict}
                                             </Badge>
                                         </div>
@@ -362,53 +269,29 @@ export default function TrackPage({ params }: TrackPageProps) {
                                         <div className="space-y-2">
                                             {/* <h4 className="text-sm font-medium">분석 결과</h4> */}
                                             <ul className="space-y-2">
-                                                {rec.reasons.map(
-                                                    (reason, index) => (
-                                                        <li
-                                                            key={index}
-                                                            className="flex items-start gap-2 text-sm"
-                                                        >
-                                                            {getReasonIcon(
-                                                                reason.type
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <p className="text-foreground">
-                                                                    {
-                                                                        reason.text
-                                                                    }
-                                                                </p>
-                                                                <p className="text-muted-foreground/70 mt-1">
-                                                                    근거:{" "}
-                                                                    {
-                                                                        reason.source
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                        </li>
-                                                    )
-                                                )}
+                                                {rec.reasons.map((reason, index) => (
+                                                    <li key={index} className="flex items-start gap-2 text-sm">
+                                                        {getReasonIcon(reason.type)}
+                                                        <div className="flex-1">
+                                                            <p className="text-foreground">{reason.text}</p>
+                                                            <p className="text-muted-foreground/70 mt-1">근거: {reason.source}</p>
+                                                        </div>
+                                                    </li>
+                                                ))}
                                             </ul>
                                         </div>
                                     </CardContent>
                                 </Card>
-                            );
+                            )
                         })}
                     </div>
 
                     <div className="flex justify-between">
-                        <Button
-                            variant="outline"
-                            onClick={handleBack}
-                            className="gap-2"
-                        >
+                        <Button variant="outline" onClick={handleBack} className="gap-2">
                             <ArrowLeft className="h-4 w-4" />
                             이전 단계
                         </Button>
-                        <Button
-                            onClick={handleSave}
-                            disabled={!selectedTrackId || isSaving}
-                            className="gap-2"
-                        >
+                        <Button onClick={handleSave} disabled={!selectedTrackId || isSaving} className="gap-2">
                             저장 및 다음 단계
                             <ArrowRight className="h-4 w-4" />
                         </Button>
@@ -416,5 +299,5 @@ export default function TrackPage({ params }: TrackPageProps) {
                 </div>
             </div>
         </TooltipProvider>
-    );
+    )
 }

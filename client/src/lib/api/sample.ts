@@ -1,7 +1,6 @@
-import type { AgentQuery, AgentResponse } from "@/types/api";
+import type { AgentQuery, AgentResponse } from "@/types/api"
 
-const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 
 export const sampleApi = {
     query: async (query: AgentQuery["query"]): Promise<AgentResponse> => {
@@ -9,21 +8,19 @@ export const sampleApi = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query }),
-        });
+        })
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(
-                errorData.message || `Request failed: ${response.status}`
-            );
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.message || `Request failed: ${response.status}`)
         }
 
-        const data = await response.json();
+        const data = await response.json()
 
         if (!data.answer || typeof data.answer !== "string") {
-            throw new Error("Unexpected response format");
+            throw new Error("Unexpected response format")
         }
 
-        return data as AgentResponse;
+        return data as AgentResponse
     },
-};
+}

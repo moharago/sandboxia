@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { ArrowRight, FileText, Shield, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useUIStore } from "@/stores/ui-store";
+import Link from "next/link"
+import { ArrowRight, FileText, Shield, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useUIStore } from "@/stores/ui-store"
 
 export function HeroSection() {
-    const isAuthenticated = useUIStore((state) => state.isAuthenticated);
+    const isAuthenticated = useUIStore((state) => state.isAuthenticated)
     return (
         <section className="relative overflow-hidden py-20 md:py-32">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-50 via-grass-50 to-teal-50" />
@@ -36,11 +36,7 @@ export function HeroSection() {
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link href={isAuthenticated ? "/dashboard" : "/login"}>
-                            <Button
-                                size="lg"
-                                variant="gradient"
-                                className="gap-2 px-8"
-                            >
+                            <Button size="lg" variant="gradient" className="gap-2 px-8">
                                 시작하기
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -64,5 +60,5 @@ export function HeroSection() {
                 </div>
             </div>
         </section>
-    );
+    )
 }

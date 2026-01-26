@@ -1,34 +1,34 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X, User, LogOut, Settings } from "lucide-react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils/cn";
-import { useUIStore } from "@/stores/ui-store";
+import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Menu, X, User, LogOut, Settings } from "lucide-react"
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils/cn"
+import { useUIStore } from "@/stores/ui-store"
 
 interface NavItem {
-    label: string;
-    href: string;
+    label: string
+    href: string
 }
 
-const navItems: NavItem[] = [];
+const navItems: NavItem[] = []
 
 interface HeaderProps {
-    userName?: string;
+    userName?: string
 }
 
 export function Header({ userName = "홍길동" }: HeaderProps) {
-    const pathname = usePathname();
-    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-    const isAuthenticated = useUIStore((state) => state.isAuthenticated);
-    const setAuthenticated = useUIStore((state) => state.setAuthenticated);
+    const pathname = usePathname()
+    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+    const isAuthenticated = useUIStore((state) => state.isAuthenticated)
+    const setAuthenticated = useUIStore((state) => state.setAuthenticated)
 
     const handleLogout = () => {
-        setAuthenticated(false);
-    };
+        setAuthenticated(false)
+    }
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,9 +48,7 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                                 href={item.href}
                                 className={cn(
                                     "text-sm font-medium transition-colors hover:text-primary",
-                                    pathname === item.href
-                                        ? "text-primary"
-                                        : "text-muted-foreground"
+                                    pathname === item.href ? "text-primary" : "text-muted-foreground"
                                 )}
                             >
                                 {item.label}
@@ -69,11 +67,7 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                             </Link>
                             <DropdownMenu.Root>
                                 <DropdownMenu.Trigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2"
-                                    >
+                                    <Button variant="outline" size="sm" className="gap-2">
                                         <User className="h-4 w-4" />
                                         {userName}
                                     </Button>
@@ -121,16 +115,8 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                     )}
                 </div>
 
-                <button
-                    className="md:hidden p-2"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    aria-label="메뉴 토글"
-                >
-                    {mobileMenuOpen ? (
-                        <X className="h-6 w-6" />
-                    ) : (
-                        <Menu className="h-6 w-6" />
-                    )}
+                <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="메뉴 토글">
+                    {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </button>
             </div>
 
@@ -143,9 +129,7 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                                 href={item.href}
                                 className={cn(
                                     "py-2 text-sm font-medium transition-colors",
-                                    pathname === item.href
-                                        ? "text-primary"
-                                        : "text-muted-foreground"
+                                    pathname === item.href ? "text-primary" : "text-muted-foreground"
                                 )}
                                 onClick={() => setMobileMenuOpen(false)}
                             >
@@ -156,36 +140,23 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                             {isAuthenticated ? (
                                 <>
                                     <Link href="/dashboard">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                        >
+                                        <Button variant="outline" className="w-full">
                                             대시보드
                                         </Button>
                                     </Link>
-                                    <Button
-                                        variant="destructive"
-                                        className="w-full"
-                                        onClick={handleLogout}
-                                    >
+                                    <Button variant="destructive" className="w-full" onClick={handleLogout}>
                                         로그아웃
                                     </Button>
                                 </>
                             ) : (
                                 <>
                                     <Link href="/login">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                        >
+                                        <Button variant="outline" className="w-full">
                                             로그인
                                         </Button>
                                     </Link>
                                     <Link href="/signup">
-                                        <Button
-                                            variant="gradient"
-                                            className="w-full"
-                                        >
+                                        <Button variant="gradient" className="w-full">
                                             회원가입
                                         </Button>
                                     </Link>
@@ -196,5 +167,5 @@ export function Header({ userName = "홍길동" }: HeaderProps) {
                 </div>
             )}
         </header>
-    );
+    )
 }
