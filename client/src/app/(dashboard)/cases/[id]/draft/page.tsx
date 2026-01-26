@@ -44,7 +44,7 @@ export default function DraftPage({ params }: DraftPageProps) {
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 폼 영역 */}
-                    <div className={isReferencePanelOpen ? "flex-2 space-y-6" : "flex-1 space-y-6"}>
+                    <div className={isReferencePanelOpen ? "flex-[2] space-y-6" : "flex-1 space-y-6"}>
                         <div>
                             <h1 className="text-2xl font-bold mb-2">신청서 작성</h1>
                             <p className="text-muted-foreground">AI가 생성한 초안을 검토하고 수정하세요</p>

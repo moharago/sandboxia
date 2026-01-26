@@ -100,7 +100,7 @@ function CaseItem({ caseData }: CaseItemProps) {
             {isExpanded && (
                 <div className="mt-3 pt-3 border-t border-border">
                     <p className="text-sm text-muted-foreground">{caseData.summary}</p>
-                    <button className="mt-2 text-xs text-primary hover:underline flex items-center gap-1">
+                    <button type="button" className="mt-2 text-xs text-primary hover:underline flex items-center gap-1">
                         상세보기 <ExternalLink className="h-3 w-3" />
                     </button>
                 </div>

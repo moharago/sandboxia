@@ -205,7 +205,7 @@ export function DynamicFormCard({ cardKey, cardName, sections, values, onValueCh
                     </div>
                 )
 
-            case "table":
+            case "table": {
                 const headers = field.headers || []
                 const tableRows = field.rows || []
                 const columnKeys = ["yearM2", "yearM1", "average"]
@@ -251,8 +251,9 @@ export function DynamicFormCard({ cardKey, cardName, sections, values, onValueCh
                         </div>
                     </div>
                 )
+            }
 
-            case "addList":
+            case "addList": {
                 const listContents = (field.contents as FormField[]) || []
                 const rowCount = getRowCount(fieldKey)
 
@@ -323,6 +324,7 @@ export function DynamicFormCard({ cardKey, cardName, sections, values, onValueCh
                         </div>
                     </div>
                 )
+            }
 
             default:
                 return null
