@@ -66,6 +66,7 @@ export function Sidebar() {
                         size="icon"
                         className={cn("h-8 w-8 shrink-0 text-teal-600 hover:text-teal-700 hover:bg-teal-50", !sidebarOpen && "mx-auto")}
                         onClick={toggleSidebar}
+                        aria-label={sidebarOpen ? "사이드바 닫기" : "사이드바 열기"}
                     >
                         {sidebarOpen ? <PanelLeft className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
                     </Button>
@@ -114,7 +115,12 @@ export function Sidebar() {
                             </Select>
                         </div>
 
-                        <Button variant="ghost-muted" size="icon-sm" onClick={() => setIsSearchOpen(!isSearchOpen)}>
+                        <Button
+                            variant="ghost-muted"
+                            size="icon-sm"
+                            onClick={() => setIsSearchOpen(!isSearchOpen)}
+                            aria-label={isSearchOpen ? "검색 닫기" : "검색 열기"}
+                        >
                             <Search className="h-4 w-4" />
                         </Button>
                     </div>
