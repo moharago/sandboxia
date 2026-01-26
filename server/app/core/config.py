@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Google Drive 설정 (RAG 데이터 다운로드용)
     GOOGLE_DRIVE_URL: str = "https://drive.google.com/drive/folders/"
     R1_DATA_ID: str | None = None
+    R2_DATA_ID: str | None = None
 
     # Supabase 설정 (pydantic 필드로 변경)
     SUPABASE_URL: str
