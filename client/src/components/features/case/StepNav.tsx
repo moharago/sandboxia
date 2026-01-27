@@ -31,7 +31,7 @@ export function StepNav({ caseId, company, service }: StepNavProps) {
 
     return (
         <nav className="sticky top-0 z-40 bg-background">
-            <div className="container mx-auto">
+            <div className="container">
                 <div className="flex items-center justify-between">
                     <ol className="flex items-center">
                         {steps.map((step, index) => {
@@ -42,7 +42,7 @@ export function StepNav({ caseId, company, service }: StepNavProps) {
                                     <Link
                                         href={step.path}
                                         className={cn(
-                                            "flex items-center gap-3 py-3 px-4 text-sm font-medium transition-colors",
+                                            "flex items-center gap-3 py-4 text-sm font-medium transition-colors",
                                             isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                                         )}
                                     >
@@ -57,12 +57,12 @@ export function StepNav({ caseId, company, service }: StepNavProps) {
                                         <span className="hidden sm:inline">{step.label}</span>
                                     </Link>
 
-                                    {index < steps.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground mx-2" />}
+                                    {index < steps.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground mx-6" />}
                                 </li>
                             )
                         })}
                     </ol>
-                    <div className="hidden md:flex flex-col items-end text-sm pr-4">
+                    <div className="hidden md:flex flex-col items-end text-sm">
                         <span className="font-medium truncate max-w-[200px]">{company}</span>
                         <span className="text-muted-foreground truncate max-w-[200px] text-xs">{service}</span>
                     </div>

@@ -317,6 +317,36 @@ export default function MyAccountPage() {
                                 </span>
                             )}
                         </div>
+                                <Label htmlFor="position">직책</Label>
+                                <Input id="position" defaultValue="대표이사" />
+                            </div>
+                        </div>
+                        <Button>정보 저장</Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-muted-foreground" />
+                            <CardTitle>보안 설정</CardTitle>
+                        </div>
+                        <CardDescription>비밀번호를 변경합니다</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="currentPassword">현재 비밀번호</Label>
+                            <Input id="currentPassword" type="password" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="newPassword">새 비밀번호</Label>
+                            <Input id="newPassword" type="password" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">비밀번호 확인</Label>
+                            <Input id="confirmPassword" type="password" />
+                        </div>
+                        <Button>비밀번호 변경</Button>
                     </CardContent>
                 </Card>
 

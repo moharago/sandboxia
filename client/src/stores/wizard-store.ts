@@ -24,6 +24,15 @@ interface DraftData {
     lastSaved: string
 }
 
+export type FormType = "counseling" | "temporary" | "demonstration" | "fastcheck"
+
+export const FORM_TYPE_LABELS: Record<FormType, string> = {
+    counseling: "상담신청",
+    temporary: "임시허가",
+    demonstration: "실증특례",
+    fastcheck: "신속확인",
+}
+
 interface WizardState {
     currentStep: CaseStage
     completedSteps: CaseStage[]
@@ -31,6 +40,7 @@ interface WizardState {
     marketAnalysis: MarketAnalysis | null
     trackSelection: Track | null
     draftData: DraftData | null
+    selectedFormType: FormType
 
     setCurrentStep: (step: CaseStage) => void
     markStepComplete: (step: CaseStage) => void
@@ -40,6 +50,7 @@ interface WizardState {
     setTrackSelection: (track: Track | null) => void
     setDraftData: (data: DraftData) => void
     updateDraftSection: (sectionKey: string, content: string) => void
+    setSelectedFormType: (formType: FormType) => void
     resetWizard: () => void
 }
 
@@ -50,6 +61,7 @@ const initialState = {
     marketAnalysis: null,
     trackSelection: null,
     draftData: null,
+    selectedFormType: "counseling" as FormType,
 }
 
 export const useWizardStore = create<WizardState>()(
@@ -93,6 +105,8 @@ export const useWizardStore = create<WizardState>()(
                         : null,
                 })),
 
+            setSelectedFormType: (formType) => set({ selectedFormType: formType }),
+
             resetWizard: () => set(initialState),
         }),
         {
@@ -104,6 +118,7 @@ export const useWizardStore = create<WizardState>()(
                 marketAnalysis: state.marketAnalysis,
                 trackSelection: state.trackSelection,
                 draftData: state.draftData,
+                selectedFormType: state.selectedFormType,
             }),
         }
     )

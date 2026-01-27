@@ -1,0 +1,37 @@
+{
+    "counseling-1": {
+        "formId": "counseling-1",
+        "formName": "사전상담 신청서",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "applicant",
+                "label": "신청인",
+                "fields": [
+                    { "key": "companyName", "label": "회사명(소속)", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "position", "label": "직위", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "name", "label": "성명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "businessAddress", "label": "사업장 주소", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "phoneNumber", "label": "연락처", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "email", "label": "전자우편(E-Mail)", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "consultationDate", "label": "상담 희망 일자", "formType": "date", "dataType": "date", "required": false }
+                ]
+            },
+            {
+                "key": "technologyService",
+                "label": "신규기술ㆍ서비스",
+                "fields": [
+                    { "key": "serviceName", "label": "기술‧서비스 명칭", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "description", "label": "신규 정보통신융합 등 기술ㆍ서비스에 대한 설명서", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "consultation",
+                "label": "상담내용",
+                "fields": [
+                    { "key": "consultation", "label": "ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            }
+        ]
+    }
+}

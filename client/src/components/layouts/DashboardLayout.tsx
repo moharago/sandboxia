@@ -25,7 +25,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <div className="flex h-screen overflow-hidden flex-col">
             <Header />
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative">
                 <Sidebar />
                 <main ref={mainRef} className="flex-1 overflow-y-auto bg-background flex flex-col">
                     <div className="flex-1">{children}</div>
