@@ -42,6 +42,7 @@ export default function MyAccountPage() {
     const [phoneError, setPhoneError] = useState("")
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [apiError, setApiError] = useState<string | null>(null)
 
     const handlePhoneChange = (value: string) => {
         if (hasNonDigit(value.replace(/-/g, ''))) {
@@ -98,9 +99,20 @@ export default function MyAccountPage() {
                     setName(userData.name || "")
                     setCompany(userData.company || "")
                     setPhone(formatPhoneNumber(userData.phone || ""))
+                } else {
+                    // 에러 응답 처리
+                    let errorMessage = '사용자 정보를 불러오는데 실패했습니다'
+                    try {
+                        const errorData = await response.json()
+                        errorMessage = errorData.detail || errorData.message || errorMessage
+                    } catch {
+                        errorMessage = await response.text() || errorMessage
+                    }
+                    setApiError(errorMessage)
                 }
             } catch (error) {
                 console.error('Failed to fetch user:', error)
+                setApiError('서버에 연결할 수 없습니다')
             } finally {
                 setLoading(false)
             }
@@ -210,6 +222,18 @@ export default function MyAccountPage() {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
+
+    if (apiError) {
+        return (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[400px] gap-4">
+                <AlertTriangle className="h-12 w-12 text-destructive" />
+                <p className="text-destructive font-medium">{apiError}</p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                    다시 시도
+                </Button>
             </div>
         )
     }

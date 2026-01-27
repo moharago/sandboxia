@@ -59,13 +59,22 @@ class UserUpdate(BaseModel):
 async def get_user(auth_user = Depends(get_auth_user)):
     """본인 정보 조회"""
 
-    result = supabase.table("users")\
-        .select("*")\
-        .eq("id", auth_user.id)\
-        .single()\
-        .execute()
-    
-    return result.data
+    try:
+        result = supabase.table("users")\
+            .select("*")\
+            .eq("id", auth_user.id)\
+            .single()\
+            .execute()
+
+        if not result.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return result.data
+    except HTTPException:
+        raise
+    except Exception as e:
+        # single()이 행이 없거나 여러 행일 때 예외 발생
+        raise HTTPException(status_code=404, detail=f"User not found: {str(e)}")
 
 
 # ================================
@@ -99,14 +108,26 @@ async def update_user(
 @router.delete("/users/me")
 async def delete_user(auth_user = Depends(get_auth_user)):
     """본인 계정 삭제"""
-    
-    # 1. public.users에서 삭제
-    supabase.table("users")\
-        .delete()\
-        .eq("id", auth_user.id)\
-        .execute()
-    
-    # 2. auth.users에서 삭제 (Admin API)
-    supabase.auth.admin.delete_user(auth_user.id)
-    
+
+    # 1. auth.users에서 먼저 삭제 (Admin API)
+    # auth.users 삭제 시 ON DELETE CASCADE가 설정되어 있으면 public.users도 자동 삭제됨
+    try:
+        supabase.auth.admin.delete_user(auth_user.id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete auth user: {str(e)}"
+        )
+
+    # 2. public.users에서 삭제 (CASCADE가 없는 경우를 대비)
+    try:
+        supabase.table("users")\
+            .delete()\
+            .eq("id", auth_user.id)\
+            .execute()
+    except Exception as e:
+        # auth.users는 이미 삭제됨, public.users 삭제 실패는 로깅만
+        # CASCADE가 이미 처리했을 수 있음
+        print(f"Warning: Failed to delete public.users row (may already be deleted by CASCADE): {str(e)}")
+
     return {"message": "Account deleted"}
