@@ -1,0 +1,132 @@
+{
+    "temporary-1": {
+        "formId": "temporary-1",
+        "data": {
+            "receipt": {
+                "receiptNumber": null,
+                "receiptDate": null
+            },
+            "applicant": {
+                "companyName": null,
+                "businessRegistrationNumber": null,
+                "address": null,
+                "representativeName": null,
+                "phoneNumber": null,
+                "email": null
+            },
+            "technologyService": {
+                "name": null,
+                "type": null,
+                "mainContent": null
+            },
+            "temporaryPermitReason": {
+                "temporaryPermitReason": []
+            },
+            "application": {
+                "applicationDate": null,
+                "applicantSignature": null
+            }
+        }
+    },
+    "temporary-2": {
+        "formId": "temporary-2",
+        "data": {
+            "projectInfo": {
+                "projectName": null,
+                "period": {
+                    "startDate": null,
+                    "endDate": null,
+                    "durationMonths": null
+                }
+            },
+            "applicantOrganizations": [],
+            "submissionDate": {
+                "submissionDate": null
+            },
+            "submission": [],
+            "technologyService": {
+                "detailedDescription": null,
+                "marketStatusAndOutlook": null
+            },
+            "temporaryPermitRequest": {
+                "regulationDetails": null,
+                "necessityAndRequest": null
+            },
+            "businessPlan": {
+                "objectivesAndScope": null,
+                "businessContent": null,
+                "schedule": null
+            },
+            "operationPlan": {
+                "operationPlan": null
+            },
+            "expectedEffects": {
+                "quantitative": null,
+                "qualitative": null
+            },
+            "expansionPlan": {
+                "expansionPlan": null
+            },
+            "organizationAndBudget": {
+                "organizationStructure": null,
+                "budget": null
+            },
+            "organizationProfile": {
+                "organizationName": null,
+                "generalInfo": {
+                    "establishmentDate": null,
+                    "representativeName": null,
+                    "address": null
+                },
+                "mainBusiness": null,
+                "licensesAndPermits": null,
+                "technologiesAndPatents": null
+            },
+            "financialStatus": {
+                "totalAssets": { "yearM2": null, "yearM1": null, "average": null },
+                "equity": { "yearM2": null, "yearM1": null, "average": null },
+                "currentLiabilities": { "yearM2": null, "yearM1": null, "average": null },
+                "fixedLiabilities": { "yearM2": null, "yearM1": null, "average": null },
+                "currentAssets": { "yearM2": null, "yearM1": null, "average": null },
+                "netIncome": { "yearM2": null, "yearM1": null, "average": null },
+                "totalRevenue": { "yearM2": null, "yearM1": null, "average": null },
+                "returnOnEquity": { "yearM2": null, "yearM1": null, "average": null },
+                "debtRatio": { "yearM2": null, "yearM1": null, "average": null }
+            },
+            "humanResources": {
+                "organizationChart": null,
+                "totalEmployees": null
+            },
+            "keyPersonnel": []
+        }
+    },
+    "temporary-3": {
+        "formId": "temporary-3",
+        "data": {
+            "eligibility": {
+                "noApplicableStandards": false,
+                "unclearOrUnreasonableStandards": false
+            },
+            "justification": {
+                "justification": null
+            }
+        }
+    },
+    "temporary-4": {
+        "formId": "temporary-4",
+        "data": {
+            "safetyVerification": {
+                "safetyVerification": null
+            },
+            "userProtectionPlan": {
+                "userProtectionPlan": null
+            },
+            "riskAndResponse": {
+                "riskAndResponse": null
+            },
+            "stakeholderConflictResolution": {
+                "stakeholderConflictResolution": null
+            }
+        }
+    }
+}

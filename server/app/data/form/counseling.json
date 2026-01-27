@@ -1,0 +1,23 @@
+{
+    "counseling-1": {
+        "formId": "counseling-1",
+        "data": {
+            "applicant": {
+                "companyName": null,
+                "position": null,
+                "name": null,
+                "businessAddress": null,
+                "phoneNumber": null,
+                "email": null,
+                "consultationDate": null
+            },
+            "technologyService": {
+                "serviceName": null,
+                "description": null
+            },
+            "consultation": {
+                "consultation": null
+            }
+        }
+    }
+}

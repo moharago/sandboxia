@@ -1,0 +1,46 @@
+{
+    "fastcheck-1": {
+        "formId": "fastcheck-1",
+        "data": {
+            "receipt": {
+                "receiptNumber": null,
+                "receiptDate": null
+            },
+            "applicant": {
+                "companyName": null,
+                "businessRegistrationNumber": null,
+                "address": null,
+                "representativeName": null,
+                "phoneNumber": null,
+                "email": null
+            },
+            "technologyService": {
+                "name": null,
+                "type": null,
+                "mainContent": null
+            },
+            "authority": {
+                "expectedGoverningAgency": null,
+                "expectedPermitOrApproval": null
+            },
+            "application": {
+                "applicationDate": null,
+                "applicantSignature": null
+            }
+        }
+    },
+    "fastcheck-2": {
+        "formId": "fastcheck-2",
+        "data": {
+            "technologyServiceDetails": {
+                "technologyServiceDetails": null
+            },
+            "legalIssues": {
+                "legalIssues": null
+            },
+            "additionalQuestions": {
+                "additionalQuestions": null
+            }
+        }
+    }
+}
