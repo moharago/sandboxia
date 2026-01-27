@@ -213,7 +213,7 @@ async def collect_and_store_laws():
             print(f"  ⚠️  '{law_name}' 법령을 찾을 수 없습니다.")
             continue
 
-        print(f"  ✓ 발견: {law_summary.name} (MST: {law_summary.mst})")
+        print(f"  [OK] 발견: {law_summary.name} (MST: {law_summary.mst})")
         print(f"    - 소관부처: {law_summary.ministry}")
         print(f"    - 시행일자: {law_summary.enforcement_date}")
 
@@ -223,7 +223,7 @@ async def collect_and_store_laws():
             print("  ⚠️  본문 조회 실패")
             continue
 
-        print(f"  ✓ 조문 수: {len(law_detail.articles)}개")
+        print(f"  [OK] 조문 수: {len(law_detail.articles)}개")
 
         # 조문별로 항 단위 청킹
         law_doc_count = 0
@@ -240,7 +240,7 @@ async def collect_and_store_laws():
             documents.extend(article_docs)
             law_doc_count += len(article_docs)
 
-        print(f"  ✓ 생성된 청크: {law_doc_count}개 (항/조 단위)")
+        print(f"  [OK] 생성된 청크: {law_doc_count}개 (항/조 단위)")
 
         collected_laws.append(
             {
@@ -263,7 +263,7 @@ async def collect_and_store_laws():
     # Vector DB에 저장
     vectorstore.add_documents(documents)
 
-    print("✓ 저장 완료!")
+    print("[OK] 저장 완료!")
 
     # 수집 결과 저장
     result_file = persist_dir / "collection_info.json"

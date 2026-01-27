@@ -79,7 +79,7 @@ def load_json_data() -> tuple[list[dict], str]:
 
         # 첫 번째 JSON 파일 사용 (또는 특정 파일명 매칭)
         json_file = json_files[0]
-        print(f"  ✓ JSON 파일 발견: {json_file.name}")
+        print(f"  [OK] JSON 파일 발견: {json_file.name}")
 
         with open(json_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -163,7 +163,7 @@ def collect_and_store_regulations(reset: bool = True):
         return
 
     print(f"\n[데이터 소스] {source_path}")
-    print(f"  ✓ 로드된 청크: {len(data)}개")
+    print(f"  [OK] 로드된 청크: {len(data)}개")
 
     # 통계 출력
     categories = {}
@@ -198,7 +198,7 @@ def collect_and_store_regulations(reset: bool = True):
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
             client.delete_collection("r1_data")
-            print("\n✓ 기존 r1_data 컬렉션 삭제")
+            print("\n[OK] 기존 r1_data 컬렉션 삭제")
         except Exception:
             pass
 
@@ -217,7 +217,7 @@ def collect_and_store_regulations(reset: bool = True):
     # Vector DB에 저장
     vectorstore.add_documents(documents)
 
-    print("✓ 저장 완료!")
+    print("[OK] 저장 완료!")
 
     # 수집 결과 저장
     result_file = persist_dir / "r1_collection_info.json"

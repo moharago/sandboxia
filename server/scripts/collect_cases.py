@@ -70,7 +70,7 @@ def load_json_data() -> tuple[list[dict], str]:
                     f"폴더 ID: {settings.R2_DATA_ID}"
                 )
 
-            print(f"  ✓ JSON 파일 발견: {json_file.name}")
+            print(f"  [OK] JSON 파일 발견: {json_file.name}")
 
             with open(json_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -78,7 +78,7 @@ def load_json_data() -> tuple[list[dict], str]:
             # 로컬에 JSON 파일 복사 (캐싱)
             LOCAL_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(json_file, LOCAL_DATA_FILE)
-            print(f"  ✓ 로컬에 캐싱: {LOCAL_DATA_FILE}")
+            print(f"  [OK] 로컬에 캐싱: {LOCAL_DATA_FILE}")
 
             return data, f"Google Drive Folder (ID: {settings.R2_DATA_ID})"
 
@@ -187,7 +187,7 @@ def collect_and_store_cases(reset: bool = True):
         return
 
     print(f"\n[데이터 소스] {source_path}")
-    print(f"  ✓ 로드된 케이스: {len(data)}개")
+    print(f"  [OK] 로드된 케이스: {len(data)}개")
 
     # 통계 출력
     tracks = {}
@@ -215,7 +215,7 @@ def collect_and_store_cases(reset: bool = True):
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
             client.delete_collection("r2_cases")
-            print("\n✓ 기존 r2_cases 컬렉션 삭제")
+            print("\n[OK] 기존 r2_cases 컬렉션 삭제")
         except Exception:
             pass
 
@@ -234,7 +234,7 @@ def collect_and_store_cases(reset: bool = True):
     # Vector DB에 저장
     vectorstore.add_documents(documents)
 
-    print("✓ 저장 완료!")
+    print("[OK] 저장 완료!")
 
     # 수집 결과 저장
     result_file = persist_dir / "r2_collection_info.json"
