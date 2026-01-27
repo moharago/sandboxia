@@ -49,6 +49,10 @@ DOMAIN_MAPPING = {
     "통신": "telecom",
     "ict": "telecom",
     "telecom": "telecom",
+    "규제": "regulation",
+    "제도": "regulation",
+    "샌드박스": "regulation",
+    "regulation": "regulation",
 }
 
 
@@ -68,13 +72,17 @@ def search_domain_law(
 ) -> DomainLawSearchOutput:
     """R3. 도메인별 규제·법령 RAG 검색
 
-    분야별 주요 법령(의료법, 전자금융거래법, 데이터기본법, 신용정보법,
-    개인정보보호법, 전기통신사업법, 정보통신 진흥 및 융합 활성화 등에 관한 특별법)의 조문을 검색합니다.
+    분야별 주요 법령의 조문을 검색합니다.
+
+    포함 법령:
+    - 도메인별: 의료법, 전자금융거래법, 데이터기본법, 신용정보법, 개인정보보호법,
+      전기통신사업법, 정보통신 진흥 및 융합 활성화 등에 관한 특별법
+    - 규제/제도: 산업융합 촉진법, 금융혁신지원 특별법, 지역특구법, 행정규제기본법
 
     Args:
-        query: 검색 쿼리 (예: "원격의료 허용 범위", "전자금융거래 보안")
-        domain: 도메인 필터 (healthcare, finance, data, privacy, telecom)
-                또는 한글 (의료, 금융, 데이터, 개인정보, 통신)
+        query: 검색 쿼리 (예: "원격의료 허용 범위", "실증특례 신청 요건")
+        domain: 도메인 필터 (healthcare, finance, data, privacy, telecom, regulation)
+                또는 한글 (의료, 금융, 데이터, 개인정보, 통신, 규제/제도/샌드박스)
         top_k: 반환할 결과 수 (기본값: 5)
 
     Returns:
@@ -82,6 +90,7 @@ def search_domain_law(
 
     Example:
         >>> search_domain_law("비대면 진료", domain="의료")
+        >>> search_domain_law("실증특례 허가 요건", domain="규제")
         >>> search_domain_law("개인신용정보 제3자 제공")
     """
     vectorstore = get_vectorstore("domain_laws")
