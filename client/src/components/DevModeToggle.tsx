@@ -3,11 +3,39 @@
 import { useState } from "react"
 import { Settings, X, User, LogIn } from "lucide-react"
 import { useUIStore } from "@/stores/ui-store"
+import { useUserStore } from "@/stores/user-store"
 import { cn } from "@/lib/utils/cn"
 
 export function DevModeToggle() {
     const [isOpen, setIsOpen] = useState(false)
     const { devMode, isAuthenticated, toggleDevMode, setAuthenticated } = useUIStore()
+    const setUser = useUserStore((state) => state.setUser)
+
+    const handleToggleAuth = () => {
+        const newAuth = !isAuthenticated
+        setAuthenticated(newAuth)
+
+        if (newAuth) {
+            // 로그인 ON → 더미 유저 설정
+            setUser({
+                email: 'hong@company.com',
+                name: '홍길동',
+                company: '스마트모빌리티',
+                phone: '010-1234-5678'
+            })
+        } else {
+            // 로그인 OFF → 유저 초기화
+            setUser(null)
+        }
+    }
+
+    const handleClose = () => {
+        setIsOpen(false)
+        // 로그인 모드가 꺼진 상태면 devMode도 끄기 (회색 버튼으로)
+        if (!isAuthenticated) {
+            toggleDevMode()
+        }
+    }
 
     // devMode가 꺼져있으면 작은 버튼만 표시 (다시 켤 수 있도록)
     if (!devMode) {
@@ -28,7 +56,7 @@ export function DevModeToggle() {
                 <div className="bg-card border border-border rounded-lg shadow-lg p-4 w-64">
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-sm font-semibold">DEV MODE</span>
-                        <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-muted rounded">
+                        <button onClick={handleClose} className="p-1 hover:bg-muted rounded">
                             <X className="h-4 w-4" />
                         </button>
                     </div>
@@ -40,7 +68,7 @@ export function DevModeToggle() {
                                 <span>로그인 상태</span>
                             </div>
                             <button
-                                onClick={() => setAuthenticated(!isAuthenticated)}
+                                onClick={handleToggleAuth}
                                 className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-gray-300")}
                             >
                                 <span
