@@ -22,8 +22,6 @@ from app.tools.shared.rag.case_rag import (
 # R3. 도메인별 규제·법령 RAG
 from app.tools.shared.rag.domain_law_rag import (
     search_domain_law,
-    get_law_article,
-    list_available_laws,
 )
 
 __all__ = [
@@ -42,6 +40,4 @@ __all__ = [
     "list_case_tracks",
     # R3. 도메인별 법령
     "search_domain_law",
-    "get_law_article",
-    "list_available_laws",
 ]
