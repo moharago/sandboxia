@@ -31,7 +31,7 @@ export const useUIStore = create<UIState>()(
             sidebarOpen: false,
             viewMode: "grid",
             activeModal: null,
-            devMode: true,
+            devMode: false,
             isAuthenticated: false,
 
             toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -49,8 +49,6 @@ export const useUIStore = create<UIState>()(
         {
             name: "sandbox-ui-storage",
             partialize: (state) => ({
-                devMode: state.devMode,
-                isAuthenticated: state.isAuthenticated,
                 viewMode: state.viewMode,
             }),
         }

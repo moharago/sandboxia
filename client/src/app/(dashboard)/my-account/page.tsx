@@ -1,43 +1,211 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { User, Building2, Shield, Bell, AlertTriangle } from "lucide-react"
+import { User, AlertTriangle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { Modal, ModalContent, ModalHeader, ModalFooter, ModalTitle, ModalDescription } from "@/components/ui/modal"
+import { createClient } from "@/lib/supabase/client"
+import { useUserStore } from "@/stores/user-store"
 import { useUIStore } from "@/stores/ui-store"
+import { formatPhoneNumber, hasNonDigit } from "@/lib/utils/phone"
 
 const DELETE_CONFIRMATION_TEXT = "삭제"
 
+interface UserData {
+    id: string
+    email: string
+    name: string | null
+    company: string | null
+    phone: string | null
+    status: string
+}
+
 export default function MyAccountPage() {
     const router = useRouter()
-    const setAuthenticated = useUIStore((state) => state.setAuthenticated)
+    const supabase = createClient()
+    const updateUserStore = useUserStore((state) => state.updateUser)
+    const userFromStore = useUserStore((state) => state.user)
+    const { devMode, isAuthenticated } = useUIStore()
+
+    const [user, setUser] = useState<UserData | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+    const [name, setName] = useState("")
+    const [company, setCompany] = useState("")
+    const [phone, setPhone] = useState("")
+    const [phoneError, setPhoneError] = useState("")
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [apiError, setApiError] = useState<string | null>(null)
+
+    const handlePhoneChange = (value: string) => {
+        if (hasNonDigit(value.replace(/-/g, ''))) {
+            setPhoneError("숫자만 입력 가능합니다")
+            setTimeout(() => setPhoneError(""), 2000)
+            return
+        }
+        setPhoneError("")
+        setPhone(formatPhoneNumber(value))
+    }
     const [confirmText, setConfirmText] = useState("")
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteError, setDeleteError] = useState<string | null>(null)
 
     const isConfirmValid = confirmText === DELETE_CONFIRMATION_TEXT
 
+    useEffect(() => {
+        // devMode + 임시 로그인 상태면 user-store 데이터 사용
+        if (devMode && isAuthenticated && userFromStore) {
+            setUser({
+                id: 'dev-user',
+                email: userFromStore.email || 'hong@company.com',
+                name: userFromStore.name || '홍길동',
+                company: userFromStore.company || '스마트모빌리티',
+                phone: userFromStore.phone || '010-1234-5678',
+                status: 'ACTIVE'
+            })
+            setName(userFromStore.name || '홍길동')
+            setCompany(userFromStore.company || '스마트모빌리티')
+            setPhone(formatPhoneNumber(userFromStore.phone || '010-1234-5678'))
+            setLoading(false)
+            return
+        }
+
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+
+            if (!session) {
+                router.push('/login')
+                return
+            }
+
+            try {
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+                const response = await fetch(`${apiBaseUrl}/api/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                })
+
+                if (response.ok) {
+                    const userData: UserData = await response.json()
+                    setUser(userData)
+                    setName(userData.name || "")
+                    setCompany(userData.company || "")
+                    setPhone(formatPhoneNumber(userData.phone || ""))
+                } else {
+                    // 에러 응답 처리
+                    let errorMessage = '사용자 정보를 불러오는데 실패했습니다'
+                    try {
+                        const errorData = await response.json()
+                        errorMessage = errorData.detail || errorData.message || errorMessage
+                    } catch {
+                        errorMessage = await response.text() || errorMessage
+                    }
+                    setApiError(errorMessage)
+                }
+            } catch (error) {
+                console.error('Failed to fetch user:', error)
+                setApiError('서버에 연결할 수 없습니다')
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchUser()
+    }, [router, supabase.auth, devMode, isAuthenticated, userFromStore])
+
+    const handleSave = async () => {
+        // devMode일 때는 실제 저장 불가
+        if (devMode && isAuthenticated) {
+            setSaveMessage({ type: 'error', text: '개발 모드에서는 저장할 수 없습니다' })
+            setTimeout(() => setSaveMessage(null), 3000)
+            return
+        }
+
+        // 성명 필수 체크
+        if (!name.trim()) {
+            setSaveMessage({ type: 'error', text: '성명을 입력해주세요' })
+            setTimeout(() => setSaveMessage(null), 3000)
+            return
+        }
+
+        setSaving(true)
+        setSaveMessage(null)
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+
+            if (!session) {
+                router.push('/login')
+                return
+            }
+
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+            const response = await fetch(`${apiBaseUrl}/api/users/me`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ name, company, phone })
+            })
+
+            if (response.ok) {
+                setUser(prev => prev ? { ...prev, name, company, phone } : null)
+                updateUserStore({ name, company, phone })
+                setSaveMessage({ type: 'success', text: '저장되었습니다' })
+            } else {
+                setSaveMessage({ type: 'error', text: '저장에 실패했습니다' })
+            }
+        } catch (error) {
+            console.error('Failed to save:', error)
+            setSaveMessage({ type: 'error', text: '저장에 실패했습니다' })
+        } finally {
+            setSaving(false)
+            setTimeout(() => setSaveMessage(null), 3000)
+        }
+    }
+
     const handleDeleteAccount = async () => {
         if (!isConfirmValid) return
 
         setIsDeleting(true)
         setDeleteError(null)
+        
         try {
-            // TODO: API call to delete account
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            const { data: { session } } = await supabase.auth.getSession()
+            
+            if (!session) {
+                router.push('/login')
+                return
+            }
 
-            setAuthenticated(false)
-            setIsDeleteModalOpen(false)
-            router.push("/")
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+            const response = await fetch(`${apiBaseUrl}/api/users/me`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            })
+
+            if (response.ok) {
+                await supabase.auth.signOut()
+                setIsDeleteModalOpen(false)
+                router.push("/")
+            } else {
+                const error = await response.json()
+                setDeleteError(error.detail || "삭제에 실패했습니다")
+            }
         } catch (error) {
             console.error("Failed to delete account:", error)
-            setDeleteError(error instanceof Error ? error.message : String(error))
+            setDeleteError("삭제에 실패했습니다")
         } finally {
             setIsDeleting(false)
         }
@@ -49,6 +217,27 @@ export default function MyAccountPage() {
         setConfirmText("")
         setDeleteError(null)
     }
+
+    if (loading) {
+        return (
+            <div className="p-6 flex items-center justify-center min-h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
+
+    if (apiError) {
+        return (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[400px] gap-4">
+                <AlertTriangle className="h-12 w-12 text-destructive" />
+                <p className="text-destructive font-medium">{apiError}</p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                    다시 시도
+                </Button>
+            </div>
+        )
+    }
+
     return (
         <div className="p-6">
             <div className="max-w-2xl mx-auto space-y-6">
@@ -66,52 +255,68 @@ export default function MyAccountPage() {
                         <CardDescription>계정의 기본 정보를 수정합니다</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="email">이메일</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={user?.email || ""}
+                                disabled
+                                className="bg-muted"
+                            />
+                            <p className="text-xs text-muted-foreground">이메일은 변경할 수 없습니다</p>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="name">이름</Label>
-                                <Input id="name" defaultValue="홍길동" />
+                                <Label htmlFor="name">성명 *</Label>
+                                <Input
+                                    id="name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="이름을 입력하세요"
+                                    required
+                                />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="email">이메일</Label>
-                                <Input id="email" type="email" defaultValue="hong@company.com" />
+                                <Label htmlFor="company">회사명</Label>
+                                <Input
+                                    id="company"
+                                    value={company}
+                                    onChange={(e) => setCompany(e.target.value)}
+                                    placeholder="회사명을 입력하세요"
+                                />
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">연락처</Label>
-                                <Input id="phone" type="tel" defaultValue="010-1234-5678" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="position">직책</Label>
-                                <Input id="position" defaultValue="대표이사" />
-                            </div>
-                        </div>
-                        <Button>정보 저장</Button>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>보안 설정</CardTitle>
-                        </div>
-                        <CardDescription>비밀번호를 변경합니다</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="currentPassword">현재 비밀번호</Label>
-                            <Input id="currentPassword" type="password" />
+                            <Label htmlFor="phone">연락처</Label>
+                            <Input
+                                id="phone"
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => handlePhoneChange(e.target.value)}
+                                placeholder="010-0000-0000"
+                            />
+                            {phoneError && (
+                                <p className="text-sm text-destructive">{phoneError}</p>
+                            )}
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="newPassword">새 비밀번호</Label>
-                            <Input id="newPassword" type="password" />
+                        <div className="flex items-center gap-3">
+                            <Button onClick={handleSave} disabled={saving}>
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        저장 중...
+                                    </>
+                                ) : (
+                                    "정보 저장"
+                                )}
+                            </Button>
+                            {saveMessage && (
+                                <span className={`text-sm ${saveMessage.type === 'success' ? 'text-green-600' : 'text-destructive'}`}>
+                                    {saveMessage.text}
+                                </span>
+                            )}
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">비밀번호 확인</Label>
-                            <Input id="confirmPassword" type="password" />
-                        </div>
-                        <Button>비밀번호 변경</Button>
                     </CardContent>
                 </Card>
 
