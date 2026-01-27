@@ -40,3 +40,17 @@ package = false
 [tool.setuptools.packages.find]
 include = ["app*"]
 exclude = ["data*", "scripts*", "test*"]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0413",  # wrong-import-position (sys.path 수정 후 import)
+    "E0401",  # import-error (동적 경로의 모듈 import)
+]
+
+[tool.pylint.main]
+ignore-paths = ["data", "scripts"]
+
+[tool.pyright]
+extraPaths = ["."]
+exclude = ["data", "scripts"]
+reportMissingImports = false

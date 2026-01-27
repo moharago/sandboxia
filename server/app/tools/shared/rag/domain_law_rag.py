@@ -51,6 +51,7 @@ DOMAIN_MAPPING = {
     "telecom": "telecom",
     "규제": "regulation",
     "제도": "regulation",
+    "규제/제도": "regulation",
     "샌드박스": "regulation",
     "regulation": "regulation",
 }

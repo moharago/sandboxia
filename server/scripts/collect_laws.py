@@ -276,7 +276,7 @@ async def collect_and_store_laws():
     print("[OK] 저장 완료!")
 
     # 수집 결과 저장
-    result_file = persist_dir / "collection_info.json"
+    result_file = persist_dir / "r3_collection_info.json"
     with open(result_file, "w", encoding="utf-8") as f:
         json.dump(
             {
