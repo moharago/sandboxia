@@ -9,15 +9,14 @@ import json
 from pathlib import Path
 from typing import Any
 
-import chromadb
-from chromadb.utils import embedding_functions
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
+
+from app.db.vector import get_vectorstore
 
 # 데이터 경로
 DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2"
 CASES_JSON_PATH = DATA_DIR / "cases_structured.json"
-VECTOR_DB_PATH = DATA_DIR / "vector_db"
 
 
 class CaseResult(BaseModel):
@@ -59,7 +58,6 @@ class SimilarCaseReference(BaseModel):
 
 # 전역 캐시
 _cases_data: dict[str, Any] | None = None
-_collection: Any | None = None
 
 
 def _load_cases_data() -> dict[str, Any]:
@@ -68,31 +66,10 @@ def _load_cases_data() -> dict[str, Any]:
     if _cases_data is None:
         if not CASES_JSON_PATH.exists():
             raise FileNotFoundError(f"사례 데이터 파일을 찾을 수 없습니다: {CASES_JSON_PATH}")
-        with open(CASES_JSON_PATH, "r", encoding="utf-8") as f:
+        with open(CASES_JSON_PATH, encoding="utf-8") as f:
             cases = json.load(f)
             _cases_data = {c["case_id"]: c for c in cases}
     return _cases_data
-
-
-def _get_collection():
-    """Vector DB 컬렉션 로드 (캐싱)"""
-    global _collection
-    if _collection is None:
-        if not VECTOR_DB_PATH.exists():
-            raise FileNotFoundError(f"Vector DB를 찾을 수 없습니다: {VECTOR_DB_PATH}")
-
-        client = chromadb.PersistentClient(path=str(VECTOR_DB_PATH))
-
-        # 한국어 임베딩 모델
-        embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="jhgan/ko-sroberta-multitask"
-        )
-
-        _collection = client.get_collection(
-            name="sandbox_cases",
-            embedding_function=embedding_fn,
-        )
-    return _collection
 
 
 def _build_case_result(
@@ -171,27 +148,26 @@ def search_case(
         >>> search_case("AI 기반 건강 모니터링")
         >>> search_case("자율주행", track="실증특례")
     """
-    collection = _get_collection()
-
-    # 필터 조건
-    where_filter = None
-    if track:
-        where_filter = {"track": track}
+    vectorstore = get_vectorstore("r2_cases")
 
     # 중복 제거 고려해서 더 많이 검색
     fetch_count = top_k * 3 if deduplicate else top_k
 
-    raw_results = collection.query(
-        query_texts=[query],
-        n_results=fetch_count,
-        where=where_filter,
+    # 필터 조건
+    search_kwargs: dict[str, Any] = {"k": fetch_count}
+    if track:
+        search_kwargs["filter"] = {"track": track}
+
+    # 유사도 검색
+    docs_with_scores = vectorstore.similarity_search_with_score(
+        query,
+        **search_kwargs,
     )
 
     results = []
-    for i, doc_id in enumerate(raw_results["ids"][0]):
-        meta = raw_results["metadatas"][0][i]
-        case_id = meta.get("case_id", doc_id)
-        score = raw_results["distances"][0][i] if raw_results.get("distances") else None
+    for doc, score in docs_with_scores:
+        meta = doc.metadata
+        case_id = meta.get("case_id", "")
 
         result = _build_case_result(
             case_id=case_id,
