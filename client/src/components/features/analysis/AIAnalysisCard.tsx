@@ -5,19 +5,20 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 
 interface AIAnalysisCardProps {
+    title?: string
     summary: string
     recommendation?: string
     confidence?: number
 }
 
-export function AIAnalysisCard({ summary, recommendation, confidence }: AIAnalysisCardProps) {
+export function AIAnalysisCard({ title = "AI 분석 결과", summary, recommendation, confidence }: AIAnalysisCardProps) {
     return (
         <Card className="border-primary/30 bg-gradient-to-r from-blue-50/50 to-teal-50/50">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
-                        <CardTitle>AI 분석 결과</CardTitle>
+                        <CardTitle>{title}</CardTitle>
                     </div>
                     {confidence !== undefined && (
                         <Badge variant="outline" className="text-primary border-primary">
