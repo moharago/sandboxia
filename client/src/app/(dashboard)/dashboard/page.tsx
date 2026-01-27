@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react"
 import { LayoutGrid, List, Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { CaseCard } from "@/components/features/dashboard/CaseCard"
 import { Pipeline, type PipelineFilter } from "@/components/features/dashboard/PipelineStep"
 import { cases } from "@/data"
@@ -126,85 +125,87 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">대시보드</h1>
-                </div>
-            </div>
-
-            <div className="mb-16">
-                <div className="py-4">
-                    <Pipeline steps={pipelineSteps} activeFilter={statusFilter} onFilterChange={setStatusFilter} />
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                    <h2 className="text-lg font-semibold">케이스 목록</h2>
-                    <Button variant="ghost-muted" size="icon-sm" className="ml-2" onClick={() => setIsSearchOpen(!isSearchOpen)}>
-                        <Search className="h-4 w-4" />
-                    </Button>
-                    <div className={cn("overflow-hidden transition-all duration-200 ease-out", isSearchOpen ? "w-48 opacity-100" : "w-0 opacity-0")}>
-                        <input
-                            type="text"
-                            placeholder="회사명, 서비스명으로 검색..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-2 py-1 bg-transparent border-0 border-b border-neutral-300 focus:border-teal-500 focus:outline-none text-sm placeholder:text-muted-foreground"
-                            autoFocus={isSearchOpen}
-                        />
+        <div className="py-6">
+            <div className="container space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold">대시보드</h1>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PipelineFilter)}>
-                        <SelectTrigger className="w-fit border-none shadow-none bg-transparent p-0 h-auto text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
-                            <SelectValue placeholder="상태 필터" />
-                        </SelectTrigger>
-                        <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
-                            <SelectItem value="all">전체 상태</SelectItem>
-                            <SelectItem value="consult">{CASE_STATUS_LABELS.consult}</SelectItem>
-                            <SelectItem value="draft">{CASE_STATUS_LABELS.draft}</SelectItem>
-                            <SelectItem value="waiting">{CASE_STATUS_LABELS.waiting}</SelectItem>
-                            <SelectItem value="done">{CASE_STATUS_LABELS.done}</SelectItem>
-                        </SelectContent>
-                    </Select>
 
-                    <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-                        <SelectTrigger className="w-fit border-none shadow-none bg-transparent p-0 h-auto text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
-                            <SelectItem value="newest">최신순</SelectItem>
-                            <SelectItem value="oldest">오래된순</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Button variant="outline" size="icon-sm" onClick={toggleViewMode}>
-                        {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-                    </Button>
-
-                    <Button variant="gradient" size="icon-sm" onClick={openNewCaseModal}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                <div className="mb-16">
+                    <div className="py-4">
+                        <Pipeline steps={pipelineSteps} activeFilter={statusFilter} onFilterChange={setStatusFilter} />
+                    </div>
                 </div>
-            </div>
 
-            <div
-                className={cn(
-                    viewMode === "grid"
-                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                        : "space-y-0 divide-y divide-gray-200 border-y border-gray-200"
-                )}
-            >
-                {filteredCases.length === 0 ? (
-                    <div className="col-span-full text-center py-12 text-muted-foreground">해당 상태의 케이스가 없습니다</div>
-                ) : (
-                    paginatedCases.map((caseItem) => <CaseCard key={caseItem.id} caseData={caseItem} viewMode={viewMode} />)
-                )}
-            </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                        <h2 className="text-lg font-semibold">케이스 목록</h2>
+                        <Button variant="ghost-muted" size="icon-sm" className="ml-2" onClick={() => setIsSearchOpen(!isSearchOpen)}>
+                            <Search className="h-4 w-4" />
+                        </Button>
+                        <div className={cn("overflow-hidden transition-all duration-200 ease-out", isSearchOpen ? "w-48 opacity-100" : "w-0 opacity-0")}>
+                            <input
+                                type="text"
+                                placeholder="회사명, 서비스명으로 검색..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full px-2 py-1 bg-transparent border-0 border-b border-neutral-300 focus:border-teal-500 focus:outline-none text-sm placeholder:text-muted-foreground"
+                                autoFocus={isSearchOpen}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PipelineFilter)}>
+                            <SelectTrigger className="w-fit border-none shadow-none bg-transparent p-0 h-auto text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
+                                <SelectValue placeholder="상태 필터" />
+                            </SelectTrigger>
+                            <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
+                                <SelectItem value="all">전체 상태</SelectItem>
+                                <SelectItem value="consult">{CASE_STATUS_LABELS.consult}</SelectItem>
+                                <SelectItem value="draft">{CASE_STATUS_LABELS.draft}</SelectItem>
+                                <SelectItem value="waiting">{CASE_STATUS_LABELS.waiting}</SelectItem>
+                                <SelectItem value="done">{CASE_STATUS_LABELS.done}</SelectItem>
+                            </SelectContent>
+                        </Select>
 
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} className="mt-15" />
+                        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+                            <SelectTrigger className="w-fit border-none shadow-none bg-transparent p-0 h-auto text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
+                                <SelectItem value="newest">최신순</SelectItem>
+                                <SelectItem value="oldest">오래된순</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Button variant="outline" size="icon-sm" onClick={toggleViewMode}>
+                            {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                        </Button>
+
+                        <Button variant="gradient" size="icon-sm" onClick={openNewCaseModal}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                <div
+                    className={cn(
+                        viewMode === "grid"
+                            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                            : "space-y-0 divide-y divide-gray-200 border-y border-gray-200"
+                    )}
+                >
+                    {filteredCases.length === 0 ? (
+                        <div className="col-span-full text-center py-12 text-muted-foreground">해당 상태의 케이스가 없습니다</div>
+                    ) : (
+                        paginatedCases.map((caseItem) => <CaseCard key={caseItem.id} caseData={caseItem} viewMode={viewMode} />)
+                    )}
+                </div>
+
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} className="mt-15" />
+            </div>
         </div>
     )
 }

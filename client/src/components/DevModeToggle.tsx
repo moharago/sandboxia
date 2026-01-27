@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, X, User, LogIn } from "lucide-react"
+import { Settings, X, User, LogIn, FileText } from "lucide-react"
 import { useUIStore } from "@/stores/ui-store"
 import { useUserStore } from "@/stores/user-store"
+import { useWizardStore, FORM_TYPE_LABELS, type FormType } from "@/stores/wizard-store"
 import { cn } from "@/lib/utils/cn"
 
 export function DevModeToggle() {
@@ -36,6 +37,9 @@ export function DevModeToggle() {
             toggleDevMode()
         }
     }
+    const { selectedFormType, setSelectedFormType } = useWizardStore()
+
+    const formTypes: FormType[] = ["counseling", "fastcheck", "temporary", "demonstration"]
 
     // devMode가 꺼져있으면 작은 버튼만 표시 (다시 켤 수 있도록)
     if (!devMode) {
@@ -90,6 +94,29 @@ export function DevModeToggle() {
                                 </p>
                             </div>
                         )}
+
+                        <div className="border-t border-border pt-3">
+                            <div className="flex items-center gap-2 text-sm mb-2">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <span>신청서 유형</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1">
+                                {formTypes.map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setSelectedFormType(type)}
+                                        className={cn(
+                                            "text-xs px-2 py-1.5 rounded transition-colors",
+                                            selectedFormType === type
+                                                ? "bg-primary text-primary-foreground"
+                                                : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                                        )}
+                                    >
+                                        {FORM_TYPE_LABELS[type]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             ) : (

@@ -21,7 +21,7 @@ export default function CaseLayout({ children, params }: CaseLayoutProps) {
     return (
         <div className="flex flex-col h-full">
             <StepNav caseId={id} company={caseData.company} service={caseData.service} />
-            <div className="flex-1 overflow-y-auto">{children}</div>
+            {children}
         </div>
     )
 }

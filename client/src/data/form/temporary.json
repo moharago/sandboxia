@@ -1,0 +1,308 @@
+{
+    "temporary-1": {
+        "formId": "temporary-1",
+        "formName": "임시허가 신청서",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "receipt",
+                "label": "접수정보",
+                "fields": [
+                    { "key": "receiptNumber", "label": "접수번호", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "receiptDate", "label": "접수일시", "formType": "date", "dataType": "date", "required": false }
+                ]
+            },
+            {
+                "key": "applicant",
+                "label": "신청인",
+                "fields": [
+                    { "key": "companyName", "label": "회사명(성명)", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "businessRegistrationNumber", "label": "사업자(법인)등록번호", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "address", "label": "주소", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "representativeName", "label": "대표자명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "phoneNumber", "label": "전화번호", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "email", "label": "전자우편", "formType": "text", "dataType": "string", "required": true }
+                ]
+            },
+            {
+                "key": "technologyService",
+                "label": "신규 기술·서비스",
+                "fields": [
+                    { "key": "name", "label": "명칭", "formType": "text", "dataType": "string", "required": true },
+                    {
+                        "key": "type",
+                        "label": "유형",
+                        "formType": "radio",
+                        "dataType": "string",
+                        "required": true,
+                        "options": [
+                            { "id": "technology", "label": "기술인 경우", "value": "technology" },
+                            { "id": "service", "label": "서비스인 경우", "value": "service" },
+                            { "id": "technologyAndService", "label": "기술과 서비스가 융합된 경우", "value": "technologyAndService" }
+                        ]
+                    },
+                    { "key": "mainContent", "label": "주요내용", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "temporaryPermitReason",
+                "label": "임시허가 신청 사유",
+                "fields": [
+                    {
+                        "key": "temporaryPermitReason",
+                        "label": "해당 난에 표시(√)",
+                        "formType": "checkbox",
+                        "dataType": "array",
+                        "required": true,
+                        "options": [
+                            {
+                                "id": "noApplicableStandards",
+                                "label": "허가등의 근거가 되는 법령에 해당 신규 정보통신융합등 기술·서비스에 맞는 기준·규격·요건 등이 없는 경우(법 제37조제1항제1호)",
+                                "value": "noApplicableStandards"
+                            },
+                            {
+                                "id": "unclearOrUnreasonableStandards",
+                                "label": "허가등의 근거가 되는 법령에 따른 기준·규격·요건 등을 적용하는 것이 불명확하거나 불합리한 경우(법 제37조제1항제2호)",
+                                "value": "unclearOrUnreasonableStandards"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "key": "application",
+                "label": "신청",
+                "fields": [
+                    { "key": "applicationDate", "label": "신청일자", "formType": "date", "dataType": "date", "required": true },
+                    { "key": "applicantSignature", "label": "신청인 성명(서명 또는 인)", "formType": "text", "dataType": "string", "required": true }
+                ]
+            }
+        ]
+    },
+    "temporary-2": {
+        "formId": "temporary-2",
+        "formName": "임시허가를 위한 사업계획서",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "projectInfo",
+                "label": "임시허가를 위한 사업계획서",
+                "fields": [
+                    { "key": "projectName", "label": "사업명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "period.startDate", "label": "기간(시작)", "formType": "date", "dataType": "date", "required": true },
+                    { "key": "period.endDate", "label": "기간(종료)", "formType": "date", "dataType": "date", "required": true },
+                    { "key": "period.durationMonths", "label": "기간(개월)", "formType": "text", "dataType": "string", "required": false }
+                ]
+            },
+            {
+                "key": "applicantOrganizations",
+                "label": "신청기관",
+                "isArray": true,
+                "fields": [
+                    { "key": "organizationName", "label": "기관명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "organizationType", "label": "유형", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "responsiblePersonName", "label": "책임자 성명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "position", "label": "직위", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "phoneNumber", "label": "전화", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "email", "label": "E-mail", "formType": "text", "dataType": "string", "required": true }
+                ]
+            },
+            {
+                "key": "submissionDate",
+                "label": "제출일자",
+                "fields": [
+                    { "key": "submissionDate", "label": "제출일자", "formType": "date", "dataType": "date", "required": true }
+                ]
+            },
+            {
+                "key": "submission",
+                "label": "제출 및 서명",
+                "isArray": true,
+                "fields": [
+                    { "key": "organizationName", "label": "기관명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "name", "label": "성명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "signature", "label": "인", "formType": "text", "dataType": "string", "required": false }
+                ]
+            },
+            {
+                "key": "technologyService",
+                "label": "1. 기술·서비스 내용",
+                "fields": [
+                    { "key": "detailedDescription", "label": "가. 기술·서비스 세부 내용", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "marketStatusAndOutlook", "label": "나. 기술·서비스 관련 시장 현황 및 전망", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "temporaryPermitRequest",
+                "label": "2. 임시허가 신청 내용(법률)",
+                "fields": [
+                    { "key": "regulationDetails", "label": "가. 규제 내용", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "necessityAndRequest", "label": "나. 임시허가의 필요성 및 내용", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "businessPlan",
+                "label": "3. 사업 계획",
+                "fields": [
+                    { "key": "objectivesAndScope", "label": "가. 사업 목표 및 범위", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "businessContent", "label": "나. 사업 내용", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "schedule", "label": "다. 사업 기간 및 일정 계획", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "operationPlan",
+                "label": "4. 사업 운영 계획",
+                "fields": [
+                    { "key": "operationPlan", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "expectedEffects",
+                "label": "5. 기대효과",
+                "fields": [
+                    { "key": "quantitative", "label": "가. 정량적 기대효과", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "qualitative", "label": "나. 정성적 기대효과", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "expansionPlan",
+                "label": "6. 사업 확대·확산 계획",
+                "fields": [
+                    { "key": "expansionPlan", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "organizationAndBudget",
+                "label": "7. 추진 체계 및 예산",
+                "fields": [
+                    { "key": "organizationStructure", "label": "가. 추진 체계", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "budget", "label": "나. 추진 예산", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "organizationProfile",
+                "label": "붙임 1. 신청기관 현황자료",
+                "fields": [
+                    { "key": "organizationName", "label": "기관·단체명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "generalInfo.establishmentDate", "label": "설립일", "formType": "date", "dataType": "date", "required": false },
+                    { "key": "generalInfo.representativeName", "label": "대표자", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "generalInfo.address", "label": "주소", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "mainBusiness", "label": "주요 사업", "formType": "textarea", "dataType": "text", "required": true },
+                    { "key": "licensesAndPermits", "label": "주요 인허가 사항", "formType": "textarea", "dataType": "text", "required": false },
+                    { "key": "technologiesAndPatents", "label": "보유기술 및 특허", "formType": "textarea", "dataType": "text", "required": false }
+                ]
+            },
+            {
+                "key": "financialStatus",
+                "label": "재무현황",
+                "isTable": true,
+                "columns": [
+                    { "key": "yearM2", "label": "M-2년도" },
+                    { "key": "yearM1", "label": "M-1년도" },
+                    { "key": "average", "label": "평균" }
+                ],
+                "rows": [
+                    { "key": "totalAssets", "label": "총자산", "dataType": "number" },
+                    { "key": "equity", "label": "자기자본", "dataType": "number" },
+                    { "key": "currentLiabilities", "label": "유동부채", "dataType": "number" },
+                    { "key": "fixedLiabilities", "label": "고정부채", "dataType": "number" },
+                    { "key": "currentAssets", "label": "유동자산", "dataType": "number" },
+                    { "key": "netIncome", "label": "당기순이익", "dataType": "number" },
+                    { "key": "totalRevenue", "label": "총매출액", "dataType": "number" },
+                    { "key": "returnOnEquity", "label": "자기자본 이익률(당기순이익/자기자본총액)", "dataType": "number" },
+                    { "key": "debtRatio", "label": "부채비율(부채총액/자기자본)", "dataType": "number" }
+                ]
+            },
+            {
+                "key": "humanResources",
+                "label": "인력현황",
+                "fields": [
+                    { "key": "organizationChart", "label": "조직도", "formType": "textarea", "dataType": "text", "required": false },
+                    { "key": "totalEmployees", "label": "소속 직원 수", "formType": "text", "dataType": "string", "required": false }
+                ]
+            },
+            {
+                "key": "keyPersonnel",
+                "label": "주요 인력",
+                "isArray": true,
+                "fields": [
+                    { "key": "name", "label": "이름", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "department", "label": "부서명", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "position", "label": "직책", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "responsibilities", "label": "담당업무", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "qualificationsOrSkills", "label": "주요 자격/보유기술", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "experienceYears", "label": "해당업무 경력(년)", "formType": "text", "dataType": "string", "required": false }
+                ]
+            }
+        ]
+    },
+    "temporary-3": {
+        "formId": "temporary-3",
+        "formName": "임시허가 신청 사유 해당여부 소명서",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "eligibility",
+                "label": "1. 임시허가 신청 사유",
+                "fields": [
+                    {
+                        "key": "noApplicableStandards",
+                        "label": "허가등의 근거가 되는 법령에 해당 신규 정보통신융합등 기술·서비스에 맞는 기준·규격·요건 등이 없는 경우",
+                        "formType": "checkbox",
+                        "dataType": "boolean",
+                        "required": false
+                    },
+                    {
+                        "key": "unclearOrUnreasonableStandards",
+                        "label": "허가등의 근거가 되는 법령에 따른 기준․규격․요건 등을 적용하는 것이 불명확하거나 불합리한 경우",
+                        "formType": "checkbox",
+                        "dataType": "boolean",
+                        "required": false
+                    }
+                ]
+            },
+            {
+                "key": "justification",
+                "label": "2. 해당여부에 대한 근거",
+                "fields": [
+                    { "key": "justification", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            }
+        ]
+    },
+    "temporary-4": {
+        "formId": "temporary-4",
+        "formName": "안전성 검증 자료 및 이용자 보호방안",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "safetyVerification",
+                "label": "1. 안전성 검증 자료",
+                "fields": [
+                    { "key": "safetyVerification", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "userProtectionPlan",
+                "label": "2. 이용자 보호 및 대응 계획",
+                "fields": [
+                    { "key": "userProtectionPlan", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "riskAndResponse",
+                "label": "3. 임시허가에 따른 위험 및 대응 방안",
+                "fields": [
+                    { "key": "riskAndResponse", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "stakeholderConflictResolution",
+                "label": "4. 기존 시장 및 이용자 등의 이해관계 충돌 가능성 및 해소 방안",
+                "fields": [
+                    { "key": "stakeholderConflictResolution", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            }
+        ]
+    }
+}

@@ -52,42 +52,42 @@ export function Sidebar() {
         return result
     }, [searchQuery, selectedStatus, sortOrder])
 
+    // 닫혔을 때는 버튼만 떠있도록
+    if (!sidebarOpen) {
+        return (
+            <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 top-4 z-50 h-8 w-8 bg-background shadow-sm border border-border text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                onClick={toggleSidebar}
+                aria-label="사이드바 열기"
+            >
+                <PanelRight className="h-4 w-4" />
+            </Button>
+        )
+    }
+
     return (
-        <aside
-            className={cn(
-                "border-r border-border bg-muted/30 flex flex-col transition-all duration-300 relative",
-                sidebarOpen ? "w-72 delay-0" : "w-12 h-screen delay-150"
-            )}
-        >
-            <div className={cn("border-b border-border transition-all duration-300", sidebarOpen ? "p-4 pb-2" : "p-2")}>
+        <aside className="w-72 border-r border-border bg-muted/30 flex flex-col transition-all duration-300">
+            <div className="p-4 pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
                         size="icon"
-                        className={cn("h-8 w-8 shrink-0 text-teal-600 hover:text-teal-700 hover:bg-teal-50", !sidebarOpen && "mx-auto")}
+                        className="h-8 w-8 shrink-0 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
                         onClick={toggleSidebar}
-                        aria-label={sidebarOpen ? "사이드바 닫기" : "사이드바 열기"}
+                        aria-label="사이드바 닫기"
                     >
-                        {sidebarOpen ? <PanelLeft className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
+                        <PanelLeft className="h-4 w-4" />
                     </Button>
-                    <div
-                        className={cn(
-                            "flex-1 transition-opacity duration-150 overflow-hidden",
-                            sidebarOpen ? "opacity-100 delay-300" : "opacity-0 w-0 delay-0"
-                        )}
-                    >
+                    <div className="flex-1">
                         <Button variant="gradient" className="w-full gap-2 h-8" onClick={openNewCaseModal}>
                             <Plus className="h-4 w-4" />새 케이스
                         </Button>
                     </div>
                 </div>
 
-                <div
-                    className={cn(
-                        "transition-all duration-150 overflow-hidden",
-                        sidebarOpen ? "opacity-100 pt-3 max-h-40 delay-300" : "opacity-0 max-h-0 delay-0"
-                    )}
-                >
+                <div className="pt-3">
                     <div className="flex items-center justify-between">
                         <div className="flex gap-2">
                             <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as CaseStatus | "all")}>
@@ -148,12 +148,7 @@ export function Sidebar() {
                 </div>
             </div>
 
-            <div
-                className={cn(
-                    "flex-1 transition-all duration-150 overflow-hidden",
-                    sidebarOpen ? "opacity-100 overflow-y-auto delay-300" : "opacity-0 delay-0"
-                )}
-            >
+            <div className="flex-1 overflow-y-auto">
                 {filteredCases.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground text-sm">
                         <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
