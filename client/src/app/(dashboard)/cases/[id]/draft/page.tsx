@@ -56,7 +56,13 @@ export default function DraftPage({ params }: DraftPageProps) {
                         />
 
                         {/* 동적 폼 필드 카드 */}
-                        <FormSectionList formType={selectedFormType} />
+                        {selectedFormType ? (
+                            <FormSectionList formType={selectedFormType} />
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                폼 타입을 선택해주세요.
+                            </div>
+                        )}
 
                         <div className="flex justify-between">
                             <Button variant="outline" onClick={handleBack} className="gap-2">
@@ -74,11 +80,13 @@ export default function DraftPage({ params }: DraftPageProps) {
                             </div>
                         </div>
 
-                        <DownloadModal
-                            isOpen={isDownloadModalOpen}
-                            onClose={() => setIsDownloadModalOpen(false)}
-                            formType={selectedFormType}
-                        />
+                        {selectedFormType && (
+                            <DownloadModal
+                                isOpen={isDownloadModalOpen}
+                                onClose={() => setIsDownloadModalOpen(false)}
+                                formType={selectedFormType}
+                            />
+                        )}
                     </div>
 
                     {/* 오른쪽: 참고 패널 */}

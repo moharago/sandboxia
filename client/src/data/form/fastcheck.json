@@ -1,101 +1,93 @@
 {
-    "fastcheck-1": [
-        {
-            "key": "receipt",
-            "label": "접수정보",
-            "contents": [
-                { "key": "receiptNumber", "label": "접수번호", "formType": "text" },
-                { "key": "receiptDate", "label": "접수일시", "formType": "date" }
-            ]
-        },
-        {
-            "key": "applicant",
-            "label": "신청인",
-            "contents": [
-                { "key": "companyName", "label": "회사명(성명)", "formType": "text" },
-                { "key": "businessRegistrationNumber", "label": "사업자(법인)등록번호", "formType": "text" },
-                { "key": "address", "label": "주소", "formType": "text" },
-                { "key": "representativeName", "label": "대표자명", "formType": "text" },
-                { "key": "phoneNumber", "label": "전화번호", "formType": "text" },
-                { "key": "email", "label": "전자우편", "formType": "text" }
-            ]
-        },
-        {
-            "key": "technologyService",
-            "label": "신규 기술·서비스",
-            "contents": [
-                { "key": "name", "label": "명칭", "formType": "text" },
-                {
-                    "key": "type",
-                    "label": "유형",
-                    "formType": "radio",
-                    "contents": [
-                        { "id": "technology", "name": "기술인 경우", "value": "technology" },
-                        { "id": "service", "name": "서비스인 경우", "value": "service" },
-                        { "id": "technologyAndService", "name": "기술과 서비스가 융합된 경우", "value": "technologyAndService" }
-                    ]
-                },
-                { "key": "mainContent", "label": "주요내용", "formType": "textarea" }
-            ]
-        },
-        {
-            "key": "authority",
-            "label": "소관 부처 및 기관 (선택적 기재)",
-            "contents": [
-                {
-                    "key": "expectedGoverningAgency",
-                    "label": "예상되는 소관 중앙행정기관 또는 지방자치단체",
-                    "formType": "text"
-                },
-                {
-                    "key": "expectedPermitOrApproval",
-                    "label": "예상되는 허가등",
-                    "formType": "text"
-                }
-            ]
-        },
-        {
-            "key": "application",
-            "label": "신청",
-            "contents": [
-                { "key": "applicationDate", "label": "신청일자", "formType": "date" },
-                { "key": "applicantSignature", "label": "신청인 성명(서명 또는 인)", "formType": "text" }
-            ]
-        }
-    ],
-    "fastcheck-2": [
-        {
-            "key": "technologyServiceDetails",
-            "label": "1. 기술·서비스 세부내용",
-            "contents": [
-                {
-                    "key": "technologyServiceDetails",
-                    "label": "",
-                    "formType": "textarea"
-                }
-            ]
-        },
-        {
-            "key": "legalIssues",
-            "label": "2. 법·제도 이슈 사항",
-            "contents": [
-                {
-                    "key": "legalIssues",
-                    "label": "",
-                    "formType": "textarea"
-                }
-            ]
-        },
-        {
-            "key": "additionalQuestions",
-            "label": "3. 기타 질의 사항",
-            "contents": [
-                {
-                    "key": "additionalQuestions",
-                    "label": "",
-                    "formType": "textarea"
-                }
-            ]
-        }
-    ]
+    "fastcheck-1": {
+        "formId": "fastcheck-1",
+        "formName": "신속확인 신청서",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "receipt",
+                "label": "접수정보",
+                "fields": [
+                    { "key": "receiptNumber", "label": "접수번호", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "receiptDate", "label": "접수일시", "formType": "date", "dataType": "date", "required": false }
+                ]
+            },
+            {
+                "key": "applicant",
+                "label": "신청인",
+                "fields": [
+                    { "key": "companyName", "label": "회사명(성명)", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "businessRegistrationNumber", "label": "사업자(법인)등록번호", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "address", "label": "주소", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "representativeName", "label": "대표자명", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "phoneNumber", "label": "전화번호", "formType": "text", "dataType": "string", "required": true },
+                    { "key": "email", "label": "전자우편", "formType": "text", "dataType": "string", "required": true }
+                ]
+            },
+            {
+                "key": "technologyService",
+                "label": "신규 기술·서비스",
+                "fields": [
+                    { "key": "name", "label": "명칭", "formType": "text", "dataType": "string", "required": true },
+                    {
+                        "key": "type",
+                        "label": "유형",
+                        "formType": "radio",
+                        "dataType": "string",
+                        "required": true,
+                        "options": [
+                            { "id": "technology", "label": "기술인 경우", "value": "technology" },
+                            { "id": "service", "label": "서비스인 경우", "value": "service" },
+                            { "id": "technologyAndService", "label": "기술과 서비스가 융합된 경우", "value": "technologyAndService" }
+                        ]
+                    },
+                    { "key": "mainContent", "label": "주요내용", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "authority",
+                "label": "소관 부처 및 기관 (선택적 기재)",
+                "fields": [
+                    { "key": "expectedGoverningAgency", "label": "예상되는 소관 중앙행정기관 또는 지방자치단체", "formType": "text", "dataType": "string", "required": false },
+                    { "key": "expectedPermitOrApproval", "label": "예상되는 허가등", "formType": "text", "dataType": "string", "required": false }
+                ]
+            },
+            {
+                "key": "application",
+                "label": "신청",
+                "fields": [
+                    { "key": "applicationDate", "label": "신청일자", "formType": "date", "dataType": "date", "required": true },
+                    { "key": "applicantSignature", "label": "신청인 성명(서명 또는 인)", "formType": "text", "dataType": "string", "required": true }
+                ]
+            }
+        ]
+    },
+    "fastcheck-2": {
+        "formId": "fastcheck-2",
+        "formName": "신속확인 첨부서류",
+        "version": "1.0",
+        "sections": [
+            {
+                "key": "technologyServiceDetails",
+                "label": "1. 기술·서비스 세부내용",
+                "fields": [
+                    { "key": "technologyServiceDetails", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "legalIssues",
+                "label": "2. 법·제도 이슈 사항",
+                "fields": [
+                    { "key": "legalIssues", "label": "", "formType": "textarea", "dataType": "text", "required": true }
+                ]
+            },
+            {
+                "key": "additionalQuestions",
+                "label": "3. 기타 질의 사항",
+                "fields": [
+                    { "key": "additionalQuestions", "label": "", "formType": "textarea", "dataType": "text", "required": false }
+                ]
+            }
+        ]
+    }
 }

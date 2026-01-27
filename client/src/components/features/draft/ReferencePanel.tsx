@@ -77,9 +77,24 @@ interface CaseItemProps {
 function CaseItem({ caseData }: CaseItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
 
+    const handleToggle = () => setIsExpanded(!isExpanded)
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            handleToggle()
+        }
+    }
+
     return (
         <div className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors">
-            <div className="flex items-start justify-between gap-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+            <button
+                type="button"
+                className="w-full flex items-start justify-between gap-2 cursor-pointer text-left"
+                onClick={handleToggle}
+                onKeyDown={handleKeyDown}
+                aria-expanded={isExpanded}
+                aria-controls={`case-content-${caseData.id}`}
+            >
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline" className="text-xs shrink-0">
@@ -96,9 +111,9 @@ function CaseItem({ caseData }: CaseItemProps) {
                     </Badge>
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
-            </div>
+            </button>
             {isExpanded && (
-                <div className="mt-3 pt-3 border-t border-border">
+                <div id={`case-content-${caseData.id}`} className="mt-3 pt-3 border-t border-border">
                     <p className="text-sm text-muted-foreground">{caseData.summary}</p>
                     <button type="button" className="mt-2 text-xs text-primary hover:underline flex items-center gap-1">
                         상세보기 <ExternalLink className="h-3 w-3" />

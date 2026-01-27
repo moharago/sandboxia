@@ -4,35 +4,51 @@ import { useState, useCallback } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
 
-// 폼 데이터 타입
-interface TableRow {
-    key: string
+// 새로운 스키마 타입 정의
+interface FieldOption {
+    id: string
     label: string
+    value: string
 }
 
 interface FormField {
     key: string
     label: string
     formType: string
-    contents?: FormField[] | RadioOption[]
-    headers?: string[]
-    rows?: TableRow[]
+    dataType: string
+    required: boolean
+    options?: FieldOption[]
 }
 
-interface RadioOption {
-    id: string
-    name: string
-    value: string
+interface TableColumn {
+    key: string
+    label: string
+}
+
+interface TableRow {
+    key: string
+    label: string
+    dataType: string
 }
 
 interface FormSection {
     key: string
     label: string
-    formType?: string
-    contents: FormField[]
+    fields?: FormField[]
+    isArray?: boolean
+    isTable?: boolean
+    columns?: TableColumn[]
+    rows?: TableRow[]
 }
 
-type FormData = Record<string, FormSection[]>
+interface FormSchema {
+    formId: string
+    formName: string
+    version: string
+    sections: FormSection[]
+}
+
+type FormData = Record<string, FormSchema>
 
 // 폼 데이터 import
 import counselingData from "@/data/form/counseling.json"
@@ -93,7 +109,7 @@ export function FormSectionList({ formType }: FormSectionListProps) {
                     key={cardKey}
                     cardKey={cardKey}
                     cardName={getCardName(formType, cardKey)}
-                    sections={formData[cardKey]}
+                    formSchema={formData[cardKey]}
                     values={formValues}
                     onValueChange={handleValueChange}
                     onSave={() => handleSave(cardKey)}
