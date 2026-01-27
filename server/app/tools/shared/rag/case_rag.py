@@ -37,6 +37,7 @@ class CaseResult(BaseModel):
     expected_effect: str = Field(description="기대 효과")
     review_result: str = Field(description="심의 결과")
     relevance_score: float | None = Field(description="관련도 점수")
+    source_url: str | None = Field(description="원본 문서 URL")
 
 
 class CaseSearchOutput(BaseModel):
@@ -125,6 +126,7 @@ def _build_case_result(
         expected_effect=common.get("expected_effect", ""),
         review_result=common.get("review_result", ""),
         relevance_score=round(score, 4) if score is not None else None,
+        source_url=case.get("source_url"),
     )
 
 
