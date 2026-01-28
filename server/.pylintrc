@@ -1,5 +1,0 @@
-[MESSAGES CONTROL]
-disable=C0413,E0401
-
-[MASTER]
-ignore-paths=data,scripts

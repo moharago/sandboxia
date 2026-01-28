@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: str
     CORS_ORIGINS: str = ""
 
+    # 디버그 설정
+    ENABLE_DEBUG_PII_LOGS: bool = False
+
     # 법령 API 설정
     LAW_API_BASE_URL: str
     LAW_API_OC: str

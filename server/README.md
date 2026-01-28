@@ -122,14 +122,6 @@ uv run uvicorn app.main:app --reload
 curl http://127.0.0.1:8000/
 ```
 
-**Sample Query:**
-
-```bash
-curl -X POST "http://127.0.0.1:8000/sample/query" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"hello"}'
-```
-
 **Swagger UI:**
 
 ```
