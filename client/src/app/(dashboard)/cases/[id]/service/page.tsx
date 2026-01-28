@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { FileUpload } from "@/components/ui/file-upload"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { cases } from "@/data"
 import { useWizardStore } from "@/stores/wizard-store"
+import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
 import formData from "@/data/formData.json"
 
 interface ServicePageProps {
@@ -24,7 +25,7 @@ export default function ServicePage({ params }: ServicePageProps) {
     const router = useRouter()
     const caseData = cases.find((c) => c.id === id)
 
-    const { serviceData, setServiceData, markStepComplete, setCurrentStep } = useWizardStore()
+    const { setServiceData, markStepComplete, setCurrentStep } = useWizardStore()
 
     // 폼 상태를 하나의 객체로 통합 관리
     interface FormState {
@@ -46,7 +47,6 @@ export default function ServicePage({ params }: ServicePageProps) {
     })
 
     const [formState, setFormState] = useState<FormState>(getInitialFormState)
-    const [isSaving, setIsSaving] = useState(false)
 
     // 개별 필드 업데이트 헬퍼
     const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
@@ -85,29 +85,55 @@ export default function ServicePage({ params }: ServicePageProps) {
         notFound()
     }
 
-    const handleSave = async () => {
-        setIsSaving(true)
+    // 서비스 파싱 mutation
+    const serviceMutation = useServiceMutation({
+        onSuccess: () => {
+            // Save form data to wizard store
+            setServiceData({
+                companyName,
+                serviceName,
+                description,
+                memo,
+            })
 
-        // AI 분석 시뮬레이션
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+            markStepComplete(1)
+            setCurrentStep(2)
+            router.push(`/cases/${id}/market`)
+        },
+        onError: (error) => {
+            alert(error.message || "서버 오류가 발생했습니다.")
+        },
+    })
 
-        // Save form data to wizard store
-        setServiceData({
-            companyName,
-            serviceName,
-            description,
-            memo,
+    const handleSave = () => {
+        // 업로드된 파일들을 순서대로 수집
+        const files: File[] = []
+        if (selectedForm) {
+            for (const app of selectedForm.application) {
+                const file = uploadedFiles[app.id]
+                if (file) {
+                    files.push(file)
+                }
+            }
+        }
+
+        // mutation 실행
+        serviceMutation.mutate({
+            sessionId: id,
+            requestedTrack: selectedFormType,
+            consultantInput: {
+                company_name: companyName,
+                service_name: serviceName,
+                service_description: description,
+                additional_memo: memo,
+            },
+            files,
         })
-
-        markStepComplete(1)
-        setCurrentStep(2)
-        router.push(`/cases/${id}/market`)
-        // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
     }
 
     return (
         <div className="py-6">
-            {isSaving && <AILoadingOverlay />}
+            {serviceMutation.isPending && <AILoadingOverlay />}
             <div className="container mx-auto px-4 space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
@@ -191,7 +217,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                 </Card>
 
                 <div className="flex justify-end">
-                    <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+                    <Button onClick={handleSave} disabled={serviceMutation.isPending} className="gap-2">
                         저장 및 다음 단계
                         <ArrowRight className="h-4 w-4" />
                     </Button>

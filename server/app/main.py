@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import users, projects, files
+from app.api.routes import files, projects, users
+from app.api.routes.agents import router as agents_router
 from app.core.config import settings
 
 
@@ -9,13 +10,11 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="SandboxIA API",
         description="규제 샌드박스 컨설팅 AI 서비스 API",
-        version="0.1.0"
+        version="0.1.0",
     )
 
     origins = [
-        origin.strip()
-        for origin in settings.CORS_ORIGINS.split(",")
-        if origin.strip()
+        origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()
     ]
     if not origins:
         origins = [
@@ -32,6 +31,7 @@ def create_app() -> FastAPI:
     )
 
     # 라우터 등록
+    app.include_router(agents_router, prefix="/api/v1", tags=["AI Agents"])
     app.include_router(users.router, prefix="/api", tags=["Users"])
     app.include_router(projects.router, prefix="/api", tags=["Projects"])
     app.include_router(files.router, prefix="/api", tags=["Files"])
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
 
 @app.get("/")
 async def root():

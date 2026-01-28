@@ -29,6 +29,8 @@ dependencies = [
   # Supabase & File Upload
   "supabase>=2.0.0",
   "python-multipart>=0.0.9",
+  # HWP Parsing
+  "olefile>=0.47",
 ]
 
 [tool.uv]
@@ -41,16 +43,16 @@ package = false
 include = ["app*"]
 exclude = ["data*", "scripts*", "test*"]
 
-[tool.pylint.messages_control]
-disable = [
-    "C0413",  # wrong-import-position (sys.path 수정 후 import)
-    "E0401",  # import-error (동적 경로의 모듈 import)
-]
-
-[tool.pylint.main]
-ignore-paths = ["data", "scripts"]
-
 [tool.pyright]
 extraPaths = ["."]
 exclude = ["data", "scripts"]
 reportMissingImports = false
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
