@@ -284,10 +284,9 @@ class HWPParser:
 
         while offset < len(data) - 4:
             try:
-                # 레코드 헤더 읽기
+                # 레코드 헤더 읽기 (tag_id: 10bits, level: 10bits, size: 12bits)
                 header = struct.unpack("<I", data[offset : offset + 4])[0]
                 tag_id = header & 0x3FF
-                level = (header >> 10) & 0x3FF
                 size = (header >> 20) & 0xFFF
 
                 # 확장 크기 처리
@@ -407,14 +406,7 @@ class HWPParser:
         Args:
             text: 전체 텍스트
         """
-        # 일반적인 섹션 구분자 패턴
-        section_patterns = [
-            r"\n\s*(\d+\.\s+[^\n]+)",  # "1. 섹션명"
-            r"\n\s*(제\d+조[^\n]*)",  # "제1조 ..."
-            r"\n\s*([가-힣]+\s*[:：]\s*)",  # "항목명:"
-        ]
-
-        # 간단히 줄바꿈으로 섹션 분리
+        # 줄바꿈으로 섹션 분리
         paragraphs = text.split("\n\n")
 
         for i, para in enumerate(paragraphs):

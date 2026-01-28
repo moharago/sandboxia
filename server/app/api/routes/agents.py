@@ -10,17 +10,24 @@
 """
 
 import json
+import logging
+import os
+import re
 import shutil
 import tempfile
 import unicodedata
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
+from app.core.config import settings
 from app.services.parsers import (
     DocumentSubtype,
     parse_hwp_files,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -123,8 +130,17 @@ async def parse_service_files(
             # 파일명 정규화 (macOS NFD → NFC)
             normalized_filename = unicodedata.normalize("NFC", upload_file.filename)
 
+            # 파일명 살균: path traversal 공격 방지
+            # 1. basename만 추출 (디렉토리 컴포넌트 제거)
+            sanitized_filename = os.path.basename(normalized_filename)
+            # 2. 경로 구분자 및 null 바이트 제거
+            sanitized_filename = re.sub(r"[\x00/\\]", "", sanitized_filename)
+            # 3. 빈 파일명이면 안전한 이름 생성
+            if not sanitized_filename or sanitized_filename.startswith("."):
+                sanitized_filename = f"upload_{uuid.uuid4().hex[:8]}.hwp"
+
             # 임시 파일로 저장
-            temp_path = Path(temp_dir) / f"{idx}_{normalized_filename}"
+            temp_path = Path(temp_dir) / f"{idx}_{sanitized_filename}"
             content = await upload_file.read()
 
             with open(temp_path, "wb") as f:
@@ -136,7 +152,7 @@ async def parse_service_files(
             file_paths.append(
                 {
                     "path": str(temp_path),
-                    "original_filename": normalized_filename,
+                    "original_filename": sanitized_filename,
                     "assigned_subtype": subtype.value if subtype else None,
                 }
             )
@@ -178,7 +194,7 @@ async def parse_service_files(
 
             parsed_results.append(doc_result)
 
-        # 결과 출력 (디버깅용)
+        # 결과 구성
         result = {
             "session_id": session_id,
             "requested_track": requested_track,
@@ -186,11 +202,22 @@ async def parse_service_files(
             "parsed_documents": parsed_results,
         }
 
-        print("\n" + "=" * 60)
-        print("HWP 파싱 결과")
-        print("=" * 60)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        print("=" * 60 + "\n")
+        # 디버그 로깅 (PII 보호)
+        if getattr(settings, "ENABLE_DEBUG_PII_LOGS", False):
+            logger.debug(
+                "HWP 파싱 결과 (상세): %s",
+                json.dumps(result, ensure_ascii=False, indent=2),
+            )
+        else:
+            # PII 제외한 메타데이터만 로깅
+            logger.debug(
+                "HWP 파싱 완료: session_id=%s, track=%s, files_count=%d, "
+                "parsed_docs_count=%d",
+                session_id,
+                requested_track,
+                len(files),
+                len(parsed_results),
+            )
 
         return result
 
