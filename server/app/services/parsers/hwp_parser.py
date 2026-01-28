@@ -330,30 +330,41 @@ class HWPParser:
         i = 0
 
         while i < len(data) - 1:
-            # UTF-16LE 문자 읽기
+            # UTF-16LE 문자 읽기 (2바이트)
             char_code = struct.unpack("<H", data[i : i + 2])[0]
 
             # 제어 문자 처리
             if char_code < 32:
                 if char_code == 0:  # NULL
-                    pass
+                    i += 2
+                    continue
                 elif char_code == 10:  # 줄바꿈
                     chars.append("\n")
+                    i += 2
+                    continue
                 elif char_code == 13:  # 캐리지 리턴
-                    pass
+                    i += 2
+                    continue
                 elif char_code in (1, 2, 3, 11, 12, 14, 15, 16, 17, 18, 21, 22, 23):
                     # 인라인 컨트롤 (확장 문자)
-                    # 추가 데이터 스킵
+                    # 구조: [char_code: 2bytes][ext_len: 2bytes][payload: ext_len*2 bytes]
+                    if i + 4 <= len(data):
+                        ext_len = struct.unpack("<H", data[i + 2 : i + 4])[0]
+                        # char_code(2) + ext_len field(2) + payload(ext_len*2)
+                        i += 4 + ext_len * 2
+                    else:
+                        i += 2
+                    continue
+                else:
+                    # 기타 제어 문자
                     i += 2
-                    if i < len(data) - 1:
-                        ext_len = struct.unpack("<H", data[i : i + 2])[0]
-                        i += ext_len * 2
-            else:
-                # 일반 문자
-                try:
-                    chars.append(chr(char_code))
-                except ValueError:
-                    pass
+                    continue
+
+            # 일반 문자
+            try:
+                chars.append(chr(char_code))
+            except ValueError:
+                pass
 
             i += 2
 

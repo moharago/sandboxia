@@ -10,6 +10,7 @@
 """
 
 import json
+import shutil
 import tempfile
 import unicodedata
 from pathlib import Path
@@ -200,6 +201,4 @@ async def parse_service_files(
         )
     finally:
         # 임시 파일 정리
-        import shutil
-
         shutil.rmtree(temp_dir, ignore_errors=True)
