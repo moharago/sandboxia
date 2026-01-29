@@ -1,16 +1,16 @@
 "use client"
 
-import { use, useState } from "react"
-import { useRouter } from "next/navigation"
-import { notFound } from "next/navigation"
-import { ArrowLeft, Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
-import { cases } from "@/data"
-import { useWizardStore } from "@/stores/wizard-store"
+import { DownloadModal } from "@/components/features/draft/DownloadModal"
 import { FormSectionList } from "@/components/features/draft/FormSectionList"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
-import { DownloadModal } from "@/components/features/draft/DownloadModal"
+import { WizardNavigation } from "@/components/features/wizard"
+import { Button } from "@/components/ui/button"
+import { cases } from "@/data"
+import { useWizardStore } from "@/stores/wizard-store"
+import { Download } from "lucide-react"
+import { notFound, useRouter } from "next/navigation"
+import { use, useState } from "react"
 
 interface DraftPageProps {
     params: Promise<{ id: string }>
@@ -50,42 +50,30 @@ export default function DraftPage({ params }: DraftPageProps) {
                             <p className="text-muted-foreground">AI가 생성한 초안을 검토하고 수정하세요</p>
                         </div>
 
-                        <AIAnalysisCard
-                            title="AI 초안 생성 완료"
-                            summary="AI가 제안하는 관련 문서를 우측 패널에서 확인하세요."
-                        />
+                        <AIAnalysisCard title="AI 초안 생성 완료" summary="AI가 제안하는 관련 문서를 우측 패널에서 확인하세요." />
 
                         {/* 동적 폼 필드 카드 */}
                         {selectedFormType ? (
                             <FormSectionList formType={selectedFormType} />
                         ) : (
-                            <div className="text-center py-8 text-muted-foreground">
-                                폼 타입을 선택해주세요.
-                            </div>
+                            <div className="text-center py-8 text-muted-foreground">폼 타입을 선택해주세요.</div>
                         )}
 
-                        <div className="flex justify-between">
-                            <Button variant="outline" onClick={handleBack} className="gap-2">
-                                <ArrowLeft className="h-4 w-4" />
-                                이전 단계
-                            </Button>
-                            <div className="flex gap-2">
+                        <WizardNavigation
+                            onBack={handleBack}
+                            onNext={handleComplete}
+                            nextLabel="작성 완료"
+                            isAnalyzed={true}
+                            extraButtons={
                                 <Button variant="outline" onClick={() => setIsDownloadModalOpen(true)} className="gap-2">
                                     <Download className="h-4 w-4" />
                                     다운로드
                                 </Button>
-                                <Button onClick={handleComplete} variant="gradient" className="gap-2">
-                                    작성 완료
-                                </Button>
-                            </div>
-                        </div>
+                            }
+                        />
 
                         {selectedFormType && (
-                            <DownloadModal
-                                isOpen={isDownloadModalOpen}
-                                onClose={() => setIsDownloadModalOpen(false)}
-                                formType={selectedFormType}
-                            />
+                            <DownloadModal isOpen={isDownloadModalOpen} onClose={() => setIsDownloadModalOpen(false)} formType={selectedFormType} />
                         )}
                     </div>
 

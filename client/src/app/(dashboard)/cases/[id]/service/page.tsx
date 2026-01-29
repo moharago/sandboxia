@@ -3,8 +3,7 @@
 import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import { notFound } from "next/navigation"
-import { ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { FileUpload } from "@/components/ui/file-upload"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { cases } from "@/data"
+import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
 import formData from "@/data/formData.json"
@@ -26,6 +26,7 @@ export default function ServicePage({ params }: ServicePageProps) {
     const caseData = cases.find((c) => c.id === id)
 
     const { setServiceData, markStepComplete, setCurrentStep } = useWizardStore()
+    const { devIsAnalyzed, devHasChanges } = useUIStore()
 
     // 폼 상태를 하나의 객체로 통합 관리
     interface FormState {
@@ -105,6 +106,25 @@ export default function ServicePage({ params }: ServicePageProps) {
         },
     })
 
+    // 필수 필드 유효성 검사
+    const isFormValid = (() => {
+        // 기본 필드 검사
+        if (!companyName.trim() || !serviceName.trim() || !description.trim()) {
+            return false
+        }
+
+        // 신청서 파일 검사 (선택된 유형의 모든 파일이 업로드되었는지)
+        if (selectedForm) {
+            for (const app of selectedForm.application) {
+                if (!uploadedFiles[app.id]) {
+                    return false
+                }
+            }
+        }
+
+        return true
+    })()
+
     const handleSave = () => {
         // 업로드된 파일들을 순서대로 수집
         const files: File[] = []
@@ -148,17 +168,23 @@ export default function ServicePage({ params }: ServicePageProps) {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="company">회사명</Label>
+                                <Label htmlFor="company">
+                                    회사명 <span className="text-red-500">*</span>
+                                </Label>
                                 <Input id="company" value={companyName} onChange={(e) => updateField("companyName", e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="service">서비스명</Label>
+                                <Label htmlFor="service">
+                                    서비스명 <span className="text-red-500">*</span>
+                                </Label>
                                 <Input id="service" value={serviceName} onChange={(e) => updateField("serviceName", e.target.value)} />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="description">서비스 설명</Label>
+                            <Label htmlFor="description">
+                                서비스 설명 <span className="text-red-500">*</span>
+                            </Label>
                             <Textarea
                                 id="description"
                                 placeholder="서비스에 대해 상세히 설명해주세요"
@@ -208,7 +234,9 @@ export default function ServicePage({ params }: ServicePageProps) {
                         <CardContent className="space-y-4">
                             {selectedForm.application.map((app) => (
                                 <div key={app.id} className="space-y-2">
-                                    <Label>{app.name}</Label>
+                                    <Label>
+                                        {app.name} <span className="text-red-500">*</span>
+                                    </Label>
                                     <FileUpload value={uploadedFiles[app.id] ?? null} onChange={(file) => handleFileChange(app.id, file)} />
                                 </div>
                             ))}
@@ -216,12 +244,29 @@ export default function ServicePage({ params }: ServicePageProps) {
                     )}
                 </Card>
 
-                <div className="flex justify-end">
-                    <Button onClick={handleSave} disabled={serviceMutation.isPending} className="gap-2">
-                        저장 및 다음 단계
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </div>
+                {/* TODO: isAnalyzed는 나중에 projects.canonical 또는 project_files 존재 여부로 판단 */}
+                {/* TODO: hasChanges는 현재 폼 데이터와 DB 저장된 데이터 비교로 판단 */}
+                <WizardNavigation
+                    onAnalyze={handleSave}
+                    onNext={() => {
+                        // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
+                        setServiceData({
+                            companyName,
+                            serviceName,
+                            description,
+                            memo,
+                        })
+                        markStepComplete(1)
+                        setCurrentStep(2)
+                        router.push(`/cases/${id}/market`)
+                    }}
+                    analyzeLabel="AI 분석 및 다음 단계"
+                    nextLabel="다음 단계"
+                    isAnalyzed={devIsAnalyzed}
+                    hasChanges={devHasChanges}
+                    isLoading={serviceMutation.isPending}
+                    isAnalyzeDisabled={!isFormValid}
+                />
             </div>
         </div>
     )

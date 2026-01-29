@@ -3,14 +3,15 @@
 import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
+import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cases, tracks } from "@/data"
+import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { cn } from "@/lib/utils/cn"
 import type { Track, TrackType } from "@/types/data/track"
@@ -118,6 +119,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     const caseData = cases.find((c) => c.id === id)
 
     const { trackSelection, setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
+    const { devIsAnalyzed, devHasChanges } = useUIStore()
 
     // 가장 적합한 트랙(rank 1)을 기본 선택으로
     const defaultTrackId = dummyTrackAnalysis.recommendations.find((r) => r.rank === 1)?.trackId || null
@@ -294,16 +296,29 @@ export default function TrackPage({ params }: TrackPageProps) {
                         })}
                     </div>
 
-                    <div className="flex justify-between">
-                        <Button variant="outline" onClick={handleBack} className="gap-2">
-                            <ArrowLeft className="h-4 w-4" />
-                            이전 단계
-                        </Button>
-                        <Button onClick={handleSave} disabled={!selectedTrackId || isSaving} className="gap-2">
-                            저장 및 다음 단계
-                            <ArrowRight className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    {/* TODO: isAnalyzed는 나중에 track_results 존재 여부로 판단 */}
+                    {/* TODO: hasChanges는 이전 단계(market) 결과 변경 여부로 판단 */}
+                    <WizardNavigation
+                        onBack={handleBack}
+                        onAnalyze={handleSave}
+                        onNext={() => {
+                            // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
+                            if (!selectedTrackId) return
+                            const track = tracks.find((t) => t.id === selectedTrackId)
+                            if (track) {
+                                setTrackSelection(track)
+                                markStepComplete(3)
+                                setCurrentStep(4)
+                                router.push(`/cases/${id}/draft`)
+                            }
+                        }}
+                        analyzeLabel="AI 분석 및 다음 단계"
+                        nextLabel="다음 단계"
+                        isAnalyzed={devIsAnalyzed}
+                        hasChanges={devHasChanges}
+                        isLoading={isSaving}
+                        isAnalyzeDisabled={!selectedTrackId}
+                    />
                 </div>
             </div>
         </TooltipProvider>
