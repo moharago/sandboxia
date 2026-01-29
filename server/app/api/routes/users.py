@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from app.core.config import supabase
 from app.api.deps import get_auth_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -83,20 +87,38 @@ async def get_user(auth_user = Depends(get_auth_user)):
 @router.patch("/users/me")
 async def update_user(
     payload: UserUpdate,
-    auth_user = Depends(get_auth_user),       
+    auth_user = Depends(get_auth_user),
 ):
-    """본인 정보 수정 및 상태 변경"""
-    
+    """본인 정보 수정 및 상태 변경
+
+    - 이름(name)이 설정되고 현재 상태가 PENDING이면 자동으로 ACTIVE로 변경
+    """
+
     update_data = {k: v for k, v in payload.dict().items() if v is not None}
-    
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No data to update")
-    
+
+    # 이름이 설정되고 status가 명시적으로 전달되지 않은 경우,
+    # 현재 상태 확인 후 PENDING이면 자동으로 ACTIVE로 변경
+    if "name" in update_data and update_data["name"] and "status" not in update_data:
+        try:
+            current_user = supabase.table("users")\
+                .select("status")\
+                .eq("id", auth_user.id)\
+                .single()\
+                .execute()
+
+            if current_user.data and current_user.data.get("status") == "PENDING":
+                update_data["status"] = "ACTIVE"
+        except Exception as e:
+            logger.warning("Status check failed during update: %s", e)
+
     result = supabase.table("users")\
         .update(update_data)\
         .eq("id", auth_user.id)\
         .execute()
-    
+
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
 
