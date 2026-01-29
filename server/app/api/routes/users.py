@@ -83,20 +83,37 @@ async def get_user(auth_user = Depends(get_auth_user)):
 @router.patch("/users/me")
 async def update_user(
     payload: UserUpdate,
-    auth_user = Depends(get_auth_user),       
+    auth_user = Depends(get_auth_user),
 ):
-    """본인 정보 수정 및 상태 변경"""
-    
+    """본인 정보 수정 및 상태 변경
+
+    - 이름(name)이 설정되고 현재 상태가 PENDING이면 자동으로 ACTIVE로 변경
+    """
+
     update_data = {k: v for k, v in payload.dict().items() if v is not None}
-    
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No data to update")
-    
+
+    # 이름이 설정되는 경우, 현재 상태 확인 후 PENDING이면 ACTIVE로 변경
+    if "name" in update_data and update_data["name"]:
+        try:
+            current_user = supabase.table("users")\
+                .select("status")\
+                .eq("id", auth_user.id)\
+                .single()\
+                .execute()
+
+            if current_user.data and current_user.data.get("status") == "PENDING":
+                update_data["status"] = "ACTIVE"
+        except Exception:
+            pass  # 조회 실패 시 무시하고 진행
+
     result = supabase.table("users")\
         .update(update_data)\
         .eq("id", auth_user.id)\
         .execute()
-    
+
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
 
