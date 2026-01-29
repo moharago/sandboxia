@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, X, User, LogIn, FileText } from "lucide-react"
+import { Settings, X, User, LogIn, FileText, FlaskConical } from "lucide-react"
 import { useUIStore } from "@/stores/ui-store"
 import { useUserStore } from "@/stores/user-store"
 import { useWizardStore, FORM_TYPE_LABELS, type FormType } from "@/stores/wizard-store"
@@ -9,7 +9,16 @@ import { cn } from "@/lib/utils/cn"
 
 export function DevModeToggle() {
     const [isOpen, setIsOpen] = useState(false)
-    const { devMode, isAuthenticated, toggleDevMode, setAuthenticated } = useUIStore()
+    const {
+        devMode,
+        isAuthenticated,
+        devIsAnalyzed,
+        devHasChanges,
+        toggleDevMode,
+        setAuthenticated,
+        setDevIsAnalyzed,
+        setDevHasChanges,
+    } = useUIStore()
     const setUser = useUserStore((state) => state.setUser)
 
     const handleToggleAuth = () => {
@@ -115,6 +124,47 @@ export function DevModeToggle() {
                                         {FORM_TYPE_LABELS[type]}
                                     </button>
                                 ))}
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border pt-3">
+                            <div className="flex items-center gap-2 text-sm mb-2">
+                                <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                                <span>분석 상태 시뮬레이션</span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">분석 완료</span>
+                                    <button
+                                        onClick={() => setDevIsAnalyzed(!devIsAnalyzed)}
+                                        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", devIsAnalyzed ? "bg-primary" : "bg-gray-300")}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                                                devIsAnalyzed ? "translate-x-5" : "translate-x-1"
+                                            )}
+                                        />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className={cn("text-xs", devIsAnalyzed ? "text-muted-foreground" : "text-muted-foreground/50")}>데이터 변경됨</span>
+                                    <button
+                                        onClick={() => setDevHasChanges(!devHasChanges)}
+                                        disabled={!devIsAnalyzed}
+                                        className={cn(
+                                            "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                                            !devIsAnalyzed ? "bg-gray-200 cursor-not-allowed" : devHasChanges ? "bg-amber-500" : "bg-gray-300"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                                                devHasChanges ? "translate-x-5" : "translate-x-1"
+                                            )}
+                                        />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
