@@ -11,15 +11,14 @@ HWP 5.0 파일 구조:
 - BinData: 임베디드 바이너리 데이터
 
 지원하는 문서 유형:
-1. 상담신청 (counseling): 1개 파일 - "(양식)_"로 시작
-2. 신속확인 (fastcheck): 2개 파일 - "01-"로 시작
-3. 임시허가 (temporary): 4개 파일 - "02-"로 시작
-4. 실증특례 (demonstration): 4개 파일 - "03-"로 시작
+1. 상담신청 (counseling): 1개 파일
+2. 신속확인 (fastcheck): 2개 파일
+3. 임시허가 (temporary): 4개 파일
+4. 실증특례 (demonstration): 4개 파일
 """
 
 import re
 import struct
-import unicodedata
 import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -100,9 +99,7 @@ class HWPParser:
             document_subtype=document_subtype,
         )
 
-    def _get_category_from_subtype(
-        self, subtype: DocumentSubtype
-    ) -> DocumentCategory:
+    def _get_category_from_subtype(self, subtype: DocumentSubtype) -> DocumentCategory:
         """서브타입에서 카테고리 추출"""
         subtype_value = subtype.value
         if subtype_value.startswith("counseling"):
@@ -473,8 +470,12 @@ class HWPParser:
             self.document.extracted_fields["related_laws"] = related_laws
 
         # 문서 메타데이터 추가
-        self.document.metadata["document_category"] = self.document.document_category.value
-        self.document.metadata["document_subtype"] = self.document.document_subtype.value
+        self.document.metadata["document_category"] = (
+            self.document.document_category.value
+        )
+        self.document.metadata["document_subtype"] = (
+            self.document.document_subtype.value
+        )
 
     def _extract_technology_list(self, text: str) -> list[str]:
         """기술 요소 리스트 추출
