@@ -38,37 +38,54 @@
 
 ### Tools
 
-#### A. 문서 파싱 Tool (Document Parser)
+#### A. HWP 파싱 Tool (HWP Parser)
 
 | 항목     | 내용                                                                              |
 | -------- | --------------------------------------------------------------------------------- |
-| **입력** | 업로드된 문서 파일 (HWP/PDF), 문서 타입 힌트 (optional)                           |
-| **출력** | 원문 텍스트, 섹션/필드 구조, 표 데이터, 문서 타입 추정 결과                       |
-| **참고** | pyhwpx 라이브러리 활용, 문서 타입 자동 감지 (단순상담/신속확인/임시허가/실증특례) |
+| **입력** | 업로드된 문서 파일 (HWP), 문서 타입 힌트 (optional)                               |
+| **출력** | 파싱된 JSON (원문 텍스트, 섹션/필드 구조, 표 데이터, 추출된 필드값, 문서 타입)    |
+| **참고** | 기존 `hwp_parser.py` 활용, 문서 타입 자동 감지 (단순상담/신속확인/임시허가/실증특례) |
 
-#### B. 양식 스키마 매칭 Tool (Form Schema Matcher)
+**HWP Parser 출력 스키마:**
 
-| 항목     | 내용                                                                                                              |
-| -------- | ----------------------------------------------------------------------------------------------------------------- |
-| **입력** | 문서 타입, 파싱된 문서 구조                                                                                       |
-| **출력** | 매칭된 양식 스키마 (JSON), 필드 매핑 결과                                                                         |
-| **참고** | `client/src/data/form/` 하위 양식 파일 참조 (counseling.json, fastcheck.json, temporary.json, demonstration.json) |
+```json
+{
+  "file_name": "string",
+  "document_type": "counseling | fastcheck | temporary | demonstration",
+  "document_subtype": "string (예: counseling-1, fastcheck-2)",
+  "raw_text": "string",
+  "sections": [
+    {
+      "index": "number",
+      "title": "string",
+      "content": "string"
+    }
+  ],
+  "extracted_fields": {
+    "company_name": "string | null",
+    "representative": "string | null",
+    "service_name": "string | null",
+    "...": "..."
+  },
+  "parse_success": "boolean",
+  "error_message": "string | null"
+}
+```
 
-#### C. 자동 채움 Tool (Auto-Fill Extractor)
+#### B. 구조화 Tool (Structure Builder)
 
-| 항목     | 내용                                                          |
-| -------- | ------------------------------------------------------------- |
-| **입력** | 파싱된 문서 데이터, 양식 스키마, 컨설턴트 입력 정보           |
-| **출력** | 필드별 추출값, 값의 근거 위치 (페이지/섹션), 추출 신뢰도 점수 |
-| **참고** | LLM 기반 필드 매핑, 컨설턴트 입력 정보 우선 적용              |
+| 항목     | 내용                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------- |
+| **입력** | HWP 파싱 결과 (JSON), 컨설턴트 입력 정보 (회사명, 서비스명, 서비스 설명, 메모)                    |
+| **출력** | `CanonicalStructure` - 통일된 표준 구조 + 필드별 신뢰도 + 누락 필드 목록                          |
+| **참고** | LLM 기반 필드 매핑/병합, 컨설턴트 입력 우선 적용, 규제 판단 핵심 3요소(행위/대상/방식) 구조화     |
 
-#### D. Canonical 구조 변환 Tool (Canonical Converter)
+**처리 로직:**
 
-| 항목     | 내용                                                                     |
-| -------- | ------------------------------------------------------------------------ |
-| **입력** | 자동 채움 결과, 양식 스키마, 원본 문서 타입                              |
-| **출력** | `CanonicalStructure` - 통일된 표준 구조 (아래 스키마 참조)               |
-| **참고** | 모든 양식 타입을 동일한 구조로 변환, 이후 2~4번 에이전트의 입력으로 사용 |
+1. HWP 파싱 결과와 컨설턴트 입력 데이터 병합 (컨설턴트 입력 우선)
+2. 서비스 핵심 3요소 추출: `what_action` (어떤 행위), `target_users` (누구에게), `delivery_method` (어떤 방식)
+3. 필드별 신뢰도 계산 (출처: HWP/컨설턴트/LLM 추론)
+4. 누락된 중요 필드 식별
 
 **Canonical Structure 스키마:**
 
@@ -99,7 +116,7 @@
 
   "regulatory": {
     "related_regulations": "list[string]",
-    "regulatory_issues": "string | null"
+    "regulatory_issues": "list[{ summary, problematic_action, status, blocking_reason, relief_direction }]"
   },
 
   "metadata": {
@@ -117,14 +134,6 @@
   }
 }
 ```
-
-#### E. 불확실/누락 탐지 Tool (Uncertainty Detector)
-
-| 항목     | 내용                                                                     |
-| -------- | ------------------------------------------------------------------------ |
-| **입력** | Canonical Structure, 추출 신뢰도 데이터                                  |
-| **출력** | 누락 필드 목록, 불확실 필드 목록 (낮은 신뢰도), 추가 질문 생성, 우선순위 |
-| **참고** | 필수 필드 누락 시 경고, 신뢰도 낮은 필드에 대한 확인 질문 생성           |
 
 ### DB 연동 (Supabase)
 

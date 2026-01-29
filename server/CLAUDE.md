@@ -17,8 +17,7 @@ server/
 │   │   └── risk_checker/       # 6. 리스크 체크
 │   ├── tools/
 │   │   ├── shared/             # 공용 Tool
-│   │   │   ├── rag/            # R1, R2, R3 RAG Tools
-│   │   │   └── utils/          # C0, C1, C2 Utility Tools
+│   │   │   └── rag/            # R1, R2, R3 RAG Tools
 │   │   └── {agent}/            # 에이전트별 전용 Tool
 │   ├── api/
 │   │   ├── routes/             # API 엔드포인트
@@ -41,13 +40,13 @@ server/
 - A. 신청서 템플릿/구조 파서
 - B. UI Form Schema 생성
 - C. 자동 채움(프리필)
-- D. 사용자 수정 반영(Patch) - C2 호출 가능
+- D. 사용자 수정 반영(Patch)
 - F. 불확실/충돌 탐지 & 추가 질문 생성
 - G. 규제 쟁점 후보 도출
 
 **공용 RAG:** R3(도메인 법령), R1(제도 정의)
 
-**출력:** Canonical 구조 (C1으로 변환) → 2~6번 에이전트 입력
+**출력:** Canonical 구조 → 2~6번 에이전트 입력
 
 ---
 
@@ -84,7 +83,6 @@ server/
 
 **공용 RAG:** R1(섹션 요구/작성 가이드), R2/R3(근거 문장)
 
-**공용 Utility:** C0(인용 관리), C2(Patch)
 
 ---
 
@@ -111,7 +109,6 @@ server/
 
 **공용 RAG:** R1(요건/절차), R3(법령 리스크), R2(반려/보완 패턴)
 
-**공용 Utility:** C0(인용 관리), C2(수정안 반영)
 
 ---
 
@@ -119,33 +116,12 @@ server/
 
 ```
 app/tools/shared/
-├── rag/
-│   ├── __init__.py
-│   ├── regulation_rag.py       # R1: 규제제도 & 절차
-│   ├── case_rag.py             # R2: 승인 사례
-│   └── domain_law_rag.py       # R3: 도메인별 법령
-└── utils/
+└── rag/
     ├── __init__.py
-    ├── evidence.py             # C0: Evidence/인용 관리
-    ├── canonical.py            # C1: HWP → Canonical 구조 (pyhwpx, 타이틀 기반 파싱)
-    └── patch.py                # C2: Patch/Merge
+    ├── regulation_rag.py       # R1: 규제제도 & 절차
+    ├── case_rag.py             # R2: 승인 사례
+    └── domain_law_rag.py       # R3: 도메인별 법령
 ```
-
-### C1 Canonical 구조 (HWP 파싱)
-
-ICT 규제샌드박스 상담신청서 HWP 파일을 표준 구조로 변환:
-
-```python
-class CanonicalStructure(BaseModel):
-    consultation_id: str          # 상담 ID
-    applicant: ApplicantInfo      # 회사명(소속), 직위, 성명, 사업장 주소, 연락처, 전자우편
-    service: ServiceInfo          # 기술‧서비스 명칭, 설명서
-    consultation: ConsultationInfo  # 상담 희망 일자, 상담내용(규제사안 및 문의사항)
-    metadata: dict                # source_file, parsed_at 등
-```
-
-- **파싱 라이브러리**: pyhwpx
-- **파싱 전략**: 타이틀 기반 (예: "회사명(소속)", "성명" 등 정해진 타이틀로 필드 매핑)
 
 ## 개발 명령어
 
@@ -181,7 +157,7 @@ GET  /api/v1/agents/status/{task_id}  # 비동기 작업 상태 확인
 
 ```
 ┌─────────────────┐
-│ 1. Structurer   │──→ Canonical 구조 (C1)
+│ 1. Structurer   │──→ Canonical 구조
 └────────┬────────┘         │
          │                  ▼
          │    ┌─────────────────────────────────────┐
