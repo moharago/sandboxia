@@ -94,61 +94,285 @@ export function UserCard({ user, onSelect }: UserCardProps) {
 
 ## TanStack Query 패턴
 
-### Query 훅
+### 1. Query Keys Factory 패턴
 
-```tsx
-// hooks/queries/use-user-query.ts
-import { useQuery } from "@tanstack/react-query";
-import { userApi } from "@/lib/api/user";
-import type { User } from "@/types/api";
+캐시 무효화와 일관된 키 관리를 위한 필수 패턴:
 
-export const userKeys = {
-  all: ["users"] as const,
-  lists: () => [...userKeys.all, "list"] as const,
-  list: (filters: UserFilters) => [...userKeys.lists(), filters] as const,
-  details: () => [...userKeys.all, "detail"] as const,
-  detail: (id: string) => [...userKeys.details(), id] as const,
+```typescript
+// hooks/queries/keys.ts
+export const consultationKeys = {
+  all: ["consultations"] as const,
+  lists: () => [...consultationKeys.all, "list"] as const,
+  list: (filters: ConsultationFilters) => [...consultationKeys.lists(), filters] as const,
+  details: () => [...consultationKeys.all, "detail"] as const,
+  detail: (id: string) => [...consultationKeys.details(), id] as const,
+  structure: (id: string) => [...consultationKeys.detail(id), "structure"] as const,
 };
+```
 
-export function useUserQuery(userId: string) {
+### 2. API 클라이언트 패턴
+
+```typescript
+// lib/api/client.ts
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+// 기본 GET 요청
+export async function apiGet<T>(endpoint: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`);
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+// FormData POST 요청 (파일 업로드)
+export async function apiPostFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: "POST",
+    body: formData,  // Content-Type 자동 설정 (multipart/form-data)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(errorData.detail || `Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// JSON POST 요청
+export async function apiPost<T>(endpoint: string, data: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(errorData.detail || `Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+```
+
+### 3. useQuery 패턴
+
+**기본 조회:**
+
+```typescript
+// hooks/queries/use-consultation-query.ts
+import { useQuery } from "@tanstack/react-query";
+import { consultationKeys } from "./keys";
+
+export function useConsultationQuery(id: string) {
   return useQuery({
-    queryKey: userKeys.detail(userId),
-    queryFn: () => userApi.getUser(userId),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!userId,
+    queryKey: consultationKeys.detail(id),
+    queryFn: () => apiGet<Consultation>(`/api/v1/consultations/${id}`),
+    staleTime: 5 * 60 * 1000,  // 5분간 fresh
+    enabled: !!id,             // id 있을 때만 실행
   });
 }
 ```
 
-### Mutation 훅
+**폴링 (Polling) - 비동기 작업 상태 확인:**
 
-```tsx
-// hooks/mutations/use-update-user-mutation.ts
+```typescript
+// hooks/queries/use-agent-status-query.ts
+export function useAgentStatusQuery(taskId: string) {
+  return useQuery({
+    queryKey: ["agent-status", taskId],
+    queryFn: () => apiGet<AgentStatus>(`/api/v1/agents/status/${taskId}`),
+    enabled: !!taskId,
+    refetchInterval: (query) =>
+      query.state.data?.status === "completed" ? false : 2000,  // 완료되면 폴링 중지
+  });
+}
+```
+
+**의존적 쿼리 (Dependent Query):**
+
+```typescript
+export function useConsultationStructure(consultationId: string) {
+  const { data: consultation } = useConsultationQuery(consultationId);
+
+  return useQuery({
+    queryKey: consultationKeys.structure(consultationId),
+    queryFn: () => apiGet<Structure>(`/api/v1/consultations/${consultationId}/structure`),
+    enabled: !!consultation?.hasStructure,  // 이전 쿼리 결과에 의존
+  });
+}
+```
+
+### 4. useMutation 패턴
+
+**기본 Mutation:**
+
+```typescript
+// hooks/mutations/use-update-consultation-mutation.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { userApi } from "@/lib/api/user";
-import { userKeys } from "@/hooks/queries/use-user-query";
+import { consultationKeys } from "@/hooks/queries/keys";
 
-export function useUpdateUserMutation() {
+export function useUpdateConsultationMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: userApi.updateUser,
+    mutationFn: (data: UpdateConsultationRequest) =>
+      apiPost<Consultation>(`/api/v1/consultations/${data.id}`, data),
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: userKeys.detail(variables.id),
-      });
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      // 관련 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: consultationKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: consultationKeys.lists() });
     },
   });
 }
 ```
 
-### 규칙
+**파일 업로드 Mutation:**
 
-- Query Key는 Factory 패턴으로 관리
-- staleTime, gcTime 명시적 설정
-- enabled 옵션으로 조건부 fetch 제어
-- onSuccess에서 관련 쿼리 invalidate
+```typescript
+// hooks/mutations/use-service-mutation.ts
+interface ServiceParseRequest {
+  sessionId: string;
+  requestedTrack: string;
+  consultantInput: ConsultantInput;
+  files: File[];
+}
+
+export function useServiceMutation(options?: {
+  onSuccess?: (data: ServiceParseResponse) => void;
+  onError?: (error: Error) => void;
+}) {
+  return useMutation<ServiceParseResponse, Error, ServiceParseRequest>({
+    mutationFn: async (request) => {
+      const formData = new FormData();
+      formData.append("session_id", request.sessionId);
+      formData.append("requested_track", request.requestedTrack);
+      formData.append("consultant_input", JSON.stringify(request.consultantInput));
+
+      for (const file of request.files) {
+        formData.append("files", file);
+      }
+
+      return apiPostFormData<ServiceParseResponse>("/api/v1/agents/structure", formData);
+    },
+    onSuccess: (data) => options?.onSuccess?.(data),
+    onError: (error) => options?.onError?.(error),
+  });
+}
+```
+
+**Optimistic Update (낙관적 업데이트):**
+
+```typescript
+export function useToggleFavoriteMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiPost(`/api/v1/consultations/${id}/favorite`, {}),
+    onMutate: async (id) => {
+      // 진행 중인 쿼리 취소
+      await queryClient.cancelQueries({ queryKey: consultationKeys.detail(id) });
+
+      // 이전 값 스냅샷
+      const previous = queryClient.getQueryData(consultationKeys.detail(id));
+
+      // 낙관적 업데이트
+      queryClient.setQueryData(consultationKeys.detail(id), (old: Consultation) => ({
+        ...old,
+        isFavorite: !old.isFavorite,
+      }));
+
+      return { previous };
+    },
+    onError: (err, id, context) => {
+      // 에러 시 롤백
+      queryClient.setQueryData(consultationKeys.detail(id), context?.previous);
+    },
+    onSettled: (data, error, id) => {
+      // 성공/실패 후 서버 상태와 동기화
+      queryClient.invalidateQueries({ queryKey: consultationKeys.detail(id) });
+    },
+  });
+}
+```
+
+### 5. 컴포넌트 사용 예시
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useConsultationQuery } from "@/hooks/queries/use-consultation-query";
+import { useServiceMutation } from "@/hooks/mutations/use-service-mutation";
+
+export function ServiceUploadForm({ consultationId }: { consultationId: string }) {
+  const router = useRouter();
+  const [files, setFiles] = useState<File[]>([]);
+
+  // GET: 기존 데이터 조회
+  const { data: consultation, isLoading, error } = useConsultationQuery(consultationId);
+
+  // POST: 파일 업로드
+  const { mutate, isPending } = useServiceMutation({
+    onSuccess: (data) => {
+      router.push(`/consultation/${consultationId}/structure`);
+    },
+    onError: (error) => {
+      alert(`업로드 실패: ${error.message}`);
+    },
+  });
+
+  // 로딩/에러 처리
+  if (isLoading) return <div>로딩 중...</div>;
+  if (error) return <div>에러: {error.message}</div>;
+
+  const handleSubmit = () => {
+    if (files.length === 0) return alert("파일을 선택해주세요");
+
+    mutate({
+      sessionId: consultationId,
+      requestedTrack: "temporary",
+      consultantInput: {
+        company_name: consultation?.company_name ?? "",
+        service_name: consultation?.service_name ?? "",
+        service_description: "",
+        additional_memo: "",
+      },
+      files,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <input
+        type="file"
+        multiple
+        accept=".hwp"
+        onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+      />
+      <button
+        onClick={handleSubmit}
+        disabled={isPending || files.length === 0}
+        className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+      >
+        {isPending ? "업로드 중..." : "HWP 파일 분석"}
+      </button>
+    </div>
+  );
+}
+```
+
+### 6. 규칙
+
+- **Query Keys**: Factory 패턴으로 관리, 계층 구조 유지
+- **staleTime**: 데이터 특성에 맞게 설정 (자주 변경 = 짧게, 정적 = 길게)
+- **enabled**: 조건부 fetch로 불필요한 요청 방지
+- **에러 처리**: onError 콜백 또는 컴포넌트에서 error 상태 활용
+- **캐시 무효화**: mutation 성공 시 invalidateQueries로 관련 쿼리 갱신
+- **Optimistic Update**: 즉각적인 UX가 중요한 경우 사용 (좋아요, 토글 등)
 
 ## Zustand 패턴
 
