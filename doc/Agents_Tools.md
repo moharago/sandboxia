@@ -74,39 +74,46 @@
 
 ```json
 {
-  "company_info": {
-    "company_name": "string",
-    "representative": "string",
-    "business_number": "string",
-    "address": "string",
-    "contact": "string"
+  "company": {
+    "company_name": "string | null",
+    "representative": "string | null",
+    "business_number": "string | null",
+    "address": "string | null",
+    "contact": "string | null",
+    "email": "string | null"
   },
-  "service_info": {
-    "service_name": "string",
-    "service_description": "string",
-    "service_category": "string",
-    "target_users": "string",
-    "business_model": "string"
+
+  "service": {
+    "service_name": "string | null",
+    "what_action": "string | null",
+    "target_users": "string | null",
+    "delivery_method": "string | null",
+    "service_description": "string | null",
+    "service_category": "string | null"
   },
-  "technology_info": {
-    "core_technology": "string",
-    "innovation_points": ["string"],
-    "related_patents": ["string"]
+
+  "technology": {
+    "core_technology": "string | null",
+    "innovation_points": "list[string]"
   },
-  "regulatory_info": {
-    "related_regulations": ["string"],
-    "regulatory_issues": "string",
-    "requested_track": "string | null"
+
+  "regulatory": {
+    "related_regulations": "list[string]",
+    "regulatory_issues": "string | null"
   },
-  "additional_info": {
-    "consultant_memo": "string",
-    "attachments": ["string"]
-  },
+
   "metadata": {
-    "original_document_type": "counseling | fastcheck | temporary | demonstration",
-    "extraction_confidence": "number",
+    "source_type": "Literal['counseling', 'fastcheck', 'temporary', 'demonstration']",
+    "session_id": "string",
     "created_at": "datetime",
-    "session_id": "string"
+    "field_confidence": {
+      "company": "float",
+      "service": "float",
+      "technology": "float",
+      "regulatory": "float"
+    },
+    "missing_fields": "list[string]",
+    "consultant_memo": "string | null"
   }
 }
 ```
