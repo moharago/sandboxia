@@ -1,135 +1,21 @@
-import logging
+from fastapi import APIRouter, Depends, HTTPException
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from typing import Optional
-from app.core.config import supabase
 from app.api.deps import get_auth_user
-
-logger = logging.getLogger(__name__)
+from app.core.config import supabase
 
 router = APIRouter()
 
 
 # ================================
-# 요청 모델
-# ================================
-# class UserCreate(BaseModel):
-#     name: str         # 담당자명
-#     company: str      # 회사명
-#     phone: Optional[str] = None
-
-class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    company: Optional[str] = None
-    phone: Optional[str] = None
-    status: Optional[str] = None 
-
-
-# Google 로그인 트리거로 자동 생성하므로 삭제(임시 주석 처리)
-# ================================
-# 회원가입 
-# ================================
-# @router.post("/users/signup")
-# async def create_user(
-#     user: UserCreate,
-#     auth_user = Depends(get_auth_user),
-# ):
-#     """Supabase Auth 회원가입 후 추가 정보 저장"""
-    
-#     existing = supabase.table("users")\
-#         .select("id")\
-#         .eq("id", auth_user.id)\
-#         .execute()
-
-#     if existing.data:
-#         raise HTTPException(status_code=400, detail="User already exists")
-
-#     result = supabase.table("users").insert({
-#         "id": auth_user.id,
-#         "email": auth_user.email,
-#         "name": user.name,
-#         "company": user.company,
-#         "phone": user.phone
-#     }).execute()
-
-#     return result.data[0]
-
-
-# ================================
-# 유저 조회
-# ================================
-@router.get("/users/me")
-async def get_user(auth_user = Depends(get_auth_user)):
-    """본인 정보 조회"""
-
-    try:
-        result = supabase.table("users")\
-            .select("*")\
-            .eq("id", auth_user.id)\
-            .single()\
-            .execute()
-
-        if not result.data:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        return result.data
-    except HTTPException:
-        raise
-    except Exception as e:
-        # single()이 행이 없거나 여러 행일 때 예외 발생
-        raise HTTPException(status_code=404, detail=f"User not found: {str(e)}")
-
-
-# ================================
-# 유저 정보 수정
-# ================================
-@router.patch("/users/me")
-async def update_user(
-    payload: UserUpdate,
-    auth_user = Depends(get_auth_user),
-):
-    """본인 정보 수정 및 상태 변경
-
-    - 이름(name)이 설정되고 현재 상태가 PENDING이면 자동으로 ACTIVE로 변경
-    """
-
-    update_data = {k: v for k, v in payload.dict().items() if v is not None}
-
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No data to update")
-
-    # 이름이 설정되고 status가 명시적으로 전달되지 않은 경우,
-    # 현재 상태 확인 후 PENDING이면 자동으로 ACTIVE로 변경
-    if "name" in update_data and update_data["name"] and "status" not in update_data:
-        try:
-            current_user = supabase.table("users")\
-                .select("status")\
-                .eq("id", auth_user.id)\
-                .single()\
-                .execute()
-
-            if current_user.data and current_user.data.get("status") == "PENDING":
-                update_data["status"] = "ACTIVE"
-        except Exception as e:
-            logger.warning("Status check failed during update: %s", e)
-
-    result = supabase.table("users")\
-        .update(update_data)\
-        .eq("id", auth_user.id)\
-        .execute()
-
-    if not result.data:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return result.data
-
-# ================================
-# 유저 삭제
+# 유저 삭제 (service_role 필요)
 # ================================
 @router.delete("/users/me")
-async def delete_user(auth_user = Depends(get_auth_user)):
-    """본인 계정 삭제"""
+async def delete_user(auth_user=Depends(get_auth_user)):
+    """본인 계정 삭제
+
+    - auth.admin.delete_user()는 service_role 키가 필요하여 서버에서만 처리
+    - 클라이언트에서 직접 호출 불가
+    """
 
     # 1. auth.users에서 먼저 삭제 (Admin API)
     # auth.users 삭제 시 ON DELETE CASCADE가 설정되어 있으면 public.users도 자동 삭제됨
@@ -137,19 +23,17 @@ async def delete_user(auth_user = Depends(get_auth_user)):
         supabase.auth.admin.delete_user(auth_user.id)
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to delete auth user: {str(e)}"
+            status_code=500, detail=f"Failed to delete auth user: {str(e)}"
         )
 
     # 2. public.users에서 삭제 (CASCADE가 없는 경우를 대비)
     try:
-        supabase.table("users")\
-            .delete()\
-            .eq("id", auth_user.id)\
-            .execute()
+        supabase.table("users").delete().eq("id", auth_user.id).execute()
     except Exception as e:
         # auth.users는 이미 삭제됨, public.users 삭제 실패는 로깅만
         # CASCADE가 이미 처리했을 수 있음
-        print(f"Warning: Failed to delete public.users row (may already be deleted by CASCADE): {str(e)}")
+        print(
+            f"Warning: Failed to delete public.users row (may already be deleted by CASCADE): {str(e)}"
+        )
 
     return {"message": "Account deleted"}
