@@ -5,6 +5,7 @@
 """
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypedDict
 
 from .schemas import (
     ApprovalCase,
@@ -16,7 +17,7 @@ from .schemas import (
 
 
 class ScreeningResult(BaseModel):
-    """규제 스크리닝 결과"""
+    """규제 스크리닝 결과 (Tool 반환용 - BaseModel 유지)"""
 
     has_regulation_risk: bool = Field(default=False, description="규제 저촉 가능성")
     risk_signals: list[str] = Field(default_factory=list, description="리스크 신호")
@@ -25,7 +26,7 @@ class ScreeningResult(BaseModel):
     confidence: float = Field(default=0.0, description="스크리닝 신뢰도")
 
 
-class EligibilityState(BaseModel):
+class EligibilityState(TypedDict, total=False):
     """Eligibility Evaluator 에이전트 상태
 
     Attributes:
@@ -50,45 +51,20 @@ class EligibilityState(BaseModel):
     """
 
     # 입력
-    project_id: str = Field(description="프로젝트 UUID")
-    canonical: dict = Field(default_factory=dict, description="서비스 정보")
+    project_id: str
+    canonical: dict
 
     # 중간 결과 (RAG 검색)
-    screening_result: ScreeningResult | None = Field(
-        default=None, description="스크리닝 결과"
-    )
-    regulation_results: list[dict] = Field(
-        default_factory=list, description="R1 검색 결과"
-    )
-    case_results: list[dict] = Field(
-        default_factory=list, description="R2 검색 결과"
-    )
-    law_results: list[dict] = Field(
-        default_factory=list, description="R3 검색 결과"
-    )
+    screening_result: ScreeningResult | None
+    regulation_results: list[dict]
+    case_results: list[dict]
+    law_results: list[dict]
 
     # 최종 출력
-    eligibility_label: EligibilityLabel | None = Field(
-        default=None, description="판정 결과"
-    )
-    confidence_score: float | None = Field(
-        default=None, description="신뢰도"
-    )
-    result_summary: str | None = Field(
-        default=None, description="결과 요약"
-    )
-    direct_launch_risks: list[DirectLaunchRisk] = Field(
-        default_factory=list, description="바로 출시 시 리스크"
-    )
-    judgment_summary: list[JudgmentSummary] = Field(
-        default_factory=list, description="판단 근거"
-    )
-    approval_cases: list[ApprovalCase] = Field(
-        default_factory=list, description="승인 사례"
-    )
-    regulations: list[Regulation] = Field(
-        default_factory=list, description="법령·제도"
-    )
-
-    class Config:
-        arbitrary_types_allowed = True
+    eligibility_label: EligibilityLabel | None
+    confidence_score: float | None
+    result_summary: str | None
+    direct_launch_risks: list[DirectLaunchRisk]
+    judgment_summary: list[JudgmentSummary]
+    approval_cases: list[ApprovalCase]
+    regulations: list[Regulation]

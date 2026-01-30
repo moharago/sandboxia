@@ -86,14 +86,30 @@ async def run_eligibility_evaluation(
     Returns:
         EligibilityResult: 판단 결과
     """
-    # 초기 상태 (BaseModel)
-    initial_state = EligibilityState(
-        project_id=project_id,
-        canonical=canonical,
-    )
+    # 초기 상태 (TypedDict - 기본값 직접 제공)
+    initial_state: EligibilityState = {
+        "project_id": project_id,
+        "canonical": canonical,
+        # 중간 결과 (기본값)
+        "screening_result": None,
+        "regulation_results": [],
+        "case_results": [],
+        "law_results": [],
+        # 최종 출력 (기본값)
+        "eligibility_label": None,
+        "confidence_score": None,
+        "result_summary": None,
+        "direct_launch_risks": [],
+        "judgment_summary": [],
+        "approval_cases": [],
+        "regulations": [],
+    }
 
-    # 그래프 실행 (dict로 변환하여 전달)
-    result = await eligibility_graph.ainvoke(initial_state.model_dump())
+    # 그래프 실행 (recursion_limit: 무한 루프 방지)
+    result = await eligibility_graph.ainvoke(
+        initial_state,
+        config={"recursion_limit": 15},
+    )
 
     # EligibilityResult로 변환 (result는 dict)
     return EligibilityResult(

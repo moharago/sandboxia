@@ -92,7 +92,7 @@ def screen_node(state: EligibilityState) -> dict:
 
     canonical에서 서비스 정보를 추출하여 Rule Screener 실행
     """
-    canonical = state.canonical
+    canonical = state["canonical"]
 
     # canonical에서 서비스 정보 추출 (헬퍼 함수 사용)
     service_description = get_service_description(canonical)
@@ -123,12 +123,12 @@ def search_regulations_node(state: EligibilityState) -> dict:
 
     스크리닝 결과의 키워드로 규제제도 검색
     """
-    screening = state.screening_result
+    screening = state["screening_result"]
     keywords = screening.search_keywords if screening else []
 
     if not keywords:
         # 키워드 없으면 기본 검색
-        service_desc = get_service_description(state.canonical)
+        service_desc = get_service_description(state["canonical"])
         query = (service_desc or "규제 샌드박스")[:200]
     else:
         query = " ".join(keywords[:5])
@@ -161,7 +161,7 @@ def search_cases_node(state: EligibilityState) -> dict:
 
     서비스 설명으로 유사 승인 사례 검색
     """
-    service_description = get_service_description(state.canonical)
+    service_description = get_service_description(state["canonical"])
 
     # R2 검색
     result = search_case.invoke({
@@ -194,10 +194,15 @@ def search_laws_node(state: EligibilityState) -> dict:
     """도메인별 법령 검색 노드 (R3)
 
     스크리닝에서 탐지된 도메인으로 법령 검색
+    도메인이 없는 경우에도 최소 1회 R3 검색 수행
     """
-    screening = state.screening_result
+    screening = state["screening_result"]
     domains = screening.detected_domains if screening else []
     keywords = screening.search_keywords if screening else []
+
+    # 도메인이 없으면 fallback 도메인 사용 (최소 1회 R3 검색 보장)
+    if not domains:
+        domains = ["data"]  # 기본 도메인 (DOMAIN_MAPPING에 정의됨)
 
     laws = []
 
@@ -232,11 +237,11 @@ def compose_decision_node(state: EligibilityState) -> dict:
 
     수집된 모든 정보를 종합하여 최종 판정
     """
-    screening = state.screening_result
-    regulations = state.regulation_results
-    cases = state.case_results
-    laws = state.law_results
-    canonical = state.canonical
+    screening = state["screening_result"]
+    regulations = state["regulation_results"]
+    cases = state["case_results"]
+    laws = state["law_results"]
+    canonical = state["canonical"]
 
     # canonical의 regulatory_issues 확인
     regulatory = canonical.get("regulatory", {})
@@ -277,7 +282,7 @@ def compose_decision_node(state: EligibilityState) -> dict:
     llm = get_llm()
 
     prompt = COMPOSE_DECISION_PROMPT.format(
-        canonical=json.dumps(state.canonical, ensure_ascii=False, indent=2),
+        canonical=json.dumps(state["canonical"], ensure_ascii=False, indent=2),
         screening_result=json.dumps(screening_dict, ensure_ascii=False, indent=2),
         regulation_results=json.dumps(regulations[:3], ensure_ascii=False, indent=2),
         case_results=json.dumps(cases[:3], ensure_ascii=False, indent=2),
@@ -340,10 +345,10 @@ def generate_evidence_node(state: EligibilityState) -> dict:
 
     RAG 결과를 evidence_data 형식으로 변환
     """
-    regulations = state.regulation_results
-    cases = state.case_results
-    laws = state.law_results
-    screening = state.screening_result
+    regulations = state["regulation_results"]
+    cases = state["case_results"]
+    laws = state["law_results"]
+    screening = state["screening_result"]
 
     # judgment_summary 생성
     judgment_summary: list[JudgmentSummary] = []
