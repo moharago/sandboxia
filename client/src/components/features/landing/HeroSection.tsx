@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { ArrowRight, FileText, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useUIStore } from "@/stores/ui-store"
+import { useAuthStore } from "@/stores/auth-store"
 
 export function HeroSection() {
-    const isAuthenticated = useUIStore((state) => state.isAuthenticated)
+    const user = useAuthStore((state) => state.user)
+    const isAuthenticated = !!user
     return (
         <section className="relative overflow-hidden py-20 md:py-32">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-50 via-grass-50 to-teal-50" />

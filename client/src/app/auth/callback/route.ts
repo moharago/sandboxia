@@ -10,30 +10,21 @@ export async function GET(request: Request) {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error && data.session) {
-            // 유저 상태 확인
+            // Supabase 직접 호출로 유저 상태 확인
             try {
-                const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${data.session.access_token}`
-                    }
-                })
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('status')
+                    .eq('id', data.session.user.id)
+                    .single()
 
-                if (response.ok) {
-                    const user = await response.json()
-
-                    if (user.status === 'PENDING') {
-                        return NextResponse.redirect(`${origin}/onboarding`)
-                    } else {
-                        return NextResponse.redirect(`${origin}/dashboard`)
-                    }
+                if (userData?.status === 'ACTIVE') {
+                    return NextResponse.redirect(`${origin}/dashboard`)
                 } else {
-                    // 유저 정보 없음 → onboarding
                     return NextResponse.redirect(`${origin}/onboarding`)
                 }
-            } catch (e) {
-                // API 호출 실패 시 onboarding으로
-                console.error('Failed to fetch user:', e)
+            } catch {
+                // 유저 정보 없음 → onboarding
                 return NextResponse.redirect(`${origin}/onboarding`)
             }
         }

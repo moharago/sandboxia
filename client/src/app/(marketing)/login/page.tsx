@@ -1,17 +1,32 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import { AlertCircle } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
+    const router = useRouter()
     const supabase = createClient()
     const searchParams = useSearchParams()
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [checking, setChecking] = useState(true)
+
+    // 이미 로그인된 사용자는 대시보드로 리다이렉트
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                router.push('/dashboard')
+            } else {
+                setChecking(false)
+            }
+        }
+        checkAuth()
+    }, [router, supabase])
 
     // URL 쿼리 파라미터에서 에러 확인
     useEffect(() => {
@@ -37,6 +52,14 @@ export default function LoginPage() {
             setError(authError.message || '로그인 중 오류가 발생했습니다')
             setIsLoading(false)
         }
+    }
+
+    if (checking) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
     }
 
     return (
