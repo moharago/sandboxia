@@ -104,3 +104,6 @@ chroma_db/
 
 # Vector DB source data
 server/data/
+
+# MCP (Model Context Protocol)
+.serena/

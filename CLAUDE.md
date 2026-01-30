@@ -121,3 +121,30 @@ Agent state uses `TypedDict` with message accumulation. Recursion limit is set t
 - `feature/func-{name}`: Feature development
 - `feature/uiux`: Client UI development
 - `feature/db-{name}`: Database schema & API development
+
+## MCP Servers
+
+Claude Code에서 사용 가능한 MCP(Model Context Protocol) 서버:
+
+### context7
+라이브러리/프레임워크의 최신 공식 문서 검색.
+- `resolve-library-id`: 라이브러리명 → Context7 ID 변환
+- `query-docs`: 해당 라이브러리 문서에서 정보 검색
+- **사용 예**: Next.js, LangGraph, TanStack Query 등의 최신 API 확인 시
+
+### supabase
+Supabase 프로젝트 관리 및 데이터베이스 작업.
+- `list_tables`, `execute_sql`: 스키마 조회 및 쿼리 실행
+- `apply_migration`: DDL 마이그레이션 적용
+- `generate_typescript_types`: DB 스키마 기반 타입 생성
+- `deploy_edge_function`: Edge Function 배포
+- `get_logs`, `get_advisors`: 로그 조회 및 보안/성능 권고사항 확인
+- **사용 예**: DB 스키마 변경, RLS 정책 설정, Edge Function 배포
+
+### serena
+시맨틱 코드 탐색 및 리팩토링 도구.
+- `get_symbols_overview`: 파일 내 심볼(클래스, 함수 등) 개요
+- `find_symbol`: 이름 패턴으로 심볼 검색
+- `find_referencing_symbols`: 심볼 참조 위치 검색
+- `replace_symbol_body`, `rename_symbol`: 코드 수정/리팩토링
+- **사용 예**: 대규모 코드베이스에서 함수 추적, 안전한 리네이밍

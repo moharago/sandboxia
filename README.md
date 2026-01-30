@@ -83,6 +83,25 @@ git push origin feature/my-feature
 
 **설정 파일:** `.coderabbit.yaml`
 
+### Claude Code & MCP (Optional)
+
+[Claude Code](https://claude.ai/code)를 사용하면 AI 기반 개발 지원을 받을 수 있습니다. 추가로 MCP(Model Context Protocol) 서버를 연결하면 더 풍부한 컨텍스트와 도구를 활용할 수 있습니다.
+
+> **필수 사항은 아닙니다.** MCP 없이도 개발에 전혀 문제가 없으며, 필요에 따라 선택적으로 활용하세요.
+
+**권장 MCP 서버:**
+
+| 서버 | 용도 | 활용 예시 |
+|------|------|----------|
+| [context7](https://github.com/upstash/context7) | 라이브러리 최신 문서 검색 | Next.js, LangGraph API 확인 |
+| [supabase](https://github.com/supabase-community/supabase-mcp) | DB 스키마 관리 & 쿼리 | 마이그레이션, 타입 생성 |
+| [serena](https://github.com/oraios/serena) | 시맨틱 코드 탐색 | 심볼 검색, 리팩토링 |
+
+**설정 방법:**
+1. Claude Code 설치 후 `.mcp.json` 파일 생성
+2. 각 MCP 서버의 공식 문서를 참고하여 설정
+3. 프로젝트별 지침은 `CLAUDE.md` 참고
+
 ## 👥 Team
 
 AI Camp 4th - Team SandboxIA
