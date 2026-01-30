@@ -3,15 +3,16 @@
 import { use, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Scale } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { CheckCircle2, AlertTriangle, Scale } from "lucide-react"
+import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { cases } from "@/data"
-import { useWizardStore } from "@/stores/wizard-store"
 import { useCaseStore } from "@/stores/case-store"
+import { useUIStore } from "@/stores/ui-store"
+import { useWizardStore } from "@/stores/wizard-store"
 import { cn } from "@/lib/utils/cn"
 
 type ReasonCategory = "law" | "regulation" | "case"
@@ -128,7 +129,7 @@ export default function MarketPage({ params }: MarketPageProps) {
     const caseData = cases.find((c) => c.id === id)
 
     const { marketAnalysis, setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
-
+    const { devIsAnalyzed, devHasChanges } = useUIStore()
     const { updateCaseStatus, getCaseStatus } = useCaseStore()
 
     // 오버라이드된 상태가 있으면 사용, 없으면 원본 상태 사용 (single source of truth)
@@ -307,16 +308,33 @@ export default function MarketPage({ params }: MarketPageProps) {
                     </CardContent>
                 </Card>
 
-                <div className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} className="gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        이전 단계
-                    </Button>
-                    <Button onClick={handleSave} disabled={isSaving} className="gap-2">
-                        저장 및 다음 단계
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </div>
+                {/* TODO: isAnalyzed는 나중에 eligibility_results 존재 여부로 판단 */}
+                {/* TODO: hasChanges는 이전 단계(service) 데이터 변경 여부로 판단 */}
+                <WizardNavigation
+                    onBack={handleBack}
+                    onAnalyze={handleSave}
+                    onNext={() => {
+                        // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
+                        setMarketAnalysis({
+                            decision: selectedDecision,
+                            aiRecommendation: analysisData.recommendation,
+                        })
+                        if (selectedDecision === "direct") {
+                            updateCaseStatus(id, "direct")
+                            markStepComplete(2)
+                            router.push("/dashboard")
+                        } else {
+                            markStepComplete(2)
+                            setCurrentStep(3)
+                            router.push(`/cases/${id}/track`)
+                        }
+                    }}
+                    analyzeLabel="AI 분석 및 다음 단계"
+                    nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
+                    isAnalyzed={devIsAnalyzed}
+                    hasChanges={devHasChanges}
+                    isLoading={isSaving}
+                />
             </div>
         </div>
     )
