@@ -258,9 +258,10 @@ def compose_decision_node(state: EligibilityState) -> dict:
         for issue in regulatory_issues
     )
 
-    # 유사 승인 사례 여부 판단
+    # 유사 승인 사례 여부 판단 (relevance_score는 distance - 낮을수록 유사)
+    # similarity = 1 / (1 + distance), 50% 이상이면 유사 사례로 판단
     has_similar_case = any(
-        c.get("relevance_score", 0) > 0.7 for c in cases
+        (1 / (1 + c.get("relevance_score", 1.0))) > 0.5 for c in cases
     )
 
     # 규제 저촉 여부 판단 (고위험 키워드 + 관련 법령 존재)
