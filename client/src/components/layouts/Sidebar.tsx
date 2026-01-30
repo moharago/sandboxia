@@ -1,17 +1,17 @@
 "use client"
 
-import * as React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { projects } from "@/data"
+import { cn } from "@/lib/utils/cn"
+import { useUIStore } from "@/stores/ui-store"
+import type { ProjectStatus } from "@/types/data/project"
+import { PROJECT_STATUS_LABELS, SANDBOX_TYPE_LABELS } from "@/types/data/project"
+import { FolderOpen, PanelLeft, PanelRight, Plus, Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Plus, Search, FolderOpen, PanelLeft, PanelRight } from "lucide-react"
-import { useUIStore } from "@/stores/ui-store"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils/cn"
-import { projects } from "@/data"
-import type { Project, ProjectStatus } from "@/types/data/project"
-import { PROJECT_STATUS_LABELS, SANDBOX_TYPE_LABELS } from "@/types/data/project"
+import * as React from "react"
 
 type SortOrder = "newest" | "oldest"
 
@@ -82,7 +82,7 @@ export function Sidebar() {
                     </Button>
                     <div className="flex-1">
                         <Button variant="gradient" className="w-full gap-2 h-8" onClick={openNewCaseModal}>
-                            <Plus className="h-4 w-4" />새 케이스
+                            <Plus className="h-4 w-4" />새 프로젝트
                         </Button>
                     </div>
                 </div>
@@ -136,7 +136,7 @@ export function Sidebar() {
                                 <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    placeholder="케이스 검색..."
+                                    placeholder="프로젝트 검색..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-6 pr-2 py-2 bg-transparent border-0 focus:outline-none text-sm placeholder:text-muted-foreground"

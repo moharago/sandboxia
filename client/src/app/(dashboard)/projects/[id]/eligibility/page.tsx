@@ -52,7 +52,7 @@ interface AIAnalysisData {
     directLaunchRisks: string[]
 }
 
-// 규제 샌드박스 필요 케이스용 더미 데이터
+// 규제 샌드박스 필요 프로젝트용 더미 데이터
 const sandboxAnalysis: AIAnalysisData = {
     recommendation: "sandbox",
     confidence: 87,
@@ -85,7 +85,7 @@ const sandboxAnalysis: AIAnalysisData = {
     ],
 }
 
-// 바로 출시 가능 케이스용 더미 데이터
+// 바로 출시 가능 프로젝트용 더미 데이터
 const directAnalysis: AIAnalysisData = {
     recommendation: "direct",
     confidence: 94,
@@ -169,7 +169,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         })
 
         if (selectedDecision === "direct") {
-            // 바로출시 선택 시 - 케이스 상태를 'direct'로 변경하고 대시보드로 이동
+            // 바로출시 선택 시 - 프로젝트 상태를 'direct'로 변경하고 대시보드로 이동
             updateProjectStatus(id, "direct")
             markStepComplete(2)
             router.push("/dashboard")
@@ -291,7 +291,9 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                         )}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Scale className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")} />
+                                            <Scale
+                                                className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")}
+                                            />
                                             <div>
                                                 <h4 className="font-medium">규제 샌드박스 신청</h4>
                                                 <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>

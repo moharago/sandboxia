@@ -1,10 +1,10 @@
 "use client"
 
-import { useUIStore } from "@/stores/ui-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal"
+import { Textarea } from "@/components/ui/textarea"
+import { useUIStore } from "@/stores/ui-store"
 import { useState } from "react"
 
 export function NewCaseModal() {
@@ -28,8 +28,8 @@ export function NewCaseModal() {
         <Modal open={isNewCaseModalOpen} onOpenChange={(open: boolean) => !open && closeNewCaseModal()}>
             <ModalContent className="sm:max-w-[500px]">
                 <ModalHeader>
-                    <ModalTitle>새 케이스 생성</ModalTitle>
-                    <ModalDescription>새로운 샌드박스 신청 케이스를 생성합니다. 기본 정보를 입력해주세요.</ModalDescription>
+                    <ModalTitle>새 프로젝트 생성</ModalTitle>
+                    <ModalDescription>새로운 샌드박스 신청 프로젝트를 생성합니다. 기본 정보를 입력해주세요.</ModalDescription>
                 </ModalHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
