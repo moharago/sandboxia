@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import UploadFile
 
 from app.agents.service_structurer import run_service_structurer
-from app.api.schemas.agents import ParsedDocument, StructureResponse
+from app.api.schemas.agents import CanonicalStructure, ParsedDocument, StructureResponse
 from app.services.parsers import DocumentSubtype
 
 logger = logging.getLogger(__name__)

@@ -21,10 +21,14 @@ def should_continue_after_parse(state: ServiceStructurerState) -> str:
     에러가 있어도 build_structure로 진행합니다.
     (컨설턴트 입력만으로도 구조 생성 가능)
     """
-    # 에러가 있고 파싱 결과도 없으며 컨설턴트 입력도 없으면 종료
-    if state.get("error"):
-        if not state.get("hwp_parse_results") and not state.get("consultant_input"):
-            return "end"
+    # 에러가 없고 파싱 결과도 없으며 컨설턴트 입력도 없으면 종료
+    if (
+        not state.get("error")
+        and not state.get("hwp_parse_results")
+        and not state.get("consultant_input")
+    ):
+        return "end"
+
     return "build_structure"
 
 
@@ -95,7 +99,10 @@ async def run_service_structurer(
         "error": None,
     }
 
-    result = await service_structurer_agent.ainvoke(initial_state)
+    result = await service_structurer_agent.ainvoke(
+        initial_state,
+        config={"recursion_limit": 15},
+    )
 
     return {
         "session_id": session_id,

@@ -82,22 +82,31 @@ def merge_hwp_documents(
             parse_success=result.get("parse_success", False),
             error_message=result.get("error_message", ""),
         )
-        # 카테고리와 서브타입 설정
-        try:
-            doc.document_subtype = DocumentSubtype(
-                result.get("document_subtype", "unknown")
-            )
-            subtype_value = doc.document_subtype.value
-            if subtype_value.startswith("counseling"):
-                doc.document_category = DocumentCategory.COUNSELING
-            elif subtype_value.startswith("fastcheck"):
-                doc.document_category = DocumentCategory.FASTCHECK
-            elif subtype_value.startswith("temporary"):
-                doc.document_category = DocumentCategory.TEMPORARY
-            elif subtype_value.startswith("demonstration"):
-                doc.document_category = DocumentCategory.DEMONSTRATION
-        except ValueError:
-            pass
+
+        # 1. 먼저 document_type에서 카테고리 설정 (기본값)
+        document_type = result.get("document_type", "")
+        if document_type:
+            try:
+                doc.document_category = DocumentCategory(document_type)
+            except ValueError:
+                pass  # 유효하지 않은 값이면 기본값(UNKNOWN) 유지
+
+        # 2. 서브타입 파싱 시도
+        subtype_value = result.get("document_subtype", "")
+        if subtype_value:
+            try:
+                doc.document_subtype = DocumentSubtype(subtype_value)
+                # 3. 유효한 서브타입이 파싱되면 카테고리를 서브타입 기반으로 덮어쓰기
+                if subtype_value.startswith("counseling"):
+                    doc.document_category = DocumentCategory.COUNSELING
+                elif subtype_value.startswith("fastcheck"):
+                    doc.document_category = DocumentCategory.FASTCHECK
+                elif subtype_value.startswith("temporary"):
+                    doc.document_category = DocumentCategory.TEMPORARY
+                elif subtype_value.startswith("demonstration"):
+                    doc.document_category = DocumentCategory.DEMONSTRATION
+            except ValueError:
+                pass  # 유효하지 않은 서브타입이면 기존 카테고리 유지
 
         documents.append(doc)
 

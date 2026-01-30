@@ -42,5 +42,5 @@ async def structure_service(
         logger.error(f"Service Structurer 오류: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"서비스 구조화 오류: {str(e)}",
+            detail="서비스 구조화 처리 중 오류가 발생했습니다.",
         )

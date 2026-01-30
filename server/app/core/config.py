@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from supabase import create_client
-import os
+
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = ""
 
     # 디버그 설정
-    ENABLE_DEBUG_PII_LOGS: bool = False
+    ENABLE_DEBUG_PII_LOGS: bool = True
 
     # 법령 API 설정
     LAW_API_BASE_URL: str
