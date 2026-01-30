@@ -7,13 +7,6 @@ from app.core.config import supabase
 router = APIRouter()
 
 
-class ProjectCreate(BaseModel):
-    user_id: str
-    company_name: str
-    service_name: Optional[str] = None
-    industry: Optional[str] = None
-
-
 class ProjectStatusUpdate(BaseModel):
     status: int
     current_step: Optional[int] = None
@@ -30,21 +23,6 @@ class TrackSelect(BaseModel):
 
 class QuickCheckResult(BaseModel):
     result: str
-
-
-@router.post("/projects")
-async def create_project(project: ProjectCreate):
-    result = supabase.table("projects").insert({
-        "user_id": project.user_id,
-        "company_name": project.company_name,
-        "service_name": project.service_name,
-        "industry": project.industry,
-        "status": 1,
-        "current_step": 1,
-        "draft_data": {}
-    }).execute()
-    
-    return result.data[0]
 
 
 @router.get("/projects/{project_id}")
