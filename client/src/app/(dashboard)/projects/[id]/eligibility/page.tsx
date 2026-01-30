@@ -1,6 +1,7 @@
 "use client"
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
+import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Badge } from "@/components/ui/badge"
@@ -139,6 +140,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     const [selectedDecision, setSelectedDecision] = useState<DecisionType>(analysisData.recommendation)
     const [isSaving, setIsSaving] = useState(false)
+    const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
 
     // 프로젝트가 변경되면 AI 추천값으로 초기화
     useEffect(() => {
@@ -183,155 +185,166 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     return (
         <div className="py-6">
             {isSaving && <AILoadingOverlay message={selectedDecision === "direct" ? "저장 중" : "AI 분석 중"} />}
-            <div className="container mx-auto px-4 space-y-6">
-                <div>
-                    <h1 className="text-2xl font-bold mb-2">시장출시 진단</h1>
-                    <p className="text-muted-foreground">AI가 서비스의 규제 현황을 분석하여 시장 출시 가능 여부를 판단합니다</p>
-                </div>
+            <div className="container">
+                <div className="flex gap-4">
+                    {/* 왼쪽: 메인 콘텐츠 */}
+                    <div className={isReferencePanelOpen ? "flex-[2] space-y-6" : "flex-1 space-y-6"}>
+                        <div>
+                            <h1 className="text-2xl font-bold mb-2">시장출시 진단</h1>
+                            <p className="text-muted-foreground">AI가 서비스의 규제 현황을 분석하여 시장 출시 가능 여부를 판단합니다</p>
+                        </div>
 
-                {/* AI 분석 요약 */}
-                <AIAnalysisCard
-                    summary={analysisData.summary}
-                    confidence={analysisData.confidence}
-                    recommendation={analysisData.recommendation === "sandbox" ? "규제 샌드박스 필요" : "바로 시장 출시 가능"}
-                />
+                        {/* AI 분석 요약 */}
+                        <AIAnalysisCard
+                            summary={analysisData.summary}
+                            confidence={analysisData.confidence}
+                            recommendation={analysisData.recommendation === "sandbox" ? "규제 샌드박스 필요" : "바로 시장 출시 가능"}
+                        />
 
-                {/* 판단 근거 */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>판단 근거</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="divide-y divide-border">
-                            {analysisData.reasons.map((reason: AnalysisReason, index) => {
-                                const config = CATEGORY_CONFIG[reason.category]
-                                return (
-                                    <div
-                                        key={index}
+                        {/* 판단 근거 */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>판단 근거</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="divide-y divide-border">
+                                    {analysisData.reasons.map((reason: AnalysisReason, index) => {
+                                        const config = CATEGORY_CONFIG[reason.category]
+                                        return (
+                                            <div
+                                                key={index}
+                                                className={cn(
+                                                    "flex items-start gap-3 py-4",
+                                                    index === 0 && "pt-0",
+                                                    index === analysisData.reasons.length - 1 && "pb-0"
+                                                )}
+                                            >
+                                                <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", config.badgeClass)}>
+                                                    {config.label}
+                                                </Badge>
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium">{reason.title}</h4>
+                                                    <p className="text-sm text-foreground mt-1">{reason.description}</p>
+                                                    <p className="text-sm text-foreground/70 mt-2">근거: {reason.source}</p>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 바로 출시 시 리스크 */}
+                        {analysisData.recommendation === "sandbox" && (
+                            <Card className="border-amber-200">
+                                <CardHeader>
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                                        <CardTitle className="text-amber-700">바로 출시 시 예상 리스크</CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <ul className="space-y-2">
+                                        {analysisData.directLaunchRisks.map((risk, index) => (
+                                            <li key={index} className="flex items-start gap-2 text-sm">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                                                {risk}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* 컨설턴트 최종 결정 */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>최종 결정</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedDecision("direct")}
                                         className={cn(
-                                            "flex items-start gap-3 py-4",
-                                            index === 0 && "pt-0",
-                                            index === analysisData.reasons.length - 1 && "pb-0"
+                                            "p-4 rounded-lg border-2 text-left transition-all",
+                                            selectedDecision === "direct" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                                         )}
                                     >
-                                        <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", config.badgeClass)}>
-                                            {config.label}
-                                        </Badge>
-                                        <div className="flex-1">
-                                            <h4 className="font-medium">{reason.title}</h4>
-                                            <p className="text-sm text-foreground mt-1">{reason.description}</p>
-                                            <p className="text-sm text-foreground/70 mt-2">근거: {reason.source}</p>
+                                        <div className="flex items-center gap-3">
+                                            <CheckCircle2
+                                                className={cn("h-6 w-6", selectedDecision === "direct" ? "text-primary" : "text-muted-foreground")}
+                                            />
+                                            <div>
+                                                <h4 className="font-medium">바로 시장 출시</h4>
+                                                <p className="text-sm text-muted-foreground">현행 규제 내에서 서비스 출시가 가능합니다</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
+                                    </button>
 
-                {/* 바로 출시 시 리스크 */}
-                {analysisData.recommendation === "sandbox" && (
-                    <Card className="border-amber-200">
-                        <CardHeader>
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                                <CardTitle className="text-amber-700">바로 출시 시 예상 리스크</CardTitle>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="space-y-2">
-                                {analysisData.directLaunchRisks.map((risk, index) => (
-                                    <li key={index} className="flex items-start gap-2 text-sm">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                                        {risk}
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* 컨설턴트 최종 결정 */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>최종 결정</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedDecision("direct")}
-                                className={cn(
-                                    "p-4 rounded-lg border-2 text-left transition-all",
-                                    selectedDecision === "direct" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                )}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle2
-                                        className={cn("h-6 w-6", selectedDecision === "direct" ? "text-primary" : "text-muted-foreground")}
-                                    />
-                                    <div>
-                                        <h4 className="font-medium">바로 시장 출시</h4>
-                                        <p className="text-sm text-muted-foreground">현행 규제 내에서 서비스 출시가 가능합니다</p>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedDecision("sandbox")}
+                                        className={cn(
+                                            "p-4 rounded-lg border-2 text-left transition-all",
+                                            selectedDecision === "sandbox" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Scale className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")} />
+                                            <div>
+                                                <h4 className="font-medium">규제 샌드박스 신청</h4>
+                                                <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>
+                                            </div>
+                                        </div>
+                                    </button>
                                 </div>
-                            </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setSelectedDecision("sandbox")}
-                                className={cn(
-                                    "p-4 rounded-lg border-2 text-left transition-all",
-                                    selectedDecision === "sandbox" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                )}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <Scale className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")} />
-                                    <div>
-                                        <h4 className="font-medium">규제 샌드박스 신청</h4>
-                                        <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>
+                                {selectedDecision !== analysisData.recommendation && (
+                                    <div className="text-sm flex gap-2 items-center px-2">
+                                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                        <span className="text-amber-700">AI 추천과 다른 선택입니다. 선택에 대한 근거를 확인해주세요.</span>
                                     </div>
-                                </div>
-                            </button>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* TODO: isAnalyzed는 나중에 eligibility_results 존재 여부로 판단 */}
+                        {/* TODO: hasChanges는 이전 단계(service) 데이터 변경 여부로 판단 */}
+                        <WizardNavigation
+                            onBack={handleBack}
+                            onAnalyze={handleSave}
+                            onNext={() => {
+                                // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
+                                setMarketAnalysis({
+                                    decision: selectedDecision,
+                                    aiRecommendation: analysisData.recommendation,
+                                })
+                                if (selectedDecision === "direct") {
+                                    updateProjectStatus(id, "direct")
+                                    markStepComplete(2)
+                                    router.push("/dashboard")
+                                } else {
+                                    markStepComplete(2)
+                                    setCurrentStep(3)
+                                    router.push(`/projects/${id}/track`)
+                                }
+                            }}
+                            analyzeLabel="AI 분석 및 다음 단계"
+                            nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
+                            isAnalyzed={devIsAnalyzed}
+                            hasChanges={devHasChanges}
+                            isLoading={isSaving}
+                        />
+                    </div>
+
+                    {/* 오른쪽: 참고 패널 */}
+                    <div className={isReferencePanelOpen ? "flex-1" : ""}>
+                        <div className="sticky top-16">
+                            <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} />
                         </div>
-
-                        {selectedDecision !== analysisData.recommendation && (
-                            //   <div className="p-3 rounded-lg border border-amber-200 text-sm">
-                            <div className="text-sm flex gap-2 items-center px-2">
-                                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                <span className="text-amber-700">AI 추천과 다른 선택입니다. 선택에 대한 근거를 확인해주세요.</span>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* TODO: isAnalyzed는 나중에 eligibility_results 존재 여부로 판단 */}
-                {/* TODO: hasChanges는 이전 단계(service) 데이터 변경 여부로 판단 */}
-                <WizardNavigation
-                    onBack={handleBack}
-                    onAnalyze={handleSave}
-                    onNext={() => {
-                        // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
-                        setMarketAnalysis({
-                            decision: selectedDecision,
-                            aiRecommendation: analysisData.recommendation,
-                        })
-                        if (selectedDecision === "direct") {
-                            updateProjectStatus(id, "direct")
-                            markStepComplete(2)
-                            router.push("/dashboard")
-                        } else {
-                            markStepComplete(2)
-                            setCurrentStep(3)
-                            router.push(`/projects/${id}/track`)
-                        }
-                    }}
-                    analyzeLabel="AI 분석 및 다음 단계"
-                    nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
-                    isAnalyzed={devIsAnalyzed}
-                    hasChanges={devHasChanges}
-                    isLoading={isSaving}
-                />
+                    </div>
+                </div>
             </div>
         </div>
     )

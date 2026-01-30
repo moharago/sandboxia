@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { notFound } from "next/navigation"
 import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
 import { WizardNavigation } from "@/components/features/wizard"
+import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -127,6 +128,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(defaultTrackId)
     const [prevId, setPrevId] = useState(id)
     const [isSaving, setIsSaving] = useState(false)
+    const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
 
     // 프로젝트가 변경되면 AI 추천 트랙으로 초기화 (렌더링 중 조건부 업데이트)
     if (id !== prevId) {
@@ -198,127 +200,138 @@ export default function TrackPage({ params }: TrackPageProps) {
         <TooltipProvider>
             <div className="py-6">
                 {isSaving && <AILoadingOverlay />}
-                <div className="container mx-auto px-4 space-y-6">
-                    <div>
-                        <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
-                        <p className="text-muted-foreground">AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스 트랙을 선택하세요</p>
-                    </div>
+                <div className="container">
+                    <div className="flex gap-4">
+                        {/* 왼쪽: 메인 콘텐츠 */}
+                        <div className={isReferencePanelOpen ? "flex-[2] space-y-6" : "flex-1 space-y-6"}>
+                            <div>
+                                <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
+                                <p className="text-muted-foreground">AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스 트랙을 선택하세요</p>
+                            </div>
 
-                    {/* AI 분석 요약 */}
-                    <AIAnalysisCard summary={dummyTrackAnalysis.summary} confidence={dummyTrackAnalysis.confidence} />
+                            {/* AI 분석 요약 */}
+                            <AIAnalysisCard summary={dummyTrackAnalysis.summary} confidence={dummyTrackAnalysis.confidence} />
 
-                    {/* 트랙 카드들 */}
-                    <div className="space-y-4">
-                        {sortedRecommendations.map((rec) => {
-                            const track = tracks.find((t) => t.id === rec.trackId)
-                            if (!track) return null
+                            {/* 트랙 카드들 */}
+                            <div className="space-y-4">
+                                {sortedRecommendations.map((rec) => {
+                                    const track = tracks.find((t) => t.id === rec.trackId)
+                                    if (!track) return null
 
-                            const isSelected = selectedTrackId === track.id
-                            const isRecommended = rec.rank === 1
-                            const style = verdictStyles[rec.verdict]
+                                    const isSelected = selectedTrackId === track.id
+                                    const isRecommended = rec.rank === 1
+                                    const style = verdictStyles[rec.verdict]
 
-                            return (
-                                <Card
-                                    key={track.id}
-                                    className={cn("relative overflow-hidden transition-all cursor-pointer", isSelected && "ring-2 ring-primary")}
-                                    onClick={() => handleSelectTrack(track.id)}
-                                >
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className={cn(
-                                                        "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                                                        isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
-                                                    )}
-                                                >
-                                                    {rec.rank}
-                                                </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <h3 className="text-lg font-semibold">{track.name}</h3>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                type="button"
-                                                                aria-label="트랙 정보"
-                                                                className="text-muted-foreground hover:text-foreground transition-colors"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            >
-                                                                <Info className="h-4 w-4" />
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="right" sideOffset={8} className="max-w-sm text-left">
-                                                            <div className="space-y-2">
-                                                                <p>{track.description}</p>
-                                                                <p className="text-muted-foreground">
-                                                                    <span className="font-medium text-foreground">소요 기간:</span> {track.duration}
-                                                                </p>
-                                                                <div>
-                                                                    <span className="font-medium">주요 요건:</span>
-                                                                    <ul className="mt-1 space-y-0.5 text-muted-foreground">
-                                                                        {track.requirements.slice(0, 4).map((req, i) => (
-                                                                            <li key={i}>• {req}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </div>
-                                            </div>
-                                            <Badge variant="outline" className={cn(style.bg, style.text, style.border)}>
-                                                {rec.verdict}
-                                            </Badge>
-                                        </div>
-                                    </CardHeader>
-
-                                    <div className="mx-6 border-t border-gray-200" />
-
-                                    <CardContent className="space-y-4 mt-3">
-                                        {/* AI 분석 결과 */}
-                                        <div className="space-y-2">
-                                            {/* <h4 className="text-sm font-medium">분석 결과</h4> */}
-                                            <ul className="space-y-2">
-                                                {rec.reasons.map((reason, index) => (
-                                                    <li key={index} className="flex items-start gap-2 text-sm">
-                                                        {getReasonIcon(reason.type)}
-                                                        <div className="flex-1">
-                                                            <p className="text-foreground">{reason.text}</p>
-                                                            <p className="text-muted-foreground/70 mt-1">근거: {reason.source}</p>
+                                    return (
+                                        <Card
+                                            key={track.id}
+                                            className={cn("relative overflow-hidden transition-all cursor-pointer", isSelected && "ring-2 ring-primary")}
+                                            onClick={() => handleSelectTrack(track.id)}
+                                        >
+                                            <CardHeader className="pb-3">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div
+                                                            className={cn(
+                                                                "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
+                                                                isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {rec.rank}
                                                         </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )
-                        })}
-                    </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <h3 className="text-lg font-semibold">{track.name}</h3>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <button
+                                                                        type="button"
+                                                                        aria-label="트랙 정보"
+                                                                        className="text-muted-foreground hover:text-foreground transition-colors"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        <Info className="h-4 w-4" />
+                                                                    </button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" sideOffset={8} className="max-w-sm text-left">
+                                                                    <div className="space-y-2">
+                                                                        <p>{track.description}</p>
+                                                                        <p className="text-muted-foreground">
+                                                                            <span className="font-medium text-foreground">소요 기간:</span> {track.duration}
+                                                                        </p>
+                                                                        <div>
+                                                                            <span className="font-medium">주요 요건:</span>
+                                                                            <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                                                                                {track.requirements.slice(0, 4).map((req, i) => (
+                                                                                    <li key={i}>• {req}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        </div>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                    <Badge variant="outline" className={cn(style.bg, style.text, style.border)}>
+                                                        {rec.verdict}
+                                                    </Badge>
+                                                </div>
+                                            </CardHeader>
 
-                    {/* TODO: isAnalyzed는 나중에 track_results 존재 여부로 판단 */}
-                    {/* TODO: hasChanges는 이전 단계(eligibility) 결과 변경 여부로 판단 */}
-                    <WizardNavigation
-                        onBack={handleBack}
-                        onAnalyze={handleSave}
-                        onNext={() => {
-                            // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
-                            if (!selectedTrackId) return
-                            const track = tracks.find((t) => t.id === selectedTrackId)
-                            if (track) {
-                                setTrackSelection(track)
-                                markStepComplete(3)
-                                setCurrentStep(4)
-                                router.push(`/projects/${id}/draft`)
-                            }
-                        }}
-                        analyzeLabel="AI 분석 및 다음 단계"
-                        nextLabel="다음 단계"
-                        isAnalyzed={devIsAnalyzed}
-                        hasChanges={devHasChanges}
-                        isLoading={isSaving}
-                        isAnalyzeDisabled={!selectedTrackId}
-                    />
+                                            <div className="mx-6 border-t border-gray-200" />
+
+                                            <CardContent className="space-y-4 mt-3">
+                                                {/* AI 분석 결과 */}
+                                                <div className="space-y-2">
+                                                    <ul className="space-y-2">
+                                                        {rec.reasons.map((reason, index) => (
+                                                            <li key={index} className="flex items-start gap-2 text-sm">
+                                                                {getReasonIcon(reason.type)}
+                                                                <div className="flex-1">
+                                                                    <p className="text-foreground">{reason.text}</p>
+                                                                    <p className="text-muted-foreground/70 mt-1">근거: {reason.source}</p>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )
+                                })}
+                            </div>
+
+                            {/* TODO: isAnalyzed는 나중에 track_results 존재 여부로 판단 */}
+                            {/* TODO: hasChanges는 이전 단계(eligibility) 결과 변경 여부로 판단 */}
+                            <WizardNavigation
+                                onBack={handleBack}
+                                onAnalyze={handleSave}
+                                onNext={() => {
+                                    // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
+                                    if (!selectedTrackId) return
+                                    const track = tracks.find((t) => t.id === selectedTrackId)
+                                    if (track) {
+                                        setTrackSelection(track)
+                                        markStepComplete(3)
+                                        setCurrentStep(4)
+                                        router.push(`/projects/${id}/draft`)
+                                    }
+                                }}
+                                analyzeLabel="AI 분석 및 다음 단계"
+                                nextLabel="다음 단계"
+                                isAnalyzed={devIsAnalyzed}
+                                hasChanges={devHasChanges}
+                                isLoading={isSaving}
+                                isAnalyzeDisabled={!selectedTrackId}
+                            />
+                        </div>
+
+                        {/* 오른쪽: 참고 패널 */}
+                        <div className={isReferencePanelOpen ? "flex-1" : ""}>
+                            <div className="sticky top-16">
+                                <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </TooltipProvider>
