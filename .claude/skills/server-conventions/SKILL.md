@@ -1172,264 +1172,6 @@ def search_domain_law(
     pass
 ```
 
-### Shared Utilities (C0, C1, C2)
-
-> C0, C1, C2는 `@tool` 데코레이터를 사용하지 않는 순수 유틸리티입니다.
-> LLM이 호출하는 것이 아니라 코드에서 직접 호출합니다.
-
-```python
-# tools/shared/utils/evidence.py
-from pydantic import BaseModel
-
-
-class Evidence(BaseModel):
-    """인용/출처 표준 포맷"""
-    evidence_id: str
-    source_id: str
-    source_type: str
-    page: int | None
-    paragraph: int | None
-    snippet: str
-    context: str | None = None
-
-
-class EvidenceStore:
-    """C0. Evidence/인용 관리"""
-
-    def __init__(self):
-        self._store: dict[str, Evidence] = {}
-
-    def add(self, evidence: Evidence) -> str:
-        """인용 추가"""
-        self._store[evidence.evidence_id] = evidence
-        return evidence.evidence_id
-
-    def get(self, evidence_id: str) -> Evidence | None:
-        """인용 조회"""
-        return self._store.get(evidence_id)
-
-    def get_by_source(self, source_id: str) -> list[Evidence]:
-        """소스별 인용 조회"""
-        return [e for e in self._store.values() if e.source_id == source_id]
-
-    def to_citation_format(self, evidence_id: str) -> str:
-        """인용 포맷으로 변환"""
-        evidence = self.get(evidence_id)
-        if not evidence:
-            return ""
-        return f"[{evidence.source_type}:{evidence.source_id}, p.{evidence.page}]"
-```
-
-```python
-# tools/shared/utils/canonical.py
-# C1: 데이터 모델 정의 (Tool 아님)
-from pydantic import BaseModel, Field
-
-
-class ApplicantInfo(BaseModel):
-    """신청자 정보"""
-    company_name: str = Field(description="회사명(소속)")
-    position: str = Field(description="직위")
-    name: str = Field(description="성명")
-    business_address: str = Field(description="사업장 주소")
-    phone: str = Field(description="연락처")
-    email: str = Field(description="전자우편(E-Mail)")
-
-
-class ServiceInfo(BaseModel):
-    """서비스 정보"""
-    name: str = Field(description="기술‧서비스 명칭")
-    description: str = Field(description="신규 정보통신융합 등 기술ᆞ서비스에 대한 설명서")
-
-
-class ConsultationInfo(BaseModel):
-    """상담 정보"""
-    desired_date: str = Field(description="상담 희망 일자 (형식: 0000년 00월 00일)")
-    consultation_content: str = Field(description="ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)")
-
-
-class CanonicalStructure(BaseModel):
-    """C1. ICT 규제샌드박스 상담신청 표준 구조
-
-    HWP 상담신청서 파일에서 파싱된 표준화된 구조.
-    2~6번 에이전트의 공통 입력으로 사용됨.
-    """
-    consultation_id: str = Field(description="상담 ID")
-
-    # 신청자 정보
-    applicant: ApplicantInfo
-
-    # 서비스 정보
-    service: ServiceInfo
-
-    # 상담 정보
-    consultation: ConsultationInfo
-
-    # 파싱 메타데이터
-    metadata: dict = Field(description="source_file, parsed_at, confidence 등")
-
-
-# HWP 파일의 타이틀-필드 매핑 (기본값)
-# 실제 ICT 규제샌드박스 상담신청서 양식 기준
-DEFAULT_TITLE_MAPPINGS = {
-    # 신청자 정보
-    "회사명(소속)": "applicant.company_name",
-    "직위": "applicant.position",
-    "성명": "applicant.name",
-    "사업장 주소": "applicant.business_address",
-    "연락처": "applicant.phone",
-    "전자우편(E-Mail)": "applicant.email",
-    # 서비스 정보
-    "기술‧서비스 명칭": "service.name",
-    "신규 정보통신융합 등 기술ᆞ서비스에 대한 설명서": "service.description",
-    # 상담 정보
-    "상담 희망 일자": "consultation.desired_date",
-    "ICT 규제 샌드박스 상담내용(규제사안 및 문의사항)": "consultation.consultation_content",
-}
-
-
-def extract_canonical_summary(canonical: CanonicalStructure) -> str:
-    """Canonical 구조에서 요약 추출 (유틸리티 함수)
-
-    Args:
-        canonical: Canonical 구조
-
-    Returns:
-        서비스 요약 텍스트 (회사명, 서비스명, 상담내용 요약)
-    """
-    return f"{canonical.applicant.company_name} - {canonical.service.name}"
-```
-
-**HWP 파싱 서비스 (services/hwp_parser.py):**
-
-> `parse_hwp_application`은 Tool이 아닌 서비스 함수로 구현합니다.
-
-```python
-# services/hwp_parser.py
-# C1: HWP 파싱 서비스 (Tool 아님, API에서 호출)
-from pyhwpx import Hwp
-from app.tools.shared.utils.canonical import (
-    CanonicalStructure,
-    ApplicantInfo,
-    ServiceInfo,
-    ConsultationInfo,
-    DEFAULT_TITLE_MAPPINGS,
-)
-
-
-def parse_hwp_application(
-    file_path: str,
-    title_mappings: dict | None = None,
-) -> CanonicalStructure:
-    """HWP 상담신청서 파일을 Canonical 구조로 변환
-
-    ICT 규제샌드박스 상담신청서 HWP 파일을 파싱하여 표준 구조로 변환.
-    pyhwpx 라이브러리를 사용한 타이틀 기반 파싱 전략.
-
-    Args:
-        file_path: HWP 파일 경로
-        title_mappings: 타이틀-필드 매핑 (optional, 기본값 사용 가능)
-
-    Returns:
-        CanonicalStructure 표준 구조
-    """
-    mappings = title_mappings or DEFAULT_TITLE_MAPPINGS
-    # pyhwpx로 HWP 파싱 구현
-    pass
-```
-
-```bash
-# pyhwpx 설치 (pyproject.toml에 추가)
-uv add pyhwpx
-```
-
-**파싱 전략:**
-- 타이틀 기반 파싱: HWP 문서 내 정해진 타이틀(예: "회사명(소속)", "성명")을 찾아 해당 필드에 매핑
-- DEFAULT_TITLE_MAPPINGS에 기본 매핑 정의, 필요시 커스텀 매핑 전달 가능
-- pyhwpx로 HWP 파일 텍스트 추출 후 타이틀-값 쌍 파싱
-
-```python
-# tools/shared/utils/patch.py
-# C2: Patch/Merge 유틸리티 (Tool 아님)
-from pydantic import BaseModel
-from datetime import datetime
-
-
-class PatchRecord(BaseModel):
-    """변경 이력 레코드"""
-    patch_id: str
-    timestamp: datetime
-    field_path: str
-    old_value: str | None
-    new_value: str
-    changed_by: str
-    reason: str | None = None
-
-
-class PatchResult(BaseModel):
-    """패치 적용 결과"""
-    success: bool
-    updated_data: dict
-    patch_records: list[PatchRecord]
-    conflicts: list[dict] | None = None
-
-
-def apply_patch(
-    original_data: dict,
-    diff: dict,
-    changed_by: str,
-    reason: str | None = None,
-) -> PatchResult:
-    """C2. 증분 수정 적용 (유틸리티 함수)
-
-    사용자 수정 diff를 반영하고 변경 이력 기록.
-
-    Args:
-        original_data: 원본 데이터
-        diff: 변경 사항 (필드 경로: 새 값)
-        changed_by: 수정자
-        reason: 수정 사유 (optional)
-
-    Returns:
-        업데이트된 데이터 + 변경 이력
-    """
-    pass
-
-
-def merge_patches(
-    base_data: dict,
-    patches: list[dict],
-) -> PatchResult:
-    """C2. 여러 패치 병합 (유틸리티 함수)
-
-    여러 버전의 수정 사항을 병합.
-
-    Args:
-        base_data: 기준 데이터
-        patches: 패치 리스트
-
-    Returns:
-        병합된 데이터 + 충돌 정보
-    """
-    pass
-
-
-def get_patch_history(
-    data_id: str,
-    field_path: str | None = None,
-) -> list[PatchRecord]:
-    """C2. 변경 이력 조회 (유틸리티 함수)
-
-    Args:
-        data_id: 데이터 ID
-        field_path: 특정 필드 경로 (optional)
-
-    Returns:
-        변경 이력 리스트
-    """
-    pass
-```
-
 ### Vector DB 사용 패턴
 
 RAG Tool에서 Vector DB 접근 시 `app/db/vector.py`의 헬퍼 함수를 사용합니다.
@@ -1515,46 +1257,31 @@ LLM_EMBEDDING_MODEL=text-embedding-3-small
 CHROMA_PERSIST_DIR=./data/chroma
 ```
 
-### 공용 RAG Tool 및 Utility 사용 예시
+### 공용 RAG Tool 사용 예시
 
 ```python
 # agents/eligibility_evaluator/nodes.py
 from app.tools.shared.rag.regulation_rag import search_regulation, search_cases
-from app.tools.shared.utils.evidence import EvidenceStore, Evidence
-from app.tools.shared.utils.canonical import CanonicalStructure
 
 
 async def evaluate_node(state: EligibilityState) -> dict:
     """대상성 판단 노드"""
-    canonical: CanonicalStructure = state["canonical"]
-    evidence_store = EvidenceStore()  # C0 유틸리티 클래스
+    canonical = state["canonical"]
 
     # 공용 RAG Tool 사용 (R1, R2)
     regulation_results = await search_regulation(
-        query=canonical.service.description,  # C1 모델의 서비스 설명 사용
+        query=canonical.get("service", {}).get("service_description", ""),
         top_k=5,
     )
 
     case_results = await search_cases(
-        query=canonical.service.description,
-        domain=canonical.metadata.get("domain"),
+        query=canonical.get("service", {}).get("service_description", ""),
+        domain=canonical.get("metadata", {}).get("domain"),
         top_k=5,
     )
-
-    # 인용 관리
-    for result in regulation_results + case_results:
-        evidence_store.add(Evidence(
-            evidence_id=f"ev_{result.source_id}",
-            source_id=result.source_id,
-            source_type=result.source_type,
-            page=result.page,
-            paragraph=result.paragraph,
-            snippet=result.snippet,
-        ))
 
     return {
         "regulation_results": regulation_results,
         "case_results": case_results,
-        "evidence_store": evidence_store,
     }
 ```

@@ -64,10 +64,10 @@ LLM/Agent와 무관한 순수 비즈니스 로직 정리.
 
 | 기능 | 설명 | 위치 |
 |------|------|------|
-| 상담 생성 | HWP 업로드 → C1 파싱 → 상담 레코드 생성 | `services/consultation.py` |
+| 상담 생성 | HWP 업로드 → 파싱 → 상담 레코드 생성 | `services/consultation.py` |
 | 상담 조회 | 상담 상세 정보 조회 | `services/consultation.py` |
 | 상담 목록 | 필터/정렬/페이징 | `services/consultation.py` |
-| 상담 수정 | CanonicalStructure 수정 (C2 Patch 사용) | `services/consultation.py` |
+| 상담 수정 | CanonicalStructure 수정 | `services/consultation.py` |
 | 상담 삭제 | 소프트 삭제 (is_deleted 플래그) | `services/consultation.py` |
 
 **상담 상태 (Status):**
@@ -88,7 +88,7 @@ draft → structuring → evaluating → recommending → drafting → reviewing
 | `completed` | 완료 |
 | `cancelled` | 취소 |
 
-### 2. HWP 파싱 (HWP Parser) - C1 서비스
+### 2. HWP 파싱 (HWP Parser)
 
 > HWP 상담신청서 → CanonicalStructure 변환
 
@@ -122,18 +122,7 @@ CanonicalStructure 생성
 저장 및 반환
 ```
 
-### 3. 데이터 패치 (Patch) - C2 유틸리티
-
-> 사용자 수정 반영 및 변경 이력 관리
-
-| 기능 | 설명 | 위치 |
-|------|------|------|
-| 패치 적용 | diff → 원본 데이터에 적용 | `tools/shared/utils/patch.py` |
-| 패치 병합 | 여러 패치 충돌 해결 후 병합 | `tools/shared/utils/patch.py` |
-| 이력 조회 | 변경 이력 타임라인 조회 | `tools/shared/utils/patch.py` |
-| 롤백 | 특정 시점으로 되돌리기 | `tools/shared/utils/patch.py` |
-
-### 4. 문서 생성 (Document Generation)
+### 3. 문서 생성 (Document Generation)
 
 > 신청서 초안을 DOCX/PDF로 렌더링
 
@@ -144,7 +133,7 @@ CanonicalStructure 생성
 | PDF 변환 | DOCX → PDF 변환 | `services/document.py` |
 | 다운로드 URL 생성 | 임시 다운로드 링크 생성 | `services/document.py` |
 
-### 5. 에이전트 실행 관리 (Agent Execution)
+### 4. 에이전트 실행 관리 (Agent Execution)
 
 > 에이전트 실행 상태 추적 및 결과 저장
 
@@ -184,7 +173,7 @@ GET    /api/v1/auth/me             # 현재 사용자 정보
 POST   /api/v1/consultations                    # 상담 생성 (HWP 업로드)
 GET    /api/v1/consultations                    # 상담 목록
 GET    /api/v1/consultations/{id}               # 상담 상세
-PATCH  /api/v1/consultations/{id}               # 상담 수정 (C2 Patch)
+PATCH  /api/v1/consultations/{id}               # 상담 수정
 DELETE /api/v1/consultations/{id}               # 상담 삭제
 GET    /api/v1/consultations/{id}/history       # 변경 이력
 ```
@@ -314,13 +303,13 @@ class Document:
 
 1. **인증** - 로그인/로그아웃
 2. **파일 업로드** - HWP 업로드
-3. **HWP 파싱** - C1 서비스
+3. **HWP 파싱** - HWP 파서 서비스
 4. **상담 CRUD** - 기본 CRUD
 5. **에이전트 실행** - 단일 에이전트 실행
 
 ### Phase 2: 기본 기능
 
-1. **패치 시스템** - C2 유틸리티
+1. **패치 시스템** - 변경 이력 관리
 2. **변경 이력** - 히스토리 조회
 3. **문서 생성** - DOCX 렌더링
 4. **전체 파이프라인** - 에이전트 순차 실행
