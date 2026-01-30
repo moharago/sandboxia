@@ -57,23 +57,17 @@ async def evaluate_eligibility(
     project_id = request.project_id
 
     # 1. DB에서 프로젝트 조회
-    try:
-        project_result = (
-            supabase.table("projects")
-            .select("id, canonical, user_id")
-            .eq("id", project_id)
-            .single()
-            .execute()
-        )
-    except Exception as e:
-        logger.error(f"프로젝트 조회 실패: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
-        )
+    project_result = (
+        supabase.table("projects")
+        .select("id, canonical, user_id")
+        .eq("id", project_id)
+        .maybe_single()
+        .execute()
+    )
 
-    project = project_result.data
-    if not project:
+    # maybe_single(): 결과 없으면 data=None, 결과 있으면 data=dict
+    project = project_result.data if project_result else None
+    if project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
@@ -142,7 +136,9 @@ async def evaluate_eligibility(
 
     except Exception as e:
         logger.error(f"결과 저장 실패: {e}")
-        # 저장 실패해도 결과는 반환
-        logger.warning("DB 저장 실패했지만 결과는 반환합니다.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"결과 저장 중 오류가 발생했습니다: {str(e)}",
+        )
 
     return result
