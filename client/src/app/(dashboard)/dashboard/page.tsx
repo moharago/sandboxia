@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { LayoutGrid, List, Search, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { CaseCard } from "@/components/features/dashboard/CaseCard"
+import { ProjectCard } from "@/components/features/dashboard/ProjectCard"
 import { Pipeline, type PipelineFilter } from "@/components/features/dashboard/PipelineStep"
-import { cases } from "@/data"
-import { useUIStore } from "@/stores/ui-store"
-import { useCaseStore } from "@/stores/case-store"
-import { cn } from "@/lib/utils/cn"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
-import { CASE_STATUS_LABELS } from "@/types/data/case"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { projects } from "@/data"
+import { cn } from "@/lib/utils/cn"
+import { useProjectStore } from "@/stores/project-store"
+import { useUIStore } from "@/stores/ui-store"
+import { PROJECT_STATUS_LABELS } from "@/types/data/project"
+import { LayoutGrid, List, Plus, Search } from "lucide-react"
+import { useMemo, useState } from "react"
 
 type SortOrder = "newest" | "oldest"
 
@@ -21,7 +21,7 @@ export default function DashboardPage() {
     const viewMode = useUIStore((state) => state.viewMode)
     const setViewMode = useUIStore((state) => state.setViewMode)
     const openNewCaseModal = useUIStore((state) => state.openNewCaseModal)
-    const statusOverrides = useCaseStore((state) => state.statusOverrides)
+    const statusOverrides = useProjectStore((state) => state.statusOverrides)
     const [statusFilter, setStatusFilter] = useState<PipelineFilter>("all")
     const [sortOrder, setSortOrder] = useState<SortOrder>("newest")
     const [currentPage, setCurrentPage] = useState(1)
@@ -35,20 +35,20 @@ export default function DashboardPage() {
         sortOrder,
     })
 
-    // 케이스 상태 오버라이드 적용
-    const casesWithOverrides = useMemo(() => {
-        return cases.map((c) => ({
-            ...c,
-            status: statusOverrides[c.id]?.status || c.status,
-            updatedAt: statusOverrides[c.id]?.updatedAt || c.updatedAt,
+    // 프로젝트 상태 오버라이드 적용
+    const projectsWithOverrides = useMemo(() => {
+        return projects.map((p) => ({
+            ...p,
+            status: statusOverrides[p.id]?.status || p.status,
+            updatedAt: statusOverrides[p.id]?.updatedAt || p.updatedAt,
         }))
     }, [statusOverrides])
 
     const stats = {
-        consult: casesWithOverrides.filter((c) => c.status === "consult").length,
-        draft: casesWithOverrides.filter((c) => c.status === "draft").length,
-        waiting: casesWithOverrides.filter((c) => c.status === "waiting").length,
-        done: casesWithOverrides.filter((c) => c.status === "done" || c.status === "direct").length,
+        consult: projectsWithOverrides.filter((p) => p.status === "consult").length,
+        draft: projectsWithOverrides.filter((p) => p.status === "draft").length,
+        waiting: projectsWithOverrides.filter((p) => p.status === "waiting").length,
+        done: projectsWithOverrides.filter((p) => p.status === "done" || p.status === "direct").length,
     }
 
     const pipelineSteps = [
@@ -70,21 +70,21 @@ export default function DashboardPage() {
         { id: "done" as PipelineFilter, label: "완료", count: stats.done },
     ]
 
-    const filteredCases = useMemo(() => {
-        let result = casesWithOverrides.filter((caseItem) => {
+    const filteredProjects = useMemo(() => {
+        let result = projectsWithOverrides.filter((projectItem) => {
             // 1. Search Filter
             const matchesSearch =
                 searchQuery === "" ||
-                caseItem.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                caseItem.service.toLowerCase().includes(searchQuery.toLowerCase())
+                projectItem.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                projectItem.service.toLowerCase().includes(searchQuery.toLowerCase())
 
             // 2. Status Filter (unified for pipeline and dropdown)
             let matchesStatus = true
             if (statusFilter !== "all") {
                 if (statusFilter === "done") {
-                    matchesStatus = caseItem.status === "done" || caseItem.status === "direct"
+                    matchesStatus = projectItem.status === "done" || projectItem.status === "direct"
                 } else {
-                    matchesStatus = caseItem.status === statusFilter
+                    matchesStatus = projectItem.status === statusFilter
                 }
             }
 
@@ -99,14 +99,14 @@ export default function DashboardPage() {
         })
 
         return result
-    }, [casesWithOverrides, searchQuery, statusFilter, sortOrder])
+    }, [projectsWithOverrides, searchQuery, statusFilter, sortOrder])
 
-    const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE)
+    const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE)
 
-    const paginatedCases = useMemo(() => {
+    const paginatedProjects = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-        return filteredCases.slice(startIndex, startIndex + ITEMS_PER_PAGE)
-    }, [filteredCases, currentPage])
+        return filteredProjects.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+    }, [filteredProjects, currentPage])
 
     // 필터가 변경되면 첫 페이지로 리셋 (렌더링 중 조건부 업데이트)
     if (prevFilters.searchQuery !== searchQuery || prevFilters.statusFilter !== statusFilter || prevFilters.sortOrder !== sortOrder) {
@@ -141,11 +141,16 @@ export default function DashboardPage() {
 
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <h2 className="text-lg font-semibold">케이스 목록</h2>
+                        <h2 className="text-lg font-semibold">프로젝트 목록</h2>
                         <Button variant="ghost-muted" size="icon-sm" className="ml-2" onClick={() => setIsSearchOpen(!isSearchOpen)}>
                             <Search className="h-4 w-4" />
                         </Button>
-                        <div className={cn("overflow-hidden transition-all duration-200 ease-out", isSearchOpen ? "w-48 opacity-100" : "w-0 opacity-0")}>
+                        <div
+                            className={cn(
+                                "overflow-hidden transition-all duration-200 ease-out",
+                                isSearchOpen ? "w-48 opacity-100" : "w-0 opacity-0"
+                            )}
+                        >
                             <input
                                 type="text"
                                 placeholder="회사명, 서비스명으로 검색..."
@@ -163,10 +168,10 @@ export default function DashboardPage() {
                             </SelectTrigger>
                             <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
                                 <SelectItem value="all">전체 상태</SelectItem>
-                                <SelectItem value="consult">{CASE_STATUS_LABELS.consult}</SelectItem>
-                                <SelectItem value="draft">{CASE_STATUS_LABELS.draft}</SelectItem>
-                                <SelectItem value="waiting">{CASE_STATUS_LABELS.waiting}</SelectItem>
-                                <SelectItem value="done">{CASE_STATUS_LABELS.done}</SelectItem>
+                                <SelectItem value="consult">{PROJECT_STATUS_LABELS.consult}</SelectItem>
+                                <SelectItem value="draft">{PROJECT_STATUS_LABELS.draft}</SelectItem>
+                                <SelectItem value="waiting">{PROJECT_STATUS_LABELS.waiting}</SelectItem>
+                                <SelectItem value="done">{PROJECT_STATUS_LABELS.done}</SelectItem>
                             </SelectContent>
                         </Select>
 
@@ -197,10 +202,10 @@ export default function DashboardPage() {
                             : "space-y-0 divide-y divide-gray-200 border-y border-gray-200"
                     )}
                 >
-                    {filteredCases.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-muted-foreground">해당 상태의 케이스가 없습니다</div>
+                    {filteredProjects.length === 0 ? (
+                        <div className="col-span-full text-center py-12 text-muted-foreground">해당 상태의 프로젝트가 없습니다</div>
                     ) : (
-                        paginatedCases.map((caseItem) => <CaseCard key={caseItem.id} caseData={caseItem} viewMode={viewMode} />)
+                        paginatedProjects.map((projectItem) => <ProjectCard key={projectItem.id} project={projectItem} viewMode={viewMode} />)
                     )}
                 </div>
 

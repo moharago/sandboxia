@@ -6,5 +6,5 @@ interface CasePageProps {
 
 export default async function CasePage({ params }: CasePageProps) {
     const { id } = await params
-    redirect(`/cases/${id}/service`)
+    redirect(`/projects/${id}/service`)
 }

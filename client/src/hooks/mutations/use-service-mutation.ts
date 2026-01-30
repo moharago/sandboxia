@@ -23,7 +23,7 @@ interface UseServiceMutationOptions {
  * const { mutate, isPending } = useServiceMutation({
  *   onSuccess: (data) => {
  *     console.log("파싱 결과:", data)
- *     router.push(`/cases/${id}/market`)
+ *     router.push(`/projects/${id}/eligibility`)
  *   },
  *   onError: (error) => {
  *     alert(error.message)

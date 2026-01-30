@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { Header } from "./Header"
 import { Sidebar } from "./Sidebar"
 import { Footer } from "./Footer"
-import { NewCaseModal } from "@/components/features/cases/NewCaseModal"
+import { NewCaseModal } from "@/components/features/projects/NewCaseModal"
 
 interface DashboardLayoutProps {
     children: React.ReactNode
