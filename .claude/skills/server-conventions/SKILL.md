@@ -1264,7 +1264,7 @@ CHROMA_PERSIST_DIR=./data/chroma
 from app.tools.shared.rag.regulation_rag import search_regulation, search_cases
 
 
-async def evaluate_node(state: EligibilityState) -> dict:
+def evaluate_node(state: EligibilityState) -> dict:
     """대상성 판단 노드"""
     canonical = state["canonical"]
 

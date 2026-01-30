@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils/cn"
-import type { CaseStatus } from "@/types/data/case"
+import type { ProjectStatus } from "@/types/data/project"
 
 interface PipelineStepProps {
     step: number

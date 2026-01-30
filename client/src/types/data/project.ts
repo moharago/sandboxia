@@ -1,12 +1,12 @@
-export type CaseStatus = "consult" | "draft" | "waiting" | "done" | "direct"
-export type CaseStage = 1 | 2 | 3 | 4
+export type ProjectStatus = "consult" | "draft" | "waiting" | "done" | "direct"
+export type ProjectStage = 1 | 2 | 3 | 4
 
-export interface Case {
+export interface Project {
     id: string
     company: string
     service: string
-    status: CaseStatus
-    stage: CaseStage
+    status: ProjectStatus
+    stage: ProjectStage
     progress: number
     description?: string
     createdAt: string
@@ -14,7 +14,7 @@ export interface Case {
     sandboxType?: SandboxType
 }
 
-export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
     consult: "기업상담",
     draft: "신청서작성",
     waiting: "결과대기",
@@ -22,7 +22,7 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
     direct: "바로출시",
 }
 
-export const CASE_STAGE_LABELS: Record<CaseStage, string> = {
+export const PROJECT_STAGE_LABELS: Record<ProjectStage, string> = {
     1: "기업 정보 입력",
     2: "시장출시 진단",
     3: "트랙 선택",

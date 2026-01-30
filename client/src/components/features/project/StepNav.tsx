@@ -4,29 +4,29 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
-import type { CaseStage } from "@/types/data/case"
-import { CASE_STAGE_LABELS } from "@/types/data/case"
+import type { ProjectStage } from "@/types/data/project"
+import { PROJECT_STAGE_LABELS } from "@/types/data/project"
 
 interface StepNavProps {
-    caseId: string
+    projectId: string
     company: string
     service: string
 }
 
-const stepPaths: Record<CaseStage, string> = {
+const stepPaths: Record<ProjectStage, string> = {
     1: "service",
-    2: "market",
+    2: "eligibility",
     3: "track",
     4: "draft",
 }
 
-export function StepNav({ caseId, company, service }: StepNavProps) {
+export function StepNav({ projectId, company, service }: StepNavProps) {
     const pathname = usePathname()
 
-    const steps = ([1, 2, 3, 4] as CaseStage[]).map((step) => ({
+    const steps = ([1, 2, 3, 4] as ProjectStage[]).map((step) => ({
         step,
-        label: CASE_STAGE_LABELS[step],
-        path: `/cases/${caseId}/${stepPaths[step]}`,
+        label: PROJECT_STAGE_LABELS[step],
+        path: `/projects/${projectId}/${stepPaths[step]}`,
     }))
 
     return (

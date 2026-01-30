@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { FileUpload } from "@/components/ui/file-upload"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { cases } from "@/data"
+import { projects } from "@/data"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
@@ -23,7 +23,7 @@ interface ServicePageProps {
 export default function ServicePage({ params }: ServicePageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const caseData = cases.find((c) => c.id === id)
+    const projectData = projects.find((p) => p.id === id)
 
     const { setServiceData, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
@@ -39,9 +39,9 @@ export default function ServicePage({ params }: ServicePageProps) {
     }
 
     const getInitialFormState = (): FormState => ({
-        companyName: caseData?.company || "",
-        serviceName: caseData?.service || "",
-        description: caseData?.description || "",
+        companyName: projectData?.company || "",
+        serviceName: projectData?.service || "",
+        description: projectData?.description || "",
         memo: "",
         selectedFormType: "counseling",
         uploadedFiles: {},
@@ -66,23 +66,23 @@ export default function ServicePage({ params }: ServicePageProps) {
         }))
     }
 
-    // 케이스 변경 추적
+    // 프로젝트 변경 추적
     const [prevId, setPrevId] = useState(id)
 
-    // 케이스가 변경되면 모든 폼 상태를 해당 케이스의 데이터로 초기화 (렌더링 중 조건부 업데이트)
-    if (id !== prevId && caseData) {
+    // 프로젝트가 변경되면 모든 폼 상태를 해당 프로젝트의 데이터로 초기화 (렌더링 중 조건부 업데이트)
+    if (id !== prevId && projectData) {
         setPrevId(id)
         setFormState({
-            companyName: caseData.company,
-            serviceName: caseData.service,
-            description: caseData.description || "",
+            companyName: projectData.company,
+            serviceName: projectData.service,
+            description: projectData.description || "",
             memo: "",
             selectedFormType: "counseling",
             uploadedFiles: {},
         })
     }
 
-    if (!caseData) {
+    if (!projectData) {
         notFound()
     }
 
@@ -99,7 +99,7 @@ export default function ServicePage({ params }: ServicePageProps) {
 
             markStepComplete(1)
             setCurrentStep(2)
-            router.push(`/cases/${id}/market`)
+            router.push(`/projects/${id}/eligibility`)
         },
         onError: (error) => {
             alert(error.message || "서버 오류가 발생했습니다.")
@@ -258,7 +258,7 @@ export default function ServicePage({ params }: ServicePageProps) {
                         })
                         markStepComplete(1)
                         setCurrentStep(2)
-                        router.push(`/cases/${id}/market`)
+                        router.push(`/projects/${id}/eligibility`)
                     }}
                     analyzeLabel="AI 분석 및 다음 단계"
                     nextLabel="다음 단계"

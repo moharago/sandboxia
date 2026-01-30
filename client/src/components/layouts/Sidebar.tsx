@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils/cn"
-import { cases } from "@/data"
-import type { Case, CaseStatus } from "@/types/data/case"
-import { CASE_STATUS_LABELS, SANDBOX_TYPE_LABELS } from "@/types/data/case"
+import { projects } from "@/data"
+import type { Project, ProjectStatus } from "@/types/data/project"
+import { PROJECT_STATUS_LABELS, SANDBOX_TYPE_LABELS } from "@/types/data/project"
 
 type SortOrder = "newest" | "oldest"
 
-const statusBadgeVariant: Record<CaseStatus, "success" | "warning" | "info" | "draft" | "done" | "direct"> = {
+const statusBadgeVariant: Record<ProjectStatus, "success" | "warning" | "info" | "draft" | "done" | "direct"> = {
     consult: "info",
     draft: "draft",
     waiting: "warning",
@@ -28,17 +28,17 @@ export function Sidebar() {
     const { sidebarOpen, toggleSidebar, openNewCaseModal } = useUIStore()
     const [searchQuery, setSearchQuery] = React.useState("")
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
-    const [selectedStatus, setSelectedStatus] = React.useState<CaseStatus | "all">("all")
+    const [selectedStatus, setSelectedStatus] = React.useState<ProjectStatus | "all">("all")
     const [sortOrder, setSortOrder] = React.useState<SortOrder>("newest")
 
-    const filteredCases = React.useMemo(() => {
-        let result = cases.filter((caseItem) => {
+    const filteredProjects = React.useMemo(() => {
+        let result = projects.filter((projectItem) => {
             const matchesSearch =
                 searchQuery === "" ||
-                caseItem.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                caseItem.service.toLowerCase().includes(searchQuery.toLowerCase())
+                projectItem.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                projectItem.service.toLowerCase().includes(searchQuery.toLowerCase())
 
-            const matchesStatus = selectedStatus === "all" || caseItem.status === selectedStatus
+            const matchesStatus = selectedStatus === "all" || projectItem.status === selectedStatus
 
             return matchesSearch && matchesStatus
         })
@@ -90,17 +90,17 @@ export function Sidebar() {
                 <div className="pt-3">
                     <div className="flex items-center justify-between">
                         <div className="flex gap-2">
-                            <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as CaseStatus | "all")}>
+                            <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as ProjectStatus | "all")}>
                                 <SelectTrigger className="w-fit h-auto border-none shadow-none bg-transparent p-0 text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
                                     <SelectValue placeholder="상태 필터" />
                                 </SelectTrigger>
                                 <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
                                     <SelectItem value="all">전체 상태</SelectItem>
-                                    <SelectItem value="consult">{CASE_STATUS_LABELS.consult}</SelectItem>
-                                    <SelectItem value="draft">{CASE_STATUS_LABELS.draft}</SelectItem>
-                                    <SelectItem value="waiting">{CASE_STATUS_LABELS.waiting}</SelectItem>
-                                    <SelectItem value="done">{CASE_STATUS_LABELS.done}</SelectItem>
-                                    <SelectItem value="direct">{CASE_STATUS_LABELS.direct}</SelectItem>
+                                    <SelectItem value="consult">{PROJECT_STATUS_LABELS.consult}</SelectItem>
+                                    <SelectItem value="draft">{PROJECT_STATUS_LABELS.draft}</SelectItem>
+                                    <SelectItem value="waiting">{PROJECT_STATUS_LABELS.waiting}</SelectItem>
+                                    <SelectItem value="done">{PROJECT_STATUS_LABELS.done}</SelectItem>
+                                    <SelectItem value="direct">{PROJECT_STATUS_LABELS.direct}</SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -149,38 +149,38 @@ export function Sidebar() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-                {filteredCases.length === 0 ? (
+                {filteredProjects.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground text-sm">
                         <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        케이스가 없습니다
+                        프로젝트가 없습니다
                     </div>
                 ) : (
                     <ul className="divide-y divide-border">
-                        {filteredCases.map((caseItem) => (
-                            <li key={caseItem.id}>
+                        {filteredProjects.map((projectItem) => (
+                            <li key={projectItem.id}>
                                 <Link
-                                    href={`/cases/${caseItem.id}`}
+                                    href={`/projects/${projectItem.id}`}
                                     className={cn(
                                         "block p-4 hover:bg-muted/50 transition-colors",
-                                        pathname?.startsWith(`/cases/${caseItem.id}`) && "bg-muted"
+                                        pathname?.startsWith(`/projects/${projectItem.id}`) && "bg-muted"
                                     )}
                                 >
                                     <div className="flex items-start justify-between gap-2 mb-1">
-                                        <span className="font-medium text-sm truncate">{caseItem.company}</span>
-                                        <Badge variant={statusBadgeVariant[caseItem.status]} className="shrink-0">
-                                            {CASE_STATUS_LABELS[caseItem.status]}
+                                        <span className="font-medium text-sm truncate">{projectItem.company}</span>
+                                        <Badge variant={statusBadgeVariant[projectItem.status]} className="shrink-0">
+                                            {PROJECT_STATUS_LABELS[projectItem.status]}
                                         </Badge>
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate mb-2">{caseItem.service}</p>
+                                    <p className="text-xs text-muted-foreground truncate mb-2">{projectItem.service}</p>
                                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>{caseItem.sandboxType && SANDBOX_TYPE_LABELS[caseItem.sandboxType]}</span>
-                                        <span>{caseItem.progress}%</span>
+                                        <span>{projectItem.sandboxType && SANDBOX_TYPE_LABELS[projectItem.sandboxType]}</span>
+                                        <span>{projectItem.progress}%</span>
                                     </div>
                                     <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-primary transition-all"
                                             style={{
-                                                width: `${caseItem.progress}%`,
+                                                width: `${projectItem.progress}%`,
                                             }}
                                         />
                                     </div>

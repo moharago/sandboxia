@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useDropzone, Accept } from "react-dropzone"
+import { useDropzone, Accept, FileRejection } from "react-dropzone"
 import { Upload, X, File } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
 import { Button } from "./button"
@@ -31,7 +31,7 @@ export function FileUpload({
     const [error, setError] = React.useState<string | null>(null)
 
     const onDrop = React.useCallback(
-        (acceptedFiles: File[], rejectedFiles: { errors: { code: string }[] }[]) => {
+        (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
             setError(null)
 
             if (rejectedFiles.length > 0) {

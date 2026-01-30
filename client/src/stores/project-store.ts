@@ -1,58 +1,58 @@
+import type { ProjectStatus } from "@/types/data/project"
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { CaseStatus } from "@/types/data/case"
 
-interface CaseStatusOverride {
-    status: CaseStatus
+interface ProjectStatusOverride {
+    status: ProjectStatus
     updatedAt: string
 }
 
-interface CaseState {
-    // 케이스 상태 오버라이드 (caseId -> status)
-    statusOverrides: Record<string, CaseStatusOverride>
+interface ProjectState {
+    // 케이스 상태 오버라이드 (projectId -> status)
+    statusOverrides: Record<string, ProjectStatusOverride>
 
     // 케이스 상태 변경
-    updateCaseStatus: (caseId: string, status: CaseStatus) => void
+    updateProjectStatus: (projectId: string, status: ProjectStatus) => void
 
     // 특정 케이스의 오버라이드된 상태 가져오기
-    getCaseStatus: (caseId: string, originalStatus: CaseStatus) => CaseStatus
+    getProjectStatus: (projectId: string, originalStatus: ProjectStatus) => ProjectStatus
 
     // 오버라이드 초기화
-    resetCaseStatus: (caseId: string) => void
+    resetProjectStatus: (projectId: string) => void
     resetAllStatuses: () => void
 }
 
-export const useCaseStore = create<CaseState>()(
+export const useProjectStore = create<ProjectState>()(
     persist(
         (set, get) => ({
             statusOverrides: {},
 
-            updateCaseStatus: (caseId, status) =>
+            updateProjectStatus: (projectId, status) =>
                 set((state) => ({
                     statusOverrides: {
                         ...state.statusOverrides,
-                        [caseId]: {
+                        [projectId]: {
                             status,
                             updatedAt: new Date().toISOString(),
                         },
                     },
                 })),
 
-            getCaseStatus: (caseId, originalStatus) => {
-                const override = get().statusOverrides[caseId]
+            getProjectStatus: (projectId, originalStatus) => {
+                const override = get().statusOverrides[projectId]
                 return override ? override.status : originalStatus
             },
 
-            resetCaseStatus: (caseId) =>
+            resetProjectStatus: (projectId) =>
                 set((state) => {
-                    const { [caseId]: _, ...rest } = state.statusOverrides
+                    const { [projectId]: _, ...rest } = state.statusOverrides
                     return { statusOverrides: rest }
                 }),
 
             resetAllStatuses: () => set({ statusOverrides: {} }),
         }),
         {
-            name: "sandbox-case-storage",
+            name: "sandbox-project-storage",
         }
     )
 )

@@ -1,19 +1,18 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { notFound } from "next/navigation"
-import { CheckCircle2, AlertTriangle, Scale } from "lucide-react"
+import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
-import { cases } from "@/data"
-import { useCaseStore } from "@/stores/case-store"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { projects } from "@/data"
+import { cn } from "@/lib/utils/cn"
+import { useProjectStore } from "@/stores/project-store"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
-import { cn } from "@/lib/utils/cn"
+import { AlertTriangle, CheckCircle2, Scale } from "lucide-react"
+import { notFound, useRouter } from "next/navigation"
+import { use, useEffect, useState } from "react"
 
 type ReasonCategory = "law" | "regulation" | "case"
 
@@ -113,9 +112,9 @@ const directAnalysis: AIAnalysisData = {
     directLaunchRisks: [],
 }
 
-// 케이스 상태에 따라 적절한 더미 데이터 선택
-const getAnalysisData = (caseStatus?: string): AIAnalysisData => {
-    if (caseStatus === "direct") {
+// 프로젝트 상태에 따라 적절한 더미 데이터 선택
+const getAnalysisData = (projectStatus?: string): AIAnalysisData => {
+    if (projectStatus === "direct") {
         return directAnalysis
     }
     return sandboxAnalysis
@@ -123,39 +122,37 @@ const getAnalysisData = (caseStatus?: string): AIAnalysisData => {
 
 type DecisionType = "direct" | "sandbox"
 
-export default function MarketPage({ params }: MarketPageProps) {
+export default function EligibilityPage({ params }: MarketPageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const caseData = cases.find((c) => c.id === id)
+    const projectData = projects.find((p) => p.id === id)
 
     const { marketAnalysis, setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
-    const { updateCaseStatus, getCaseStatus } = useCaseStore()
+    const { updateProjectStatus, getProjectStatus } = useProjectStore()
 
     // 오버라이드된 상태가 있으면 사용, 없으면 원본 상태 사용 (single source of truth)
-    const currentStatus = getCaseStatus(id, (caseData?.status as "consult" | "draft" | "waiting" | "done" | "direct") ?? "consult")
+    const currentStatus = getProjectStatus(id, (projectData?.status as "consult" | "draft" | "waiting" | "done" | "direct") ?? "consult")
 
-    // 케이스 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
+    // 프로젝트 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
     const analysisData = getAnalysisData(currentStatus)
 
-    const [selectedDecision, setSelectedDecision] = useState<DecisionType>(
-        analysisData.recommendation
-    )
+    const [selectedDecision, setSelectedDecision] = useState<DecisionType>(analysisData.recommendation)
     const [isSaving, setIsSaving] = useState(false)
 
-    // 케이스가 변경되면 AI 추천값으로 초기화
+    // 프로젝트가 변경되면 AI 추천값으로 초기화
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- id 변경 시 상태 동기화 필요
         setSelectedDecision(analysisData.recommendation)
     }, [id, analysisData.recommendation])
 
-    if (!caseData) {
+    if (!projectData) {
         notFound()
     }
 
     const handleBack = () => {
         setCurrentStep(1)
-        router.push(`/cases/${id}/service`)
+        router.push(`/projects/${id}/service`)
     }
 
     const handleSave = async () => {
@@ -171,14 +168,14 @@ export default function MarketPage({ params }: MarketPageProps) {
 
         if (selectedDecision === "direct") {
             // 바로출시 선택 시 - 케이스 상태를 'direct'로 변경하고 대시보드로 이동
-            updateCaseStatus(id, "direct")
+            updateProjectStatus(id, "direct")
             markStepComplete(2)
             router.push("/dashboard")
         } else {
             // 규제 샌드박스 선택 시 - 트랙 선택 페이지로 이동
             markStepComplete(2)
             setCurrentStep(3)
-            router.push(`/cases/${id}/track`)
+            router.push(`/projects/${id}/track`)
         }
         // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
     }
@@ -320,13 +317,13 @@ export default function MarketPage({ params }: MarketPageProps) {
                             aiRecommendation: analysisData.recommendation,
                         })
                         if (selectedDecision === "direct") {
-                            updateCaseStatus(id, "direct")
+                            updateProjectStatus(id, "direct")
                             markStepComplete(2)
                             router.push("/dashboard")
                         } else {
                             markStepComplete(2)
                             setCurrentStep(3)
-                            router.push(`/cases/${id}/track`)
+                            router.push(`/projects/${id}/track`)
                         }
                     }}
                     analyzeLabel="AI 분석 및 다음 단계"

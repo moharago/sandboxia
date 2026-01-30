@@ -1,6 +1,6 @@
 [
     {
-        "id": "case-001",
+        "id": "project-001",
         "company": "스마트모빌리티",
         "service": "자율주행 배달로봇 서비스",
         "status": "draft",
@@ -12,7 +12,7 @@
         "sandboxType": "demonstration"
     },
     {
-        "id": "case-002",
+        "id": "project-002",
         "company": "헬스테크",
         "service": "AI 건강관리 앱",
         "status": "consult",
@@ -24,7 +24,7 @@
         "sandboxType": "temporary"
     },
     {
-        "id": "case-003",
+        "id": "project-003",
         "company": "페이앤페이",
         "service": "암호화폐 결제 서비스",
         "status": "waiting",
@@ -35,7 +35,7 @@
         "updatedAt": "2024-01-22T09:00:00Z"
     },
     {
-        "id": "case-004",
+        "id": "project-004",
         "company": "에듀플랫폼",
         "service": "AI 튜터링 시스템",
         "status": "done",
@@ -46,7 +46,7 @@
         "updatedAt": "2024-01-10T16:00:00Z"
     },
     {
-        "id": "case-005",
+        "id": "project-005",
         "company": "시티테크",
         "service": "스마트 가로등 관리 시스템",
         "status": "draft",
@@ -57,7 +57,7 @@
         "updatedAt": "2024-01-21T10:00:00Z"
     },
     {
-        "id": "case-006",
+        "id": "project-006",
         "company": "커넥트ICT",
         "service": "5G 기반 원격 의료 통신",
         "status": "direct",
@@ -68,7 +68,7 @@
         "updatedAt": "2024-01-22T14:00:00Z"
     },
     {
-        "id": "case-007",
+        "id": "project-007",
         "company": "드론에어",
         "service": "드론 배송 서비스",
         "status": "consult",
@@ -80,7 +80,7 @@
         "sandboxType": "demonstration"
     },
     {
-        "id": "case-008",
+        "id": "project-008",
         "company": "메디AI",
         "service": "AI 영상진단 보조 시스템",
         "status": "draft",
@@ -92,7 +92,7 @@
         "sandboxType": "temporary"
     },
     {
-        "id": "case-009",
+        "id": "project-009",
         "company": "블록뱅크",
         "service": "블록체인 기반 P2P 대출",
         "status": "waiting",
@@ -103,7 +103,7 @@
         "updatedAt": "2024-01-15T11:00:00Z"
     },
     {
-        "id": "case-010",
+        "id": "project-010",
         "company": "그린에너지",
         "service": "P2P 전력 거래 플랫폼",
         "status": "done",
@@ -114,7 +114,7 @@
         "updatedAt": "2024-01-05T14:00:00Z"
     },
     {
-        "id": "case-011",
+        "id": "project-011",
         "company": "로보팜",
         "service": "스마트팜 자동화 시스템",
         "status": "consult",
@@ -126,7 +126,7 @@
         "sandboxType": "demonstration"
     },
     {
-        "id": "case-012",
+        "id": "project-012",
         "company": "케어플러스",
         "service": "원격 건강 모니터링",
         "status": "draft",
@@ -138,7 +138,7 @@
         "sandboxType": "temporary"
     },
     {
-        "id": "case-013",
+        "id": "project-013",
         "company": "인슈어테크",
         "service": "AI 보험 심사 자동화",
         "status": "waiting",
@@ -149,7 +149,7 @@
         "updatedAt": "2024-01-20T10:00:00Z"
     },
     {
-        "id": "case-014",
+        "id": "project-014",
         "company": "스마트빌딩",
         "service": "건물 에너지 최적화 시스템",
         "status": "done",
@@ -160,7 +160,7 @@
         "updatedAt": "2023-12-28T15:00:00Z"
     },
     {
-        "id": "case-015",
+        "id": "project-015",
         "company": "트래픽AI",
         "service": "실시간 교통 신호 최적화",
         "status": "consult",
@@ -172,7 +172,7 @@
         "sandboxType": "demonstration"
     },
     {
-        "id": "case-016",
+        "id": "project-016",
         "company": "랩테크",
         "service": "비대면 임상시험 플랫폼",
         "status": "draft",
@@ -184,7 +184,7 @@
         "sandboxType": "temporary"
     },
     {
-        "id": "case-017",
+        "id": "project-017",
         "company": "웰스매니저",
         "service": "AI 자산관리 서비스",
         "status": "waiting",
@@ -195,7 +195,7 @@
         "updatedAt": "2024-01-17T14:00:00Z"
     },
     {
-        "id": "case-018",
+        "id": "project-018",
         "company": "에코워터",
         "service": "스마트 수질 관리 시스템",
         "status": "done",
@@ -206,7 +206,7 @@
         "updatedAt": "2023-11-30T16:00:00Z"
     },
     {
-        "id": "case-019",
+        "id": "project-019",
         "company": "리걸테크",
         "service": "AI 법률 문서 분석",
         "status": "consult",
@@ -218,7 +218,7 @@
         "sandboxType": "rapid"
     },
     {
-        "id": "case-020",
+        "id": "project-020",
         "company": "푸드세이프",
         "service": "식품 이력추적 시스템",
         "status": "draft",
@@ -230,7 +230,7 @@
         "sandboxType": "demonstration"
     },
     {
-        "id": "case-021",
+        "id": "project-021",
         "company": "버추얼스페이스",
         "service": "메타버스 교육 플랫폼",
         "status": "waiting",
@@ -241,7 +241,7 @@
         "updatedAt": "2024-01-14T11:00:00Z"
     },
     {
-        "id": "case-022",
+        "id": "project-022",
         "company": "디지털트윈",
         "service": "도시 디지털트윈 플랫폼",
         "status": "done",
@@ -252,7 +252,7 @@
         "updatedAt": "2023-10-25T14:00:00Z"
     },
     {
-        "id": "case-023",
+        "id": "project-023",
         "company": "시큐어ID",
         "service": "분산신원인증 서비스",
         "status": "consult",
@@ -264,7 +264,7 @@
         "sandboxType": "rapid"
     },
     {
-        "id": "case-024",
+        "id": "project-024",
         "company": "바이오센스",
         "service": "비침습 혈당 측정기",
         "status": "draft",
@@ -276,7 +276,7 @@
         "sandboxType": "temporary"
     },
     {
-        "id": "case-025",
+        "id": "project-025",
         "company": "클린로봇",
         "service": "자율주행 청소 로봇",
         "status": "direct",
@@ -287,7 +287,7 @@
         "updatedAt": "2024-01-23T09:00:00Z"
     },
     {
-        "id": "case-026",
+        "id": "project-026",
         "company": "스마트그리드",
         "service": "전력망 AI 관리 시스템",
         "status": "waiting",
@@ -298,7 +298,7 @@
         "updatedAt": "2024-01-12T13:00:00Z"
     },
     {
-        "id": "case-027",
+        "id": "project-027",
         "company": "데이터브릿지",
         "service": "의료 데이터 연동 플랫폼",
         "status": "done",
@@ -309,7 +309,7 @@
         "updatedAt": "2023-09-15T15:00:00Z"
     },
     {
-        "id": "case-028",
+        "id": "project-028",
         "company": "에어퀄리티",
         "service": "실시간 대기질 예보 서비스",
         "status": "consult",

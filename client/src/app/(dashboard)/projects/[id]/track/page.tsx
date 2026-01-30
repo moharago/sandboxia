@@ -10,7 +10,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cases, tracks } from "@/data"
+import { projects, tracks } from "@/data"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { cn } from "@/lib/utils/cn"
@@ -116,7 +116,7 @@ const verdictStyles: Record<string, { bg: string; text: string; border: string }
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const caseData = cases.find((c) => c.id === id)
+    const projectData = projects.find((p) => p.id === id)
 
     const { trackSelection, setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
@@ -128,13 +128,13 @@ export default function TrackPage({ params }: TrackPageProps) {
     const [prevId, setPrevId] = useState(id)
     const [isSaving, setIsSaving] = useState(false)
 
-    // 케이스가 변경되면 AI 추천 트랙으로 초기화 (렌더링 중 조건부 업데이트)
+    // 프로젝트가 변경되면 AI 추천 트랙으로 초기화 (렌더링 중 조건부 업데이트)
     if (id !== prevId) {
         setPrevId(id)
         setSelectedTrackId(defaultTrackId)
     }
 
-    if (!caseData) {
+    if (!projectData) {
         notFound()
     }
 
@@ -148,7 +148,7 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     const handleBack = () => {
         setCurrentStep(2)
-        router.push(`/cases/${id}/market`)
+        router.push(`/projects/${id}/eligibility`)
     }
 
     const handleSave = async () => {
@@ -168,7 +168,7 @@ export default function TrackPage({ params }: TrackPageProps) {
             setTrackSelection(track)
             markStepComplete(3)
             setCurrentStep(4)
-            router.push(`/cases/${id}/draft`)
+            router.push(`/projects/${id}/draft`)
             // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
         } catch (error) {
             console.error("트랙 저장 중 오류 발생:", error)
@@ -297,7 +297,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                     </div>
 
                     {/* TODO: isAnalyzed는 나중에 track_results 존재 여부로 판단 */}
-                    {/* TODO: hasChanges는 이전 단계(market) 결과 변경 여부로 판단 */}
+                    {/* TODO: hasChanges는 이전 단계(eligibility) 결과 변경 여부로 판단 */}
                     <WizardNavigation
                         onBack={handleBack}
                         onAnalyze={handleSave}
@@ -309,7 +309,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                 setTrackSelection(track)
                                 markStepComplete(3)
                                 setCurrentStep(4)
-                                router.push(`/cases/${id}/draft`)
+                                router.push(`/projects/${id}/draft`)
                             }
                         }}
                         analyzeLabel="AI 분석 및 다음 단계"
