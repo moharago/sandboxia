@@ -162,10 +162,11 @@ def search_cases_node(state: EligibilityState) -> dict:
     서비스 설명으로 유사 승인 사례 검색
     """
     service_description = get_service_description(state["canonical"])
+    query = (service_description or "규제 샌드박스 서비스")[:500]
 
     # R2 검색
     result = search_case.invoke({
-        "query": service_description[:500],
+        "query": query,
         "top_k": 5,
         "deduplicate": True,
     })
