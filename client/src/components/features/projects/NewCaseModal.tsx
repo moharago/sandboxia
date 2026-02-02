@@ -5,14 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal"
 import { Textarea } from "@/components/ui/textarea"
 import { useCreateProjectMutation } from "@/hooks/mutations/use-create-project-mutation"
-import { useAuthStore } from "@/stores/auth-store"
 import { useUIStore } from "@/stores/ui-store"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export function NewCaseModal() {
     const router = useRouter()
-    const user = useAuthStore((state) => state.user)
     const { isNewCaseModalOpen, closeNewCaseModal } = useUIStore()
     const [formData, setFormData] = useState({
         companyName: "",
@@ -34,13 +32,8 @@ export function NewCaseModal() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!user) {
-            alert("로그인이 필요합니다.")
-            return
-        }
-
+        // user_id는 API에서 인증된 세션으로부터 자동으로 설정됨
         createProject({
-            user_id: user.id,
             company_name: formData.companyName,
             service_name: formData.serviceName || undefined,
             service_description: formData.description || undefined,

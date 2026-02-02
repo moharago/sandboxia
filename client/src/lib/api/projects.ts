@@ -47,14 +47,25 @@ export const projectsApi = {
 
     /**
      * 새 프로젝트 생성
+     * user_id는 인증된 세션에서 자동으로 가져옴 (클라이언트 스푸핑 방지)
      */
     createProject: async (request: CreateProjectRequest): Promise<ProjectResponse> => {
         const supabase = createClient()
 
+        // 인증된 사용자 정보 가져오기
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser()
+
+        if (authError || !user) {
+            throw new Error("인증이 필요합니다. 로그인 후 다시 시도해주세요.")
+        }
+
         const { data, error } = await supabase
             .from("projects")
             .insert({
-                user_id: request.user_id,
+                user_id: user.id,
                 company_name: request.company_name,
                 service_name: request.service_name,
                 service_description: request.service_description,

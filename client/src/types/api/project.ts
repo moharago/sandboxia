@@ -5,7 +5,6 @@
 import type { Project, ProjectStatus, ProjectStep, Track } from "@/types/data/project"
 
 export interface CreateProjectRequest {
-    user_id: string
     company_name: string
     service_name?: string
     service_description?: string
