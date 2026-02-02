@@ -107,3 +107,9 @@ server/data/
 
 # MCP (Model Context Protocol)
 .serena/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Personal notes
+retrospective.md
