@@ -27,6 +27,7 @@ export const toProject = (response: ProjectResponse): Project => ({
     service_name: response.service_name,
     service_description: response.service_description,
     industry: response.industry,
+    additional_notes: response.additional_notes,
     status: response.status as ProjectStatus,
     current_step: response.current_step as ProjectStep,
     track: response.track as Track | null,

@@ -1,7 +1,23 @@
 // DB 스키마와 동일한 타입 정의
 export type ProjectStatus = 1 | 2 | 3 | 4 // 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료
 export type ProjectStep = 1 | 2 | 3 | 4 // 1=서비스분석, 2=시장진단, 3=트랙선택, 4=신청서생성
-export type Track = "quick_check" | "demo" | "temp_permit"
+export type Track = "counseling" | "quick_check" | "temp_permit" | "demo"
+
+// track → formData.json id 매핑
+export const TRACK_TO_FORM_ID: Record<Track, string> = {
+    counseling: "counseling",
+    quick_check: "fastcheck",
+    temp_permit: "temporary",
+    demo: "demonstration",
+}
+
+// formData.json id → track 매핑 (역방향)
+export const FORM_ID_TO_TRACK: Record<string, Track> = {
+    counseling: "counseling",
+    fastcheck: "quick_check",
+    temporary: "temp_permit",
+    demonstration: "demo",
+}
 
 export interface Project {
     id: string
@@ -10,6 +26,7 @@ export interface Project {
     service_name: string | null
     service_description: string | null
     industry: string | null
+    additional_notes: string | null
     status: ProjectStatus
     current_step: ProjectStep
     track: Track | null
@@ -32,9 +49,10 @@ export const PROJECT_STEP_LABELS: Record<ProjectStep, string> = {
 }
 
 export const TRACK_LABELS: Record<Track, string> = {
+    counseling: "상담신청",
     quick_check: "신속확인",
-    demo: "실증특례",
     temp_permit: "임시허가",
+    demo: "실증특례",
 }
 
 // 진행률 계산 헬퍼

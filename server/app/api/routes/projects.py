@@ -31,11 +31,23 @@ async def get_project(project_id: str):
         .select("*")\
         .eq("id", project_id)\
         .execute()
-    
+
     if not result.data:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     return result.data[0]
+
+
+@router.get("/projects/{project_id}/files")
+async def get_project_files(project_id: str):
+    """프로젝트에 업로드된 파일 목록 조회"""
+    result = supabase.table("project_files")\
+        .select("*")\
+        .eq("project_id", project_id)\
+        .order("created_at", desc=False)\
+        .execute()
+
+    return result.data
 
 
 @router.get("/users/{user_id}/projects")

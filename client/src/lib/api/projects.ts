@@ -7,6 +7,17 @@
 import { createClient } from "@/lib/supabase/client"
 import type { CreateProjectRequest, ProjectResponse } from "@/types/api/project"
 
+export interface ProjectFile {
+    id: string
+    project_id: string
+    file_name: string
+    storage_bucket: string
+    storage_path: string
+    file_type: string | null
+    extracted_text: string | null
+    created_at: string
+}
+
 export const projectsApi = {
     /**
      * 단일 프로젝트 조회 (RLS 적용)
@@ -97,5 +108,24 @@ export const projectsApi = {
         if (error) {
             throw new Error(error.message)
         }
+    },
+
+    /**
+     * 프로젝트 파일 목록 조회
+     */
+    getProjectFiles: async (projectId: string): Promise<ProjectFile[]> => {
+        const supabase = createClient()
+
+        const { data, error } = await supabase
+            .from("project_files")
+            .select("*")
+            .eq("project_id", projectId)
+            .order("created_at", { ascending: true })
+
+        if (error) {
+            throw new Error(error.message)
+        }
+
+        return data as ProjectFile[]
     },
 }

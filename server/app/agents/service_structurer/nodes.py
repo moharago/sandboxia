@@ -92,7 +92,7 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
     hwp_parse_results = state.get("hwp_parse_results", [])
     consultant_input = state.get("consultant_input", {})
     session_id = state.get("session_id", "")
-    requested_track = state.get("requested_track", "counseling")
+    requested_track = state.get("requested_track", "counseling")  # 기본값: 상담신청
 
     # HWP 파싱 결과 병합
     merged_hwp_data = {}
@@ -115,6 +115,15 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
 
     # LLM 호출
     try:
+        # 트랙 → 한글명 매핑 (프롬프트용)
+        track_labels = {
+            "counseling": "상담신청",
+            "quick_check": "신속확인",
+            "temp_permit": "임시허가",
+            "demo": "실증특례",
+        }
+        track_label = track_labels.get(requested_track, requested_track)
+
         llm = ChatOpenAI(
             model=settings.LLM_MODEL,
             temperature=0.1,
@@ -125,7 +134,7 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
             consultant_input=json.dumps(consultant_input, ensure_ascii=False, indent=2),
             merged_hwp_data=json.dumps(merged_hwp_data, ensure_ascii=False, indent=2),
             raw_text=raw_text_combined if raw_text_combined else "(원문 없음)",
-            requested_track=requested_track,
+            requested_track=track_label,
             session_id=session_id,
         )
 
@@ -192,7 +201,7 @@ def _validate_and_complete_structure(
 
     metadata = canonical_dict["metadata"]
     metadata["session_id"] = session_id
-    metadata["source_type"] = requested_track
+    metadata["source_type"] = requested_track  # 트랙 값 그대로 사용
     metadata["created_at"] = datetime.now().isoformat()
 
     # 컨설턴트 메모 추가
