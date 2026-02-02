@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { ProjectStage } from "@/types/data/project"
+import type { ProjectStep } from "@/types/data/project"
 import type { Track } from "@/types/data/track"
 
 interface ServiceData {
@@ -34,17 +34,17 @@ export const FORM_TYPE_LABELS: Record<FormType, string> = {
 }
 
 interface WizardState {
-    currentStep: ProjectStage
-    completedSteps: ProjectStage[]
+    currentStep: ProjectStep
+    completedSteps: ProjectStep[]
     serviceData: ServiceData | null
     marketAnalysis: MarketAnalysis | null
     trackSelection: Track | null
     draftData: DraftData | null
     selectedFormType: FormType
 
-    setCurrentStep: (step: ProjectStage) => void
-    markStepComplete: (step: ProjectStage) => void
-    unmarkStepComplete: (step: ProjectStage) => void
+    setCurrentStep: (step: ProjectStep) => void
+    markStepComplete: (step: ProjectStep) => void
+    unmarkStepComplete: (step: ProjectStep) => void
     setServiceData: (data: ServiceData) => void
     setMarketAnalysis: (data: MarketAnalysis) => void
     setTrackSelection: (track: Track | null) => void
@@ -55,8 +55,8 @@ interface WizardState {
 }
 
 const initialState = {
-    currentStep: 1 as ProjectStage,
-    completedSteps: [] as ProjectStage[],
+    currentStep: 1 as ProjectStep,
+    completedSteps: [] as ProjectStep[],
     serviceData: null,
     marketAnalysis: null,
     trackSelection: null,

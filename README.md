@@ -42,6 +42,7 @@
 - `feature/tool-{툴명}`: 툴 개발
 - `feature/func-{기능명}`: 기능 개발
 - `feature/uiux`: client 화면 개발
+- `feature/db-{name}`: Database schema & API development
 
 ### PR 워크플로우
 

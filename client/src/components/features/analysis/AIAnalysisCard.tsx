@@ -3,15 +3,47 @@
 import { Sparkles } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils/cn"
 
 interface AIAnalysisCardProps {
     title?: string
     summary: string
     recommendation?: string
     confidence?: number
+    /** 신뢰도 표시 방식: "numeric" = 숫자%, "category" = 높음/보통/낮음, "hidden" = 숨김 */
+    confidenceDisplay?: "numeric" | "category" | "hidden"
 }
 
-export function AIAnalysisCard({ title = "AI 분석 결과", summary, recommendation, confidence }: AIAnalysisCardProps) {
+/**
+ * 신뢰도 → 범주형 변환
+ *
+ * 기준:
+ * - 높음: 80% 이상
+ * - 보통: 50% ~ 79%
+ * - 낮음: 50% 미만
+ */
+function getConfidenceLabel(confidence: number): { label: string; className: string } {
+    if (confidence >= 80) {
+        // 80% 이상 → 높음 (녹색)
+        return { label: "높음", className: "text-green-700 border-green-300 bg-green-50" }
+    } else if (confidence >= 50) {
+        // 50~79% → 보통 (주황색)
+        return { label: "보통", className: "text-amber-700 border-amber-300 bg-amber-50" }
+    } else {
+        // 50% 미만 → 낮음 (빨간색)
+        return { label: "낮음", className: "text-red-700 border-red-300 bg-red-50" }
+    }
+}
+
+export function AIAnalysisCard({
+    title = "AI 분석 결과",
+    summary,
+    recommendation,
+    confidence,
+    confidenceDisplay = "category",
+}: AIAnalysisCardProps) {
+    const confidenceInfo = confidence !== undefined ? getConfidenceLabel(confidence) : null
+
     return (
         <Card className="border-primary/30 bg-gradient-to-r from-blue-50/50 to-teal-50/50">
             <CardHeader>
@@ -20,9 +52,18 @@ export function AIAnalysisCard({ title = "AI 분석 결과", summary, recommenda
                         <Sparkles className="h-5 w-5 text-primary" />
                         <CardTitle>{title}</CardTitle>
                     </div>
-                    {confidence !== undefined && (
-                        <Badge variant="outline" className="text-primary border-primary">
-                            신뢰도 {confidence}%
+                    {confidence !== undefined && confidenceDisplay !== "hidden" && (
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                confidenceDisplay === "category" && confidenceInfo
+                                    ? confidenceInfo.className
+                                    : "text-primary border-primary"
+                            )}
+                        >
+                            {confidenceDisplay === "numeric"
+                                ? `신뢰도 ${confidence}%`
+                                : `판단 신뢰도: ${confidenceInfo?.label}`}
                         </Badge>
                     )}
                 </div>
