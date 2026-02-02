@@ -34,66 +34,59 @@ export default function OnboardingPage() {
     // 이미 ACTIVE인 유저는 대시보드로 리디렉션
     useEffect(() => {
         const checkStatus = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
+            const { data: { user } } = await supabase.auth.getUser()
 
-            if (!session) {
+            if (!user) {
                 router.push('/login')
                 return
             }
 
             try {
-                const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                })
+                // Supabase 직접 호출
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('status')
+                    .eq('id', user.id)
+                    .single()
 
-                if (response.ok) {
-                    const userData = await response.json()
-                    if (userData.status === 'ACTIVE') {
-                        router.push('/dashboard')
-                        return
-                    }
+                if (userData?.status === 'ACTIVE') {
+                    router.push('/dashboard')
+                    return
                 }
             } catch {
-                // 서버 연결 실패 시 무시하고 onboarding 진행
+                // 사용자 정보 없으면 onboarding 진행
             } finally {
                 setChecking(false)
             }
         }
 
         checkStatus()
-    }, [router, supabase.auth])
+    }, [router, supabase])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
         try {
-            const { data: { session } } = await supabase.auth.getSession()
-            
-            if (!session) {
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) {
                 router.push('/login')
                 return
             }
 
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-            const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({
+            // Supabase 직접 호출
+            const { error } = await supabase
+                .from('users')
+                .update({
                     name,
                     company,
                     phone,
                     status: 'ACTIVE'
                 })
-            })
+                .eq('id', user.id)
 
-            if (response.ok) {
+            if (!error) {
                 router.push('/dashboard')
             }
         } catch (error) {
@@ -152,9 +145,9 @@ export default function OnboardingPage() {
                                     <p className="text-sm text-destructive">{phoneError}</p>
                                 )}
                             </div>
-                            <Button 
-                                type="submit" 
-                                className="w-full" 
+                            <Button
+                                type="submit"
+                                className="w-full"
                                 variant="gradient"
                                 disabled={loading}
                             >

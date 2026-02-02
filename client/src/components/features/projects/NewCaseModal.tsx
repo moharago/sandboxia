@@ -1,13 +1,16 @@
 "use client"
 
-import { useUIStore } from "@/stores/ui-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal"
+import { Textarea } from "@/components/ui/textarea"
+import { useCreateProjectMutation } from "@/hooks/mutations/use-create-project-mutation"
+import { useUIStore } from "@/stores/ui-store"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export function NewCaseModal() {
+    const router = useRouter()
     const { isNewCaseModalOpen, closeNewCaseModal } = useUIStore()
     const [formData, setFormData] = useState({
         companyName: "",
@@ -15,21 +18,34 @@ export function NewCaseModal() {
         description: "",
     })
 
+    const { mutate: createProject, isPending } = useCreateProjectMutation({
+        onSuccess: (data) => {
+            closeNewCaseModal()
+            setFormData({ companyName: "", serviceName: "", description: "" })
+            router.push(`/projects/${data.id}/service`)
+        },
+        onError: (error) => {
+            alert(`프로젝트 생성 실패: ${error.message}`)
+        },
+    })
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        // Logic to handle submission (e.g., API call) would go here
-        console.log("Submitting new case:", formData)
-        closeNewCaseModal()
-        // Reset form
-        setFormData({ companyName: "", serviceName: "", description: "" })
+
+        // user_id는 API에서 인증된 세션으로부터 자동으로 설정됨
+        createProject({
+            company_name: formData.companyName,
+            service_name: formData.serviceName || undefined,
+            service_description: formData.description || undefined,
+        })
     }
 
     return (
         <Modal open={isNewCaseModalOpen} onOpenChange={(open: boolean) => !open && closeNewCaseModal()}>
             <ModalContent className="sm:max-w-[500px]">
                 <ModalHeader>
-                    <ModalTitle>새 케이스 생성</ModalTitle>
-                    <ModalDescription>새로운 샌드박스 신청 케이스를 생성합니다. 기본 정보를 입력해주세요.</ModalDescription>
+                    <ModalTitle>새 프로젝트 생성</ModalTitle>
+                    <ModalDescription>새로운 샌드박스 신청 프로젝트를 생성합니다. 기본 정보를 입력해주세요.</ModalDescription>
                 </ModalHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -84,10 +100,12 @@ export function NewCaseModal() {
                         />
                     </div>
                     <ModalFooter>
-                        <Button type="button" variant="outline" onClick={closeNewCaseModal}>
+                        <Button type="button" variant="outline" onClick={closeNewCaseModal} disabled={isPending}>
                             취소
                         </Button>
-                        <Button type="submit">생성하기</Button>
+                        <Button type="submit" disabled={isPending}>
+                            {isPending ? "생성 중..." : "생성하기"}
+                        </Button>
                     </ModalFooter>
                 </form>
             </ModalContent>

@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useUIStore } from "@/stores/ui-store"
+import { useAuthStore } from "@/stores/auth-store"
 
 export function CTASection() {
-    const isAuthenticated = useUIStore((state) => state.isAuthenticated)
+    const user = useAuthStore((state) => state.user)
+    const isAuthenticated = !!user
     return (
         <section className="py-20 gradient-primary">
             <div className="container mx-auto px-4">

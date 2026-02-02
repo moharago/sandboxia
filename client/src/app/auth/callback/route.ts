@@ -1,44 +1,52 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
-    const code = searchParams.get('code')
+    const code = searchParams.get("code")
 
-    if (code) {
+    if (!code) {
+        console.error("[auth/callback] No code provided in callback URL")
+        return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    }
+
+    try {
         const supabase = await createClient()
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-        if (!error && data.session) {
-            // 유저 상태 확인
-            try {
-                const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${data.session.access_token}`
-                    }
-                })
+        if (error) {
+            console.error("[auth/callback] Failed to exchange code for session:", error.message)
+            return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+        }
 
-                if (response.ok) {
-                    const user = await response.json()
+        if (!data.session) {
+            console.error("[auth/callback] No session returned after code exchange")
+            return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+        }
 
-                    if (user.status === 'PENDING') {
-                        return NextResponse.redirect(`${origin}/onboarding`)
-                    } else {
-                        return NextResponse.redirect(`${origin}/dashboard`)
-                    }
-                } else {
-                    // 유저 정보 없음 → onboarding
-                    return NextResponse.redirect(`${origin}/onboarding`)
-                }
-            } catch (e) {
-                // API 호출 실패 시 onboarding으로
-                console.error('Failed to fetch user:', e)
+        // 유저 상태 확인
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("status")
+            .eq("id", data.session.user.id)
+            .single()
+
+        if (userError) {
+            // PGRST116: Row not found - 신규 유저
+            if (userError.code === "PGRST116") {
                 return NextResponse.redirect(`${origin}/onboarding`)
             }
+            console.error("[auth/callback] Failed to fetch user status:", userError.message)
+            return NextResponse.redirect(`${origin}/onboarding`)
         }
-    }
 
-    // 에러 발생 시 로그인 페이지로
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+        if (userData?.status === "ACTIVE") {
+            return NextResponse.redirect(`${origin}/dashboard`)
+        }
+
+        return NextResponse.redirect(`${origin}/onboarding`)
+    } catch (err) {
+        console.error("[auth/callback] Unexpected error:", err)
+        return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    }
 }

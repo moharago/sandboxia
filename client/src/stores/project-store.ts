@@ -8,13 +8,13 @@ interface ProjectStatusOverride {
 }
 
 interface ProjectState {
-    // 케이스 상태 오버라이드 (projectId -> status)
+    // 프로젝트 상태 오버라이드 (projectId -> status)
     statusOverrides: Record<string, ProjectStatusOverride>
 
-    // 케이스 상태 변경
+    // 프로젝트 상태 변경
     updateProjectStatus: (projectId: string, status: ProjectStatus) => void
 
-    // 특정 케이스의 오버라이드된 상태 가져오기
+    // 특정 프로젝트의 오버라이드된 상태 가져오기
     getProjectStatus: (projectId: string, originalStatus: ProjectStatus) => ProjectStatus
 
     // 오버라이드 초기화

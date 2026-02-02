@@ -1,26 +1,26 @@
 "use client"
 
-import * as React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useProjectsQuery } from "@/hooks/queries/use-projects-query"
+import { getProjectPathFromProject } from "@/lib/utils/project-path"
+import { cn } from "@/lib/utils/cn"
+import { useUIStore } from "@/stores/ui-store"
+import type { ProjectStatus } from "@/types/data/project"
+import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress } from "@/types/data/project"
+import { AlertCircle, FolderOpen, Loader2, PanelLeft, PanelRight, Plus, RefreshCw, Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Plus, Search, FolderOpen, PanelLeft, PanelRight } from "lucide-react"
-import { useUIStore } from "@/stores/ui-store"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils/cn"
-import { projects } from "@/data"
-import type { Project, ProjectStatus } from "@/types/data/project"
-import { PROJECT_STATUS_LABELS, SANDBOX_TYPE_LABELS } from "@/types/data/project"
+import * as React from "react"
 
 type SortOrder = "newest" | "oldest"
 
 const statusBadgeVariant: Record<ProjectStatus, "success" | "warning" | "info" | "draft" | "done" | "direct"> = {
-    consult: "info",
-    draft: "draft",
-    waiting: "warning",
-    done: "done",
-    direct: "direct",
+    1: "info",      // 기업상담
+    2: "draft",     // 신청서작성
+    3: "warning",   // 결과대기
+    4: "done",      // 완료
 }
 
 export function Sidebar() {
@@ -31,12 +31,15 @@ export function Sidebar() {
     const [selectedStatus, setSelectedStatus] = React.useState<ProjectStatus | "all">("all")
     const [sortOrder, setSortOrder] = React.useState<SortOrder>("newest")
 
+    // Supabase에서 프로젝트 조회
+    const { data: projects = [], isLoading, error, refetch } = useProjectsQuery()
+
     const filteredProjects = React.useMemo(() => {
         let result = projects.filter((projectItem) => {
             const matchesSearch =
                 searchQuery === "" ||
-                projectItem.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                projectItem.service.toLowerCase().includes(searchQuery.toLowerCase())
+                projectItem.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
             const matchesStatus = selectedStatus === "all" || projectItem.status === selectedStatus
 
@@ -44,13 +47,13 @@ export function Sidebar() {
         })
 
         result = [...result].sort((a, b) => {
-            const dateA = new Date(a.updatedAt).getTime()
-            const dateB = new Date(b.updatedAt).getTime()
+            const dateA = new Date(a.updated_at).getTime()
+            const dateB = new Date(b.updated_at).getTime()
             return sortOrder === "newest" ? dateB - dateA : dateA - dateB
         })
 
         return result
-    }, [searchQuery, selectedStatus, sortOrder])
+    }, [projects, searchQuery, selectedStatus, sortOrder])
 
     // 닫혔을 때는 버튼만 떠있도록
     if (!sidebarOpen) {
@@ -82,7 +85,7 @@ export function Sidebar() {
                     </Button>
                     <div className="flex-1">
                         <Button variant="gradient" className="w-full gap-2 h-8" onClick={openNewCaseModal}>
-                            <Plus className="h-4 w-4" />새 케이스
+                            <Plus className="h-4 w-4" />새 프로젝트
                         </Button>
                     </div>
                 </div>
@@ -90,17 +93,19 @@ export function Sidebar() {
                 <div className="pt-3">
                     <div className="flex items-center justify-between">
                         <div className="flex gap-2">
-                            <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as ProjectStatus | "all")}>
+                            <Select
+                                value={String(selectedStatus)}
+                                onValueChange={(value) => setSelectedStatus(value === "all" ? "all" : Number(value) as ProjectStatus)}
+                            >
                                 <SelectTrigger className="w-fit h-auto border-none shadow-none bg-transparent p-0 text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
                                     <SelectValue placeholder="상태 필터" />
                                 </SelectTrigger>
                                 <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
                                     <SelectItem value="all">전체 상태</SelectItem>
-                                    <SelectItem value="consult">{PROJECT_STATUS_LABELS.consult}</SelectItem>
-                                    <SelectItem value="draft">{PROJECT_STATUS_LABELS.draft}</SelectItem>
-                                    <SelectItem value="waiting">{PROJECT_STATUS_LABELS.waiting}</SelectItem>
-                                    <SelectItem value="done">{PROJECT_STATUS_LABELS.done}</SelectItem>
-                                    <SelectItem value="direct">{PROJECT_STATUS_LABELS.direct}</SelectItem>
+                                    <SelectItem value="1">{PROJECT_STATUS_LABELS[1]}</SelectItem>
+                                    <SelectItem value="2">{PROJECT_STATUS_LABELS[2]}</SelectItem>
+                                    <SelectItem value="3">{PROJECT_STATUS_LABELS[3]}</SelectItem>
+                                    <SelectItem value="4">{PROJECT_STATUS_LABELS[4]}</SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -136,7 +141,7 @@ export function Sidebar() {
                                 <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    placeholder="케이스 검색..."
+                                    placeholder="프로젝트 검색..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-6 pr-2 py-2 bg-transparent border-0 focus:outline-none text-sm placeholder:text-muted-foreground"
@@ -149,44 +154,65 @@ export function Sidebar() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-                {filteredProjects.length === 0 ? (
+                {isLoading ? (
+                    <div className="p-4 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                ) : error ? (
+                    <div className="p-4 text-center text-sm">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive opacity-70" />
+                        <p className="text-destructive mb-2">프로젝트를 불러오지 못했습니다</p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => refetch()}
+                            className="gap-1"
+                        >
+                            <RefreshCw className="h-3 w-3" />
+                            다시 시도
+                        </Button>
+                    </div>
+                ) : filteredProjects.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground text-sm">
                         <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         프로젝트가 없습니다
                     </div>
                 ) : (
                     <ul className="divide-y divide-border">
-                        {filteredProjects.map((projectItem) => (
-                            <li key={projectItem.id}>
-                                <Link
-                                    href={`/projects/${projectItem.id}`}
-                                    className={cn(
-                                        "block p-4 hover:bg-muted/50 transition-colors",
-                                        pathname?.startsWith(`/projects/${projectItem.id}`) && "bg-muted"
-                                    )}
-                                >
-                                    <div className="flex items-start justify-between gap-2 mb-1">
-                                        <span className="font-medium text-sm truncate">{projectItem.company}</span>
-                                        <Badge variant={statusBadgeVariant[projectItem.status]} className="shrink-0">
-                                            {PROJECT_STATUS_LABELS[projectItem.status]}
-                                        </Badge>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate mb-2">{projectItem.service}</p>
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>{projectItem.sandboxType && SANDBOX_TYPE_LABELS[projectItem.sandboxType]}</span>
-                                        <span>{projectItem.progress}%</span>
-                                    </div>
-                                    <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary transition-all"
-                                            style={{
-                                                width: `${projectItem.progress}%`,
-                                            }}
-                                        />
-                                    </div>
-                                </Link>
-                            </li>
-                        ))}
+                        {filteredProjects.map((projectItem) => {
+                            const progress = calculateProgress(projectItem.current_step, projectItem.status)
+                            return (
+                                <li key={projectItem.id}>
+                                    <Link
+                                        href={getProjectPathFromProject(projectItem)}
+                                        className={cn(
+                                            "block p-4 hover:bg-muted/50 transition-colors",
+                                            pathname?.startsWith(`/projects/${projectItem.id}`) && "bg-muted"
+                                        )}
+                                    >
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                            <span className="font-medium text-sm truncate">{projectItem.company_name}</span>
+                                            <Badge variant={statusBadgeVariant[projectItem.status]} className="shrink-0">
+                                                {PROJECT_STATUS_LABELS[projectItem.status]}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate mb-2">{projectItem.service_name}</p>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>{projectItem.track && TRACK_LABELS[projectItem.track]}</span>
+                                            <span>{progress}%</span>
+                                        </div>
+                                        <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary transition-all"
+                                                style={{
+                                                    width: `${progress}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </Link>
+                                </li>
+                            )
+                        })}
                     </ul>
                 )}
             </div>

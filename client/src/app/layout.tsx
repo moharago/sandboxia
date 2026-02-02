@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { AuthProvider } from "@/components/AuthProvider"
 import { QueryProvider } from "@/components/QueryProvider"
 import { DevModeToggle } from "@/components/DevModeToggle"
 import "./globals.css"
@@ -29,8 +30,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <html lang="ko" suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
                 <QueryProvider>
-                    {children}
-                    <DevModeToggle />
+                    <AuthProvider>
+                        {children}
+                        <DevModeToggle />
+                    </AuthProvider>
                 </QueryProvider>
             </body>
         </html>

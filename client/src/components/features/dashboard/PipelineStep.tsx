@@ -40,7 +40,8 @@ export function PipelineStep({ step, label, count, isActive = false, onClick, cl
     )
 }
 
-export type PipelineFilter = "all" | "consult" | "draft" | "waiting" | "done"
+// DB status와 동일: 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료
+export type PipelineFilter = "all" | 1 | 2 | 3 | 4
 
 interface PipelineProps {
     steps: Array<{
