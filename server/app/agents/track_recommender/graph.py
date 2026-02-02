@@ -7,15 +7,15 @@
 4. generate_recommendation: 추천 사유 및 근거 생성 (LLM)
 """
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 
-from app.agents.track_recommender.state import TrackRecommenderState
 from app.agents.track_recommender.nodes import (
-    score_all_tracks_node,
-    retrieve_definitions_node,
-    retrieve_cases_node,
     generate_recommendation_node,
+    retrieve_cases_node,
+    retrieve_definitions_node,
+    score_all_tracks_node,
 )
+from app.agents.track_recommender.state import TrackRecommenderState
 
 
 def build_track_recommender_graph() -> StateGraph:

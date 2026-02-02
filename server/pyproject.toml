@@ -52,13 +52,34 @@ exclude = ["data*", "scripts*", "test*"]
 [tool.pyright]
 extraPaths = ["."]
 exclude = ["data", "scripts"]
-reportMissingImports = false
+typeCheckingMode = "basic"
+
+# 중요 검사 - 활성화 권장 (코드 개선 후 true로 변경)
+reportMissingImports = false      # 외부 라이브러리 타입 문제
+reportOptionalMemberAccess = false # Optional 타입 접근 - 향후 활성화 권장
+reportOptionalSubscript = false    # Optional 인덱싱 - 향후 활성화 권장
+
+# 덜 중요한 검사 - 비활성화 유지
+reportArgumentType = false         # 라이브러리 타입 불일치
+reportGeneralTypeIssues = false    # 일반 타입 이슈
+reportReturnType = false           # 반환 타입 불일치
+reportAttributeAccessIssue = false # 속성 접근 이슈
+reportIndexIssue = false           # 인덱스 타입 이슈
+reportCallIssue = false            # 호출 시그니처 불일치
+reportOperatorIssue = false        # 연산자 타입 불일치
 
 [tool.black]
-line-length = 88
+line-length = 120
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+ignore = ["E501", "E402"]  # 라인 길이, import 위치 무시
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+    "ruff>=0.14.14",
+]

@@ -8,7 +8,7 @@ import { getProjectPathFromProject } from "@/lib/utils/project-path"
 import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/stores/ui-store"
 import type { ProjectStatus } from "@/types/data/project"
-import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress } from "@/types/data/project"
+import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress, matchesStatusFilter } from "@/types/data/project"
 import { AlertCircle, FolderOpen, Loader2, PanelLeft, PanelRight, Plus, RefreshCw, Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -21,6 +21,7 @@ const statusBadgeVariant: Record<ProjectStatus, "success" | "warning" | "info" |
     2: "draft",     // 신청서작성
     3: "warning",   // 결과대기
     4: "done",      // 완료
+    5: "direct",    // 바로출시
 }
 
 export function Sidebar() {
@@ -41,7 +42,7 @@ export function Sidebar() {
                 projectItem.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
-            const matchesStatus = selectedStatus === "all" || projectItem.status === selectedStatus
+            const matchesStatus = matchesStatusFilter(projectItem.status, selectedStatus)
 
             return matchesSearch && matchesStatus
         })

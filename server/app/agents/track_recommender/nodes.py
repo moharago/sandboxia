@@ -6,19 +6,19 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from app.core.config import settings
-from app.agents.track_recommender.state import TrackRecommenderState
-from app.agents.track_recommender.tools import (
-    score_track,
-    retrieve_track_definitions,
-    retrieve_similar_cases,
-    retrieve_domain_constraints,
-    calculate_ranks_and_status,
-)
 from app.agents.track_recommender.prompts import (
     RECOMMENDATION_SYSTEM_PROMPT,
     RECOMMENDATION_USER_PROMPT,
 )
+from app.agents.track_recommender.state import TrackRecommenderState
+from app.agents.track_recommender.tools import (
+    calculate_ranks_and_status,
+    retrieve_domain_constraints,
+    retrieve_similar_cases,
+    retrieve_track_definitions,
+    score_track,
+)
+from app.core.config import settings
 from app.tools.shared.rag import (
     compare_tracks,
     search_domain_law,
@@ -138,7 +138,7 @@ def _build_combined_context(
         if track_comparison_results:
             r1_texts = [r.content for r in track_comparison_results[:3]]
             context_parts.append(
-                f"[R1. 트랙 정의/요건]\n" + "\n".join(r1_texts)
+                "[R1. 트랙 정의/요건]\n" + "\n".join(r1_texts)
             )
     except Exception:
         pass  # RAG 실패 시 무시
@@ -156,7 +156,7 @@ def _build_combined_context(
             if domain_law_results:
                 r3_texts = [r.content for r in domain_law_results[:3]]
                 context_parts.append(
-                    f"[R3. 도메인 규제/법령]\n" + "\n".join(r3_texts)
+                    "[R3. 도메인 규제/법령]\n" + "\n".join(r3_texts)
                 )
         except Exception:
             pass  # RAG 실패 시 무시
@@ -169,7 +169,7 @@ def _build_combined_context(
             r2_parts.append(f"- {track_key}: {len(cases)}건 ({', '.join(case_names)})")
     if r2_parts:
         context_parts.append(
-            f"[R2. 유사 승인 사례]\n" + "\n".join(r2_parts)
+            "[R2. 유사 승인 사례]\n" + "\n".join(r2_parts)
         )
 
     return "\n\n".join(context_parts)

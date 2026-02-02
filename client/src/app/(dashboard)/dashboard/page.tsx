@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useProjectsQuery } from "@/hooks/queries/use-projects-query"
 import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/stores/ui-store"
-import { PROJECT_STATUS_LABELS } from "@/types/data/project"
+import { PROJECT_STATUS, PROJECT_STATUS_LABELS, matchesStatusFilter } from "@/types/data/project"
 import { LayoutGrid, List, Loader2, Plus, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 
@@ -36,12 +36,12 @@ export default function DashboardPage() {
         sortOrder,
     })
 
-    // 상태별 통계 (DB status: 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료)
+    // 상태별 통계
     const stats = {
-        1: projects.filter((p) => p.status === 1).length,
-        2: projects.filter((p) => p.status === 2).length,
-        3: projects.filter((p) => p.status === 3).length,
-        4: projects.filter((p) => p.status === 4).length,
+        1: projects.filter((p) => p.status === PROJECT_STATUS.CONSULTING).length,
+        2: projects.filter((p) => p.status === PROJECT_STATUS.DRAFTING).length,
+        3: projects.filter((p) => p.status === PROJECT_STATUS.PENDING).length,
+        4: projects.filter((p) => p.status === PROJECT_STATUS.COMPLETED || p.status === PROJECT_STATUS.DIRECT_LAUNCH).length,
     }
 
     const pipelineSteps = [
@@ -60,7 +60,7 @@ export default function DashboardPage() {
                 (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
             // 2. Status Filter
-            const matchesStatus = statusFilter === "all" || projectItem.status === statusFilter
+            const matchesStatus = matchesStatusFilter(projectItem.status, statusFilter)
 
             return matchesSearch && matchesStatus
         })
