@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from gotrue.errors import AuthApiError
+from supabase_auth.errors import AuthApiError
 
 from app.api.deps import get_auth_user
 from app.core.config import supabase
