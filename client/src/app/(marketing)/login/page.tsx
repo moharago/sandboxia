@@ -1,5 +1,5 @@
-import { Suspense } from "react"
 import { LoginForm, LoginFormFallback } from "@/components/features/login"
+import { Suspense } from "react"
 
 export default function LoginPage() {
     return (
