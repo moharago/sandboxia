@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/stores/ui-store"
 import type { ProjectStatus } from "@/types/data/project"
 import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress } from "@/types/data/project"
-import { FolderOpen, Loader2, PanelLeft, PanelRight, Plus, Search } from "lucide-react"
+import { AlertCircle, FolderOpen, Loader2, PanelLeft, PanelRight, Plus, RefreshCw, Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import * as React from "react"
@@ -32,7 +32,7 @@ export function Sidebar() {
     const [sortOrder, setSortOrder] = React.useState<SortOrder>("newest")
 
     // Supabase에서 프로젝트 조회
-    const { data: projects = [], isLoading } = useProjectsQuery()
+    const { data: projects = [], isLoading, error, refetch } = useProjectsQuery()
 
     const filteredProjects = React.useMemo(() => {
         let result = projects.filter((projectItem) => {
@@ -157,6 +157,20 @@ export function Sidebar() {
                 {isLoading ? (
                     <div className="p-4 flex items-center justify-center">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                ) : error ? (
+                    <div className="p-4 text-center text-sm">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive opacity-70" />
+                        <p className="text-destructive mb-2">프로젝트를 불러오지 못했습니다</p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => refetch()}
+                            className="gap-1"
+                        >
+                            <RefreshCw className="h-3 w-3" />
+                            다시 시도
+                        </Button>
                     </div>
                 ) : filteredProjects.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground text-sm">

@@ -11,30 +11,40 @@ export default function LoginPage() {
     const router = useRouter()
     const supabase = createClient()
     const searchParams = useSearchParams()
-    const [error, setError] = useState<string | null>(null)
+
+    // URL 쿼리 파라미터에서 에러 확인 (초기값으로 설정)
+    const errorParam = searchParams.get('error')
+    const initialError = errorParam === 'auth_failed' ? '로그인에 실패했습니다. 다시 시도해주세요.' : null
+
+    const [error, setError] = useState<string | null>(initialError)
     const [isLoading, setIsLoading] = useState(false)
     const [checking, setChecking] = useState(true)
 
     // 이미 로그인된 사용자는 대시보드로 리다이렉트
     useEffect(() => {
         const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                router.push('/dashboard')
-            } else {
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+                if (authError) {
+                    console.error('Auth check error:', authError)
+                    setError('인증 확인 중 오류가 발생했습니다.')
+                    return
+                }
+
+                if (user) {
+                    router.push('/dashboard')
+                    return
+                }
+            } catch (err) {
+                console.error('Auth check failed:', err)
+                setError('인증 확인 중 오류가 발생했습니다.')
+            } finally {
                 setChecking(false)
             }
         }
         checkAuth()
     }, [router, supabase])
-
-    // URL 쿼리 파라미터에서 에러 확인
-    useEffect(() => {
-        const errorParam = searchParams.get('error')
-        if (errorParam === 'auth_failed') {
-            setError('로그인에 실패했습니다. 다시 시도해주세요.')
-        }
-    }, [searchParams])
 
     const handleGoogleLogin = async () => {
         setError(null)

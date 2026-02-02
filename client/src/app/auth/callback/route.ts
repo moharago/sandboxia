@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
-    const code = searchParams.get('code')
+    const code = searchParams.get("code")
 
     if (code) {
         const supabase = await createClient()
@@ -12,13 +12,10 @@ export async function GET(request: Request) {
         if (!error && data.session) {
             // Supabase 직접 호출로 유저 상태 확인
             try {
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('status')
-                    .eq('id', data.session.user.id)
-                    .single()
+                const { data: userData, error: userError } = await supabase.from("users").select("status").eq("id", data.session.user.id).single()
+                if (userError) throw userError
 
-                if (userData?.status === 'ACTIVE') {
+                if (userData?.status === "ACTIVE") {
                     return NextResponse.redirect(`${origin}/dashboard`)
                 } else {
                     return NextResponse.redirect(`${origin}/onboarding`)

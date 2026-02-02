@@ -1,7 +1,6 @@
 "use client"
 
 import { use } from "react"
-import { notFound } from "next/navigation"
 import { ServiceForm } from "@/components/features/project/ServiceForm"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 
@@ -11,20 +10,13 @@ interface ServicePageProps {
 
 export default function ServicePage({ params }: ServicePageProps) {
     const { id } = use(params)
-    const { data: projectData, isLoading, error } = useProjectQuery(id)
+    // Layout에서 이미 프로젝트 유효성 검사를 수행하므로
+    // 여기서는 캐시된 데이터를 사용 (TanStack Query 캐싱)
+    const { data: projectData } = useProjectQuery(id)
 
-    if (isLoading) {
-        return (
-            <div className="py-6">
-                <div className="container mx-auto px-4 flex items-center justify-center min-h-[50vh]">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
-            </div>
-        )
-    }
-
-    if (error || !projectData) {
-        notFound()
+    // Layout이 로딩/에러 상태를 처리하므로 projectData는 항상 존재
+    if (!projectData) {
+        return null
     }
 
     // key로 projectData.id를 사용하여 프로젝트 변경 시 폼 리셋

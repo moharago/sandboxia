@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import get_auth_user
 from app.core.config import supabase
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -29,11 +33,12 @@ async def delete_user(auth_user=Depends(get_auth_user)):
     # 2. public.users에서 삭제 (CASCADE가 없는 경우를 대비)
     try:
         supabase.table("users").delete().eq("id", auth_user.id).execute()
-    except Exception as e:
+    except Exception:
         # auth.users는 이미 삭제됨, public.users 삭제 실패는 로깅만
         # CASCADE가 이미 처리했을 수 있음
-        print(
-            f"Warning: Failed to delete public.users row (may already be deleted by CASCADE): {str(e)}"
+        logger.warning(
+            "Failed to delete public.users row (may already be deleted by CASCADE)",
+            exc_info=True,
         )
 
     return {"message": "Account deleted"}

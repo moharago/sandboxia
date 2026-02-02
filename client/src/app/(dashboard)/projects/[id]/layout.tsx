@@ -1,7 +1,7 @@
 "use client"
 
-import { use, type ReactNode } from "react"
-import { notFound } from "next/navigation"
+import { use, useEffect, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { StepNav } from "@/components/features/project/StepNav"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 
@@ -12,9 +12,16 @@ interface ProjectLayoutProps {
 
 export default function ProjectLayout({ children, params }: ProjectLayoutProps) {
     const { id } = use(params)
+    const router = useRouter()
     const { data: project, isLoading, error } = useProjectQuery(id)
 
-    if (isLoading) {
+    useEffect(() => {
+        if (!isLoading && (error || !project)) {
+            router.replace("/not-found")
+        }
+    }, [isLoading, error, project, router])
+
+    if (isLoading || !project) {
         return (
             <div className="flex flex-col h-full">
                 <div className="h-14 border-b bg-background" /> {/* StepNav placeholder */}
@@ -23,10 +30,6 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
                 </div>
             </div>
         )
-    }
-
-    if (error || !project) {
-        notFound()
     }
 
     return (
