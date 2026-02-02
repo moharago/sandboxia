@@ -318,6 +318,7 @@ def search_cases_node(state: EligibilityState) -> dict:
                 "special_provisions": c.special_provisions,
                 "conditions": c.conditions,
                 "relevance_score": c.relevance_score,
+                "source_url": c.source_url,  # 사례 상세 URL
             })
 
     logger.info(f"Found {len(cases)} case results")
@@ -566,7 +567,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             title=case.get("service_name") or "유사 서비스",
             company=case.get("company_name") or "기업",
             summary=clean_rag_content(case.get("service_description") or "", max_length=300),
-            detail_url=None,
+            detail_url=case.get("source_url"),  # 규제샌드박스 포털 링크
         ))
 
     # regulations 생성 (Step 2,3,4 재사용)
