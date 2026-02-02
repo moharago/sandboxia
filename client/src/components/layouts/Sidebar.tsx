@@ -21,6 +21,7 @@ const statusBadgeVariant: Record<ProjectStatus, "success" | "warning" | "info" |
     2: "draft",     // 신청서작성
     3: "warning",   // 결과대기
     4: "done",      // 완료
+    5: "direct",    // 바로출시
 }
 
 export function Sidebar() {
@@ -41,7 +42,10 @@ export function Sidebar() {
                 projectItem.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
-            const matchesStatus = selectedStatus === "all" || projectItem.status === selectedStatus
+            // 완료 필터는 4, 5 모두 포함
+            const matchesStatus =
+                selectedStatus === "all" ||
+                (selectedStatus === 4 ? projectItem.status === 4 || projectItem.status === 5 : projectItem.status === selectedStatus)
 
             return matchesSearch && matchesStatus
         })

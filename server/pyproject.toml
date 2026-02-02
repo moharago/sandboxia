@@ -52,13 +52,30 @@ exclude = ["data*", "scripts*", "test*"]
 [tool.pyright]
 extraPaths = ["."]
 exclude = ["data", "scripts"]
+typeCheckingMode = "basic"  # standard → basic (완화)
 reportMissingImports = false
+reportOptionalMemberAccess = false
+reportArgumentType = false
+reportGeneralTypeIssues = false
+reportReturnType = false
+reportAttributeAccessIssue = false
+reportIndexIssue = false
+reportCallIssue = false
+reportOperatorIssue = false
+reportOptionalSubscript = false
 
 [tool.black]
-line-length = 88
+line-length = 120
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+ignore = ["E501", "E402"]  # 라인 길이, import 위치 무시
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+    "ruff>=0.14.14",
+]

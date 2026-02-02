@@ -1,5 +1,5 @@
 // DB 스키마와 동일한 타입 정의
-export type ProjectStatus = 1 | 2 | 3 | 4 // 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료
+export type ProjectStatus = 1 | 2 | 3 | 4 | 5 // 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료, 5=바로출시
 export type ProjectStep = 1 | 2 | 3 | 4 // 1=서비스분석, 2=시장진단, 3=트랙선택, 4=신청서생성
 export type Track = "counseling" | "quick_check" | "temp_permit" | "demo"
 
@@ -49,6 +49,7 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
     2: "신청서작성",
     3: "결과대기",
     4: "완료",
+    5: "바로출시",
 }
 
 export const PROJECT_STEP_LABELS: Record<ProjectStep, string> = {

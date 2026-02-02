@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes.users import router as users_router
 from app.api.routes.agents import router as agents_router
 from app.api.routes.eligibility import router as eligibility_router
+from app.api.routes.users import router as users_router
 from app.core.config import settings
 
 

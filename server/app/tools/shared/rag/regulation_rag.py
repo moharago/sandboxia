@@ -157,23 +157,27 @@ def search_regulation(
 
     if normalized_track:
         # track이 특정 값이거나 "all"인 경우 모두 포함
-        filter_conditions.append({
-            "$or": [
-                {"track": {"$eq": normalized_track}},
-                {"track": {"$eq": "all"}},
-            ]
-        })
+        filter_conditions.append(
+            {
+                "$or": [
+                    {"track": {"$eq": normalized_track}},
+                    {"track": {"$eq": "all"}},
+                ]
+            }
+        )
 
     if normalized_category:
         filter_conditions.append({"category": {"$eq": normalized_category}})
 
     if normalized_ministry:
-        filter_conditions.append({
-            "$or": [
-                {"ministry": {"$eq": normalized_ministry}},
-                {"ministry": {"$eq": "all"}},
-            ]
-        })
+        filter_conditions.append(
+            {
+                "$or": [
+                    {"ministry": {"$eq": normalized_ministry}},
+                    {"ministry": {"$eq": "all"}},
+                ]
+            }
+        )
 
     # 검색 조건 설정
     search_kwargs = {"k": top_k}

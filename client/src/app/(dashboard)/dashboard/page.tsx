@@ -36,12 +36,12 @@ export default function DashboardPage() {
         sortOrder,
     })
 
-    // 상태별 통계 (DB status: 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료)
+    // 상태별 통계 (DB status: 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료, 5=바로출시)
     const stats = {
         1: projects.filter((p) => p.status === 1).length,
         2: projects.filter((p) => p.status === 2).length,
         3: projects.filter((p) => p.status === 3).length,
-        4: projects.filter((p) => p.status === 4).length,
+        4: projects.filter((p) => p.status === 4 || p.status === 5).length, // 완료 + 바로출시
     }
 
     const pipelineSteps = [
@@ -59,8 +59,10 @@ export default function DashboardPage() {
                 projectItem.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
-            // 2. Status Filter
-            const matchesStatus = statusFilter === "all" || projectItem.status === statusFilter
+            // 2. Status Filter (완료 필터는 4, 5 모두 포함)
+            const matchesStatus =
+                statusFilter === "all" ||
+                (statusFilter === 4 ? projectItem.status === 4 || projectItem.status === 5 : projectItem.status === statusFilter)
 
             return matchesSearch && matchesStatus
         })
