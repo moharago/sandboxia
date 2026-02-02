@@ -279,11 +279,19 @@ application_draft ← 초안 저장 → 사용자 수정 → UPDATE
 
 ### eligibility_label 값 매핑
 
+<<<<<<< HEAD
 | 값                     | 화면 표시               |
 | ---------------------- | ----------------------- |
 | `sandbox_required`     | 규제 샌드박스 신청 필요 |
 | `sandbox_not_required` | 바로 시장 출시 가능     |
 | `unclear`              | 불명확 - 추가 검토 필요 |
+=======
+| 값 | 화면 표시 |
+| --- | --- |
+| `required` | 규제 샌드박스 신청 필요 |
+| `not_required` | 바로 시장 출시 가능 |
+| `unclear` | 불명확 - 추가 검토 필요 |
+>>>>>>> 2ff0b2e9e06dc275d4d9c9b7899c553da97e2c7d
 
 ---
 

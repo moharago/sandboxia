@@ -24,7 +24,7 @@ export function NewCaseModal() {
         onSuccess: (data) => {
             closeNewCaseModal()
             setFormData({ companyName: "", serviceName: "", description: "" })
-            router.push(`/projects/${data.id}/structure`)
+            router.push(`/projects/${data.id}/service`)
         },
         onError: (error) => {
             alert(`프로젝트 생성 실패: ${error.message}`)
