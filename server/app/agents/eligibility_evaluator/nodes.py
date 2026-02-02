@@ -14,7 +14,14 @@ from app.tools.shared.rag.case_rag import search_case
 from app.tools.shared.rag.domain_law_rag import search_domain_law
 from app.tools.shared.rag.regulation_rag import search_regulation
 
-from .prompts import COMPOSE_DECISION_PROMPT, SYSTEM_PROMPT
+from .prompts import (
+    COMPOSE_DECISION_PROMPT,
+    EXPLAIN_CASE_PROMPT,
+    EXPLAIN_LAW_PROMPT,
+    R1_JUDGMENT_TEMPLATES,
+    R1_SANDBOX_REQUIREMENTS,
+    SYSTEM_PROMPT,
+)
 from .schemas import (
     ApprovalCase,
     DirectLaunchRisk,
@@ -28,6 +35,58 @@ from .state import EligibilityState, ScreeningResult
 from .tools import decision_composer, rule_screener
 
 logger = logging.getLogger(__name__)
+
+
+def clean_rag_content(text: str, max_length: int = 200) -> str:
+    """RAG 검색 결과 텍스트 정리
+
+    - 연속 중복 문자 제거 (① ① → ①)
+    - 마크다운 테이블 제거
+    - 불필요한 공백 정리
+    - 톤 완화 (단정적 표현 → 검토 가능성 표현)
+    - 길이 제한
+    """
+    import re
+
+    if not text:
+        return ""
+
+    # 마크다운 테이블 제거 (|---|---| 패턴)
+    text = re.sub(r'\|[-]+\|[-|]+\|?', '', text)
+    # 테이블 셀 구분자를 쉼표로 변환
+    text = re.sub(r'\s*\|\s*', ', ', text)
+    # 앞뒤 쉼표 정리
+    text = re.sub(r'^,\s*|,\s*$', '', text)
+    text = re.sub(r',\s*,', ',', text)
+
+    # 연속 중복 문자 제거 (① ① → ①, 1. 1. → 1.)
+    text = re.sub(r'([①-⑳㉠-㉻])\s*\1', r'\1', text)
+    text = re.sub(r'(\d+\.)\s*\1', r'\1', text)
+
+    # 연속 공백 정리
+    text = re.sub(r'\s+', ' ', text)
+
+    # 톤 완화: 단정적 표현 → 검토 가능성 표현
+    # "적용됩니다" → "검토될 수 있습니다"
+    text = re.sub(r'적용됩니다', '검토될 수 있습니다', text)
+    # "해당됩니다" → "해당될 수 있습니다"
+    text = re.sub(r'해당됩니다', '해당될 수 있습니다', text)
+    # "필요합니다" (규제 맥락) → "필요할 수 있습니다"
+    text = re.sub(r'신청이 필요합니다', '신청이 필요할 수 있습니다', text)
+
+    # 앞뒤 공백 제거
+    text = text.strip()
+
+    # 길이 제한 (문장 단위로 자르기)
+    if len(text) > max_length:
+        # max_length 근처에서 문장 끝 찾기
+        cut_point = text.rfind('.', 0, max_length)
+        if cut_point > max_length * 0.5:
+            text = text[:cut_point + 1]
+        else:
+            text = text[:max_length] + "..."
+
+    return text
 
 
 # ================================
@@ -84,6 +143,73 @@ def get_llm() -> ChatOpenAI:
     )
 
 
+def get_fast_llm() -> ChatOpenAI:
+    """빠른 LLM 인스턴스 (설명 생성용)"""
+    return ChatOpenAI(
+        model="gpt-4o-mini",  # 빠르고 저렴한 모델
+        temperature=0.3,
+        api_key=settings.OPENAI_API_KEY,
+    )
+
+
+# ================================
+# 사례/법령 설명 생성 함수
+# ================================
+def generate_case_explanation(
+    target_service: str,
+    case: dict,
+) -> str:
+    """LLM으로 사례 설명 생성"""
+    llm = get_fast_llm()
+
+    prompt = EXPLAIN_CASE_PROMPT.format(
+        target_service=target_service,
+        case_service_name=case.get("service_name") or "서비스",
+        case_company=case.get("company_name") or "기업",
+        case_track=case.get("track") or "실증특례",
+        case_description=case.get("service_description") or "정보 없음",
+        case_regulation=case.get("current_regulation") or "정보 없음",
+        case_special_provisions=case.get("special_provisions") or "정보 없음",
+    )
+
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return response.content.strip()
+    except Exception as e:
+        logger.warning(f"사례 설명 생성 실패: {e}")
+        # fallback
+        company = case.get("company_name") or "기업"
+        service_name = case.get("service_name") or "서비스"
+        track = case.get("track") or "실증특례"
+        return f"{company}의 {service_name}가 {track}으로 승인된 유사 사례입니다."
+
+
+def generate_law_explanation(
+    target_service: str,
+    law: dict,
+) -> str:
+    """LLM으로 법령 설명 생성"""
+    llm = get_fast_llm()
+
+    prompt = EXPLAIN_LAW_PROMPT.format(
+        target_service=target_service,
+        law_name=law.get("law_name") or "법령",
+        article_no=law.get("article_no") or "",
+        article_title=law.get("article_title") or "",
+        law_content=law.get("content") or "조문 내용 없음",
+    )
+
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return response.content.strip()
+    except Exception as e:
+        logger.warning(f"법령 설명 생성 실패: {e}")
+        # fallback
+        law_name = law.get("law_name") or "법령"
+        article_no = law.get("article_no") or ""
+        return f"{law_name} {article_no}에 따라 해당 서비스의 규제 적용 여부를 확인할 필요가 있습니다."
+
+
 # ================================
 # 노드 함수들
 # ================================
@@ -119,39 +245,47 @@ def screen_node(state: EligibilityState) -> dict:
 
 
 def search_regulations_node(state: EligibilityState) -> dict:
-    """규제제도 검색 노드 (R1)
+    """규제제도 참조 노드 (R1)
 
-    스크리닝 결과의 키워드로 규제제도 검색
+    R1은 제도 중심 고정 쿼리로 검색합니다.
+    도메인 키워드가 아닌, 규제샌드박스 제도/기준 관련 쿼리만 사용합니다.
     """
-    screening = state["screening_result"]
-    keywords = screening.search_keywords if screening else []
+    # R1 고정 쿼리 (도메인 키워드 사용 금지)
+    # 이 쿼리는 R1 데이터의 의미 공간(제도/요건/절차)에 맞춰져 있음
+    R1_FIXED_QUERY = """규제샌드박스 신속확인 실증특례 임시허가 대상 기준
+법령 적용 여부 불명확 규제 공백 신기술 서비스"""
 
-    if not keywords:
-        # 키워드 없으면 기본 검색
-        service_desc = get_service_description(state["canonical"])
-        query = (service_desc or "규제 샌드박스")[:200]
-    else:
-        query = " ".join(keywords[:5])
-
-    # R1 검색
+    # R1 RAG 검색 실행
     result = search_regulation.invoke({
-        "query": query,
+        "query": R1_FIXED_QUERY,
         "top_k": 5,
     })
 
     regulations = []
-    if hasattr(result, "results"):
-        for r in result.results:
+    if hasattr(result, "results") and result.results:
+        for reg in result.results:
             regulations.append({
-                "content": r.content,
-                "document_title": r.document_title,
-                "section_title": r.section_title,
-                "track": r.track,
-                "citation": r.citation,
-                "relevance_score": r.relevance_score,
+                "content": reg.content,
+                "document_title": reg.document_title,
+                "section_title": reg.section_title,
+                "track": reg.track,
+                "citation": reg.citation,
+                "relevance_score": reg.relevance_score,
             })
-
-    logger.info(f"Found {len(regulations)} regulation results")
+        logger.info(f"R1: Found {len(regulations)} regulation results")
+    else:
+        # 검색 결과 없으면 fallback 고정 템플릿 사용
+        regulations = [
+            {
+                "content": R1_SANDBOX_REQUIREMENTS,
+                "document_title": "ICT 규제샌드박스 제도 가이드",
+                "section_title": "규제샌드박스 신청 요건",
+                "track": "all",
+                "citation": "ICT 규제샌드박스 제도 가이드",
+                "relevance_score": 1.0,
+            }
+        ]
+        logger.info("R1: No search results, using fallback template")
 
     return {"regulation_results": regulations}
 
@@ -346,46 +480,75 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     """근거 데이터 생성 노드
 
     RAG 결과를 evidence_data 형식으로 변환
+    R1/R2/R3 검색 결과 사용, R1 결과 없으면 fallback 템플릿 사용
+    LLM으로 사례/법령 설명 생성
     """
-    regulations = state["regulation_results"]
     cases = state["case_results"]
     laws = state["law_results"]
+    regulations = state["regulation_results"]
     screening = state["screening_result"]
+    eligibility_label = state.get("eligibility_label")
+    canonical = state["canonical"]
+
+    # 분석 대상 서비스 정보 (LLM 설명 생성용)
+    target_service = get_service_description(canonical) or get_service_name(canonical) or "분석 대상 서비스"
 
     # judgment_summary 생성
     judgment_summary: list[JudgmentSummary] = []
 
-    # 규제제도 기반 근거
-    for reg in regulations[:2]:
-        judgment_summary.append(JudgmentSummary(
-            type=JudgmentType.REGULATION,
-            title=reg.get("section_title", "규제 기준"),
-            summary=reg.get("content", "")[:200],
-            source=reg.get("citation", ""),
-        ))
+    # 규제 기준: R1 RAG 검색 결과 사용, 없으면 fallback 템플릿
+    if regulations:
+        for reg in regulations[:2]:  # 최대 2개
+            judgment_summary.append(JudgmentSummary(
+                type=JudgmentType.REGULATION,
+                title=reg.get("section_title") or reg.get("document_title") or "규제 기준",
+                summary=clean_rag_content(reg.get("content", ""), max_length=200),
+                source=reg.get("citation") or reg.get("document_title") or "ICT 규제샌드박스",
+            ))
+    else:
+        # fallback: 고정 템플릿 사용
+        label_key = eligibility_label.value if eligibility_label else "unclear"
+        r1_templates = R1_JUDGMENT_TEMPLATES.get(label_key, R1_JUDGMENT_TEMPLATES["unclear"])
 
-    # 사례 기반 근거
+        for template in r1_templates:
+            judgment_summary.append(JudgmentSummary(
+                type=JudgmentType.REGULATION,
+                title=template["title"],
+                summary=template["summary"],
+                source=template["source"],
+            ))
+
+    # 사례 기반 근거 (LLM으로 설명 생성)
     for case in cases[:2]:
         service_name = case.get("service_name") or "유사 서비스"
         track = case.get("track") or ""
         company = case.get("company_name") or "기업"
         case_id = case.get("case_id") or ""
-        description = case.get("service_description") or ""
+
+        # LLM으로 사례 설명 생성 (유사점, 참고 이유 포함)
+        case_summary = generate_case_explanation(target_service, case)
 
         judgment_summary.append(JudgmentSummary(
             type=JudgmentType.CASE,
             title=f"{service_name} ({track})" if track else service_name,
-            summary=description[:200] if description else "유사 사례 참고",
+            summary=clean_rag_content(case_summary, max_length=250),
             source=f"{company} - {case_id}" if case_id else company,
         ))
 
-    # 법령 기반 근거
+    # 법령 기반 근거 (LLM으로 설명 생성)
     for law in laws[:2]:
+        law_name = law.get("law_name", "")
+        article_no = law.get("article_no", "")
+        citation = law.get("citation") or f"{law_name} {article_no}"
+
+        # LLM으로 법령 설명 생성 (조문 의미, 검토 필요성 포함)
+        law_summary = generate_law_explanation(target_service, law)
+
         judgment_summary.append(JudgmentSummary(
             type=JudgmentType.LAW,
-            title=law.get("citation", law.get("law_name", "")),
-            summary=law.get("content", "")[:200],
-            source=f"{law.get('law_name', '')} {law.get('article_no', '')}",
+            title=citation,
+            summary=clean_rag_content(law_summary, max_length=250),
+            source=f"{law_name} {article_no}".strip(),
         ))
 
     # approval_cases 생성 (Step 2,3,4 재사용)
@@ -402,7 +565,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             similarity=similarity,
             title=case.get("service_name") or "유사 서비스",
             company=case.get("company_name") or "기업",
-            summary=(case.get("service_description") or "")[:300],
+            summary=clean_rag_content(case.get("service_description") or "", max_length=300),
             detail_url=None,
         ))
 
@@ -412,7 +575,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
         regulation_list.append(Regulation(
             category=reg.get("track", "참고"),
             title=reg.get("section_title", reg.get("document_title", "")),
-            summary=reg.get("content", "")[:300],
+            summary=clean_rag_content(reg.get("content", ""), max_length=300),
             source_url=None,
         ))
 
@@ -421,7 +584,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
         regulation_list.append(Regulation(
             category="법령",
             title=law.get("citation", law.get("law_name", "")),
-            summary=law.get("content", "")[:300],
+            summary=clean_rag_content(law.get("content", ""), max_length=300),
             source_url=None,
         ))
 
