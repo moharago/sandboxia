@@ -13,6 +13,7 @@ export const agentsApi = {
      * 서비스 정보 파싱 (HWP 파일)
      *
      * FormData로 HWP 파일을 전송하고 파싱된 결과를 반환합니다.
+     * requestedTrack: counseling/quick_check/temp_permit/demo
      */
     parseService: async (request: ServiceParseRequest): Promise<ServiceParseResponse> => {
         const formData = new FormData()

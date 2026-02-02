@@ -4,7 +4,7 @@
  * 내 프로젝트 목록을 조회하는 query 훅
  */
 
-import { projectsApi } from "@/lib/api/projects"
+import { projectsApi, type ProjectFile } from "@/lib/api/projects"
 import { toProject } from "@/types/api/project"
 import type { Project } from "@/types/data/project"
 import { useQuery } from "@tanstack/react-query"
@@ -13,6 +13,7 @@ export const projectKeys = {
     all: ["projects"] as const,
     list: () => [...projectKeys.all, "list"] as const,
     detail: (id: string) => [...projectKeys.all, "detail", id] as const,
+    files: (id: string) => [...projectKeys.all, "files", id] as const,
 }
 
 /**
@@ -49,6 +50,17 @@ export function useProjectQuery(id: string) {
             const response = await projectsApi.getProject(id)
             return toProject(response)
         },
+        staleTime: 1000 * 60 * 5,
+    })
+}
+
+/**
+ * 프로젝트 파일 목록 조회 query 훅
+ */
+export function useProjectFilesQuery(projectId: string) {
+    return useQuery<ProjectFile[], Error>({
+        queryKey: projectKeys.files(projectId),
+        queryFn: () => projectsApi.getProjectFiles(projectId),
         staleTime: 1000 * 60 * 5,
     })
 }

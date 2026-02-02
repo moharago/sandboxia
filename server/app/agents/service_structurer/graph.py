@@ -79,7 +79,7 @@ async def run_service_structurer(
 
     Args:
         session_id: 세션 ID
-        requested_track: 요청된 트랙 (counseling/fastcheck/temporary/demonstration)
+        requested_track: 트랙 (counseling/quick_check/temp_permit/demo)
         consultant_input: 컨설턴트 입력 데이터
         file_paths: HWP 파일 경로 리스트 (optional)
         file_subtypes: 각 파일의 서브타입 리스트 (optional)

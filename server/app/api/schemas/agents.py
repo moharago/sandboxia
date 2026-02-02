@@ -105,7 +105,7 @@ class StructureResponse(BaseModel):
     """서비스 구조화 응답"""
 
     session_id: str
-    requested_track: str
+    requested_track: str  # counseling/quick_check/temp_permit/demo
     canonical_structure: CanonicalStructure | None = None
     parsed_documents: list[ParsedDocument] = Field(default_factory=list)
     error: str | None = None

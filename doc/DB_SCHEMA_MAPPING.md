@@ -76,7 +76,18 @@ Google 로그인 → auth.users 생성 → users 자동 생성 (트리거)
 | `service_name`        | 서비스명 입력 필드   | 5G 기반 원격 의료 통신              |
 | `service_description` | 서비스 설명 textarea | 서비스 상세 설명                    |
 | `additional_notes`    | 추가 메모 textarea   | 추가 기록할 내용                    |
-| `track` (초기)        | 신청 유형 라디오버튼 | 상담신청/신속확인/임시허가/실증특례 |
+| `track`               | 신청 유형 라디오버튼 | 상담신청/신속확인/임시허가/실증특례 |
+
+### track 값 매핑
+
+| DB 값         | 화면 표시 | formData.json id |
+| ------------- | --------- | ---------------- |
+| `counseling`  | 상담신청  | counseling       |
+| `quick_check` | 신속확인  | fastcheck        |
+| `temp_permit` | 임시허가  | temporary        |
+| `demo`        | 실증특례  | demonstration    |
+
+> 💡 `track` 컬럼은 Step 1에서 사용자가 선택한 신청 양식 유형을 저장합니다.
 
 ---
 
