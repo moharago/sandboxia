@@ -8,7 +8,7 @@ HWP 문서와 컨설턴트 입력을 분석하여
 
     result = await run_service_structurer(
         session_id="session_123",
-        requested_track="counseling",
+        requested_track="counseling",  # counseling/quick_check/temp_permit/demo
         consultant_input={
             "company_name": "테스트 회사",
             "service_name": "AI 서비스",

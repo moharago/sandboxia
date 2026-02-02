@@ -32,6 +32,7 @@ export interface ParsedDocument {
 // 서비스 파싱 요청 (FormData로 전송)
 export interface ServiceParseRequest {
     sessionId: string
+    /** 트랙 (counseling/quick_check/temp_permit/demo) */
     requestedTrack: string
     consultantInput: ConsultantInput
     files: File[]

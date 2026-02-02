@@ -24,7 +24,7 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 @router.post("/structure", response_model=StructureResponse, summary="서비스 구조화")
 async def structure_service(
     session_id: str = Form(...),
-    requested_track: str = Form(...),
+    requested_track: str = Form(..., description="트랙 (counseling/quick_check/temp_permit/demo)"),
     consultant_input: str = Form(...),
     files: list[UploadFile] = File(default=[]),
 ) -> StructureResponse:

@@ -15,7 +15,7 @@ class ServiceStructurerState(TypedDict):
     Attributes:
         messages: 대화 메시지 히스토리
         session_id: 세션 ID
-        requested_track: 요청된 트랙 (counseling/fastcheck/temporary/demonstration)
+        requested_track: 트랙 (counseling/quick_check/temp_permit/demo)
         consultant_input: 컨설턴트 입력 데이터
         hwp_parse_results: HWP 파싱 결과 리스트
         canonical_structure: 최종 Canonical Structure
@@ -27,7 +27,7 @@ class ServiceStructurerState(TypedDict):
 
     # 입력 데이터
     session_id: str
-    requested_track: str
+    requested_track: str  # counseling/quick_check/temp_permit/demo
     consultant_input: dict[str, Any]  # 컨설턴트가 입력한 데이터
     file_paths: list[str]  # HWP 파일 경로 리스트
     file_subtypes: list[str]  # 각 파일의 서브타입
