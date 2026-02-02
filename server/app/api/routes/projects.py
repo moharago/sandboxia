@@ -47,6 +47,10 @@ async def get_project_files(project_id: str):
         .order("created_at", desc=False)\
         .execute()
 
+    if hasattr(result, "error") and result.error:
+        error_message = getattr(result.error, "message", str(result.error))
+        raise HTTPException(status_code=500, detail=f"파일 목록 조회 실패: {error_message}")
+
     return result.data
 
 
