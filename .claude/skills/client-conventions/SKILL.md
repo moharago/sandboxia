@@ -92,6 +92,54 @@ export function UserCard({ user, onSelect }: UserCardProps) {
 - 이벤트 핸들러: `handle + 동작` (handleClick, handleSubmit)
 - 조건부 렌더링: 삼항 연산자보다 `&&` 또는 early return 선호
 
+### React 19 상태 초기화 패턴
+
+서버 데이터를 로컬 상태 초기값으로 사용할 때 useEffect 내 동기 setState는 경고 발생.
+
+```tsx
+// ❌ React 19에서 경고 발생
+function ServiceForm({ id }: { id: string }) {
+  const { data } = useProjectQuery(id);
+  const [formState, setFormState] = useState({ name: "" });
+
+  useEffect(() => {
+    if (data) {
+      setFormState({ name: data.name }); // 경고!
+    }
+  }, [data]);
+}
+```
+
+**해결: 컴포넌트 분리 + key prop**
+
+```tsx
+// ✅ 권장 패턴
+function ServiceForm({ project }: { project: Project }) {
+  // key로 리마운트되므로 초기값이 보장됨
+  const [formState, setFormState] = useState({
+    name: project.name,
+  });
+  // ...
+}
+
+function ServicePage({ id }: { id: string }) {
+  const { data, isLoading } = useProjectQuery(id);
+
+  if (isLoading) return <Loading />;
+  if (!data) return <NotFound />;
+
+  // key로 project 변경 시 폼 리셋
+  return <ServiceForm key={data.id} project={data} />;
+}
+```
+
+**규칙:**
+
+- 서버 데이터를 로컬 상태 초기값으로 사용할 때는 컴포넌트 분리
+- 부모: 데이터 fetching + 로딩/에러 처리
+- 자식: 폼 로직 (props로 초기값 받음)
+- `key` prop으로 데이터 변경 시 컴포넌트 리마운트
+
 ## TanStack Query 패턴
 
 ### 1. Query Keys Factory 패턴

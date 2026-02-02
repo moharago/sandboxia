@@ -6,13 +6,12 @@ import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { projects } from "@/data"
 import { cn } from "@/lib/utils/cn"
 import { useProjectStore } from "@/stores/project-store"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { AlertTriangle, CheckCircle2, Scale } from "lucide-react"
-import { notFound, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
 
 type ReasonCategory = "law" | "regulation" | "case"
@@ -52,7 +51,7 @@ interface AIAnalysisData {
     directLaunchRisks: string[]
 }
 
-// 규제 샌드박스 필요 케이스용 더미 데이터
+// 규제 샌드박스 필요 프로젝트용 더미 데이터
 const sandboxAnalysis: AIAnalysisData = {
     recommendation: "sandbox",
     confidence: 87,
@@ -85,7 +84,7 @@ const sandboxAnalysis: AIAnalysisData = {
     ],
 }
 
-// 바로 출시 가능 케이스용 더미 데이터
+// 바로 출시 가능 프로젝트용 더미 데이터
 const directAnalysis: AIAnalysisData = {
     recommendation: "direct",
     confidence: 94,
@@ -126,14 +125,13 @@ type DecisionType = "direct" | "sandbox"
 export default function EligibilityPage({ params }: MarketPageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const projectData = projects.find((p) => p.id === id)
 
     const { marketAnalysis, setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
     const { updateProjectStatus, getProjectStatus } = useProjectStore()
 
-    // 오버라이드된 상태가 있으면 사용, 없으면 원본 상태 사용 (single source of truth)
-    const currentStatus = getProjectStatus(id, (projectData?.status as "consult" | "draft" | "waiting" | "done" | "direct") ?? "consult")
+    // 오버라이드된 상태가 있으면 사용, 없으면 기본값 사용
+    const currentStatus = getProjectStatus(id, "consult")
 
     // 프로젝트 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
     const analysisData = getAnalysisData(currentStatus)
@@ -147,10 +145,6 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- id 변경 시 상태 동기화 필요
         setSelectedDecision(analysisData.recommendation)
     }, [id, analysisData.recommendation])
-
-    if (!projectData) {
-        notFound()
-    }
 
     const handleBack = () => {
         setCurrentStep(1)
@@ -169,7 +163,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         })
 
         if (selectedDecision === "direct") {
-            // 바로출시 선택 시 - 케이스 상태를 'direct'로 변경하고 대시보드로 이동
+            // 바로출시 선택 시 - 프로젝트 상태를 'direct'로 변경하고 대시보드로 이동
             updateProjectStatus(id, "direct")
             markStepComplete(2)
             router.push("/dashboard")
@@ -291,7 +285,9 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                         )}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Scale className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")} />
+                                            <Scale
+                                                className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")}
+                                            />
                                             <div>
                                                 <h4 className="font-medium">규제 샌드박스 신청</h4>
                                                 <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>

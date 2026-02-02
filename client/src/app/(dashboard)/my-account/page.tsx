@@ -9,29 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Modal, ModalContent, ModalHeader, ModalFooter, ModalTitle, ModalDescription } from "@/components/ui/modal"
 import { createClient } from "@/lib/supabase/client"
-import { useUserStore } from "@/stores/user-store"
-import { useUIStore } from "@/stores/ui-store"
+import { useAuthStore } from "@/stores/auth-store"
 import { formatPhoneNumber, hasNonDigit } from "@/lib/utils/phone"
-
-const DELETE_CONFIRMATION_TEXT = "삭제"
-
-interface UserData {
-    id: string
-    email: string
-    name: string | null
-    company: string | null
-    phone: string | null
-    status: string
-}
 
 export default function MyAccountPage() {
     const router = useRouter()
     const supabase = createClient()
-    const updateUserStore = useUserStore((state) => state.updateUser)
-    const userFromStore = useUserStore((state) => state.user)
-    const { devMode, isAuthenticated } = useUIStore()
+    const { user: authUser, profile, fetchProfile, isInitialized } = useAuthStore()
 
-    const [user, setUser] = useState<UserData | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -42,7 +27,12 @@ export default function MyAccountPage() {
     const [phoneError, setPhoneError] = useState("")
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-    const [apiError, setApiError] = useState<string | null>(null)
+    const [confirmText, setConfirmText] = useState("")
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
+
+    const isConfirmValid = confirmText === profile?.name
 
     const handlePhoneChange = (value: string) => {
         if (hasNonDigit(value.replace(/-/g, ''))) {
@@ -53,86 +43,54 @@ export default function MyAccountPage() {
         setPhoneError("")
         setPhone(formatPhoneNumber(value))
     }
-    const [confirmText, setConfirmText] = useState("")
-    const [isDeleting, setIsDeleting] = useState(false)
-    const [deleteError, setDeleteError] = useState<string | null>(null)
-
-    const isConfirmValid = confirmText === DELETE_CONFIRMATION_TEXT
 
     useEffect(() => {
-        // devMode + 임시 로그인 상태면 user-store 데이터 사용
-        if (devMode && isAuthenticated && userFromStore) {
-            setUser({
-                id: 'dev-user',
-                email: userFromStore.email || 'hong@company.com',
-                name: userFromStore.name || '홍길동',
-                company: userFromStore.company || '스마트모빌리티',
-                phone: userFromStore.phone || '010-1234-5678',
-                status: 'ACTIVE'
-            })
-            setName(userFromStore.name || '홍길동')
-            setCompany(userFromStore.company || '스마트모빌리티')
-            setPhone(formatPhoneNumber(userFromStore.phone || '010-1234-5678'))
-            setLoading(false)
-            return
-        }
+        const loadProfile = async () => {
+            // 초기화 완료 전이면 대기
+            if (!isInitialized) return
 
-        const fetchUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-
-            if (!session) {
+            // 로그인 안 됨
+            if (!authUser) {
                 router.push('/login')
                 return
             }
 
             try {
-                const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                })
-
-                if (response.ok) {
-                    const userData: UserData = await response.json()
-                    setUser(userData)
-                    setName(userData.name || "")
-                    setCompany(userData.company || "")
-                    setPhone(formatPhoneNumber(userData.phone || ""))
-                } else {
-                    // 에러 응답 처리
-                    let errorMessage = '사용자 정보를 불러오는데 실패했습니다'
-                    try {
-                        const errorData = await response.json()
-                        errorMessage = errorData.detail || errorData.message || errorMessage
-                    } catch {
-                        errorMessage = await response.text() || errorMessage
-                    }
-                    setApiError(errorMessage)
-                }
-            } catch (error) {
-                console.error('Failed to fetch user:', error)
-                setApiError('서버에 연결할 수 없습니다')
-            } finally {
-                setLoading(false)
+                await fetchProfile()
+            } catch (err) {
+                console.error('Failed to fetch profile:', err)
+                setError('사용자 정보를 불러오는데 실패했습니다')
             }
+            setLoading(false)
         }
 
-        fetchUser()
-    }, [router, supabase.auth, devMode, isAuthenticated, userFromStore])
+        loadProfile()
+    }, [authUser, router, fetchProfile, isInitialized])
+
+    // profile이 없으면 (새 사용자) 온보딩으로 리다이렉트
+    useEffect(() => {
+        if (!loading && isInitialized && authUser && !profile) {
+            router.push('/onboarding')
+        }
+    }, [loading, isInitialized, authUser, profile, router])
+
+    useEffect(() => {
+        if (profile) {
+            setName(profile.name || "")
+            setCompany(profile.company || "")
+            setPhone(formatPhoneNumber(profile.phone || ""))
+        }
+    }, [profile])
 
     const handleSave = async () => {
-        // devMode일 때는 실제 저장 불가
-        if (devMode && isAuthenticated) {
-            setSaveMessage({ type: 'error', text: '개발 모드에서는 저장할 수 없습니다' })
+        if (!name.trim()) {
+            setSaveMessage({ type: 'error', text: '성명을 입력해주세요' })
             setTimeout(() => setSaveMessage(null), 3000)
             return
         }
 
-        // 성명 필수 체크
-        if (!name.trim()) {
-            setSaveMessage({ type: 'error', text: '성명을 입력해주세요' })
-            setTimeout(() => setSaveMessage(null), 3000)
+        if (!authUser) {
+            router.push('/login')
             return
         }
 
@@ -140,32 +98,18 @@ export default function MyAccountPage() {
         setSaveMessage(null)
 
         try {
-            const { data: { session } } = await supabase.auth.getSession()
+            // Supabase 직접 호출
+            const { error } = await supabase
+                .from('users')
+                .update({ name, company, phone })
+                .eq('id', authUser.id)
 
-            if (!session) {
-                router.push('/login')
-                return
-            }
+            if (error) throw error
 
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-            const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ name, company, phone })
-            })
-
-            if (response.ok) {
-                setUser(prev => prev ? { ...prev, name, company, phone } : null)
-                updateUserStore({ name, company, phone })
-                setSaveMessage({ type: 'success', text: '저장되었습니다' })
-            } else {
-                setSaveMessage({ type: 'error', text: '저장에 실패했습니다' })
-            }
-        } catch (error) {
-            console.error('Failed to save:', error)
+            await fetchProfile()
+            setSaveMessage({ type: 'success', text: '저장되었습니다' })
+        } catch (err) {
+            console.error('Failed to save:', err)
             setSaveMessage({ type: 'error', text: '저장에 실패했습니다' })
         } finally {
             setSaving(false)
@@ -178,15 +122,16 @@ export default function MyAccountPage() {
 
         setIsDeleting(true)
         setDeleteError(null)
-        
+
         try {
             const { data: { session } } = await supabase.auth.getSession()
-            
+
             if (!session) {
                 router.push('/login')
                 return
             }
 
+            // 계정 삭제는 서버 API 사용 (service_role 필요)
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
             const response = await fetch(`${apiBaseUrl}/api/users/me`, {
                 method: 'DELETE',
@@ -203,8 +148,8 @@ export default function MyAccountPage() {
                 const error = await response.json()
                 setDeleteError(error.detail || "삭제에 실패했습니다")
             }
-        } catch (error) {
-            console.error("Failed to delete account:", error)
+        } catch (err) {
+            console.error("Failed to delete account:", err)
             setDeleteError("삭제에 실패했습니다")
         } finally {
             setIsDeleting(false)
@@ -218,7 +163,7 @@ export default function MyAccountPage() {
         setDeleteError(null)
     }
 
-    if (loading) {
+    if (loading || !isInitialized) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -226,11 +171,11 @@ export default function MyAccountPage() {
         )
     }
 
-    if (apiError) {
+    if (error) {
         return (
             <div className="p-6 flex flex-col items-center justify-center min-h-[400px] gap-4">
                 <AlertTriangle className="h-12 w-12 text-destructive" />
-                <p className="text-destructive font-medium">{apiError}</p>
+                <p className="text-destructive font-medium">{error}</p>
                 <Button variant="outline" onClick={() => window.location.reload()}>
                     다시 시도
                 </Button>
@@ -260,7 +205,7 @@ export default function MyAccountPage() {
                             <Input
                                 id="email"
                                 type="email"
-                                value={user?.email || ""}
+                                value={profile?.email || ""}
                                 disabled
                                 className="bg-muted"
                             />
@@ -346,13 +291,13 @@ export default function MyAccountPage() {
 
                         <div className="space-y-2 py-4">
                             <Label htmlFor="confirmDelete">
-                                삭제를 확인하려면 <strong>&quot;{DELETE_CONFIRMATION_TEXT}&quot;</strong>를 입력하세요
+                                삭제를 확인하려면 본인 이름 <strong>&quot;{profile?.name}&quot;</strong>을 입력하세요
                             </Label>
                             <Input
                                 id="confirmDelete"
                                 value={confirmText}
                                 onChange={(e) => setConfirmText(e.target.value)}
-                                placeholder={DELETE_CONFIRMATION_TEXT}
+                                placeholder={profile?.name || ""}
                                 disabled={isDeleting}
                             />
                             {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}

@@ -7,9 +7,7 @@ import { Menu, X, User, LogOut, Settings } from "lucide-react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils/cn"
-import { createClient } from "@/lib/supabase/client"
-import { useUserStore } from "@/stores/user-store"
-import { useUIStore } from "@/stores/ui-store"
+import { useAuthStore } from "@/stores/auth-store"
 
 interface NavItem {
     label: string
@@ -21,70 +19,16 @@ const navItems: NavItem[] = []
 export function Header() {
     const pathname = usePathname()
     const router = useRouter()
-    const supabase = createClient()
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
-    const user = useUserStore((state) => state.user)
-    const setUser = useUserStore((state) => state.setUser)
-    const { devMode, isAuthenticated: devAuthenticated } = useUIStore()
-
-    // 세션 체크 및 user-store 동기화
-    React.useEffect(() => {
-        const syncUser = async () => {
-            // devMode + 임시 로그인 상태면 건너뛰기
-            if (devMode && devAuthenticated) return
-
-            const { data: { session } } = await supabase.auth.getSession()
-
-            if (session && !user) {
-                // 세션은 있는데 user-store가 비어있으면 API 호출
-                try {
-                    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-                    const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`
-                        }
-                    })
-                    if (response.ok) {
-                        const userData = await response.json()
-                        setUser({
-                            email: userData.email || session.user.email,
-                            name: userData.name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
-                            company: userData.company,
-                            phone: userData.phone
-                        })
-                    }
-                } catch {
-                    // 서버 연결 실패 시 기본 정보로 설정
-                    setUser({
-                        email: session.user.email || '',
-                        name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-                        company: null,
-                        phone: null
-                    })
-                }
-            }
-        }
-
-        syncUser()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            // devMode + 임시 로그인 상태면 user 초기화하지 않음
-            if (!session && !(devMode && devAuthenticated)) {
-                setUser(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [supabase.auth, setUser, devMode, devAuthenticated, user])
+    const { user, profile, signOut } = useAuthStore()
 
     const handleLogout = async () => {
-        await supabase.auth.signOut()
-        setUser(null)
+        await signOut()
         router.push('/')
     }
 
     const isAuthenticated = user !== null
-    const userName = user?.name || '사용자'
+    const userName = profile?.name || user?.email?.split('@')[0] || '사용자'
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

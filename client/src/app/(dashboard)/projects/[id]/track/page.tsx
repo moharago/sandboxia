@@ -2,7 +2,6 @@
 
 import { use, useState } from "react"
 import { useRouter } from "next/navigation"
-import { notFound } from "next/navigation"
 import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
 import { WizardNavigation } from "@/components/features/wizard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
@@ -11,7 +10,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { projects, tracks } from "@/data"
+import { tracks } from "@/data"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { cn } from "@/lib/utils/cn"
@@ -117,7 +116,6 @@ const verdictStyles: Record<string, { bg: string; text: string; border: string }
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const projectData = projects.find((p) => p.id === id)
 
     const { trackSelection, setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
@@ -134,10 +132,6 @@ export default function TrackPage({ params }: TrackPageProps) {
     if (id !== prevId) {
         setPrevId(id)
         setSelectedTrackId(defaultTrackId)
-    }
-
-    if (!projectData) {
-        notFound()
     }
 
     const handleSelectTrack = (trackId: string) => {

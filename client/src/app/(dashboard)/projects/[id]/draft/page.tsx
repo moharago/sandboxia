@@ -6,10 +6,9 @@ import { FormSectionList } from "@/components/features/draft/FormSectionList"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { Button } from "@/components/ui/button"
-import { projects } from "@/data"
 import { useWizardStore } from "@/stores/wizard-store"
 import { Download } from "lucide-react"
-import { notFound, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { use, useState } from "react"
 
 interface DraftPageProps {
@@ -19,15 +18,10 @@ interface DraftPageProps {
 export default function DraftPage({ params }: DraftPageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const projectData = projects.find((p) => p.id === id)
 
     const { markStepComplete, setCurrentStep, selectedFormType } = useWizardStore()
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
-
-    if (!projectData) {
-        notFound()
-    }
 
     const handleBack = () => {
         setCurrentStep(3)
