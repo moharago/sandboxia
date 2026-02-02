@@ -71,4 +71,20 @@ export const projectsApi = {
 
         return data as ProjectResponse
     },
+
+    /**
+     * 프로젝트 삭제 (RLS 적용)
+     */
+    deleteProject: async (id: string): Promise<void> => {
+        const supabase = createClient()
+
+        const { error } = await supabase
+            .from("projects")
+            .delete()
+            .eq("id", id)
+
+        if (error) {
+            throw new Error(error.message)
+        }
+    },
 }
