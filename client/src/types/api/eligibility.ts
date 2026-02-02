@@ -65,11 +65,15 @@ export interface EligibilityResponse {
     evidence_data: EvidenceData
 }
 
+// 사용자 최종 선택 타입 (unclear 제외)
+export type FinalEligibilityLabel = "required" | "not_required"
+
 // DB 레코드 타입 (Supabase eligibility_results 테이블)
 export interface EligibilityResult {
     id: string
     project_id: string
     eligibility_label: EligibilityLabel
+    final_eligibility_label: FinalEligibilityLabel | null // 사용자 최종 선택
     confidence_score: number
     result_summary: string
     direct_launch_risks: DirectLaunchRisk[]

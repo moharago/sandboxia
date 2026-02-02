@@ -15,10 +15,13 @@ interface WizardNavigationProps {
     /** 다음 버튼 라벨 */
     nextLabel?: string
 
-    /** AI 분석 + 다음 단계 핸들러 */
+    /** AI 분석 + 다음 단계 핸들러 (분석 전 상태에서 사용) */
     onAnalyze?: () => void
     /** 분석 버튼 라벨 */
     analyzeLabel?: string
+
+    /** AI 재분석 핸들러 (분석 완료 상태에서 사용, 다음 단계로 안 감) */
+    onReanalyze?: () => void
 
     /** 분석 완료 여부 - true면 [재분석][다음] 버튼, false면 [AI 분석 및 다음] 버튼 */
     isAnalyzed?: boolean
@@ -43,6 +46,7 @@ export function WizardNavigation({
     nextLabel = "다음 단계",
     onAnalyze,
     analyzeLabel = "AI 분석 및 다음 단계",
+    onReanalyze,
     isAnalyzed = false,
     hasChanges = false,
     isLoading = false,
@@ -77,8 +81,8 @@ export function WizardNavigation({
                     {isAnalyzed ? (
                         <>
                             {/* 분석 완료 상태: 재분석 + 다음 단계 */}
-                            {onAnalyze && (
-                                <Button variant="outline" onClick={onAnalyze} disabled={isLoading || isAnalyzeDisabled} className="gap-2">
+                            {(onReanalyze || onAnalyze) && (
+                                <Button variant="outline" onClick={onReanalyze || onAnalyze} disabled={isLoading || isAnalyzeDisabled} className="gap-2">
                                     <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                                     AI 재분석
                                 </Button>

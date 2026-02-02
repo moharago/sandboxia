@@ -5,12 +5,19 @@ import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
+import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
+import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { eligibilityApi } from "@/lib/api/eligibility"
+import { projectsApi } from "@/lib/api/projects"
 import { cn } from "@/lib/utils/cn"
-import { useProjectStore } from "@/stores/project-store"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
-import { AlertTriangle, CheckCircle2, Scale } from "lucide-react"
+import type { EligibilityResponse, EligibilityResult, JudgmentType } from "@/types/api/eligibility"
+import { useQueryClient } from "@tanstack/react-query"
+import { AlertTriangle, CheckCircle2, Play, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
 
@@ -24,10 +31,6 @@ interface AnalysisReason {
 }
 
 const CATEGORY_CONFIG: Record<ReasonCategory, { label: string; badgeClass: string }> = {
-    law: {
-        label: "법령 기준",
-        badgeClass: "bg-purple-100 text-purple-700 border-purple-300",
-    },
     regulation: {
         label: "규제 기준",
         badgeClass: "bg-blue-100 text-blue-700 border-blue-300",
@@ -36,13 +39,17 @@ const CATEGORY_CONFIG: Record<ReasonCategory, { label: string; badgeClass: strin
         label: "사례 기준",
         badgeClass: "bg-green-100 text-green-700 border-green-300",
     },
+    law: {
+        label: "법령 기준",
+        badgeClass: "bg-purple-100 text-purple-700 border-purple-300",
+    },
 }
 
 interface MarketPageProps {
     params: Promise<{ id: string }>
 }
 
-// 더미 AI 분석 결과 데이터 (RAG 1,2,3 툴 활용 시뮬레이션)
+// API 응답을 UI 데이터로 변환
 interface AIAnalysisData {
     recommendation: "direct" | "sandbox"
     confidence: number
@@ -51,74 +58,57 @@ interface AIAnalysisData {
     directLaunchRisks: string[]
 }
 
-// 규제 샌드박스 필요 프로젝트용 더미 데이터
-const sandboxAnalysis: AIAnalysisData = {
-    recommendation: "sandbox",
-    confidence: 87,
-    summary: "본 서비스는 현행 규제 체계에서 즉시 시장 출시가 어려우며, 규제 샌드박스를 통한 실증이 필요합니다.",
-    reasons: [
-        {
-            category: "law",
-            title: "규제 저촉 사항 발견",
-            description: "자율주행 배달로봇의 보도 운행은 현행법상 명확한 법적 근거가 부재하며, 도로 운행 시 운전자 탑승 의무 조항에 저촉됩니다.",
-            source: "「여객자동차 운수사업법」 제3조 제1항, 「도로교통법」 제2조 제26호",
-        },
-        {
-            category: "case",
-            title: "유사 승인 사례 존재",
-            description: "동일 서비스 유형의 실증특례 승인 선례가 있어 승인 가능성이 높으나, 안전성 검증 자료 보강이 필요합니다.",
-            source: "실증특례 제2023-ICT융합-0147호 '뉴빌리티 자율주행 배달로봇 서비스'",
-        },
-        {
-            category: "regulation",
-            title: "신속확인 대상 아님",
-            description:
-                "해당 서비스는 규제 적용 여부가 명확하므로 신속확인 트랙 요건에 해당하지 않습니다. 실증특례 또는 임시허가 트랙이 적합합니다.",
-            source: "「정보통신융합법」 제36조 (신속확인), 「규제 샌드박스 운영지침」 제4조",
-        },
-    ],
-    directLaunchRisks: [
-        "「도로교통법」 제156조에 따른 무허가 운행 과태료 (최대 300만원)",
-        "「제조물책임법」 제3조에 따른 사고 발생 시 손해배상 책임",
-        "자율주행 로봇 관련 보험 상품 부재로 인한 리스크 전가 불가",
-    ],
-}
-
-// 바로 출시 가능 프로젝트용 더미 데이터
-const directAnalysis: AIAnalysisData = {
-    recommendation: "direct",
-    confidence: 94,
-    summary: "본 서비스는 현행 규제 체계 내에서 별도의 규제 특례 없이 즉시 시장 출시가 가능합니다.",
-    reasons: [
-        {
-            category: "law",
-            title: "규제 저촉 사항 없음",
-            description: "대형 시설 내 자율주행 청소 로봇은 「도로교통법」 적용 대상이 아니며, 사유지 내 운행으로 별도 허가가 불필요합니다.",
-            source: "「도로교통법」 제2조 (정의), 「산업안전보건법」 제93조 (안전인증 대상)",
-        },
-        {
-            category: "regulation",
-            title: "기존 인허가 체계 적용 가능",
-            description: "전기용품 안전인증(KC) 및 전자파 적합성 인증만 취득하면 현행법 내에서 서비스 제공이 가능합니다.",
-            source: "「전기용품 및 생활용품 안전관리법」 제5조, 「전파법」 제58조의2",
-        },
-        {
-            category: "case",
-            title: "유사 서비스 정상 운영 중",
-            description: "LG전자, 네이버랩스 등 다수 기업이 동일 유형의 서비스를 규제 특례 없이 상업 운영 중입니다.",
-            source: "LG CLOi 로봇 시리즈 상용화 사례, 네이버랩스 루키(Rookie) 서비스 운영 사례",
-        },
-    ],
-    directLaunchRisks: [],
-}
-
-// 프로젝트 상태에 따라 적절한 더미 데이터 선택
-const getAnalysisData = (projectStatus?: number): AIAnalysisData => {
-    if (projectStatus === 5) {
-        // 5=바로출시
-        return directAnalysis
+// JudgmentType을 ReasonCategory로 변환
+function mapJudgmentTypeToCategory(type: JudgmentType): ReasonCategory {
+    switch (type) {
+        case "규제 기준":
+            return "regulation"
+        case "사례 기준":
+            return "case"
+        case "법령 기준":
+            return "law"
+        default:
+            return "regulation"
     }
-    return sandboxAnalysis
+}
+
+// API 응답 또는 DB 레코드를 UI 데이터로 변환
+function mapResponseToAnalysisData(response: EligibilityResponse | EligibilityResult): AIAnalysisData {
+    // eligibility_label → recommendation 변환
+    const recommendation = response.eligibility_label === "not_required" ? "direct" : "sandbox"
+
+    // confidence_score (0-1) → confidence (0-100) 변환
+    const confidence = Math.round(response.confidence_score * 100)
+
+    // judgment_summary → reasons 변환
+    const reasons: AnalysisReason[] = response.evidence_data.judgment_summary.map((item) => ({
+        category: mapJudgmentTypeToCategory(item.type),
+        title: item.title,
+        description: item.summary,
+        source: item.source,
+    }))
+
+    // direct_launch_risks → directLaunchRisks 변환 (description만 추출)
+    const directLaunchRisks = response.direct_launch_risks.map(
+        (risk) => `${risk.title}: ${risk.description}`
+    )
+
+    return {
+        recommendation,
+        confidence,
+        summary: response.result_summary,
+        reasons,
+        directLaunchRisks,
+    }
+}
+
+// 분석 전 기본 UI 데이터
+const defaultAnalysisData: AIAnalysisData = {
+    recommendation: "sandbox",
+    confidence: 0,
+    summary: "AI 분석을 실행하여 규제 샌드박스 신청 필요 여부를 확인하세요.",
+    reasons: [],
+    directLaunchRisks: [],
 }
 
 type DecisionType = "direct" | "sandbox"
@@ -126,60 +116,196 @@ type DecisionType = "direct" | "sandbox"
 export default function EligibilityPage({ params }: MarketPageProps) {
     const { id } = use(params)
     const router = useRouter()
+    const queryClient = useQueryClient()
 
-    const { marketAnalysis, setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
+    const { setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
-    const { updateProjectStatus, getProjectStatus } = useProjectStore()
 
-    // 오버라이드된 상태가 있으면 사용, 없으면 기본값 사용 (1=기업상담)
-    const currentStatus = getProjectStatus(id, 1)
+    // 프로젝트 정보 조회 (current_step 확인용)
+    const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
 
-    // 프로젝트 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
-    const analysisData = getAnalysisData(currentStatus)
+    // 기존 eligibility 결과 조회
+    const { data: existingResult, isLoading: isLoadingExisting } = useEligibilityQuery(id)
 
-    const [selectedDecision, setSelectedDecision] = useState<DecisionType>(analysisData.recommendation)
-    const [isSaving, setIsSaving] = useState(false)
+    // 기존 결과가 있는지 확인 (evidence_data가 있고 비어있지 않은 경우)
+    const hasExistingResult = existingResult?.evidence_data &&
+        Object.keys(existingResult.evidence_data).length > 0
+
+    // Step 1 완료 여부 확인 (current_step >= 2이면 Step 1 완료)
+    const isStep1Completed = project && project.current_step >= 2
+
+    // Step 1 미완료 시 alert 후 리다이렉트
+    useEffect(() => {
+        if (!isLoadingProject && project && !isStep1Completed) {
+            alert("서비스 분석을 먼저 완료해주세요.")
+            router.push(`/projects/${id}/service`)
+        }
+    }, [isLoadingProject, project, isStep1Completed, router, id])
+
+    // API mutation hook
+    const eligibilityMutation = useEligibilityMutation({
+        onSuccess: (data) => {
+            const mappedData = mapResponseToAnalysisData(data)
+            setAnalysisData(mappedData)
+            setSelectedDecision(mappedData.recommendation)
+            setIsAnalyzed(true)
+        },
+        onError: (error) => {
+            alert(`분석 실패: ${error.message}`)
+        },
+    })
+
+    // 분석 결과 상태
+    const [analysisData, setAnalysisData] = useState<AIAnalysisData>(defaultAnalysisData)
+    const [selectedDecision, setSelectedDecision] = useState<DecisionType>("sandbox")
+    const [isAnalyzed, setIsAnalyzed] = useState(false)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
 
-    // 프로젝트가 변경되면 AI 추천값으로 초기화
+    // 기존 결과가 로드되면 화면에 표시
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- id 변경 시 상태 동기화 필요
-        setSelectedDecision(analysisData.recommendation)
-    }, [id, analysisData.recommendation])
+        if (existingResult && hasExistingResult) {
+            const mappedData = mapResponseToAnalysisData(existingResult)
+            setAnalysisData(mappedData)
+
+            // 사용자가 이미 선택한 값이 있으면 그걸 사용, 없으면 AI 추천값 사용
+            if (existingResult.final_eligibility_label) {
+                // final_eligibility_label: "not_required" → "direct", "required" → "sandbox"
+                const userChoice = existingResult.final_eligibility_label === "not_required" ? "direct" : "sandbox"
+                setSelectedDecision(userChoice)
+            } else {
+                setSelectedDecision(mappedData.recommendation)
+            }
+
+            setIsAnalyzed(true)
+        } else if (existingResult === null) {
+            // 결과가 없으면 초기 상태로
+            setAnalysisData(defaultAnalysisData)
+            setSelectedDecision("sandbox")
+            setIsAnalyzed(false)
+        }
+    }, [existingResult, hasExistingResult])
 
     const handleBack = () => {
         setCurrentStep(1)
         router.push(`/projects/${id}/service`)
     }
 
-    const handleSave = async () => {
-        setIsSaving(true)
+    // AI 분석 실행 (분석만, 다음 단계로 안 감)
+    const handleAnalyze = () => {
+        // 기존 결과가 있으면 재분석 확인
+        if (hasExistingResult) {
+            const confirmed = window.confirm(
+                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
+            )
+            if (!confirmed) return
+        }
 
-        // AI 분석 시뮬레이션
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        runAnalysis(false)
+    }
+
+    // 다음 단계로 이동 (분석 완료 후)
+    const handleNext = async () => {
+        if (!isAnalyzed) return
 
         setMarketAnalysis({
             decision: selectedDecision,
             aiRecommendation: analysisData.recommendation,
         })
 
+        // 사용자 최종 선택 저장 (direct → not_required, sandbox → required)
+        const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
+        await eligibilityApi.updateFinalDecision(id, finalLabel)
+        await queryClient.invalidateQueries({ queryKey: ["eligibility"] }) // eligibility 캐시 무효화
+
         if (selectedDecision === "direct") {
-            // 바로출시 선택 시 - 프로젝트 상태를 5(바로출시)로 변경하고 대시보드로 이동
-            updateProjectStatus(id, 5)
+            await projectsApi.updateStatus(id, 5) // 5 = 바로출시 (DB 업데이트)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] }) // 캐시 무효화
             markStepComplete(2)
             router.push("/dashboard")
         } else {
-            // 규제 샌드박스 선택 시 - 트랙 선택 페이지로 이동
+            await projectsApi.updateStatus(id, 3) // 3 = 결과대기 (DB 업데이트)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             setCurrentStep(3)
             router.push(`/projects/${id}/track`)
         }
-        // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
+    }
+
+    // AI 분석 실행 (재분석 확인 포함)
+    const runAnalysis = (goNextAfter: boolean) => {
+        eligibilityMutation.mutate(
+            { project_id: id },
+            {
+                onSuccess: async (data) => {
+                    const mappedData = mapResponseToAnalysisData(data)
+                    setAnalysisData(mappedData)
+                    setSelectedDecision(mappedData.recommendation)
+                    setIsAnalyzed(true)
+
+                    if (goNextAfter) {
+                        // 바로 다음 단계로 이동
+                        setMarketAnalysis({
+                            decision: mappedData.recommendation,
+                            aiRecommendation: mappedData.recommendation,
+                        })
+
+                        // 사용자 최종 선택 저장 (AI 추천 그대로 수락)
+                        const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
+                        await eligibilityApi.updateFinalDecision(id, finalLabel)
+                        await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+
+                        if (mappedData.recommendation === "direct") {
+                            await projectsApi.updateStatus(id, 5) // 5 = 바로출시 (DB 업데이트)
+                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            markStepComplete(2)
+                            router.push("/dashboard")
+                        } else {
+                            await projectsApi.updateStatus(id, 3) // 3 = 결과대기 (DB 업데이트)
+                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            markStepComplete(2)
+                            setCurrentStep(3)
+                            router.push(`/projects/${id}/track`)
+                        }
+                    }
+                },
+            }
+        )
+    }
+
+    // 분석 + 다음 단계 (한 번에)
+    const handleAnalyzeAndNext = async () => {
+        // 이미 분석된 경우 바로 다음 단계로
+        if (isAnalyzed) {
+            handleNext()
+            return
+        }
+
+        // 기존 결과가 있으면 재분석 확인
+        if (hasExistingResult) {
+            const confirmed = window.confirm(
+                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
+            )
+            if (!confirmed) {
+                // 취소하면 기존 결과로 다음 단계 진행
+                handleNext()
+                return
+            }
+        }
+
+        // 분석 실행 후 다음 단계로 이동
+        runAnalysis(true)
+    }
+
+    const isLoading = eligibilityMutation.isPending || isLoadingExisting || isLoadingProject
+
+    // Step 1 완료 전이면 리다이렉트 중이므로 로딩 표시
+    if (!isLoadingProject && !isStep1Completed) {
+        return null
     }
 
     return (
         <div className="py-6">
-            {isSaving && <AILoadingOverlay message={selectedDecision === "direct" ? "저장 중" : "AI 분석 중"} />}
+            {isLoading && <AILoadingOverlay message="AI 분석 중" />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}
@@ -193,44 +319,61 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                         <AIAnalysisCard
                             summary={analysisData.summary}
                             confidence={analysisData.confidence}
-                            recommendation={analysisData.recommendation === "sandbox" ? "규제 샌드박스 필요" : "바로 시장 출시 가능"}
+                            recommendation={
+                                !isAnalyzed
+                                    ? "분석 대기 중"
+                                    : analysisData.recommendation === "sandbox"
+                                      ? "규제 샌드박스 필요"
+                                      : "바로 시장 출시 가능"
+                            }
                         />
 
                         {/* 판단 근거 */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>판단 근거</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="divide-y divide-border">
-                                    {analysisData.reasons.map((reason: AnalysisReason, index) => {
-                                        const config = CATEGORY_CONFIG[reason.category]
-                                        return (
-                                            <div
-                                                key={index}
-                                                className={cn(
-                                                    "flex items-start gap-3 py-4",
-                                                    index === 0 && "pt-0",
-                                                    index === analysisData.reasons.length - 1 && "pb-0"
-                                                )}
-                                            >
-                                                <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", config.badgeClass)}>
-                                                    {config.label}
-                                                </Badge>
-                                                <div className="flex-1">
-                                                    <h4 className="font-medium">{reason.title}</h4>
-                                                    <p className="text-sm text-foreground mt-1">{reason.description}</p>
-                                                    <p className="text-sm text-foreground/70 mt-2">근거: {reason.source}</p>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        {isAnalyzed && analysisData.reasons.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>판단 근거</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="divide-y divide-border">
+                                        {/* 카테고리별로 그룹핑 */}
+                                        {(["regulation", "case", "law"] as ReasonCategory[])
+                                            .map((category) => {
+                                                // 해당 카테고리의 reasons 필터링 + 중복 제거 (title 기준)
+                                                const categoryReasons = analysisData.reasons
+                                                    .filter((r) => r.category === category)
+                                                    .filter((r, i, arr) => arr.findIndex((x) => x.title === r.title) === i)
+
+                                                if (categoryReasons.length === 0) return null
+
+                                                const config = CATEGORY_CONFIG[category]
+                                                return (
+                                                    <div key={category} className="py-4 first:pt-0 last:pb-0">
+                                                        <div className="flex items-start gap-3">
+                                                            <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", config.badgeClass)}>
+                                                                {config.label}
+                                                            </Badge>
+                                                            <div className="flex-1 space-y-4">
+                                                                {categoryReasons.map((reason, idx) => (
+                                                                    <div key={idx}>
+                                                                        <h4 className="font-medium">{reason.title}</h4>
+                                                                        <p className="text-sm text-foreground mt-1">{reason.description}</p>
+                                                                        <p className="text-sm text-foreground/70 mt-2">근거: {reason.source}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                            .filter(Boolean)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* 바로 출시 시 리스크 */}
-                        {analysisData.recommendation === "sandbox" && (
+                        {isAnalyzed && analysisData.recommendation === "sandbox" && analysisData.directLaunchRisks.length > 0 && (
                             <Card className="border-amber-200">
                                 <CardHeader>
                                     <div className="flex items-center gap-2">
@@ -252,86 +395,70 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                         )}
 
                         {/* 컨설턴트 최종 결정 */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>최종 결정</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedDecision("direct")}
-                                        className={cn(
-                                            "p-4 rounded-lg border-2 text-left transition-all",
-                                            selectedDecision === "direct" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <CheckCircle2
-                                                className={cn("h-6 w-6", selectedDecision === "direct" ? "text-primary" : "text-muted-foreground")}
-                                            />
-                                            <div>
-                                                <h4 className="font-medium">바로 시장 출시</h4>
-                                                <p className="text-sm text-muted-foreground">현행 규제 내에서 서비스 출시가 가능합니다</p>
+                        {isAnalyzed && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>최종 결정</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedDecision("direct")}
+                                            className={cn(
+                                                "p-4 rounded-lg border-2 text-left transition-all",
+                                                selectedDecision === "direct" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <CheckCircle2
+                                                    className={cn("h-6 w-6", selectedDecision === "direct" ? "text-primary" : "text-muted-foreground")}
+                                                />
+                                                <div>
+                                                    <h4 className="font-medium">바로 시장 출시</h4>
+                                                    <p className="text-sm text-muted-foreground">현행 규제 내에서 서비스 출시가 가능합니다</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </button>
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedDecision("sandbox")}
-                                        className={cn(
-                                            "p-4 rounded-lg border-2 text-left transition-all",
-                                            selectedDecision === "sandbox" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <Scale
-                                                className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")}
-                                            />
-                                            <div>
-                                                <h4 className="font-medium">규제 샌드박스 신청</h4>
-                                                <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedDecision("sandbox")}
+                                            className={cn(
+                                                "p-4 rounded-lg border-2 text-left transition-all",
+                                                selectedDecision === "sandbox" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Scale className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")} />
+                                                <div>
+                                                    <h4 className="font-medium">규제 샌드박스 신청</h4>
+                                                    <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </button>
-                                </div>
-
-                                {selectedDecision !== analysisData.recommendation && (
-                                    <div className="text-sm flex gap-2 items-center px-2">
-                                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                        <span className="text-amber-700">AI 추천과 다른 선택입니다. 선택에 대한 근거를 확인해주세요.</span>
+                                        </button>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
 
-                        {/* TODO: isAnalyzed는 나중에 eligibility_results 존재 여부로 판단 */}
-                        {/* TODO: hasChanges는 이전 단계(service) 데이터 변경 여부로 판단 */}
+                                    {selectedDecision !== analysisData.recommendation && (
+                                        <div className="text-sm flex gap-2 items-center px-2">
+                                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                            <span className="text-amber-700">AI 추천과 다른 선택입니다. 선택에 대한 근거를 확인해주세요.</span>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
                         <WizardNavigation
                             onBack={handleBack}
-                            onAnalyze={handleSave}
-                            onNext={() => {
-                                // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
-                                setMarketAnalysis({
-                                    decision: selectedDecision,
-                                    aiRecommendation: analysisData.recommendation,
-                                })
-                                if (selectedDecision === "direct") {
-                                    updateProjectStatus(id, 5)
-                                    markStepComplete(2)
-                                    router.push("/dashboard")
-                                } else {
-                                    markStepComplete(2)
-                                    setCurrentStep(3)
-                                    router.push(`/projects/${id}/track`)
-                                }
-                            }}
+                            onAnalyze={handleAnalyzeAndNext}
+                            onReanalyze={handleAnalyze}
+                            onNext={handleNext}
                             analyzeLabel="AI 분석 및 다음 단계"
                             nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
-                            isAnalyzed={devIsAnalyzed}
+                            isAnalyzed={isAnalyzed || devIsAnalyzed}
                             hasChanges={devHasChanges}
-                            isLoading={isSaving}
+                            isLoading={isLoading}
                         />
                     </div>
 

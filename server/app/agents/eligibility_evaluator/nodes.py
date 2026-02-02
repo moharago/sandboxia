@@ -218,6 +218,7 @@ def screen_node(state: EligibilityState) -> dict:
 
     canonical에서 서비스 정보를 추출하여 Rule Screener 실행
     """
+    print("[Step 1/5] 규제 스크리닝 시작...")
     canonical = state["canonical"]
 
     # canonical에서 서비스 정보 추출 (헬퍼 함수 사용)
@@ -230,7 +231,7 @@ def screen_node(state: EligibilityState) -> dict:
         "service_name": service_name,
     })
 
-    logger.info(f"Screening result: {result}")
+    print(f"[Step 1/5] 규제 스크리닝 완료 - 리스크: {result.has_regulation_risk}, 도메인: {result.detected_domains}")
 
     # ScreeningResult로 변환
     screening_result = ScreeningResult(
@@ -250,6 +251,7 @@ def search_regulations_node(state: EligibilityState) -> dict:
     R1은 제도 중심 고정 쿼리로 검색합니다.
     도메인 키워드가 아닌, 규제샌드박스 제도/기준 관련 쿼리만 사용합니다.
     """
+    print("[Step 2/5] R1 규제제도 검색 시작...")
     # R1 고정 쿼리 (도메인 키워드 사용 금지)
     # 이 쿼리는 R1 데이터의 의미 공간(제도/요건/절차)에 맞춰져 있음
     R1_FIXED_QUERY = """규제샌드박스 신속확인 실증특례 임시허가 대상 기준
@@ -272,7 +274,7 @@ def search_regulations_node(state: EligibilityState) -> dict:
                 "citation": reg.citation,
                 "relevance_score": reg.relevance_score,
             })
-        logger.info(f"R1: Found {len(regulations)} regulation results")
+        print(f"[Step 2/5] R1 규제제도 검색 완료 - {len(regulations)}건")
     else:
         # 검색 결과 없으면 fallback 고정 템플릿 사용
         regulations = [
@@ -285,7 +287,7 @@ def search_regulations_node(state: EligibilityState) -> dict:
                 "relevance_score": 1.0,
             }
         ]
-        logger.info("R1: No search results, using fallback template")
+        print("[Step 2/5] R1 검색 결과 없음, fallback 템플릿 사용")
 
     return {"regulation_results": regulations}
 
@@ -295,6 +297,7 @@ def search_cases_node(state: EligibilityState) -> dict:
 
     서비스 설명으로 유사 승인 사례 검색
     """
+    print("[Step 3/5] R2 승인 사례 검색 시작...")
     service_description = get_service_description(state["canonical"])
     query = (service_description or "규제 샌드박스 서비스")[:500]
 
@@ -321,7 +324,7 @@ def search_cases_node(state: EligibilityState) -> dict:
                 "source_url": c.source_url,  # 사례 상세 URL
             })
 
-    logger.info(f"Found {len(cases)} case results")
+    print(f"[Step 3/5] R2 승인 사례 검색 완료 - {len(cases)}건")
 
     return {"case_results": cases}
 
@@ -332,6 +335,7 @@ def search_laws_node(state: EligibilityState) -> dict:
     스크리닝에서 탐지된 도메인으로 법령 검색
     도메인이 없는 경우에도 최소 1회 R3 검색 수행
     """
+    print("[Step 4/5] R3 법령 검색 시작...")
     screening = state["screening_result"]
     domains = screening.detected_domains if screening else []
     keywords = screening.search_keywords if screening else []
@@ -363,7 +367,7 @@ def search_laws_node(state: EligibilityState) -> dict:
                     "relevance_score": law.relevance_score,
                 })
 
-    logger.info(f"Found {len(laws)} law results")
+    print(f"[Step 4/5] R3 법령 검색 완료 - {len(laws)}건")
 
     return {"law_results": laws}
 
@@ -373,6 +377,7 @@ def compose_decision_node(state: EligibilityState) -> dict:
 
     수집된 모든 정보를 종합하여 최종 판정
     """
+    print("[Step 5/5] LLM 판정 통합 시작...")
     screening = state["screening_result"]
     regulations = state["regulation_results"]
     cases = state["case_results"]
@@ -431,7 +436,9 @@ def compose_decision_node(state: EligibilityState) -> dict:
         HumanMessage(content=prompt),
     ]
 
+    print("[Step 5/5] LLM 호출 중...")
     response = llm.invoke(messages)
+    print("[Step 5/5] LLM 응답 수신 완료")
 
     # 응답 파싱 시도
     try:
@@ -484,6 +491,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     R1/R2/R3 검색 결과 사용, R1 결과 없으면 fallback 템플릿 사용
     LLM으로 사례/법령 설명 생성
     """
+    print("[Evidence] 근거 데이터 생성 시작...")
     cases = state["case_results"]
     laws = state["law_results"]
     regulations = state["regulation_results"]
@@ -520,7 +528,9 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             ))
 
     # 사례 기반 근거 (LLM으로 설명 생성)
-    for case in cases[:2]:
+    print(f"[Evidence] 사례 설명 LLM 생성 중... ({len(cases[:2])}건)")
+    for i, case in enumerate(cases[:2]):
+        print(f"[Evidence] 사례 {i+1}/{len(cases[:2])} 설명 생성 중...")
         service_name = case.get("service_name") or "유사 서비스"
         track = case.get("track") or ""
         company = case.get("company_name") or "기업"
@@ -535,9 +545,12 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             summary=clean_rag_content(case_summary, max_length=250),
             source=f"{company} - {case_id}" if case_id else company,
         ))
+    print("[Evidence] 사례 설명 생성 완료")
 
     # 법령 기반 근거 (LLM으로 설명 생성)
-    for law in laws[:2]:
+    print(f"[Evidence] 법령 설명 LLM 생성 중... ({len(laws[:2])}건)")
+    for i, law in enumerate(laws[:2]):
+        print(f"[Evidence] 법령 {i+1}/{len(laws[:2])} 설명 생성 중...")
         law_name = law.get("law_name", "")
         article_no = law.get("article_no", "")
         citation = law.get("citation") or f"{law_name} {article_no}"
@@ -551,6 +564,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             summary=clean_rag_content(law_summary, max_length=250),
             source=f"{law_name} {article_no}".strip(),
         ))
+    print("[Evidence] 법령 설명 생성 완료")
 
     # approval_cases 생성 (Step 2,3,4 재사용)
     approval_cases: list[ApprovalCase] = []
@@ -601,6 +615,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             source=None,
         ))
 
+    print("[Evidence] 근거 데이터 생성 완료")
     return {
         "judgment_summary": judgment_summary,
         "approval_cases": approval_cases,

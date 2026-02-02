@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import formData from "@/data/formData.json"
+import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
+import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectFilesQuery } from "@/hooks/queries/use-projects-query"
 import { useUIStore } from "@/stores/ui-store"
 import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
@@ -39,9 +41,29 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     const isAnalysisCompleted = project.current_step >= 2
     const { data: uploadedFileList } = useProjectFilesQuery(id)
 
+    // 기존 eligibility 결과 조회 (재분석 확인용)
+    const { data: existingEligibilityResult } = useEligibilityQuery(id)
+    const hasExistingEligibilityResult = existingEligibilityResult?.evidence_data &&
+        Object.keys(existingEligibilityResult.evidence_data).length > 0
+
+    // Step 2: 대상성 분석 mutation
+    const eligibilityMutation = useEligibilityMutation({
+        onSuccess: () => {
+            // Step 1 + Step 2 모두 완료 → eligibility 페이지로 이동
+            router.push(`/projects/${id}/eligibility`)
+        },
+        onError: (error) => {
+            // Step 2 실패해도 페이지 이동 (Step 1은 완료됨)
+            alert(`대상성 분석 실패: ${error.message}\n\nStep 2 페이지에서 다시 시도해주세요.`)
+            router.push(`/projects/${id}/eligibility`)
+        },
+    })
+
+    // Step 1: 서비스 구조화 mutation
     const serviceMutation = useServiceMutation({
         onSuccess: () => {
-            router.push(`/projects/${id}/eligibility`)
+            // Step 1 완료 → Step 2 (대상성 분석) 자동 실행
+            eligibilityMutation.mutate({ project_id: id })
         },
         onError: (error) => {
             alert(error.message || "서버 오류가 발생했습니다.")
@@ -93,6 +115,14 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     })()
 
     const handleSave = () => {
+        // 기존 대상성 분석 결과가 있으면 재분석 확인
+        if (hasExistingEligibilityResult) {
+            const confirmed = window.confirm(
+                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
+            )
+            if (!confirmed) return
+        }
+
         const files: File[] = []
         if (selectedForm) {
             for (const app of selectedForm.application) {
@@ -116,9 +146,15 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         })
     }
 
+    const isLoading = serviceMutation.isPending || eligibilityMutation.isPending
+
     return (
         <div className="py-6">
-            {serviceMutation.isPending && <AILoadingOverlay />}
+            {isLoading && (
+                <AILoadingOverlay
+                    message={serviceMutation.isPending ? "서비스 분석 중" : "대상성 분석 중"}
+                />
+            )}
             <div className="container mx-auto px-4 space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
@@ -238,7 +274,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
                     nextLabel="다음 단계"
                     isAnalyzed={isAnalysisCompleted || devIsAnalyzed}
                     hasChanges={devHasChanges}
-                    isLoading={serviceMutation.isPending}
+                    isLoading={isLoading}
                     isAnalyzeDisabled={!isFormValid}
                 />
             </div>
