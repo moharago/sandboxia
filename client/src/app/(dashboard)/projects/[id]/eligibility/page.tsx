@@ -6,13 +6,12 @@ import { WizardNavigation } from "@/components/features/wizard"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { projects } from "@/data"
 import { cn } from "@/lib/utils/cn"
 import { useProjectStore } from "@/stores/project-store"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { AlertTriangle, CheckCircle2, Scale } from "lucide-react"
-import { notFound, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
 
 type ReasonCategory = "law" | "regulation" | "case"
@@ -126,14 +125,13 @@ type DecisionType = "direct" | "sandbox"
 export default function EligibilityPage({ params }: MarketPageProps) {
     const { id } = use(params)
     const router = useRouter()
-    const projectData = projects.find((p) => p.id === id)
 
     const { marketAnalysis, setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
     const { updateProjectStatus, getProjectStatus } = useProjectStore()
 
-    // 오버라이드된 상태가 있으면 사용, 없으면 원본 상태 사용 (single source of truth)
-    const currentStatus = getProjectStatus(id, (projectData?.status as "consult" | "draft" | "waiting" | "done" | "direct") ?? "consult")
+    // 오버라이드된 상태가 있으면 사용, 없으면 기본값 사용
+    const currentStatus = getProjectStatus(id, "consult")
 
     // 프로젝트 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
     const analysisData = getAnalysisData(currentStatus)
@@ -147,10 +145,6 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- id 변경 시 상태 동기화 필요
         setSelectedDecision(analysisData.recommendation)
     }, [id, analysisData.recommendation])
-
-    if (!projectData) {
-        notFound()
-    }
 
     const handleBack = () => {
         setCurrentStep(1)

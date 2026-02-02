@@ -2,6 +2,8 @@
  * Project API Types
  */
 
+import type { Project, ProjectStatus, ProjectStep, Track } from "@/types/data/project"
+
 export interface CreateProjectRequest {
     user_id: string
     company_name: string
@@ -10,20 +12,25 @@ export interface CreateProjectRequest {
     industry?: string
 }
 
-export interface ProjectResponse {
-    id: string
-    user_id: string
-    company_name: string
-    service_name: string | null
-    service_description: string | null
-    industry: string | null
+// DB 응답 타입 (Project와 동일하지만 추가 필드 포함)
+export interface ProjectResponse extends Project {
     additional_notes: string | null
-    status: number
-    current_step: number
-    track: string | null
     canonical: Record<string, unknown>
     application_input: Record<string, unknown>
     application_draft: Record<string, unknown>
-    created_at: string
-    updated_at: string
 }
+
+// Project 타입으로 변환 (추가 필드 제외)
+export const toProject = (response: ProjectResponse): Project => ({
+    id: response.id,
+    user_id: response.user_id,
+    company_name: response.company_name,
+    service_name: response.service_name,
+    service_description: response.service_description,
+    industry: response.industry,
+    status: response.status as ProjectStatus,
+    current_step: response.current_step as ProjectStep,
+    track: response.track as Track | null,
+    created_at: response.created_at,
+    updated_at: response.updated_at,
+})

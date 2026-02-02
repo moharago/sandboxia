@@ -1,11 +1,12 @@
 "use client"
 
+import { cn } from "@/lib/utils/cn"
+import { getProjectPath, STEP_PATHS } from "@/lib/utils/project-path"
+import type { ProjectStep } from "@/types/data/project"
+import { PROJECT_STEP_LABELS } from "@/types/data/project"
+import { ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils/cn"
-import type { ProjectStage } from "@/types/data/project"
-import { PROJECT_STAGE_LABELS } from "@/types/data/project"
 
 interface StepNavProps {
     projectId: string
@@ -13,20 +14,13 @@ interface StepNavProps {
     service: string
 }
 
-const stepPaths: Record<ProjectStage, string> = {
-    1: "service",
-    2: "eligibility",
-    3: "track",
-    4: "draft",
-}
-
 export function StepNav({ projectId, company, service }: StepNavProps) {
     const pathname = usePathname()
 
-    const steps = ([1, 2, 3, 4] as ProjectStage[]).map((step) => ({
+    const steps = ([1, 2, 3, 4] as ProjectStep[]).map((step) => ({
         step,
-        label: PROJECT_STAGE_LABELS[step],
-        path: `/projects/${projectId}/${stepPaths[step]}`,
+        label: PROJECT_STEP_LABELS[step],
+        path: getProjectPath(projectId, step),
     }))
 
     return (
@@ -35,7 +29,7 @@ export function StepNav({ projectId, company, service }: StepNavProps) {
                 <div className="flex items-center justify-between">
                     <ol className="flex items-center">
                         {steps.map((step, index) => {
-                            const isActive = pathname?.includes(stepPaths[step.step])
+                            const isActive = pathname?.includes(STEP_PATHS[step.step])
 
                             return (
                                 <li key={step.step} className="flex items-center">

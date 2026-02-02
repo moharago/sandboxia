@@ -1,16 +1,15 @@
 "use client"
 
-import { ProjectCard } from "@/components/features/dashboard/ProjectCard"
 import { Pipeline, type PipelineFilter } from "@/components/features/dashboard/PipelineStep"
+import { ProjectCard } from "@/components/features/dashboard/ProjectCard"
 import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { projects } from "@/data"
+import { useProjectsQuery } from "@/hooks/queries/use-projects-query"
 import { cn } from "@/lib/utils/cn"
-import { useProjectStore } from "@/stores/project-store"
 import { useUIStore } from "@/stores/ui-store"
 import { PROJECT_STATUS_LABELS } from "@/types/data/project"
-import { LayoutGrid, List, Plus, Search } from "lucide-react"
+import { LayoutGrid, List, Loader2, Plus, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 
 type SortOrder = "newest" | "oldest"
@@ -21,12 +20,14 @@ export default function DashboardPage() {
     const viewMode = useUIStore((state) => state.viewMode)
     const setViewMode = useUIStore((state) => state.setViewMode)
     const openNewCaseModal = useUIStore((state) => state.openNewCaseModal)
-    const statusOverrides = useProjectStore((state) => state.statusOverrides)
     const [statusFilter, setStatusFilter] = useState<PipelineFilter>("all")
     const [sortOrder, setSortOrder] = useState<SortOrder>("newest")
     const [currentPage, setCurrentPage] = useState(1)
     const [searchQuery, setSearchQuery] = useState("")
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+    // Supabase에서 프로젝트 조회
+    const { data: projects = [], isLoading, error } = useProjectsQuery()
 
     // 이전 필터 값 추적 (렌더링 중 조건부 업데이트 패턴용)
     const [prevFilters, setPrevFilters] = useState({
@@ -35,71 +36,44 @@ export default function DashboardPage() {
         sortOrder,
     })
 
-    // 프로젝트 상태 오버라이드 적용
-    const projectsWithOverrides = useMemo(() => {
-        return projects.map((p) => ({
-            ...p,
-            status: statusOverrides[p.id]?.status || p.status,
-            updatedAt: statusOverrides[p.id]?.updatedAt || p.updatedAt,
-        }))
-    }, [statusOverrides])
-
+    // 상태별 통계 (DB status: 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료)
     const stats = {
-        consult: projectsWithOverrides.filter((p) => p.status === "consult").length,
-        draft: projectsWithOverrides.filter((p) => p.status === "draft").length,
-        waiting: projectsWithOverrides.filter((p) => p.status === "waiting").length,
-        done: projectsWithOverrides.filter((p) => p.status === "done" || p.status === "direct").length,
+        1: projects.filter((p) => p.status === 1).length,
+        2: projects.filter((p) => p.status === 2).length,
+        3: projects.filter((p) => p.status === 3).length,
+        4: projects.filter((p) => p.status === 4).length,
     }
 
     const pipelineSteps = [
-        {
-            id: "consult" as PipelineFilter,
-            label: "기업상담",
-            count: stats.consult,
-        },
-        {
-            id: "draft" as PipelineFilter,
-            label: "신청서작성",
-            count: stats.draft,
-        },
-        {
-            id: "waiting" as PipelineFilter,
-            label: "결과대기",
-            count: stats.waiting,
-        },
-        { id: "done" as PipelineFilter, label: "완료", count: stats.done },
+        { id: 1 as PipelineFilter, label: "기업상담", count: stats[1] },
+        { id: 2 as PipelineFilter, label: "신청서작성", count: stats[2] },
+        { id: 3 as PipelineFilter, label: "결과대기", count: stats[3] },
+        { id: 4 as PipelineFilter, label: "완료", count: stats[4] },
     ]
 
     const filteredProjects = useMemo(() => {
-        let result = projectsWithOverrides.filter((projectItem) => {
+        let result = projects.filter((projectItem) => {
             // 1. Search Filter
             const matchesSearch =
                 searchQuery === "" ||
-                projectItem.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                projectItem.service.toLowerCase().includes(searchQuery.toLowerCase())
+                projectItem.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
-            // 2. Status Filter (unified for pipeline and dropdown)
-            let matchesStatus = true
-            if (statusFilter !== "all") {
-                if (statusFilter === "done") {
-                    matchesStatus = projectItem.status === "done" || projectItem.status === "direct"
-                } else {
-                    matchesStatus = projectItem.status === statusFilter
-                }
-            }
+            // 2. Status Filter
+            const matchesStatus = statusFilter === "all" || projectItem.status === statusFilter
 
             return matchesSearch && matchesStatus
         })
 
         // 3. Sort
         result = [...result].sort((a, b) => {
-            const dateA = new Date(a.updatedAt).getTime()
-            const dateB = new Date(b.updatedAt).getTime()
+            const dateA = new Date(a.updated_at).getTime()
+            const dateB = new Date(b.updated_at).getTime()
             return sortOrder === "newest" ? dateB - dateA : dateA - dateB
         })
 
         return result
-    }, [projectsWithOverrides, searchQuery, statusFilter, sortOrder])
+    }, [projects, searchQuery, statusFilter, sortOrder])
 
     const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE)
 
@@ -114,14 +88,31 @@ export default function DashboardPage() {
         setCurrentPage(1)
     }
 
-    const getFilterLabel = () => {
-        if (statusFilter === "all") return "전체"
-        const step = pipelineSteps.find((s) => s.id === statusFilter)
-        return step?.label || ""
-    }
-
     const toggleViewMode = () => {
         setViewMode(viewMode === "grid" ? "list" : "grid")
+    }
+
+    if (isLoading) {
+        return (
+            <div className="py-6">
+                <div className="container flex items-center justify-center min-h-[400px]">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="py-6">
+                <div className="container flex flex-col items-center justify-center min-h-[400px] gap-4">
+                    <p className="text-destructive">프로젝트를 불러오는데 실패했습니다</p>
+                    <Button variant="outline" onClick={() => window.location.reload()}>
+                        다시 시도
+                    </Button>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -162,16 +153,19 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PipelineFilter)}>
+                        <Select
+                            value={String(statusFilter)}
+                            onValueChange={(value) => setStatusFilter(value === "all" ? "all" : (Number(value) as PipelineFilter))}
+                        >
                             <SelectTrigger className="w-fit border-none shadow-none bg-transparent p-0 h-auto text-muted-foreground hover:text-foreground font-medium focus:ring-0 focus:ring-offset-0 gap-1">
                                 <SelectValue placeholder="상태 필터" />
                             </SelectTrigger>
                             <SelectContent sideOffset={4} className="min-w-[115px] border-neutral-200">
                                 <SelectItem value="all">전체 상태</SelectItem>
-                                <SelectItem value="consult">{PROJECT_STATUS_LABELS.consult}</SelectItem>
-                                <SelectItem value="draft">{PROJECT_STATUS_LABELS.draft}</SelectItem>
-                                <SelectItem value="waiting">{PROJECT_STATUS_LABELS.waiting}</SelectItem>
-                                <SelectItem value="done">{PROJECT_STATUS_LABELS.done}</SelectItem>
+                                <SelectItem value="1">{PROJECT_STATUS_LABELS[1]}</SelectItem>
+                                <SelectItem value="2">{PROJECT_STATUS_LABELS[2]}</SelectItem>
+                                <SelectItem value="3">{PROJECT_STATUS_LABELS[3]}</SelectItem>
+                                <SelectItem value="4">{PROJECT_STATUS_LABELS[4]}</SelectItem>
                             </SelectContent>
                         </Select>
 
