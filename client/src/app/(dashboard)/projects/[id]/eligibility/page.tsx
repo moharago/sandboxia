@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { eligibilityApi } from "@/lib/api/eligibility"
+import { projectsApi } from "@/lib/api/projects"
 import { cn } from "@/lib/utils/cn"
-import { useProjectStore } from "@/stores/project-store"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { EligibilityResponse, EligibilityResult, JudgmentType } from "@/types/api/eligibility"
+import { useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, CheckCircle2, Play, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
@@ -114,10 +116,10 @@ type DecisionType = "direct" | "sandbox"
 export default function EligibilityPage({ params }: MarketPageProps) {
     const { id } = use(params)
     const router = useRouter()
+    const queryClient = useQueryClient()
 
     const { setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
-    const { updateProjectStatus } = useProjectStore()
 
     // 프로젝트 정보 조회 (current_step 확인용)
     const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
@@ -164,7 +166,16 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         if (existingResult && hasExistingResult) {
             const mappedData = mapResponseToAnalysisData(existingResult)
             setAnalysisData(mappedData)
-            setSelectedDecision(mappedData.recommendation)
+
+            // 사용자가 이미 선택한 값이 있으면 그걸 사용, 없으면 AI 추천값 사용
+            if (existingResult.final_eligibility_label) {
+                // final_eligibility_label: "not_required" → "direct", "required" → "sandbox"
+                const userChoice = existingResult.final_eligibility_label === "not_required" ? "direct" : "sandbox"
+                setSelectedDecision(userChoice)
+            } else {
+                setSelectedDecision(mappedData.recommendation)
+            }
+
             setIsAnalyzed(true)
         } else if (existingResult === null) {
             // 결과가 없으면 초기 상태로
@@ -193,7 +204,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     }
 
     // 다음 단계로 이동 (분석 완료 후)
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!isAnalyzed) return
 
         setMarketAnalysis({
@@ -201,11 +212,19 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             aiRecommendation: analysisData.recommendation,
         })
 
+        // 사용자 최종 선택 저장 (direct → not_required, sandbox → required)
+        const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
+        await eligibilityApi.updateFinalDecision(id, finalLabel)
+        await queryClient.invalidateQueries({ queryKey: ["eligibility"] }) // eligibility 캐시 무효화
+
         if (selectedDecision === "direct") {
-            updateProjectStatus(id, 4) // 4 = 완료
+            await projectsApi.updateStatus(id, 5) // 5 = 바로출시 (DB 업데이트)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] }) // 캐시 무효화
             markStepComplete(2)
             router.push("/dashboard")
         } else {
+            await projectsApi.updateStatus(id, 3) // 3 = 결과대기 (DB 업데이트)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             setCurrentStep(3)
             router.push(`/projects/${id}/track`)
@@ -217,7 +236,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         eligibilityMutation.mutate(
             { project_id: id },
             {
-                onSuccess: (data) => {
+                onSuccess: async (data) => {
                     const mappedData = mapResponseToAnalysisData(data)
                     setAnalysisData(mappedData)
                     setSelectedDecision(mappedData.recommendation)
@@ -230,11 +249,19 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             aiRecommendation: mappedData.recommendation,
                         })
 
+                        // 사용자 최종 선택 저장 (AI 추천 그대로 수락)
+                        const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
+                        await eligibilityApi.updateFinalDecision(id, finalLabel)
+                        await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+
                         if (mappedData.recommendation === "direct") {
-                            updateProjectStatus(id, 4) // 4 = 완료
+                            await projectsApi.updateStatus(id, 5) // 5 = 바로출시 (DB 업데이트)
+                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             router.push("/dashboard")
                         } else {
+                            await projectsApi.updateStatus(id, 3) // 3 = 결과대기 (DB 업데이트)
+                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             setCurrentStep(3)
                             router.push(`/projects/${id}/track`)
@@ -256,7 +283,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         // 기존 결과가 있으면 재분석 확인
         if (hasExistingResult) {
             const confirmed = window.confirm(
-                "이미 분석 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체됩니다."
+                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
             )
             if (!confirmed) {
                 // 취소하면 기존 결과로 다음 단계 진행

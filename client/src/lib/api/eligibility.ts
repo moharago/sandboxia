@@ -41,4 +41,25 @@ export const eligibilityApi = {
         // evidence_data가 빈 객체인지 확인
         return Object.keys(result.evidence_data).length > 0
     },
+
+    /**
+     * 사용자 최종 선택 저장
+     * @param projectId 프로젝트 ID
+     * @param finalLabel 사용자 선택 (required=샌드박스, not_required=바로출시)
+     */
+    updateFinalDecision: async (
+        projectId: string,
+        finalLabel: "required" | "not_required"
+    ): Promise<void> => {
+        const supabase = createClient()
+
+        const { error } = await supabase
+            .from("eligibility_results")
+            .update({ final_eligibility_label: finalLabel })
+            .eq("project_id", projectId)
+
+        if (error) {
+            throw new Error(error.message)
+        }
+    },
 }

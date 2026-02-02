@@ -89,12 +89,14 @@ async def evaluate_eligibility(
 
     # 4. 에이전트 실행
     try:
+        print(f"[Eligibility] 대상성 판단 시작 - project_id: {project_id}")
         result = await run_eligibility_evaluation(
             project_id=project_id,
             canonical=canonical,
         )
+        print(f"[Eligibility] 대상성 판단 완료 - label: {result.eligibility_label.value}")
     except Exception as e:
-        logger.error(f"대상성 판단 실행 실패: {e}")
+        logger.error(f"[Eligibility] 대상성 판단 실행 실패: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"대상성 판단 중 오류가 발생했습니다: {str(e)}",
@@ -105,6 +107,7 @@ async def evaluate_eligibility(
         eligibility_data = {
             "project_id": project_id,
             "eligibility_label": result.eligibility_label.value,
+            "final_eligibility_label": None,  # 재분석 시 사용자 선택 초기화
             "confidence_score": result.confidence_score,
             "result_summary": result.result_summary,
             "direct_launch_risks": [r.model_dump() for r in result.direct_launch_risks],

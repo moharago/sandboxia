@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import formData from "@/data/formData.json"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
+import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectFilesQuery } from "@/hooks/queries/use-projects-query"
 import { useUIStore } from "@/stores/ui-store"
 import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
@@ -39,6 +40,11 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     // 이미 분석 완료된 경우 (current_step >= 2) 업로드된 파일 목록 조회
     const isAnalysisCompleted = project.current_step >= 2
     const { data: uploadedFileList } = useProjectFilesQuery(id)
+
+    // 기존 eligibility 결과 조회 (재분석 확인용)
+    const { data: existingEligibilityResult } = useEligibilityQuery(id)
+    const hasExistingEligibilityResult = existingEligibilityResult?.evidence_data &&
+        Object.keys(existingEligibilityResult.evidence_data).length > 0
 
     // Step 2: 대상성 분석 mutation
     const eligibilityMutation = useEligibilityMutation({
@@ -109,6 +115,14 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     })()
 
     const handleSave = () => {
+        // 기존 대상성 분석 결과가 있으면 재분석 확인
+        if (hasExistingEligibilityResult) {
+            const confirmed = window.confirm(
+                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
+            )
+            if (!confirmed) return
+        }
+
         const files: File[] = []
         if (selectedForm) {
             for (const app of selectedForm.application) {

@@ -111,6 +111,22 @@ export const projectsApi = {
     },
 
     /**
+     * 프로젝트 status 업데이트
+     */
+    updateStatus: async (projectId: string, status: number): Promise<void> => {
+        const supabase = createClient()
+
+        const { error } = await supabase
+            .from("projects")
+            .update({ status })
+            .eq("id", projectId)
+
+        if (error) {
+            throw new Error(error.message)
+        }
+    },
+
+    /**
      * 프로젝트 파일 목록 조회
      */
     getProjectFiles: async (projectId: string): Promise<ProjectFile[]> => {
