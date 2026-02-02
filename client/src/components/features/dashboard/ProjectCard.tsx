@@ -21,6 +21,7 @@ const statusBadgeVariant: Record<ProjectStatus, "success" | "warning" | "info" |
     2: "draft", // 신청서작성
     3: "warning", // 결과대기
     4: "done", // 완료
+    5: "direct", // 바로출시
 }
 
 export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {

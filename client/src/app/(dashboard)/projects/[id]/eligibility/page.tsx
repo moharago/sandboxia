@@ -113,8 +113,9 @@ const directAnalysis: AIAnalysisData = {
 }
 
 // 프로젝트 상태에 따라 적절한 더미 데이터 선택
-const getAnalysisData = (projectStatus?: string): AIAnalysisData => {
-    if (projectStatus === "direct") {
+const getAnalysisData = (projectStatus?: number): AIAnalysisData => {
+    if (projectStatus === 5) {
+        // 5=바로출시
         return directAnalysis
     }
     return sandboxAnalysis
@@ -130,8 +131,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     const { devIsAnalyzed, devHasChanges } = useUIStore()
     const { updateProjectStatus, getProjectStatus } = useProjectStore()
 
-    // 오버라이드된 상태가 있으면 사용, 없으면 기본값 사용
-    const currentStatus = getProjectStatus(id, "consult")
+    // 오버라이드된 상태가 있으면 사용, 없으면 기본값 사용 (1=기업상담)
+    const currentStatus = getProjectStatus(id, 1)
 
     // 프로젝트 상태에 따른 AI 분석 데이터 선택 (오버라이드된 상태 반영)
     const analysisData = getAnalysisData(currentStatus)
@@ -163,8 +164,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         })
 
         if (selectedDecision === "direct") {
-            // 바로출시 선택 시 - 프로젝트 상태를 'direct'로 변경하고 대시보드로 이동
-            updateProjectStatus(id, "direct")
+            // 바로출시 선택 시 - 프로젝트 상태를 5(바로출시)로 변경하고 대시보드로 이동
+            updateProjectStatus(id, 5)
             markStepComplete(2)
             router.push("/dashboard")
         } else {
@@ -317,7 +318,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                     aiRecommendation: analysisData.recommendation,
                                 })
                                 if (selectedDecision === "direct") {
-                                    updateProjectStatus(id, "direct")
+                                    updateProjectStatus(id, 5)
                                     markStepComplete(2)
                                     router.push("/dashboard")
                                 } else {

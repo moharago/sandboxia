@@ -12,15 +12,15 @@ import json
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
-from app.core.config import settings
 from app.agents.track_recommender.prompts import (
-    TRACK_CRITERIA,
     SCORING_SYSTEM_PROMPT,
     SCORING_USER_PROMPT,
+    TRACK_CRITERIA,
 )
+from app.core.config import settings
 from app.tools.shared.rag import (
-    get_track_definition,
     compare_tracks,
+    get_track_definition,
     search_case,
     search_domain_law,
 )

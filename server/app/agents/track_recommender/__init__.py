@@ -4,8 +4,8 @@
 """
 
 from app.agents.track_recommender.graph import (
-    track_recommender_agent,
     run_track_recommender,
+    track_recommender_agent,
 )
 
 __all__ = [

@@ -7,14 +7,13 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_auth_user
-from app.core.config import supabase
-
 from app.agents.eligibility_evaluator.graph import run_eligibility_evaluation
 from app.agents.eligibility_evaluator.schemas import (
     EligibilityRequest,
     EligibilityResponse,
 )
+from app.api.deps import get_auth_user
+from app.core.config import supabase
 
 logger = logging.getLogger(__name__)
 
