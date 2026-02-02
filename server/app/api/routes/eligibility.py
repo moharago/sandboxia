@@ -100,16 +100,8 @@ async def evaluate_eligibility(
             detail=f"대상성 판단 중 오류가 발생했습니다: {str(e)}",
         )
 
-    # 5. 결과를 DB에 저장
+    # 5. 결과를 DB에 저장 (upsert: project_id UNIQUE 제약조건)
     try:
-        # 기존 결과 확인 (있으면 업데이트, 없으면 삽입)
-        existing = (
-            supabase.table("eligibility_results")
-            .select("id")
-            .eq("project_id", project_id)
-            .execute()
-        )
-
         eligibility_data = {
             "project_id": project_id,
             "eligibility_label": result.eligibility_label.value,
@@ -119,17 +111,14 @@ async def evaluate_eligibility(
             "evidence_data": result.evidence_data.model_dump(),
         }
 
-        if existing.data:
-            # 업데이트
-            supabase.table("eligibility_results").update(eligibility_data).eq(
-                "project_id", project_id
-            ).execute()
-        else:
-            # 삽입
-            supabase.table("eligibility_results").insert(eligibility_data).execute()
+        # upsert: project_id가 있으면 UPDATE, 없으면 INSERT
+        supabase.table("eligibility_results").upsert(
+            eligibility_data,
+            on_conflict="project_id"
+        ).execute()
 
-        # projects.current_step 업데이트 (Step 2 완료)
-        supabase.table("projects").update({"current_step": 2}).eq(
+        # projects.current_step 업데이트 (Step 2 완료 → Step 3으로 이동)
+        supabase.table("projects").update({"current_step": 3}).eq(
             "id", project_id
         ).execute()
 
