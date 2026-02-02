@@ -21,6 +21,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# 기본 트랙 (상담신청)
+DEFAULT_TRACK = "counseling"
+
 
 async def parse_hwp_node(state: ServiceStructurerState) -> dict[str, Any]:
     """HWP 파일 파싱 노드
@@ -92,7 +95,7 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
     hwp_parse_results = state.get("hwp_parse_results", [])
     consultant_input = state.get("consultant_input", {})
     session_id = state.get("session_id", "")
-    requested_track = state.get("requested_track", "counseling")  # 기본값: 상담신청
+    requested_track = state.get("requested_track", DEFAULT_TRACK)
 
     # HWP 파싱 결과 병합
     merged_hwp_data = {}

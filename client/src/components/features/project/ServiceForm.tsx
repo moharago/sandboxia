@@ -11,7 +11,7 @@ import formData from "@/data/formData.json"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
 import { useProjectFilesQuery } from "@/hooks/queries/use-projects-query"
 import { useUIStore } from "@/stores/ui-store"
-import { FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
+import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
 import { FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -180,7 +180,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
                     <CardContent>
                         <div className="flex flex-wrap gap-x-6 gap-y-2">
                             {formData.map((form) => {
-                                const trackValue = FORM_ID_TO_TRACK[form.id]
+                                const trackValue = FORM_ID_TO_TRACK[form.id] ?? DEFAULT_TRACK
                                 return (
                                     <label key={form.id} className="flex items-center gap-2 cursor-pointer">
                                         <input

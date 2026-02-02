@@ -3,6 +3,16 @@ export type ProjectStatus = 1 | 2 | 3 | 4 // 1=기업상담, 2=신청서작성, 
 export type ProjectStep = 1 | 2 | 3 | 4 // 1=서비스분석, 2=시장진단, 3=트랙선택, 4=신청서생성
 export type Track = "counseling" | "quick_check" | "temp_permit" | "demo"
 
+// 기본 트랙 (상담신청)
+export const DEFAULT_TRACK: Track = "counseling"
+
+/**
+ * Track 관련 매핑
+ *
+ * NOTE: 서버(structure_service.py)와 클라이언트에서 TRACK_LABELS가 중복 정의되어 있습니다.
+ * 향후 통합 고려 시 API 응답에 라벨을 포함하거나 공유 설정 파일을 도입할 수 있습니다.
+ */
+
 // track → formData.json id 매핑
 export const TRACK_TO_FORM_ID: Record<Track, string> = {
     counseling: "counseling",

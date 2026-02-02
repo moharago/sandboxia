@@ -49,6 +49,8 @@ TRACK_SUBTYPE_MAP: dict[str, list[DocumentSubtype]] = {
 }
 
 # 트랙 한글명 매핑 (로그/에러 메시지용)
+# NOTE: 클라이언트(types/data/project.ts)에도 TRACK_LABELS가 정의되어 있습니다.
+# 향후 통합 고려 시 API 응답에 라벨을 포함하거나 공유 설정을 도입할 수 있습니다.
 TRACK_LABELS: dict[str, str] = {
     "counseling": "상담신청",
     "quick_check": "신속확인",
