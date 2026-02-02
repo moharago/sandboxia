@@ -8,7 +8,7 @@ import { getProjectPathFromProject } from "@/lib/utils/project-path"
 import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/stores/ui-store"
 import type { ProjectStatus } from "@/types/data/project"
-import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress } from "@/types/data/project"
+import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress, matchesStatusFilter } from "@/types/data/project"
 import { AlertCircle, FolderOpen, Loader2, PanelLeft, PanelRight, Plus, RefreshCw, Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -42,10 +42,7 @@ export function Sidebar() {
                 projectItem.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (projectItem.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
 
-            // 완료 필터는 4, 5 모두 포함
-            const matchesStatus =
-                selectedStatus === "all" ||
-                (selectedStatus === 4 ? projectItem.status === 4 || projectItem.status === 5 : projectItem.status === selectedStatus)
+            const matchesStatus = matchesStatusFilter(projectItem.status, selectedStatus)
 
             return matchesSearch && matchesStatus
         })

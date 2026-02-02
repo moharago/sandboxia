@@ -1,6 +1,15 @@
 // DB 스키마와 동일한 타입 정의
 export type ProjectStatus = 1 | 2 | 3 | 4 | 5 // 1=기업상담, 2=신청서작성, 3=결과대기, 4=완료, 5=바로출시
 export type ProjectStep = 1 | 2 | 3 | 4 // 1=서비스분석, 2=시장진단, 3=트랙선택, 4=신청서생성
+
+// 상태 상수
+export const PROJECT_STATUS = {
+    CONSULTING: 1,
+    DRAFTING: 2,
+    PENDING: 3,
+    COMPLETED: 4,
+    DIRECT_LAUNCH: 5,
+} as const
 export type Track = "counseling" | "quick_check" | "temp_permit" | "demo"
 
 // 기본 트랙 (상담신청)
@@ -68,6 +77,18 @@ export const TRACK_LABELS: Record<Track, string> = {
 
 // 진행률 계산 헬퍼
 export const calculateProgress = (step: ProjectStep, status: ProjectStatus): number => {
-    if (status === 4) return 100
+    if (status === PROJECT_STATUS.COMPLETED || status === PROJECT_STATUS.DIRECT_LAUNCH) return 100
     return Math.min(step * 25, 100)
+}
+
+// 상태 필터링 헬퍼 (완료 필터는 4, 5 모두 포함)
+export const matchesStatusFilter = (
+    projectStatus: ProjectStatus,
+    filterStatus: ProjectStatus | "all"
+): boolean => {
+    if (filterStatus === "all") return true
+    if (filterStatus === PROJECT_STATUS.COMPLETED) {
+        return projectStatus === PROJECT_STATUS.COMPLETED || projectStatus === PROJECT_STATUS.DIRECT_LAUNCH
+    }
+    return projectStatus === filterStatus
 }
