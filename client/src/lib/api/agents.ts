@@ -7,6 +7,7 @@
 import { createClient } from "@/lib/supabase/client"
 import type { EligibilityRequest, EligibilityResponse } from "@/types/api/eligibility"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
+import type { TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/track"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 
@@ -67,6 +68,55 @@ export const agentsApi = {
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(request),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `Request failed: ${response.status}`)
+        }
+
+        return response.json()
+    },
+
+    /**
+     * 트랙 추천 결과 조회 (캐시)
+     *
+     * 이미 분석된 결과가 있으면 반환, 없으면 null
+     */
+    getTrackResult: async (projectId: string): Promise<TrackRecommendResponse | null> => {
+        const response = await fetch(`${API_BASE}/api/v1/agents/track/${projectId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null
+            }
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `Request failed: ${response.status}`)
+        }
+
+        const data = await response.json()
+        return data // null이면 캐시 없음
+    },
+
+    /**
+     * 트랙 추천 (Track Recommender Agent)
+     *
+     * 프로젝트의 canonical 데이터를 분석하여 적합한 트랙을 추천합니다.
+     * - 3개 트랙 비교 (demo/temp_permit/quick_check)
+     * - 신뢰도 점수 및 추천 사유 제공
+     */
+    recommendTrack: async (request: TrackRecommendRequest): Promise<TrackRecommendResponse> => {
+        const response = await fetch(`${API_BASE}/api/v1/agents/track`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(request),
         })

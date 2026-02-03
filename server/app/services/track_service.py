@@ -28,28 +28,6 @@ def get_project_canonical(project_id: str) -> dict | None:
     return result.data[0].get("canonical")
 
 
-def get_eligibility_result(project_id: str) -> dict | None:
-    """프로젝트의 대상성 판단 결과 조회 (Step 2 결과)
-
-    Args:
-        project_id: 프로젝트 UUID
-
-    Returns:
-        eligibility_results 레코드 또는 None
-    """
-    result = supabase.table("eligibility_results") \
-        .select("*") \
-        .eq("project_id", project_id) \
-        .order("created_at", desc=True) \
-        .limit(1) \
-        .execute()
-
-    if not result.data:
-        return None
-
-    return result.data[0]
-
-
 def save_track_result(
     project_id: str,
     recommended_track: str,

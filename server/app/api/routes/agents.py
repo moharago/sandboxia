@@ -34,8 +34,8 @@ from app.services.eligibility_service import (
 )
 from app.services.structure_service import StructureService, StructureServiceError
 from app.services.track_service import (
-    get_eligibility_result,
     get_project_canonical,
+    get_track_result,
     save_track_result,
 )
 
@@ -226,6 +226,28 @@ class TrackRecommendResponse(BaseModel):
     track_comparison: dict
 
 
+@router.get(
+    "/track/{project_id}",
+    response_model=TrackRecommendResponse | None,
+    summary="트랙 추천 결과 조회 (캐시)",
+    description="이미 분석된 트랙 추천 결과가 있으면 반환합니다. 없으면 null을 반환합니다.",
+)
+async def get_track_recommendation(project_id: str) -> TrackRecommendResponse | None:
+    """캐시된 트랙 추천 결과 조회"""
+    result = get_track_result(project_id)
+
+    if not result:
+        return None
+
+    return TrackRecommendResponse(
+        project_id=result["project_id"],
+        recommended_track=result["recommended_track"],
+        confidence_score=result["confidence_score"],
+        result_summary=result["result_summary"],
+        track_comparison=result["track_comparison"],
+    )
+
+
 @router.post(
     "/track",
     response_model=TrackRecommendResponse,
@@ -262,15 +284,11 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
             detail=f"프로젝트를 찾을 수 없거나 canonical 데이터가 없습니다: {project_id}",
         )
 
-    # 2. eligibility_result 조회 (선택)
-    eligibility_result = get_eligibility_result(project_id)
-
-    # 3. Track Recommender Agent 실행
+    # 2. Track Recommender Agent 실행
     try:
         result = await run_track_recommender(
             project_id=project_id,
             canonical=canonical,
-            eligibility_result=eligibility_result,
         )
     except Exception:
         correlation_id = str(uuid.uuid4())
@@ -282,7 +300,7 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
             detail=f"트랙 추천 중 내부 서버 오류가 발생했습니다. (오류 ID: {correlation_id})",
         )
 
-    # 4. 결과 저장
+    # 3. 결과 저장
     try:
         save_track_result(
             project_id=project_id,
