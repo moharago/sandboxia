@@ -27,7 +27,6 @@ from .schemas import (
     EligibilityLabel,
     JudgmentSummary,
     JudgmentType,
-    ReasonType,
     Regulation,
 )
 from .state import EligibilityState, ScreeningResult
@@ -461,7 +460,6 @@ def compose_decision_node(state: EligibilityState) -> dict:
         print(f"[DEBUG] LLM raw_risks: {raw_risks}")
         for risk in raw_risks[:3]:  # 최대 3개
             direct_launch_risks.append(DirectLaunchRisk(
-                type=ReasonType.NEGATIVE,  # 항상 negative
                 title=risk.get("title", "규제 리스크"),
                 description=risk.get("description", ""),
                 source=risk.get("source"),

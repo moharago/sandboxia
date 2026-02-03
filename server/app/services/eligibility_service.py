@@ -4,7 +4,7 @@
 """
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from app.agents.eligibility_evaluator.graph import run_eligibility_evaluation
 from app.agents.eligibility_evaluator.schemas import EligibilityResult
@@ -123,20 +123,20 @@ def update_project_after_eligibility(project_id: str) -> dict | None:
 
 def update_final_eligibility_label(
     project_id: str,
-    final_label: str,
+    final_eligibility_label: Literal["required", "not_required"],
 ) -> dict | None:
     """사용자의 최종 선택 저장
 
     Args:
         project_id: 프로젝트 UUID
-        final_label: 최종 선택 ("required" | "not_required")
+        final_eligibility_label: 최종 선택 ("required" | "not_required")
 
     Returns:
         업데이트된 eligibility_results 레코드 또는 None
     """
     result = (
         supabase.table("eligibility_results")
-        .update({"final_eligibility_label": final_label})
+        .update({"final_eligibility_label": final_eligibility_label})
         .eq("project_id", project_id)
         .execute()
     )

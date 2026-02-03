@@ -12,6 +12,8 @@
 import logging
 import uuid
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
 
@@ -163,7 +165,7 @@ async def evaluate_eligibility(
 class FinalDecisionRequest(BaseModel):
     """최종 결정 업데이트 요청"""
 
-    final_label: str  # "required" | "not_required"
+    final_eligibility_label: Literal["required", "not_required"]
 
 
 @router.patch(
@@ -193,14 +195,14 @@ async def update_final_decision(
         )
 
     # 최종 선택 저장
-    result = update_final_eligibility_label(project_id, request.final_label)
+    result = update_final_eligibility_label(project_id, request.final_eligibility_label)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="대상성 판단 결과를 찾을 수 없습니다.",
         )
 
-    return {"success": True, "final_label": request.final_label}
+    return {"success": True, "final_eligibility_label": request.final_eligibility_label}
 
 
 # ===============================
