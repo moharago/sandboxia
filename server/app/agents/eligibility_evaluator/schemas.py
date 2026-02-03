@@ -39,6 +39,7 @@ class JudgmentSummary(BaseModel):
     title: str = Field(description="근거 제목")
     summary: str = Field(description="설명 텍스트")
     source: str = Field(description="근거 출처")
+    source_url: str | None = Field(default=None, description="출처 URL (있는 경우)")
 
 
 class ApprovalCase(BaseModel):
@@ -53,7 +54,7 @@ class ApprovalCase(BaseModel):
     title: str = Field(description="사례 제목")
     company: str = Field(description="회사명")
     summary: str = Field(description="요약")
-    detail_url: str | None = Field(default=None, description="상세보기 링크")
+    source_url: str | None = Field(default=None, description="상세보기 링크")
 
 
 class Regulation(BaseModel):
