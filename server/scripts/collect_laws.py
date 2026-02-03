@@ -162,7 +162,7 @@ def create_paragraph_chunks(
 
     # 항이 있는 경우: 항 단위로 청킹
     if article.paragraphs:
-        for para in article.paragraphs:
+        for enum_idx, para in enumerate(article.paragraphs, start=1):
             para_no = para.get("no", "")
             para_content = para.get("content", "")
 
@@ -205,7 +205,8 @@ def create_paragraph_chunks(
                 },
             )
             # ID 생성: law_{mst}_{article_no}_{para_index}
-            para_idx = para_symbol_to_index(para_no)
+            # 파싱 실패 시 열거 인덱스를 fallback으로 사용
+            para_idx = para_symbol_to_index(para_no) or enum_idx
             doc_id = f"law_{mst}_{article_no}_{para_idx}"
             documents.append(doc)
             doc_ids.append(doc_id)
@@ -256,7 +257,10 @@ async def collect_and_store_laws():
     print("=" * 60)
 
     # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(model=settings.LLM_EMBEDDING_MODEL)
+    embeddings = OpenAIEmbeddings(
+        model=settings.LLM_EMBEDDING_MODEL,
+        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
+    )
 
     # Chroma DB 초기화
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
@@ -270,6 +274,7 @@ async def collect_and_store_laws():
 
     documents = []
     document_ids = []
+    seen_ids: set[str] = set()  # 중복 ID 방지용
     collected_laws = []
 
     for law_name, domain in TARGET_LAWS:
@@ -325,12 +330,31 @@ async def collect_and_store_laws():
         print("\n⚠️  수집된 문서가 없습니다.")
         return
 
+    # 중복 ID 해결: suffix 추가로 고유성 보장
+    unique_ids = []
+    duplicate_count = 0
+    for doc_id in document_ids:
+        if doc_id in seen_ids:
+            # 중복 발생 시 suffix 추가
+            duplicate_count += 1
+            suffix = 1
+            new_id = f"{doc_id}_{suffix}"
+            while new_id in seen_ids:
+                suffix += 1
+                new_id = f"{doc_id}_{suffix}"
+            doc_id = new_id
+        seen_ids.add(doc_id)
+        unique_ids.append(doc_id)
+
+    if duplicate_count > 0:
+        print(f"\n⚠️  중복 ID {duplicate_count}개 발견 → suffix 추가로 해결")
+
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 조문 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장 (ID 포함)
-    vectorstore.add_documents(documents, ids=document_ids)
+    # Vector DB에 저장 (고유 ID 포함)
+    vectorstore.add_documents(documents, ids=unique_ids)
 
     print("[OK] 저장 완료!")
 

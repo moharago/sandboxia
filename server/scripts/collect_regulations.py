@@ -197,7 +197,10 @@ def collect_and_store_regulations(reset: bool = True):
         print(f"  - {k}: {v}개")
 
     # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(model=settings.LLM_EMBEDDING_MODEL)
+    embeddings = OpenAIEmbeddings(
+        model=settings.LLM_EMBEDDING_MODEL,
+        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
+    )
 
     # Chroma DB 초기화
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
