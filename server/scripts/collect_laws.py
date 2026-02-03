@@ -25,6 +25,7 @@
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -36,6 +37,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.core.constants import COLLECTION_LAWS
 from app.services.law_api import law_api_client
 
 # 수집 대상 법령 (검색명, 도메인)
@@ -63,6 +65,45 @@ DOMAIN_LABELS = {
     "telecom": "통신/ICT",
     "regulation": "규제/제도",
 }
+
+
+def para_symbol_to_index(para_no: str) -> int:
+    """항 기호(①②③...)를 숫자 인덱스로 변환
+
+    지원 형식:
+    - 원숫자: ①, ②, ③, ...
+    - 원숫자+접미사: ①항, ②항, ...
+    - 숫자: 1, 2, 3, ...
+    - 숫자+접미사: 1항, 2항, 1., 2., ...
+
+    Returns:
+        숫자 인덱스 (1부터 시작), 파싱 실패 시 0
+    """
+    if not para_no:
+        return 0
+
+    symbols = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
+
+    # 정규화: 공백 제거, 접미사(항, .) 제거
+    normalized = para_no.strip().rstrip("항., ")
+
+    # 1. 원숫자 단일 문자인 경우
+    if normalized in symbols:
+        return symbols.index(normalized) + 1
+
+    # 2. 첫 글자가 원숫자인 경우 (예: "①항", "②의2")
+    if normalized and normalized[0] in symbols:
+        return symbols.index(normalized[0]) + 1
+
+    # 3. 숫자로 시작하는 경우 (예: "1", "1항", "12")
+    try:
+        match = re.match(r"(\d+)", normalized)
+        if match:
+            return int(match.group(1))
+    except ValueError:
+        pass
+
+    return 0
 
 
 def format_subparagraphs(subparas: list) -> str:
@@ -96,10 +137,22 @@ def format_subparagraphs(subparas: list) -> str:
     return "\n".join(lines)
 
 
-def create_paragraph_chunks(article, law_name: str, domain: str, domain_label: str,
-                            ministry: str, enforcement_date: str, mst: str) -> list[Document]:
-    """조문을 항 단위로 청킹하여 Document 리스트 생성"""
+def create_paragraph_chunks(
+    article,
+    law_name: str,
+    domain: str,
+    domain_label: str,
+    ministry: str,
+    enforcement_date: str,
+    mst: str,
+) -> tuple[list[Document], list[str]]:
+    """조문을 항 단위로 청킹하여 Document 리스트 생성
+
+    Returns:
+        (documents, ids): 문서 리스트와 ID 리스트 튜플
+    """
     documents = []
+    doc_ids = []
 
     article_no = article.article_no
     article_title = article.title or ""
@@ -109,7 +162,7 @@ def create_paragraph_chunks(article, law_name: str, domain: str, domain_label: s
 
     # 항이 있는 경우: 항 단위로 청킹
     if article.paragraphs:
-        for para in article.paragraphs:
+        for enum_idx, para in enumerate(article.paragraphs, start=1):
             para_no = para.get("no", "")
             para_content = para.get("content", "")
 
@@ -151,7 +204,12 @@ def create_paragraph_chunks(article, law_name: str, domain: str, domain_label: s
                     "enforcement_date": enforcement_date,
                 },
             )
+            # ID 생성: law_{mst}_{article_no}_{para_index}
+            # 파싱 실패 시 열거 인덱스를 fallback으로 사용
+            para_idx = para_symbol_to_index(para_no) or enum_idx
+            doc_id = f"law_{mst}_{article_no}_{para_idx}"
             documents.append(doc)
+            doc_ids.append(doc_id)
 
     # 항이 없는 경우: 조 단위로 청킹
     else:
@@ -183,9 +241,12 @@ def create_paragraph_chunks(article, law_name: str, domain: str, domain_label: s
                     "enforcement_date": enforcement_date,
                 },
             )
+            # ID 생성: law_{mst}_{article_no} (항 없음)
+            doc_id = f"law_{mst}_{article_no}"
             documents.append(doc)
+            doc_ids.append(doc_id)
 
-    return documents
+    return documents, doc_ids
 
 
 async def collect_and_store_laws():
@@ -198,7 +259,7 @@ async def collect_and_store_laws():
     # 임베딩 모델 초기화
     embeddings = OpenAIEmbeddings(
         model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
+        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
     )
 
     # Chroma DB 초기화
@@ -206,12 +267,14 @@ async def collect_and_store_laws():
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     vectorstore = Chroma(
-        collection_name="domain_laws",
+        collection_name=COLLECTION_LAWS,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
 
     documents = []
+    document_ids = []
+    seen_ids: set[str] = set()  # 중복 ID 방지용
     collected_laws = []
 
     for law_name, domain in TARGET_LAWS:
@@ -238,7 +301,7 @@ async def collect_and_store_laws():
         # 조문별로 항 단위 청킹
         law_doc_count = 0
         for article in law_detail.articles:
-            article_docs = create_paragraph_chunks(
+            article_docs, article_ids = create_paragraph_chunks(
                 article=article,
                 law_name=law_detail.name,
                 domain=domain,
@@ -248,6 +311,7 @@ async def collect_and_store_laws():
                 mst=law_summary.mst,
             )
             documents.extend(article_docs)
+            document_ids.extend(article_ids)
             law_doc_count += len(article_docs)
 
         print(f"  [OK] 생성된 청크: {law_doc_count}개 (항/조 단위)")
@@ -266,12 +330,31 @@ async def collect_and_store_laws():
         print("\n⚠️  수집된 문서가 없습니다.")
         return
 
+    # 중복 ID 해결: suffix 추가로 고유성 보장
+    unique_ids = []
+    duplicate_count = 0
+    for doc_id in document_ids:
+        if doc_id in seen_ids:
+            # 중복 발생 시 suffix 추가
+            duplicate_count += 1
+            suffix = 1
+            new_id = f"{doc_id}_{suffix}"
+            while new_id in seen_ids:
+                suffix += 1
+                new_id = f"{doc_id}_{suffix}"
+            doc_id = new_id
+        seen_ids.add(doc_id)
+        unique_ids.append(doc_id)
+
+    if duplicate_count > 0:
+        print(f"\n⚠️  중복 ID {duplicate_count}개 발견 → suffix 추가로 해결")
+
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 조문 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장
-    vectorstore.add_documents(documents)
+    # Vector DB에 저장 (고유 ID 포함)
+    vectorstore.add_documents(documents, ids=unique_ids)
 
     print("[OK] 저장 완료!")
 
@@ -294,7 +377,9 @@ async def collect_and_store_laws():
     print("수집 완료 요약:")
     print("=" * 60)
     for law in collected_laws:
-        print(f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})")
+        print(
+            f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})"
+        )
     print(f"\n총 청크 수: {len(documents)}개 (항/조 단위)")
     print(f"저장 위치: {persist_dir}")
 

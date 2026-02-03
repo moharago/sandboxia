@@ -12,10 +12,11 @@ from typing import Any
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-from app.db.vector import get_vectorstore
+from app.core.constants import COLLECTION_CASES
+from app.db.vector import get_vector_store
 
 # 데이터 경로
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2"
+DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2_data"
 CASES_JSON_PATH = DATA_DIR / "cases_structured.json"
 
 
@@ -65,7 +66,9 @@ def _load_cases_data() -> dict[str, Any]:
     global _cases_data
     if _cases_data is None:
         if not CASES_JSON_PATH.exists():
-            raise FileNotFoundError(f"사례 데이터 파일을 찾을 수 없습니다: {CASES_JSON_PATH}")
+            raise FileNotFoundError(
+                f"사례 데이터 파일을 찾을 수 없습니다: {CASES_JSON_PATH}"
+            )
         with open(CASES_JSON_PATH, encoding="utf-8") as f:
             cases = json.load(f)
             _cases_data = {c["case_id"]: c for c in cases}
@@ -84,7 +87,9 @@ def _build_case_result(
     common = case.get("common_info", {})
     companies = case.get("companies", [])
 
-    all_companies = [c.get("company_name", "") for c in companies if c.get("company_name")]
+    all_companies = [
+        c.get("company_name", "") for c in companies if c.get("company_name")
+    ]
     if not all_companies and company_name:
         all_companies = [company_name]
 
@@ -92,7 +97,9 @@ def _build_case_result(
         case_id=case_id,
         company_name=company_name or (all_companies[0] if all_companies else ""),
         all_companies=all_companies,
-        service_name=meta.get("service_name", "") if meta else common.get("service_name", ""),
+        service_name=(
+            meta.get("service_name", "") if meta else common.get("service_name", "")
+        ),
         track=meta.get("track", "") if meta else case.get("track", ""),
         designation_number=meta.get("designation_number", "") if meta else "",
         service_description=common.get("service_description", ""),
@@ -148,34 +155,35 @@ def search_case(
         >>> search_case("AI 기반 건강 모니터링")
         >>> search_case("자율주행", track="실증특례")
     """
-    vectorstore = get_vectorstore("r2_cases")
+    vector_store = get_vector_store(COLLECTION_CASES)
 
     # 중복 제거 고려해서 더 많이 검색
     fetch_count = top_k * 3 if deduplicate else top_k
 
     # 필터 조건
-    search_kwargs: dict[str, Any] = {"k": fetch_count}
+    filter_dict: dict[str, Any] | None = None
     if track:
-        search_kwargs["filter"] = {"track": track}
+        filter_dict = {"track": track}
 
-    # 유사도 검색
-    docs_with_scores = vectorstore.similarity_search_with_score(
-        query,
-        **search_kwargs,
+    # 유사도 검색 (추상화된 인터페이스 사용)
+    search_results = vector_store.similarity_search(
+        query=query,
+        k=fetch_count,
+        filter=filter_dict,
     )
 
     results = []
-    for doc, score in docs_with_scores:
-        meta = doc.metadata
+    for result in search_results:
+        meta = result.metadata
         case_id = meta.get("case_id", "")
 
-        result = _build_case_result(
+        case_result = _build_case_result(
             case_id=case_id,
             company_name=meta.get("company_name", ""),
-            score=score,
+            score=result.score,
             meta=meta,
         )
-        results.append(result)
+        results.append(case_result)
 
     if deduplicate:
         results = _deduplicate_results(results)
@@ -211,12 +219,14 @@ def get_similar_cases_for_application(
         >>> get_similar_cases_for_application("배달 로봇이 보도를 주행하며 음식을 배달하는 서비스")
     """
     # 유사 사례 검색
-    search_result = search_case.invoke({
-        "query": service_description,
-        "track": track,
-        "top_k": top_k,
-        "deduplicate": True,
-    })
+    search_result = search_case.invoke(
+        {
+            "query": service_description,
+            "track": track,
+            "top_k": top_k,
+            "deduplicate": True,
+        }
+    )
     similar_cases = search_result.results
 
     # 공통 조건 추출
@@ -292,12 +302,14 @@ def get_approval_patterns(
     Example:
         >>> get_approval_patterns("자율주행", track="실증특례")
     """
-    search_result = search_case.invoke({
-        "query": domain_keyword,
-        "track": track,
-        "top_k": top_k,
-        "deduplicate": True,
-    })
+    search_result = search_case.invoke(
+        {
+            "query": domain_keyword,
+            "track": track,
+            "top_k": top_k,
+            "deduplicate": True,
+        }
+    )
     cases = search_result.results
 
     from collections import Counter
