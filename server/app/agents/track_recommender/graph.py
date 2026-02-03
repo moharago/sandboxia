@@ -54,14 +54,12 @@ track_recommender_agent = build_track_recommender_graph()
 async def run_track_recommender(
     project_id: str,
     canonical: dict,
-    eligibility_result: dict | None = None,
 ) -> dict:
     """Track Recommender Agent 실행
 
     Args:
         project_id: 프로젝트 UUID
         canonical: 프로젝트의 canonical 데이터
-        eligibility_result: 대상성 판단 결과 (선택)
 
     Returns:
         추천 결과 딕셔너리
@@ -69,10 +67,10 @@ async def run_track_recommender(
     initial_state: TrackRecommenderState = {
         "project_id": project_id,
         "canonical": canonical,
-        "eligibility_result": eligibility_result,
         "track_scores": {},
         "track_definitions": [],
         "similar_cases": {},
+        "domain_constraints": {},
         "recommended_track": "",
         "confidence_score": 0.0,
         "result_summary": "",

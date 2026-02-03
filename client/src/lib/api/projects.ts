@@ -6,6 +6,7 @@
 
 import { createClient } from "@/lib/supabase/client"
 import type { CreateProjectRequest, ProjectResponse } from "@/types/api/project"
+import type { RecommendableTrack } from "@/types/api/track"
 
 export interface ProjectFile {
     id: string
@@ -148,5 +149,32 @@ export const projectsApi = {
         }
 
         return data as ProjectFile[]
+    },
+
+    /**
+     * 프로젝트 트랙 업데이트 (사용자 최종 선택)
+     */
+    updateProjectTrack: async (
+        projectId: string,
+        track: RecommendableTrack
+    ): Promise<ProjectResponse> => {
+        const supabase = createClient()
+
+        const { data, error } = await supabase
+            .from("projects")
+            .update({
+                track,
+                current_step: 4, // Step 4로 진행
+                updated_at: new Date().toISOString(),
+            })
+            .eq("id", projectId)
+            .select()
+            .single()
+
+        if (error) {
+            throw new Error(error.message)
+        }
+
+        return data as ProjectResponse
     },
 }

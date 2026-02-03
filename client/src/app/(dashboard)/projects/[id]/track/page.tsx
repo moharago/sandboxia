@@ -1,8 +1,8 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
+import { CheckCircle2, XCircle, AlertCircle, Info, Loader2 } from "lucide-react"
 import { WizardNavigation } from "@/components/features/wizard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
@@ -13,90 +13,27 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { tracks } from "@/data"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
+import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
+import { agentsApi } from "@/lib/api/agents"
 import { cn } from "@/lib/utils/cn"
-import type { Track, TrackType } from "@/types/data/track"
+import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
 
 interface TrackPageProps {
     params: Promise<{ id: string }>
 }
 
-// 더미 AI 트랙 추천 데이터 (RAG 1,2,3 툴 활용 시뮬레이션)
-const dummyTrackAnalysis = {
-    confidence: 89,
-    summary:
-        "서비스 특성과 규제 현황을 분석한 결과, 실증특례 트랙이 가장 적합합니다. 시장성 검증을 위한 테스트가 필요하고 규제 면제가 필요한 상황에 적합합니다.",
-    recommendations: [
-        {
-            trackId: "track-demonstration",
-            rank: 1,
-            score: 92,
-            verdict: "AI 추천" as const,
-            reasons: [
-                {
-                    type: "positive" as const,
-                    text: "자율주행 배달로봇은 실제 환경에서의 시장성 검증이 필수적이며, 실증특례를 통해 제한된 구역에서 테스트가 가능합니다.",
-                    source: "「정보통신융합법」 제38조의2 (실증특례), 「규제 샌드박스 운영지침」 제5조",
-                },
-                {
-                    type: "positive" as const,
-                    text: "뉴빌리티, 배달의민족 등 유사 사례가 실증특례로 승인받은 선례가 있어 승인 가능성이 높습니다.",
-                    source: "실증특례 제2023-ICT융합-0147호 '뉴빌리티 자율주행 배달로봇 서비스'",
-                },
-                {
-                    type: "neutral" as const,
-                    text: "실증 기간 내 안전성 데이터 확보가 필요하며, 이후 임시허가 또는 정식 규제 개선으로 연결 가능합니다.",
-                    source: "「정보통신융합법」 제38조의2 제4항 (실증특례 기간)",
-                },
-            ],
-        },
-        {
-            trackId: "track-temporary",
-            rank: 2,
-            score: 68,
-            verdict: "조건부 가능" as const,
-            reasons: [
-                {
-                    type: "positive" as const,
-                    text: "전국 단위 서비스가 가능하며, 정식 허가와 동일한 효력을 가집니다.",
-                    source: "「정보통신융합법」 제37조 (임시허가), 「규제 샌드박스 운영지침」 제6조",
-                },
-                {
-                    type: "negative" as const,
-                    text: "현재 단계에서는 충분한 안전성 검증 데이터가 부족합니다. 실증특례 이후 신청이 적합합니다.",
-                    source: "임시허가 제2022-ICT융합-0089호 심사 반려 사례",
-                },
-                {
-                    type: "neutral" as const,
-                    text: "기존 임시허가 사례는 대부분 실증특례를 거친 후 신청한 경우입니다.",
-                    source: "임시허가 제2023-ICT융합-0201호 '자율주행 셔틀버스 서비스'",
-                },
-            ],
-        },
-        {
-            trackId: "track-fastcheck",
-            rank: 3,
-            score: 25,
-            verdict: "비추천" as const,
-            reasons: [
-                {
-                    type: "negative" as const,
-                    text: "본 서비스는 규제 적용 여부가 명확합니다. 「여객자동차 운수사업법」에 저촉되므로 신속확인 대상이 아닙니다.",
-                    source: "「여객자동차 운수사업법」 제3조 제1항, 「도로교통법」 제2조 제26호",
-                },
-                {
-                    type: "negative" as const,
-                    text: "신속확인은 규제 적용 여부가 불분명한 경우에만 해당됩니다.",
-                    source: "「정보통신융합법」 제36조 (신속확인), 「규제 샌드박스 운영지침」 제4조",
-                },
-            ],
-        },
-    ],
+// API 트랙 ID → UI 트랙 ID 매핑
+const API_TO_UI_TRACK: Record<RecommendableTrack, string> = {
+    demo: "track-demonstration",
+    temp_permit: "track-temporary",
+    quick_check: "track-fastcheck",
 }
 
-const trackColors: Record<TrackType, string> = {
-    demonstration: "from-blue-500 to-blue-600",
-    temporary: "from-teal-500 to-teal-600",
-    fastcheck: "from-slate-400 to-slate-500",
+// UI 트랙 ID → API 트랙 ID 매핑
+const UI_TO_API_TRACK: Record<string, RecommendableTrack> = {
+    "track-demonstration": "demo",
+    "track-temporary": "temp_permit",
+    "track-fastcheck": "quick_check",
 }
 
 const verdictStyles: Record<string, { bg: string; text: string; border: string }> = {
@@ -113,26 +50,123 @@ const verdictStyles: Record<string, { bg: string; text: string; border: string }
     비추천: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
 }
 
+// API 응답을 UI 형식으로 변환
+function transformApiResponse(response: TrackRecommendResponse) {
+    const recommendations: Array<{
+        trackId: string
+        rank: number
+        score: number
+        verdict: string
+        reasons: Array<{ type: "positive" | "negative" | "neutral"; text: string; source: string; description: string }>
+    }> = []
+
+    // 3개 트랙을 순회하며 UI 형식으로 변환
+    const trackKeys: RecommendableTrack[] = ["demo", "temp_permit", "quick_check"]
+
+    for (const apiTrackId of trackKeys) {
+        const trackData = response.track_comparison[apiTrackId] as TrackComparisonItem | undefined
+        if (!trackData) continue
+
+        const uiTrackId = API_TO_UI_TRACK[apiTrackId]
+
+        // reasons와 evidence를 1:1 매핑 (서버 프롬프트에서 reasons[i]와 evidence[i]가 대응)
+        const reasons = trackData.reasons.map((r, index) => {
+            const evidence = trackData.evidence?.[index]
+            return {
+                type: r.type,
+                text: r.text,
+                source: evidence ? evidence.source : "",
+                description: evidence?.description ?? "",
+            }
+        })
+
+        recommendations.push({
+            trackId: uiTrackId,
+            rank: trackData.rank,
+            score: trackData.fit_score,
+            verdict: trackData.status,
+            reasons,
+        })
+    }
+
+    return {
+        confidence: response.confidence_score,
+        summary: response.result_summary,
+        recommendations: recommendations.sort((a, b) => a.rank - b.rank),
+    }
+}
+
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
 
-    const { trackSelection, setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
+    const { setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
 
-    // 가장 적합한 트랙(rank 1)을 기본 선택으로
-    const defaultTrackId = dummyTrackAnalysis.recommendations.find((r) => r.rank === 1)?.trackId || null
-
-    const [selectedTrackId, setSelectedTrackId] = useState<string | null>(defaultTrackId)
-    const [prevId, setPrevId] = useState(id)
-    const [isSaving, setIsSaving] = useState(false)
+    const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
+    const [analysisResult, setAnalysisResult] = useState<ReturnType<typeof transformApiResponse> | null>(null)
+    const [isCheckingCache, setIsCheckingCache] = useState(true)
+    const hasCalledApi = useRef(false)
 
-    // 프로젝트가 변경되면 AI 추천 트랙으로 초기화 (렌더링 중 조건부 업데이트)
-    if (id !== prevId) {
-        setPrevId(id)
-        setSelectedTrackId(defaultTrackId)
-    }
+    // API Mutations
+    const recommendMutation = useTrackRecommendMutation({
+        onSuccess: (data) => {
+            const transformed = transformApiResponse(data)
+            setAnalysisResult(transformed)
+
+            // AI 추천 트랙을 기본 선택으로
+            const recommendedTrackId = API_TO_UI_TRACK[data.recommended_track]
+            setSelectedTrackId(recommendedTrackId)
+        },
+        onError: (error) => {
+            console.error("트랙 추천 실패:", error)
+            // TODO: Toast 알림
+        },
+    })
+
+    const selectMutation = useTrackSelectMutation({
+        onSuccess: () => {
+            markStepComplete(3)
+            setCurrentStep(4)
+            router.push(`/projects/${id}/draft`)
+        },
+        onError: (error) => {
+            console.error("트랙 저장 실패:", error)
+            // TODO: Toast 알림
+        },
+    })
+
+    // 페이지 진입 시: 1) 캐시 확인 → 2) 없으면 AI 분석 호출
+    useEffect(() => {
+        if (hasCalledApi.current) return
+        hasCalledApi.current = true
+
+        const loadTrackResult = async () => {
+            setIsCheckingCache(true)
+            try {
+                // 1. 캐시 확인
+                const cached = await agentsApi.getTrackResult(id)
+                if (cached) {
+                    // 캐시 있음 - 바로 표시
+                    const transformed = transformApiResponse(cached)
+                    setAnalysisResult(transformed)
+                    const recommendedTrackId = API_TO_UI_TRACK[cached.recommended_track]
+                    setSelectedTrackId(recommendedTrackId)
+                    setIsCheckingCache(false)
+                    return
+                }
+            } catch (error) {
+                console.error("캐시 조회 실패:", error)
+            }
+
+            // 2. 캐시 없음 - AI 분석 호출
+            setIsCheckingCache(false)
+            recommendMutation.mutate({ project_id: id })
+        }
+
+        loadTrackResult()
+    }, [id, recommendMutation])
 
     const handleSelectTrack = (trackId: string) => {
         setSelectedTrackId(trackId)
@@ -150,32 +184,19 @@ export default function TrackPage({ params }: TrackPageProps) {
     const handleSave = async () => {
         if (!selectedTrackId) return
 
-        setIsSaving(true)
+        const apiTrackId = UI_TO_API_TRACK[selectedTrackId]
+        if (!apiTrackId) return
 
-        try {
-            // AI 분석 시뮬레이션
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-
-            const track = tracks.find((t) => t.id === selectedTrackId)
-            if (!track) {
-                throw new Error(`Track not found: ${selectedTrackId}`)
-            }
-
+        const track = tracks.find((t) => t.id === selectedTrackId)
+        if (track) {
             setTrackSelection(track)
-            markStepComplete(3)
-            setCurrentStep(4)
-            router.push(`/projects/${id}/draft`)
-            // 페이지 전환 후 컴포넌트가 언마운트되면서 로딩이 자연스럽게 사라짐
-        } catch (error) {
-            console.error("트랙 저장 중 오류 발생:", error)
-            // TODO: 사용자에게 에러 메시지 표시 (toast 등)
-        } finally {
-            setIsSaving(false)
         }
-    }
 
-    // 추천 순서대로 정렬
-    const sortedRecommendations = [...dummyTrackAnalysis.recommendations].sort((a, b) => a.rank - b.rank)
+        selectMutation.mutate({
+            projectId: id,
+            track: apiTrackId,
+        })
+    }
 
     const getReasonIcon = (type: string) => {
         switch (type) {
@@ -190,10 +211,82 @@ export default function TrackPage({ params }: TrackPageProps) {
         }
     }
 
+    const isAnalyzing = recommendMutation.isPending
+    const isSaving = selectMutation.isPending
+    const isError = recommendMutation.isError
+
+    // 캐시 확인 중
+    if (isCheckingCache) {
+        return (
+            <div className="py-6">
+                <div className="container">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center space-y-4">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                            <p className="text-muted-foreground">이전 분석 결과를 확인하고 있습니다...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // AI 분석 중
+    if (isAnalyzing) {
+        return (
+            <div className="py-6">
+                <AILoadingOverlay message="AI가 트랙을 분석하고 있습니다..." />
+                <div className="container">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center space-y-4">
+                            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+                            <div className="space-y-2">
+                                <h2 className="text-lg font-semibold">AI가 트랙을 분석하고 있습니다</h2>
+                                <p className="text-muted-foreground">서비스 정보, 규제 사례, 법령을 종합 분석 중입니다.</p>
+                                <p className="text-sm text-muted-foreground/70">⏱ 약 1~2분 소요됩니다. 잠시만 기다려주세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // 에러
+    if (isError) {
+        return (
+            <div className="py-6">
+                <div className="container">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center space-y-4">
+                            <XCircle className="h-12 w-12 mx-auto text-red-500" />
+                            <h2 className="text-lg font-semibold">트랙 분석에 실패했습니다</h2>
+                            <p className="text-muted-foreground">{recommendMutation.error?.message || "알 수 없는 오류가 발생했습니다."}</p>
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                                onClick={() => recommendMutation.mutate({ project_id: id })}
+                            >
+                                다시 시도
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // 결과 없음
+    if (!analysisResult) {
+        return null
+    }
+
+    const sortedRecommendations = analysisResult.recommendations
+
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoadingOverlay />}
+                {isSaving && <AILoadingOverlay message="트랙 선택을 저장하고 있습니다..." />}
                 <div className="container">
                     <div className="flex gap-4">
                         {/* 왼쪽: 메인 콘텐츠 */}
@@ -204,7 +297,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                             </div>
 
                             {/* AI 분석 요약 */}
-                            <AIAnalysisCard summary={dummyTrackAnalysis.summary} confidence={dummyTrackAnalysis.confidence} />
+                            <AIAnalysisCard summary={analysisResult.summary} confidence={analysisResult.confidence} />
 
                             {/* 트랙 카드들 */}
                             <div className="space-y-4">
@@ -213,8 +306,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                     if (!track) return null
 
                                     const isSelected = selectedTrackId === track.id
-                                    const isRecommended = rec.rank === 1
-                                    const style = verdictStyles[rec.verdict]
+                                    const style = verdictStyles[rec.verdict] || verdictStyles["비추천"]
 
                                     return (
                                         <Card
@@ -282,7 +374,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                                 {getReasonIcon(reason.type)}
                                                                 <div className="flex-1">
                                                                     <p className="text-foreground">{reason.text}</p>
-                                                                    <p className="text-muted-foreground/70 mt-1">근거: {reason.source}</p>
+                                                                    {reason.source && <p className="text-muted-foreground/70 mt-1">근거: {reason.source}{reason.description ? ` - ${reason.description}` : ""}</p>}
                                                                 </div>
                                                             </li>
                                                         ))}
@@ -294,13 +386,10 @@ export default function TrackPage({ params }: TrackPageProps) {
                                 })}
                             </div>
 
-                            {/* TODO: isAnalyzed는 나중에 track_results 존재 여부로 판단 */}
-                            {/* TODO: hasChanges는 이전 단계(eligibility) 결과 변경 여부로 판단 */}
                             <WizardNavigation
                                 onBack={handleBack}
                                 onAnalyze={handleSave}
                                 onNext={() => {
-                                    // 분석 완료 상태에서 다음 단계로 이동 (재분석 없이)
                                     if (!selectedTrackId) return
                                     const track = tracks.find((t) => t.id === selectedTrackId)
                                     if (track) {
@@ -310,9 +399,9 @@ export default function TrackPage({ params }: TrackPageProps) {
                                         router.push(`/projects/${id}/draft`)
                                     }
                                 }}
-                                analyzeLabel="AI 분석 및 다음 단계"
+                                analyzeLabel="저장 및 다음 단계"
                                 nextLabel="다음 단계"
-                                isAnalyzed={devIsAnalyzed}
+                                isAnalyzed={!!analysisResult}
                                 hasChanges={devHasChanges}
                                 isLoading={isSaving}
                                 isAnalyzeDisabled={!selectedTrackId}

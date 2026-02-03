@@ -221,9 +221,12 @@ def retrieve_domain_constraints(
 ) -> dict:
     """도메인 규제/법령 RAG 검색 (R3)
 
+    canonical의 관련 규제 목록 또는 서비스 설명을 쿼리로 사용하여
+    도메인별 법령/규제를 검색합니다.
+
     Args:
         related_regulations: 관련 규제 목록 (canonical.regulatory.related_regulations)
-        service_description: 서비스 설명 (추가 검색 쿼리용)
+        service_description: 서비스 설명 (related_regulations가 없을 때 대체 쿼리)
         top_k: 반환할 결과 수
 
     Returns:
@@ -235,13 +238,20 @@ def retrieve_domain_constraints(
         "has_blocking_issue": False,
     }
 
-    if not related_regulations:
+    # 쿼리 구성: related_regulations 우선, 없으면 service_description 사용
+    query_parts = []
+    if related_regulations:
+        query_parts.append(
+            ", ".join(related_regulations) if isinstance(related_regulations, list)
+            else str(related_regulations)
+        )
+    if service_description:
+        query_parts.append(service_description[:200])
+
+    if not query_parts:
         return results
 
-    # 관련 규제를 쿼리로 사용하여 도메인 법령 검색
-    query = ", ".join(related_regulations) if isinstance(related_regulations, list) else str(related_regulations)
-    if service_description:
-        query = f"{query} {service_description[:100]}"
+    query = " ".join(query_parts)
 
     try:
         domain_results = search_domain_law.invoke({"query": query, "top_k": top_k})

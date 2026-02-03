@@ -6,23 +6,24 @@
     },
     "context7": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "npx -y @upstash/context7-mcp"
+      ]
     },
     "serena": {
       "type": "stdio",
-      "command": "uvx",
+      "command": "powershell.exe",
       "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server",
-        "--context",
-        "claude-code",
-        "--mode",
-        "interactive",
-        "--project",
-        "/Users/aistudy/Documents/ai-agent-kdt/2nd-pj-Sandbox"
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context claude-code --mode interactive --project C:\\Users\\kthsa\\sandboxia\\ai-camp-4nd-llm-agent-service-project-4th_law_sandboxia"
       ]
     }
   }

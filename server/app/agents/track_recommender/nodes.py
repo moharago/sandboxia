@@ -225,7 +225,7 @@ def score_all_tracks_node(state: TrackRecommenderState) -> dict:
     # 순위 및 상태 계산 (R3 도메인 제약 반영)
     track_scores = calculate_ranks_and_status(track_scores, domain_constraints)
 
-    return {"track_scores": track_scores}
+    return {"track_scores": track_scores, "domain_constraints": domain_constraints}
 
 
 def retrieve_definitions_node(state: TrackRecommenderState) -> dict:
@@ -261,22 +261,262 @@ def retrieve_cases_node(state: TrackRecommenderState) -> dict:
     return {"similar_cases": similar_cases}
 
 
+def _format_track_definitions_for_prompt(track_definitions: list) -> str:
+    """트랙 정의를 LLM이 인용하기 쉬운 형식으로 변환"""
+    if not track_definitions:
+        return "(검색 결과 없음)"
+
+    lines = []
+    for i, td in enumerate(track_definitions, 1):
+        raw_source = td.get("source", "출처 미상")
+        source = _clean_citation(raw_source) if raw_source != "출처 미상" else raw_source
+        content = td.get("content", "")[:200]
+        track_name = td.get("track_name", "")
+        lines.append(f"{i}. [{source}] {track_name}: {content}...")
+
+    return "\n".join(lines) if lines else "(검색 결과 없음)"
+
+
+def _format_similar_cases_for_prompt(similar_cases: dict) -> str:
+    """유사 사례를 LLM이 인용하기 쉬운 형식으로 변환"""
+    if not similar_cases:
+        return "(검색 결과 없음)"
+
+    lines = []
+    for track_key, cases in similar_cases.items():
+        track_name_map = {"demo": "실증특례", "temp_permit": "임시허가", "quick_check": "신속확인"}
+        track_name = track_name_map.get(track_key, track_key)
+
+        if cases:
+            lines.append(f"\n### {track_name} 유사 사례:")
+            for case in cases:
+                case_id = case.get("case_id", "")
+                service_name = case.get("service_name", "")
+                company_name = case.get("company_name", "")
+                desc = case.get("service_description", "")[:100]
+                lines.append(f"  - **{case_id}** ({company_name}): {service_name}")
+                if desc:
+                    lines.append(f"    설명: {desc}...")
+        else:
+            lines.append(f"\n### {track_name} 유사 사례: 없음")
+
+    return "\n".join(lines) if lines else "(검색 결과 없음)"
+
+
+def _clean_citation(citation: str) -> str:
+    """RAG citation을 짧은 출처명으로 정제
+
+    R1 citation 형식: "카테고리 > 제목" (예: "트랙비교 > 병행 신청")
+    긴 citation은 "카테고리 > 제목" 부분만 추출하여 30자 이내로 제한.
+    """
+    if not citation:
+        return ""
+
+    # ">" 구분자가 있으면 "카테고리 > 제목" 형식
+    if " > " in citation:
+        parts = citation.split(" > ", 1)
+        category = parts[0].strip()
+        title = parts[1].strip()
+        # 제목이 너무 길면 잘라냄
+        if len(title) > 20:
+            title = title[:20]
+        return f"{category} > {title}"
+
+    # 30자 이상이면 잘라냄
+    if len(citation) > 30:
+        return citation[:30]
+
+    return citation
+
+
+def _extract_evidence_sources(
+    track_definitions: list,
+    similar_cases: dict,
+    domain_constraints: dict | None = None,
+) -> dict:
+    """RAG 결과에서 실제 출처 목록 추출 (R1 + R2 + R3)"""
+    sources = {
+        "사례": [],
+        "법령": [],
+        "규제": [],
+    }
+
+    # R2: 유사 사례에서 case_id 추출 (중복 제거)
+    seen_case_ids = set()
+    for track_key, cases in similar_cases.items():
+        for case in cases:
+            case_id = case.get("case_id", "")
+            if case_id and case_id not in seen_case_ids:
+                sources["사례"].append(case_id)
+                seen_case_ids.add(case_id)
+
+    # R1: 트랙 정의에서 출처 추출 (중복 제거, citation 정제)
+    seen_sources = set()
+    for td in track_definitions:
+        raw_source = td.get("source", "")
+        if not raw_source:
+            continue
+        source = _clean_citation(raw_source)
+        if not source or source in seen_sources:
+            continue
+        seen_sources.add(source)
+        if any(kw in source for kw in ["법", "조", "규정", "시행령", "시행규칙"]):
+            sources["법령"].append(source)
+        else:
+            sources["규제"].append(source)
+
+    # R3: 도메인 법령에서 citation 추출
+    if domain_constraints:
+        for constraint in domain_constraints.get("constraints", []):
+            citation = constraint.get("source", "")
+            law_name = constraint.get("law_name", "")
+            # citation이 있으면 사용, 없으면 law_name 사용
+            source = citation or law_name
+            if not source or source in seen_sources:
+                continue
+            source = _clean_citation(source)
+            if not source or source in seen_sources:
+                continue
+            seen_sources.add(source)
+            sources["법령"].append(source)
+
+    # 기본 출처 추가 (RAG 결과가 부족할 때 사용)
+    default_sources = {
+        "사례": ["유사 승인 사례 참조"],
+        "법령": ["규제샌드박스 운영규정", "ICT 특별법", "정보통신 진흥법"],
+        "규제": ["실증특례 심사기준", "규제샌드박스 신청요건", "ICT 규제샌드박스 가이드"],
+    }
+
+    for source_type in sources:
+        if not sources[source_type]:
+            sources[source_type] = default_sources[source_type]
+
+    return sources
+
+
+def _build_available_sources_text(
+    track_definitions: list,
+    similar_cases: dict,
+    domain_constraints: dict | None = None,
+) -> str:
+    """LLM 프롬프트에 주입할 '사용 가능한 출처 목록' 텍스트 생성"""
+    sources = _extract_evidence_sources(
+        track_definitions, similar_cases, domain_constraints
+    )
+
+    lines = []
+
+    lines.append("### source_type: \"사례\" → 아래에서 선택")
+    for s in sources["사례"]:
+        lines.append(f"- {s}")
+
+    lines.append("")
+    lines.append("### source_type: \"법령\" → 아래에서 선택")
+    for s in sources["법령"]:
+        lines.append(f"- {s}")
+
+    lines.append("")
+    lines.append("### source_type: \"규제\" → 아래에서 선택")
+    for s in sources["규제"]:
+        lines.append(f"- {s}")
+
+    return "\n".join(lines)
+
+
+def _fix_evidence_sources(
+    recommendation_data: dict,
+    track_definitions: list,
+    similar_cases: dict,
+    domain_constraints: dict | None = None,
+) -> dict:
+    """LLM 응답의 evidence.source 검증 및 중복 제거
+
+    1. 유효하지 않은 source → 출처 목록에서 교체
+    2. 트랙 내 중복 source → 다른 출처로 교체
+    """
+    sources = _extract_evidence_sources(
+        track_definitions, similar_cases, domain_constraints
+    )
+
+    # 유효한 출처 집합 생성
+    valid_sources = set()
+    for source_list in sources.values():
+        valid_sources.update(source_list)
+
+    # 전체 출처 풀 (source_type별 + 통합)
+    all_sources = sources.get("사례", []) + sources.get("법령", []) + sources.get("규제", [])
+
+    for track_key in ["demo", "temp_permit", "quick_check"]:
+        track_data = recommendation_data.get(track_key, {})
+        evidence_list = track_data.get("evidence", [])
+
+        # 1단계: 유효하지 않은 source 교체
+        for i, ev in enumerate(evidence_list):
+            if not isinstance(ev, dict):
+                continue
+
+            source_type = ev.get("source_type", "규제")
+            current_source = ev.get("source", "")
+
+            if current_source not in valid_sources:
+                fallback = sources.get(source_type, sources.get("규제", []))
+                if fallback:
+                    ev["source"] = fallback[i % len(fallback)]
+
+        # 2단계: 트랙 내 중복 source 제거
+        used_sources = set()
+        for ev in evidence_list:
+            if not isinstance(ev, dict):
+                continue
+
+            current_source = ev.get("source", "")
+            if current_source in used_sources:
+                # 중복 → 아직 사용하지 않은 다른 출처로 교체
+                source_type = ev.get("source_type", "규제")
+                candidates = sources.get(source_type, []) + all_sources
+                replaced = False
+                for candidate in candidates:
+                    if candidate not in used_sources:
+                        ev["source"] = candidate
+                        used_sources.add(candidate)
+                        replaced = True
+                        break
+                if not replaced:
+                    # 모든 출처를 사용한 경우 그대로 유지
+                    used_sources.add(current_source)
+            else:
+                used_sources.add(current_source)
+
+    return recommendation_data
+
+
 def generate_recommendation_node(state: TrackRecommenderState) -> dict:
     """추천 사유 및 근거 생성 노드"""
     canonical = state.get("canonical", {})
     track_scores = state.get("track_scores", {})
     track_definitions = state.get("track_definitions", [])
     similar_cases = state.get("similar_cases", {})
+    domain_constraints = state.get("domain_constraints", {})
 
     service_info = extract_service_info(canonical)
+
+    # RAG 결과를 LLM이 인용하기 쉬운 형식으로 변환
+    formatted_definitions = _format_track_definitions_for_prompt(track_definitions)
+    formatted_cases = _format_similar_cases_for_prompt(similar_cases)
+
+    # 사용 가능한 출처 목록 생성 (R1 + R2 + R3)
+    available_sources = _build_available_sources_text(
+        track_definitions, similar_cases, domain_constraints
+    )
 
     # LLM 호출
     llm = get_llm()
     prompt = RECOMMENDATION_USER_PROMPT.format(
         service_info=service_info,
         track_scores=json.dumps(track_scores, ensure_ascii=False, indent=2),
-        track_definitions=json.dumps(track_definitions, ensure_ascii=False, indent=2),
-        similar_cases=json.dumps(similar_cases, ensure_ascii=False, indent=2),
+        track_definitions=formatted_definitions,
+        similar_cases=formatted_cases,
+        available_sources=available_sources,
     )
 
     response = llm.invoke([
@@ -301,6 +541,11 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
             "quick_check": {"reasons": [], "evidence": []},
             "result_summary": "추천 사유 생성에 실패했습니다.",
         }
+
+    # evidence.source 후처리: 유효하지 않은 출처를 RAG 출처로 교체
+    recommendation_data = _fix_evidence_sources(
+        recommendation_data, track_definitions, similar_cases, domain_constraints
+    )
 
     # track_comparison 구조 생성
     track_comparison = {}
