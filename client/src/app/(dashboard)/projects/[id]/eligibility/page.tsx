@@ -218,12 +218,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         await queryClient.invalidateQueries({ queryKey: ["eligibility"] }) // eligibility 캐시 무효화
 
         if (selectedDecision === "direct") {
-            await projectsApi.updateStatus(id, 5) // 5 = 바로출시 (DB 업데이트)
-            await queryClient.invalidateQueries({ queryKey: ["projects"] }) // 캐시 무효화
+            // 바로출시 선택 → current_step=5, status=4 (completed)
+            await projectsApi.updateStatus(id, 4, 5)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             router.push("/dashboard")
         } else {
-            await projectsApi.updateStatus(id, 3) // 3 = 결과대기 (DB 업데이트)
+            // 샌드박스 신청 선택 → status 유지 (Step 1~3은 status=1)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             setCurrentStep(3)
@@ -255,12 +256,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                         await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
                         if (mappedData.recommendation === "direct") {
-                            await projectsApi.updateStatus(id, 5) // 5 = 바로출시 (DB 업데이트)
+                            // 바로출시 → status=4, current_step=5 (completed)
+                            await projectsApi.updateStatus(id, 4, 5)
                             await queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             router.push("/dashboard")
                         } else {
-                            await projectsApi.updateStatus(id, 3) // 3 = 결과대기 (DB 업데이트)
+                            // 샌드박스 신청 → status 유지 (Step 1~3은 status=1)
                             await queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             setCurrentStep(3)
@@ -273,7 +275,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     }
 
     // 분석 + 다음 단계 (한 번에)
-    const handleAnalyzeAndNext = async () => {
+    const handleAnalyzeAndNext = () => {
         // 이미 분석된 경우 바로 다음 단계로
         if (isAnalyzed) {
             handleNext()

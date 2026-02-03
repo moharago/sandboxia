@@ -441,6 +441,7 @@ def compose_decision_node(state: EligibilityState) -> dict:
 
     # 응답 파싱 시도
     direct_launch_risks: list[DirectLaunchRisk] = []
+    llm_result: dict = {}  # 파싱 실패 시 기본값
     try:
         response_text = response.content
         # JSON 블록 추출
@@ -469,28 +470,17 @@ def compose_decision_node(state: EligibilityState) -> dict:
     except (json.JSONDecodeError, IndexError):
         result_summary = result.reasoning
 
-    # EligibilityLabel 변환
+    # EligibilityLabel 변환 - LLM 결과를 그대로 사용
     label_map = {
         "required": EligibilityLabel.REQUIRED,
         "not_required": EligibilityLabel.NOT_REQUIRED,
         "unclear": EligibilityLabel.UNCLEAR,
     }
 
-    # canonical의 regulatory_issues 상태에 따른 판정 오버라이드
-    if has_unclear_issue:
-        # unclear 상태가 있으면 UNCLEAR로 판정
-        eligibility_label = EligibilityLabel.UNCLEAR
-        confidence_score = min(result.confidence_score, 0.6)  # 신뢰도 하향
-    elif has_blocking_issue or (has_regulation_conflict and not has_similar_case):
-        # 명확한 규제 저촉이 있으면 REQUIRED
-        eligibility_label = EligibilityLabel.REQUIRED
-        confidence_score = result.confidence_score
-    else:
-        # 그 외에는 Decision Composer 결과 사용
-        eligibility_label = label_map.get(result.eligibility_label, EligibilityLabel.UNCLEAR)
-        confidence_score = result.confidence_score
-
-    # LLM이 리스크를 생성하지 않았으면 빈 배열 유지 (fallback 없음)
+    # LLM이 반환한 eligibility_label 사용 (오버라이드 없음)
+    llm_label = llm_result.get("eligibility_label", "unclear")
+    eligibility_label = label_map.get(llm_label, EligibilityLabel.UNCLEAR)
+    confidence_score = llm_result.get("confidence_score", result.confidence_score)
 
     return {
         "eligibility_label": eligibility_label,
