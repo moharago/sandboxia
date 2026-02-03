@@ -104,13 +104,17 @@ def load_json_data() -> tuple[list[dict], str]:
     return data, str(LOCAL_DATA_FILE)
 
 
-def create_documents(data: list[dict]) -> list[Document]:
+def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
     """JSON 데이터를 Document 리스트로 변환
 
     각 케이스를 하나의 Document로 변환합니다.
     검색에 사용될 텍스트는 서비스명, 설명, 특례내용 등을 포함합니다.
+
+    Returns:
+        (documents, ids): 문서 리스트와 ID 리스트 튜플
     """
     documents = []
+    doc_ids = []
 
     for case in data:
         case_id = case.get("case_id", "")
@@ -165,9 +169,12 @@ def create_documents(data: list[dict]) -> list[Document]:
                 "citation": citation,
             },
         )
+        # ID 생성: case_{case_id}
+        doc_id = f"case_{case_id}" if case_id else f"case_{len(documents)}"
         documents.append(doc)
+        doc_ids.append(doc_id)
 
-    return documents
+    return documents, doc_ids
 
 
 def collect_and_store_cases(reset: bool = True):
@@ -224,13 +231,13 @@ def collect_and_store_cases(reset: bool = True):
     )
 
     # Document 생성
-    documents = create_documents(data)
+    documents, document_ids = create_documents(data)
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장
-    vectorstore.add_documents(documents)
+    # Vector DB에 저장 (ID 포함)
+    vectorstore.add_documents(documents, ids=document_ids)
 
     print("[OK] 저장 완료!")
 

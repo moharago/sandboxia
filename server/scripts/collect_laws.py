@@ -66,6 +66,18 @@ DOMAIN_LABELS = {
 }
 
 
+def para_symbol_to_index(para_no: str) -> int:
+    """항 기호(①②③...)를 숫자 인덱스로 변환"""
+    symbols = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
+    para_no = para_no.strip()
+    if para_no in symbols:
+        return symbols.index(para_no) + 1
+    # 숫자로 시작하는 경우 (예: "1.", "2.")
+    if para_no and para_no[0].isdigit():
+        return int(para_no.split(".")[0].split()[0])
+    return 0
+
+
 def format_subparagraphs(subparas: list) -> str:
     """호/목 내용을 텍스트로 포맷팅"""
     lines = []
@@ -105,9 +117,14 @@ def create_paragraph_chunks(
     ministry: str,
     enforcement_date: str,
     mst: str,
-) -> list[Document]:
-    """조문을 항 단위로 청킹하여 Document 리스트 생성"""
+) -> tuple[list[Document], list[str]]:
+    """조문을 항 단위로 청킹하여 Document 리스트 생성
+
+    Returns:
+        (documents, ids): 문서 리스트와 ID 리스트 튜플
+    """
     documents = []
+    doc_ids = []
 
     article_no = article.article_no
     article_title = article.title or ""
@@ -159,7 +176,11 @@ def create_paragraph_chunks(
                     "enforcement_date": enforcement_date,
                 },
             )
+            # ID 생성: law_{mst}_{article_no}_{para_index}
+            para_idx = para_symbol_to_index(para_no)
+            doc_id = f"law_{mst}_{article_no}_{para_idx}"
             documents.append(doc)
+            doc_ids.append(doc_id)
 
     # 항이 없는 경우: 조 단위로 청킹
     else:
@@ -191,9 +212,12 @@ def create_paragraph_chunks(
                     "enforcement_date": enforcement_date,
                 },
             )
+            # ID 생성: law_{mst}_{article_no} (항 없음)
+            doc_id = f"law_{mst}_{article_no}"
             documents.append(doc)
+            doc_ids.append(doc_id)
 
-    return documents
+    return documents, doc_ids
 
 
 async def collect_and_store_laws():
@@ -217,6 +241,7 @@ async def collect_and_store_laws():
     )
 
     documents = []
+    document_ids = []
     collected_laws = []
 
     for law_name, domain in TARGET_LAWS:
@@ -243,7 +268,7 @@ async def collect_and_store_laws():
         # 조문별로 항 단위 청킹
         law_doc_count = 0
         for article in law_detail.articles:
-            article_docs = create_paragraph_chunks(
+            article_docs, article_ids = create_paragraph_chunks(
                 article=article,
                 law_name=law_detail.name,
                 domain=domain,
@@ -253,6 +278,7 @@ async def collect_and_store_laws():
                 mst=law_summary.mst,
             )
             documents.extend(article_docs)
+            document_ids.extend(article_ids)
             law_doc_count += len(article_docs)
 
         print(f"  [OK] 생성된 청크: {law_doc_count}개 (항/조 단위)")
@@ -275,8 +301,8 @@ async def collect_and_store_laws():
     print(f"총 {len(documents)}개 조문 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장
-    vectorstore.add_documents(documents)
+    # Vector DB에 저장 (ID 포함)
+    vectorstore.add_documents(documents, ids=document_ids)
 
     print("[OK] 저장 완료!")
 

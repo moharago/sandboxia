@@ -106,11 +106,16 @@ def load_json_data() -> tuple[list[dict], str]:
     return data, str(LOCAL_DATA_FILE)
 
 
-def create_documents(data: list[dict]) -> list[Document]:
-    """JSON 데이터를 Document 리스트로 변환"""
-    documents = []
+def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
+    """JSON 데이터를 Document 리스트로 변환
 
-    for item in data:
+    Returns:
+        (documents, ids): 문서 리스트와 ID 리스트 튜플
+    """
+    documents = []
+    doc_ids = []
+
+    for idx, item in enumerate(data):
         # 카테고리 코드 변환
         category = item.get("category", "general")
         category_code = CATEGORY_CODE_MAPPING.get(category, "general")
@@ -142,9 +147,13 @@ def create_documents(data: list[dict]) -> list[Document]:
                 "citation": citation,
             },
         )
+        # ID 생성: reg_{document_id} 또는 reg_{index}
+        source_id = item.get("id", "")
+        doc_id = f"reg_{source_id}" if source_id else f"reg_{idx}"
         documents.append(doc)
+        doc_ids.append(doc_id)
 
-    return documents
+    return documents, doc_ids
 
 
 def collect_and_store_regulations(reset: bool = True):
@@ -209,13 +218,13 @@ def collect_and_store_regulations(reset: bool = True):
     )
 
     # Document 생성
-    documents = create_documents(data)
+    documents, document_ids = create_documents(data)
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장
-    vectorstore.add_documents(documents)
+    # Vector DB에 저장 (ID 포함)
+    vectorstore.add_documents(documents, ids=document_ids)
 
     print("[OK] 저장 완료!")
 
