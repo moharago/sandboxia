@@ -303,28 +303,34 @@ def _format_similar_cases_for_prompt(similar_cases: dict) -> str:
     return "\n".join(lines) if lines else "(검색 결과 없음)"
 
 
+# R1 RAG "카테고리" → 의미 있는 출처명 매핑
+_CATEGORY_TO_SOURCE: dict[str, str] = {
+    "트랙비교": "ICT 규제샌드박스 트랙 비교 가이드",
+    "제도정의": "규제샌드박스 제도 정의",
+    "절차": "규제샌드박스 신청 절차 가이드",
+    "심사기준": "규제샌드박스 심사 기준",
+    "요건": "규제샌드박스 신청 요건",
+}
+
+
 def _clean_citation(citation: str) -> str:
-    """RAG citation을 짧은 출처명으로 정제
+    """RAG citation을 의미 있는 출처명으로 정제
 
     R1 citation 형식: "카테고리 > 제목" (예: "트랙비교 > 병행 신청")
-    긴 citation은 "카테고리 > 제목" 부분만 추출하여 30자 이내로 제한.
+    → R1 RAG의 " > " 구분자는 항상 문서 섹션 헤더이므로 카테고리 기반 출처명으로 변환.
+    (법령 인용은 「법명」 제N조 형식이며 " > " 구분자를 사용하지 않음.)
     """
     if not citation:
         return ""
 
-    # ">" 구분자가 있으면 "카테고리 > 제목" 형식
+    # " > " 구분자가 있으면 R1 RAG 섹션 헤더 → 카테고리 기반 출처명으로 변환
     if " > " in citation:
-        parts = citation.split(" > ", 1)
-        category = parts[0].strip()
-        title = parts[1].strip()
-        # 제목이 너무 길면 잘라냄
-        if len(title) > 20:
-            title = title[:20]
-        return f"{category} > {title}"
+        category = citation.split(" > ", 1)[0].strip()
+        return _CATEGORY_TO_SOURCE.get(category, f"규제샌드박스 {category} 가이드")
 
-    # 30자 이상이면 잘라냄
-    if len(citation) > 30:
-        return citation[:30]
+    # 일반 citation: 길이만 제한
+    if len(citation) > 50:
+        return citation[:50]
 
     return citation
 
@@ -365,7 +371,7 @@ def _extract_evidence_sources(
         else:
             sources["규제"].append(source)
 
-    # R3: 도메인 법령에서 citation 추출
+    # R3: 도메인 법령에서 citation 추출 (구체적 법령 조항 보존)
     if domain_constraints:
         for constraint in domain_constraints.get("constraints", []):
             citation = constraint.get("source", "")
@@ -374,22 +380,18 @@ def _extract_evidence_sources(
             source = citation or law_name
             if not source or source in seen_sources:
                 continue
-            source = _clean_citation(source)
-            if not source or source in seen_sources:
-                continue
+            # R3 법령 citation은 _clean_citation 거치지 않고 직접 사용
+            # (예: "의료법 제34조 제1항" → 그대로 보존)
+            # 단, RAG 내부 경로(" > " 형식)만 정제
+            if " > " in source:
+                source = _clean_citation(source)
+                if not source or source in seen_sources:
+                    continue
             seen_sources.add(source)
             sources["법령"].append(source)
 
-    # 기본 출처 추가 (RAG 결과가 부족할 때 사용)
-    default_sources = {
-        "사례": ["유사 승인 사례 참조"],
-        "법령": ["규제샌드박스 운영규정", "ICT 특별법", "정보통신 진흥법"],
-        "규제": ["실증특례 심사기준", "규제샌드박스 신청요건", "ICT 규제샌드박스 가이드"],
-    }
-
-    for source_type in sources:
-        if not sources[source_type]:
-            sources[source_type] = default_sources[source_type]
+    # RAG에서 출처를 못 찾으면 비워둠 (generic 라벨로 대체하지 않음)
+    # LLM에게 "추가 확인 필요"를 사용하도록 프롬프트에서 안내
 
     return sources
 
@@ -399,26 +401,53 @@ def _build_available_sources_text(
     similar_cases: dict,
     domain_constraints: dict | None = None,
 ) -> str:
-    """LLM 프롬프트에 주입할 '사용 가능한 출처 목록' 텍스트 생성"""
+    """LLM 프롬프트에 주입할 '사용 가능한 출처 목록' 텍스트 생성
+
+    R2 사례: case_id + service_name 포함하여 LLM이 구체적으로 인용할 수 있게 함
+    R3 법령: 구체적 citation 그대로 전달
+    빈 목록: "추가 확인 필요" 사용 안내
+    """
     sources = _extract_evidence_sources(
         track_definitions, similar_cases, domain_constraints
     )
 
+    # R2 사례: case_id에 service_name을 병기하여 더 구체적으로 표시
+    case_display = {}
+    for track_key, cases in similar_cases.items():
+        for case in cases:
+            case_id = case.get("case_id", "")
+            service_name = case.get("service_name", "")
+            if case_id and case_id not in case_display:
+                case_display[case_id] = service_name
+
     lines = []
 
     lines.append("### source_type: \"사례\" → 아래에서 선택")
-    for s in sources["사례"]:
-        lines.append(f"- {s}")
+    if sources["사례"]:
+        for s in sources["사례"]:
+            display_name = case_display.get(s, "")
+            if display_name:
+                lines.append(f"- {s} ({display_name})")
+            else:
+                lines.append(f"- {s}")
+    else:
+        lines.append("- (해당 사례 없음 — 출처가 필요하면 \"추가 확인 필요\" 사용)")
 
     lines.append("")
     lines.append("### source_type: \"법령\" → 아래에서 선택")
-    for s in sources["법령"]:
-        lines.append(f"- {s}")
+    if sources["법령"]:
+        for s in sources["법령"]:
+            lines.append(f"- {s}")
+    else:
+        lines.append("- (해당 법령 없음 — 출처가 필요하면 \"추가 확인 필요\" 사용)")
 
     lines.append("")
     lines.append("### source_type: \"규제\" → 아래에서 선택")
-    for s in sources["규제"]:
-        lines.append(f"- {s}")
+    if sources["규제"]:
+        for s in sources["규제"]:
+            lines.append(f"- {s}")
+    else:
+        lines.append("- (해당 규제 없음 — 출처가 필요하면 \"추가 확인 필요\" 사용)")
 
     return "\n".join(lines)
 
@@ -431,8 +460,10 @@ def _fix_evidence_sources(
 ) -> dict:
     """LLM 응답의 evidence.source 검증 및 중복 제거
 
-    1. 유효하지 않은 source → 출처 목록에서 교체
-    2. 트랙 내 중복 source → 다른 출처로 교체
+    1. RAG 내부 경로(" > " 형식)만 의미 있는 출처명으로 교체
+    2. "추가 확인 필요"는 그대로 통과
+    3. 유효 목록이 비어있으면 교체 시도 안 함
+    4. 트랙 내 중복 source → 다른 출처로 교체
     """
     sources = _extract_evidence_sources(
         track_definitions, similar_cases, domain_constraints
@@ -450,18 +481,36 @@ def _fix_evidence_sources(
         track_data = recommendation_data.get(track_key, {})
         evidence_list = track_data.get("evidence", [])
 
-        # 1단계: 유효하지 않은 source 교체
+        # 1단계: RAG 내부 경로만 정제, LLM이 생성한 구체적 출처는 보존
         for i, ev in enumerate(evidence_list):
             if not isinstance(ev, dict):
                 continue
 
-            source_type = ev.get("source_type", "규제")
             current_source = ev.get("source", "")
 
-            if current_source not in valid_sources:
-                fallback = sources.get(source_type, sources.get("규제", []))
-                if fallback:
-                    ev["source"] = fallback[i % len(fallback)]
+            # "추가 확인 필요"는 그대로 통과
+            if current_source == "추가 확인 필요":
+                continue
+
+            # RAG 내부 경로(" > " 형식)는 정제
+            if " > " in current_source:
+                ev["source"] = _clean_citation(current_source)
+                continue
+
+            # 유효 목록이 비어있으면 LLM 출처를 그대로 유지
+            if not valid_sources:
+                continue
+
+            # 유효 목록에 있으면 통과
+            if current_source in valid_sources:
+                continue
+
+            # 유효 목록에 없는 경우: source_type별 fallback이 있을 때만 교체
+            source_type = ev.get("source_type", "규제")
+            fallback = sources.get(source_type, [])
+            if fallback:
+                ev["source"] = fallback[i % len(fallback)]
+            # fallback이 없으면 LLM이 생성한 출처를 그대로 유지
 
         # 2단계: 트랙 내 중복 source 제거
         used_sources = set()
@@ -560,6 +609,14 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
             "reasons": rec_data.get("reasons", []),
             "evidence": rec_data.get("evidence", []),
         }
+
+    # evidence.source 최종 정제: RAG 섹션 헤더("카테고리 > 제목") → 의미 있는 출처명
+    for track_key in track_comparison:
+        for ev in track_comparison[track_key].get("evidence", []):
+            if isinstance(ev, dict):
+                src = ev.get("source", "")
+                if " > " in src:
+                    ev["source"] = _clean_citation(src)
 
     # 1순위 트랙 찾기
     recommended_track = "demo"
