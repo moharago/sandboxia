@@ -4,7 +4,7 @@ R2. 승인 사례 RAG Tool용 데이터 수집
 
 데이터 소스:
 - 환경변수 R2_DATA_ID가 설정된 경우: Google Drive에서 다운로드
-- 미설정 시: data/r2/cases_structured.json (로컬 fallback)
+- 미설정 시: data/r2_data/cases_structured.json (로컬 fallback)
 
 실행:
     cd server
@@ -30,7 +30,9 @@ from app.core.config import settings
 from app.core.constants import COLLECTION_CASES
 
 # 로컬 데이터 파일 (fallback)
-LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r2" / "cases_structured.json"
+LOCAL_DATA_FILE = (
+    Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
+)
 
 
 def load_json_data() -> tuple[list[dict], str]:
@@ -131,7 +133,9 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
         pilot_scope = common.get("pilot_scope", "")
 
         # 기업 정보
-        company_names = [c.get("company_name", "") for c in companies if c.get("company_name")]
+        company_names = [
+            c.get("company_name", "") for c in companies if c.get("company_name")
+        ]
         company_name = company_names[0] if company_names else ""
 
         # 지정번호
@@ -217,6 +221,7 @@ def collect_and_store_cases(reset: bool = True):
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
         import chromadb
+
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
             client.delete_collection(COLLECTION_CASES)

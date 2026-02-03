@@ -177,10 +177,7 @@ class ChromaVectorStore(BaseVectorStore):
 @lru_cache
 def get_embeddings() -> OpenAIEmbeddings:
     """임베딩 모델 인스턴스 반환"""
-    return OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
-    )
+    return OpenAIEmbeddings(model=settings.LLM_EMBEDDING_MODEL)
 
 
 # 컬렉션별 VectorStore 캐시

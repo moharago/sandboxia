@@ -29,7 +29,9 @@ from app.core.config import settings
 from app.core.constants import COLLECTION_REGULATIONS
 
 # 로컬 데이터 파일 (fallback)
-LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r1" / "r1_rag_ict_only.json"
+LOCAL_DATA_FILE = (
+    Path(__file__).parent.parent / "data" / "r1_data" / "r1_rag_ict_only.json"
+)
 
 # 카테고리 영문 코드 매핑
 CATEGORY_CODE_MAPPING = {
@@ -144,6 +146,7 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
                 "track": normalized_track,
                 "category": category_code,
                 "category_label": category,
+                "ministry": item.get("ministry", "all"),
                 "citation": citation,
             },
         )

@@ -25,6 +25,7 @@
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -67,14 +68,41 @@ DOMAIN_LABELS = {
 
 
 def para_symbol_to_index(para_no: str) -> int:
-    """항 기호(①②③...)를 숫자 인덱스로 변환"""
+    """항 기호(①②③...)를 숫자 인덱스로 변환
+
+    지원 형식:
+    - 원숫자: ①, ②, ③, ...
+    - 원숫자+접미사: ①항, ②항, ...
+    - 숫자: 1, 2, 3, ...
+    - 숫자+접미사: 1항, 2항, 1., 2., ...
+
+    Returns:
+        숫자 인덱스 (1부터 시작), 파싱 실패 시 0
+    """
+    if not para_no:
+        return 0
+
     symbols = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
-    para_no = para_no.strip()
-    if para_no in symbols:
-        return symbols.index(para_no) + 1
-    # 숫자로 시작하는 경우 (예: "1.", "2.")
-    if para_no and para_no[0].isdigit():
-        return int(para_no.split(".")[0].split()[0])
+
+    # 정규화: 공백 제거, 접미사(항, .) 제거
+    normalized = para_no.strip().rstrip("항., ")
+
+    # 1. 원숫자 단일 문자인 경우
+    if normalized in symbols:
+        return symbols.index(normalized) + 1
+
+    # 2. 첫 글자가 원숫자인 경우 (예: "①항", "②의2")
+    if normalized and normalized[0] in symbols:
+        return symbols.index(normalized[0]) + 1
+
+    # 3. 숫자로 시작하는 경우 (예: "1", "1항", "12")
+    try:
+        match = re.match(r"(\d+)", normalized)
+        if match:
+            return int(match.group(1))
+    except ValueError:
+        pass
+
     return 0
 
 
