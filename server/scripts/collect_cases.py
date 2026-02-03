@@ -4,7 +4,7 @@ R2. 승인 사례 RAG Tool용 데이터 수집
 
 데이터 소스:
 - 환경변수 R2_DATA_ID가 설정된 경우: Google Drive에서 다운로드
-- 미설정 시: data/r2/cases_structured.json (로컬 fallback)
+- 미설정 시: data/r2_data/cases_structured.json (로컬 fallback)
 
 실행:
     cd server
@@ -27,9 +27,12 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.core.constants import COLLECTION_CASES
 
 # 로컬 데이터 파일 (fallback)
-LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r2" / "cases_structured.json"
+LOCAL_DATA_FILE = (
+    Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
+)
 
 
 def load_json_data() -> tuple[list[dict], str]:
@@ -103,13 +106,17 @@ def load_json_data() -> tuple[list[dict], str]:
     return data, str(LOCAL_DATA_FILE)
 
 
-def create_documents(data: list[dict]) -> list[Document]:
+def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
     """JSON 데이터를 Document 리스트로 변환
 
     각 케이스를 하나의 Document로 변환합니다.
     검색에 사용될 텍스트는 서비스명, 설명, 특례내용 등을 포함합니다.
+
+    Returns:
+        (documents, ids): 문서 리스트와 ID 리스트 튜플
     """
     documents = []
+    doc_ids = []
 
     for case in data:
         case_id = case.get("case_id", "")
@@ -126,7 +133,9 @@ def create_documents(data: list[dict]) -> list[Document]:
         pilot_scope = common.get("pilot_scope", "")
 
         # 기업 정보
-        company_names = [c.get("company_name", "") for c in companies if c.get("company_name")]
+        company_names = [
+            c.get("company_name", "") for c in companies if c.get("company_name")
+        ]
         company_name = company_names[0] if company_names else ""
 
         # 지정번호
@@ -164,9 +173,12 @@ def create_documents(data: list[dict]) -> list[Document]:
                 "citation": citation,
             },
         )
+        # ID 생성: case_{case_id}
+        doc_id = f"case_{case_id}" if case_id else f"case_{len(documents)}"
         documents.append(doc)
+        doc_ids.append(doc_id)
 
-    return documents
+    return documents, doc_ids
 
 
 def collect_and_store_cases(reset: bool = True):
@@ -202,7 +214,7 @@ def collect_and_store_cases(reset: bool = True):
     # 임베딩 모델 초기화
     embeddings = OpenAIEmbeddings(
         model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
+        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
     )
 
     # Chroma DB 초기화
@@ -212,27 +224,28 @@ def collect_and_store_cases(reset: bool = True):
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
         import chromadb
+
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
-            client.delete_collection("r2_cases")
-            print("\n[OK] 기존 r2_cases 컬렉션 삭제")
+            client.delete_collection(COLLECTION_CASES)
+            print(f"\n[OK] 기존 {COLLECTION_CASES} 컬렉션 삭제")
         except Exception:
             pass
 
     vectorstore = Chroma(
-        collection_name="r2_cases",
+        collection_name=COLLECTION_CASES,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
 
     # Document 생성
-    documents = create_documents(data)
+    documents, document_ids = create_documents(data)
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장
-    vectorstore.add_documents(documents)
+    # Vector DB에 저장 (ID 포함)
+    vectorstore.add_documents(documents, ids=document_ids)
 
     print("[OK] 저장 완료!")
 
@@ -257,7 +270,7 @@ def collect_and_store_cases(reset: bool = True):
     print(f"  - 소스: {source_path}")
     print(f"  - 총 케이스 수: {len(documents)}개")
     print(f"  - 저장 위치: {persist_dir}")
-    print(f"  - 컬렉션명: r2_cases")
+    print(f"  - 컬렉션명: {COLLECTION_CASES}")
 
 
 if __name__ == "__main__":

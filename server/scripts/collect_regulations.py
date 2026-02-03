@@ -26,9 +26,12 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.core.constants import COLLECTION_REGULATIONS
 
 # 로컬 데이터 파일 (fallback)
-LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r1" / "r1_rag_ict_only.json"
+LOCAL_DATA_FILE = (
+    Path(__file__).parent.parent / "data" / "r1_data" / "r1_rag_ict_only.json"
+)
 
 # 카테고리 영문 코드 매핑
 CATEGORY_CODE_MAPPING = {
@@ -62,7 +65,7 @@ def load_json_data() -> tuple[list[dict], str]:
     # 환경변수에 Google Drive 폴더 ID가 설정된 경우 다운로드
     if settings.R1_DATA_ID:
         folder_url = f"{settings.GOOGLE_DRIVE_URL}{settings.R1_DATA_ID}"
-        print(f"Google Drive 폴더에서 데이터 다운로드 중...")
+        print("Google Drive 폴더에서 데이터 다운로드 중...")
         print(f"  Folder ID: {settings.R1_DATA_ID}")
 
         # 임시 디렉토리에 폴더 다운로드
@@ -86,6 +89,7 @@ def load_json_data() -> tuple[list[dict], str]:
 
         # 임시 디렉토리 삭제
         import shutil
+
         shutil.rmtree(tmp_dir)
 
         return data, f"Google Drive Folder (ID: {settings.R1_DATA_ID})"
@@ -104,11 +108,16 @@ def load_json_data() -> tuple[list[dict], str]:
     return data, str(LOCAL_DATA_FILE)
 
 
-def create_documents(data: list[dict]) -> list[Document]:
-    """JSON 데이터를 Document 리스트로 변환"""
-    documents = []
+def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
+    """JSON 데이터를 Document 리스트로 변환
 
-    for item in data:
+    Returns:
+        (documents, ids): 문서 리스트와 ID 리스트 튜플
+    """
+    documents = []
+    doc_ids = []
+
+    for idx, item in enumerate(data):
         # 카테고리 코드 변환
         category = item.get("category", "general")
         category_code = CATEGORY_CODE_MAPPING.get(category, "general")
@@ -137,12 +146,17 @@ def create_documents(data: list[dict]) -> list[Document]:
                 "track": normalized_track,
                 "category": category_code,
                 "category_label": category,
+                "ministry": item.get("ministry", "all"),
                 "citation": citation,
             },
         )
+        # ID 생성: reg_{document_id} 또는 reg_{index}
+        source_id = item.get("id", "")
+        doc_id = f"reg_{source_id}" if source_id else f"reg_{idx}"
         documents.append(doc)
+        doc_ids.append(doc_id)
 
-    return documents
+    return documents, doc_ids
 
 
 def collect_and_store_regulations(reset: bool = True):
@@ -185,7 +199,7 @@ def collect_and_store_regulations(reset: bool = True):
     # 임베딩 모델 초기화
     embeddings = OpenAIEmbeddings(
         model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
+        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
     )
 
     # Chroma DB 초기화
@@ -195,27 +209,28 @@ def collect_and_store_regulations(reset: bool = True):
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
         import chromadb
+
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
-            client.delete_collection("r1_data")
-            print("\n[OK] 기존 r1_data 컬렉션 삭제")
+            client.delete_collection(COLLECTION_REGULATIONS)
+            print(f"\n[OK] 기존 {COLLECTION_REGULATIONS} 컬렉션 삭제")
         except Exception:
             pass
 
     vectorstore = Chroma(
-        collection_name="r1_data",
+        collection_name=COLLECTION_REGULATIONS,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
 
     # Document 생성
-    documents = create_documents(data)
+    documents, document_ids = create_documents(data)
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    # Vector DB에 저장
-    vectorstore.add_documents(documents)
+    # Vector DB에 저장 (ID 포함)
+    vectorstore.add_documents(documents, ids=document_ids)
 
     print("[OK] 저장 완료!")
 
@@ -241,7 +256,7 @@ def collect_and_store_regulations(reset: bool = True):
     print(f"  - 소스: {source_path}")
     print(f"  - 총 청크 수: {len(documents)}개")
     print(f"  - 저장 위치: {persist_dir}")
-    print(f"  - 컬렉션명: r1_data")
+    print(f"  - 컬렉션명: {COLLECTION_REGULATIONS}")
 
 
 if __name__ == "__main__":

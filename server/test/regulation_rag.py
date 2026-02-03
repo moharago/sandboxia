@@ -12,12 +12,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.tools.shared.rag.regulation_rag import (
-    search_regulation,
-    get_track_definition,
+    compare_tracks,
     get_application_requirements,
     get_review_criteria,
-    compare_tracks,
+    get_track_definition,
     list_available_tracks,
+    search_regulation,
 )
 
 
@@ -49,10 +49,12 @@ def test_search_with_track_filter():
     print("2. 트랙 필터 검색 테스트: '제출 서류' (실증특례)")
     print("=" * 60)
 
-    result = search_regulation.invoke({
-        "query": "제출 서류",
-        "track": "실증특례",
-    })
+    result = search_regulation.invoke(
+        {
+            "query": "제출 서류",
+            "track": "실증특례",
+        }
+    )
 
     print(f"총 결과 수: {result.total_count}")
     print(f"트랙 필터: {result.track_filter}")
@@ -71,10 +73,12 @@ def test_search_with_category_filter():
     print("3. 카테고리 필터 검색 테스트: '심사' (criteria)")
     print("=" * 60)
 
-    result = search_regulation.invoke({
-        "query": "심사 기준",
-        "category": "criteria",
-    })
+    result = search_regulation.invoke(
+        {
+            "query": "심사 기준",
+            "category": "criteria",
+        }
+    )
 
     print(f"총 결과 수: {result.total_count}")
     print(f"카테고리 필터: {result.category_filter}")
@@ -200,6 +204,7 @@ def main():
     except Exception as e:
         print(f"\n❌ 테스트 실패: {e}")
         import traceback
+
         traceback.print_exc()
 
 
