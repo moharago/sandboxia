@@ -1172,70 +1172,96 @@ def search_domain_law(
     pass
 ```
 
-### Vector DB 사용 패턴
+### Vector DB 추상화 패턴
 
-RAG Tool에서 Vector DB 접근 시 `app/db/vector.py`의 헬퍼 함수를 사용합니다.
+Vector DB 교체를 용이하게 하기 위해 추상화 레이어를 사용합니다.
+RAG Tool에서는 `BaseVectorStore` 추상 인터페이스를 통해 접근합니다.
 
 ```python
-# db/vector.py
-from functools import lru_cache
-from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
-from app.core.config import settings
+# db/vector.py - 핵심 구조
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any
+from langchain_core.documents import Document
 
 
-@lru_cache
-def get_embeddings() -> OpenAIEmbeddings:
-    """임베딩 모델 싱글톤"""
-    return OpenAIEmbeddings(
-        model=settings.llm_embedding_model,
-        openai_api_key=settings.openai_api_key,
-    )
+@dataclass
+class SearchResult:
+    """벡터 검색 결과 (통일된 반환 타입)"""
+    document: Document
+    score: float  # 0~1 정규화 (높을수록 유사)
+
+    @property
+    def content(self) -> str:
+        return self.document.page_content
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return self.document.metadata
 
 
-@lru_cache
-def get_vectorstore(collection_name: str = "domain_laws") -> Chroma:
-    """컬렉션별 Vector Store 싱글톤"""
-    return Chroma(
-        collection_name=collection_name,
-        embedding_function=get_embeddings(),
-        persist_directory=settings.chroma_persist_dir,
-    )
+class BaseVectorStore(ABC):
+    """VectorStore 추상 베이스 클래스
+
+    새로운 VectorDB 추가 시 이 클래스를 상속하여 구현합니다.
+    """
+
+    @abstractmethod
+    def similarity_search(
+        self,
+        query: str,
+        k: int = 5,
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
+        """유사도 검색"""
+        pass
+
+    @abstractmethod
+    def add_documents(
+        self,
+        documents: list[Document],
+        ids: list[str] | None = None,
+    ) -> list[str]:
+        """문서 추가"""
+        pass
+
+    @abstractmethod
+    def delete(self, ids: list[str]) -> None:
+        """문서 삭제"""
+        pass
+
+
+# 팩토리 함수
+def get_vector_store(collection_name: str) -> BaseVectorStore:
+    """VectorStore 인스턴스 반환 (현재: ChromaDB)"""
+    ...
 ```
 
-**컬렉션별 사용:**
+**RAG Tool에서 사용:**
 
 ```python
-from app.db.vector import get_vectorstore
+from app.db.vector import get_vector_store, SearchResult
 
-# R1: 규제제도 & 절차 (향후)
-vectorstore = get_vectorstore("regulations")
+# 컬렉션별 VectorStore 획득
+vector_store = get_vector_store("r1_data")      # R1: 규제제도 & 절차
+vector_store = get_vector_store("r2_cases")     # R2: 승인 사례
+vector_store = get_vector_store("domain_laws")  # R3: 도메인별 법령
 
-# R2: 승인 사례 (향후)
-vectorstore = get_vectorstore("approval_cases")
-
-# R3: 도메인별 법령
-vectorstore = get_vectorstore("domain_laws")
-```
-
-**검색 메서드:**
-
-```python
-# 유사도 검색 (점수 포함)
-docs_with_scores = vectorstore.similarity_search_with_relevance_scores(
+# 유사도 검색 (통일된 인터페이스)
+results: list[SearchResult] = vector_store.similarity_search(
     query="원격의료 허용 범위",
     k=5,
-    filter={"domain": "healthcare"},  # 메타데이터 필터
+    filter={"domain": "healthcare"},
 )
 
-# 단순 검색
-docs = vectorstore.similarity_search(
-    query="전자금융거래 보안",
-    k=5,
-)
+# 결과 사용
+for result in results:
+    print(result.content)       # 문서 내용
+    print(result.metadata)      # 메타데이터
+    print(result.score)         # 관련도 점수 (0~1)
 
-# 복합 필터 (Chroma $and 연산자)
-docs = vectorstore.similarity_search(
+# 복합 필터 (Chroma 문법, 추후 추상화 가능)
+results = vector_store.similarity_search(
     query="의료법 제34조",
     k=10,
     filter={
@@ -1245,6 +1271,20 @@ docs = vectorstore.similarity_search(
         ]
     },
 )
+```
+
+**VectorDB 교체 시:**
+
+```python
+# 새 구현체만 추가하면 됨
+class QdrantVectorStore(BaseVectorStore):
+    def similarity_search(self, query, k, filter) -> list[SearchResult]:
+        # Qdrant 구현
+        ...
+
+# 팩토리 함수만 수정
+def get_vector_store(collection_name: str) -> BaseVectorStore:
+    return QdrantVectorStore(...)  # ← 여기만 변경
 ```
 
 **환경 변수:**

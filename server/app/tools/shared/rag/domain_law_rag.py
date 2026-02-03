@@ -8,7 +8,7 @@
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-from app.db.vector import get_vectorstore
+from app.db.vector import SearchResult, get_vector_store
 
 
 class DomainLawResult(BaseModel):
@@ -65,6 +65,22 @@ def normalize_domain(domain: str | None) -> str | None:
     return DOMAIN_MAPPING.get(domain_lower, domain_lower)
 
 
+def _build_domain_law_result(result: SearchResult) -> DomainLawResult:
+    """SearchResult를 DomainLawResult로 변환"""
+    meta = result.metadata
+    return DomainLawResult(
+        content=result.content,
+        law_name=meta.get("law_name", ""),
+        article_no=meta.get("article_no", ""),
+        article_title=meta.get("article_title", ""),
+        paragraph_no=meta.get("paragraph_no", ""),
+        citation=meta.get("citation", ""),
+        domain=meta.get("domain", ""),
+        domain_label=meta.get("domain_label", ""),
+        relevance_score=round(result.score, 4),
+    )
+
+
 @tool
 def search_domain_law(
     query: str,
@@ -94,38 +110,24 @@ def search_domain_law(
         >>> search_domain_law("실증특례 허가 요건", domain="규제")
         >>> search_domain_law("개인신용정보 제3자 제공")
     """
-    vectorstore = get_vectorstore("domain_laws")
+    vector_store = get_vector_store("domain_laws")
 
     # 도메인 정규화
     normalized_domain = normalize_domain(domain)
 
-    # 검색 조건 설정
-    search_kwargs = {"k": top_k}
+    # 필터 조건 설정
+    filter_dict = None
     if normalized_domain:
-        search_kwargs["filter"] = {"domain": normalized_domain}
+        filter_dict = {"domain": normalized_domain}
 
-    # 유사도 검색 (점수 포함)
-    docs_with_scores = vectorstore.similarity_search_with_relevance_scores(
-        query,
-        **search_kwargs,
+    # 유사도 검색 (추상화된 인터페이스 사용)
+    search_results = vector_store.similarity_search(
+        query=query,
+        k=top_k,
+        filter=filter_dict,
     )
 
-    results = []
-    for doc, score in docs_with_scores:
-        meta = doc.metadata
-        results.append(
-            DomainLawResult(
-                content=doc.page_content,
-                law_name=meta.get("law_name", ""),
-                article_no=meta.get("article_no", ""),
-                article_title=meta.get("article_title", ""),
-                paragraph_no=meta.get("paragraph_no", ""),
-                citation=meta.get("citation", ""),
-                domain=meta.get("domain", ""),
-                domain_label=meta.get("domain_label", ""),
-                relevance_score=round(score, 4),
-            )
-        )
+    results = [_build_domain_law_result(result) for result in search_results]
 
     return DomainLawSearchOutput(
         results=results,

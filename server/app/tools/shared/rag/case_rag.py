@@ -12,7 +12,7 @@ from typing import Any
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-from app.db.vector import get_vectorstore
+from app.db.vector import get_vector_store
 
 # 데이터 경로
 DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2"
@@ -148,34 +148,35 @@ def search_case(
         >>> search_case("AI 기반 건강 모니터링")
         >>> search_case("자율주행", track="실증특례")
     """
-    vectorstore = get_vectorstore("r2_cases")
+    vector_store = get_vector_store("r2_cases")
 
     # 중복 제거 고려해서 더 많이 검색
     fetch_count = top_k * 3 if deduplicate else top_k
 
     # 필터 조건
-    search_kwargs: dict[str, Any] = {"k": fetch_count}
+    filter_dict: dict[str, Any] | None = None
     if track:
-        search_kwargs["filter"] = {"track": track}
+        filter_dict = {"track": track}
 
-    # 유사도 검색
-    docs_with_scores = vectorstore.similarity_search_with_score(
-        query,
-        **search_kwargs,
+    # 유사도 검색 (추상화된 인터페이스 사용)
+    search_results = vector_store.similarity_search(
+        query=query,
+        k=fetch_count,
+        filter=filter_dict,
     )
 
     results = []
-    for doc, score in docs_with_scores:
-        meta = doc.metadata
+    for result in search_results:
+        meta = result.metadata
         case_id = meta.get("case_id", "")
 
-        result = _build_case_result(
+        case_result = _build_case_result(
             case_id=case_id,
             company_name=meta.get("company_name", ""),
-            score=score,
+            score=result.score,
             meta=meta,
         )
-        results.append(result)
+        results.append(case_result)
 
     if deduplicate:
         results = _deduplicate_results(results)

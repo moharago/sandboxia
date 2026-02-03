@@ -1,5 +1,5 @@
 """Database module"""
 
-from app.db.vector import get_domain_law_retriever, get_vectorstore
+from app.db.vector import BaseVectorStore, SearchResult, get_vector_store
 
-__all__ = ["get_vectorstore", "get_domain_law_retriever"]
+__all__ = ["BaseVectorStore", "SearchResult", "get_vector_store"]
