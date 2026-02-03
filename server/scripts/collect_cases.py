@@ -27,6 +27,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.core.constants import COLLECTION_CASES
 
 # 로컬 데이터 파일 (fallback)
 LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r2" / "cases_structured.json"
@@ -200,10 +201,7 @@ def collect_and_store_cases(reset: bool = True):
         print(f"  - {k}: {v}개")
 
     # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
-    )
+    embeddings = OpenAIEmbeddings(model=settings.LLM_EMBEDDING_MODEL)
 
     # Chroma DB 초기화
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
@@ -214,13 +212,13 @@ def collect_and_store_cases(reset: bool = True):
         import chromadb
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
-            client.delete_collection("r2_cases")
-            print("\n[OK] 기존 r2_cases 컬렉션 삭제")
+            client.delete_collection(COLLECTION_CASES)
+            print(f"\n[OK] 기존 {COLLECTION_CASES} 컬렉션 삭제")
         except Exception:
             pass
 
     vectorstore = Chroma(
-        collection_name="r2_cases",
+        collection_name=COLLECTION_CASES,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
@@ -257,7 +255,7 @@ def collect_and_store_cases(reset: bool = True):
     print(f"  - 소스: {source_path}")
     print(f"  - 총 케이스 수: {len(documents)}개")
     print(f"  - 저장 위치: {persist_dir}")
-    print(f"  - 컬렉션명: r2_cases")
+    print(f"  - 컬렉션명: {COLLECTION_CASES}")
 
 
 if __name__ == "__main__":

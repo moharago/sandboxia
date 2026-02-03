@@ -8,6 +8,7 @@
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from app.core.constants import COLLECTION_LAWS
 from app.db.vector import SearchResult, get_vector_store
 
 
@@ -110,7 +111,7 @@ def search_domain_law(
         >>> search_domain_law("실증특례 허가 요건", domain="규제")
         >>> search_domain_law("개인신용정보 제3자 제공")
     """
-    vector_store = get_vector_store("domain_laws")
+    vector_store = get_vector_store(COLLECTION_LAWS)
 
     # 도메인 정규화
     normalized_domain = normalize_domain(domain)

@@ -36,6 +36,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.core.constants import COLLECTION_LAWS
 from app.services.law_api import law_api_client
 
 # 수집 대상 법령 (검색명, 도메인)
@@ -96,8 +97,15 @@ def format_subparagraphs(subparas: list) -> str:
     return "\n".join(lines)
 
 
-def create_paragraph_chunks(article, law_name: str, domain: str, domain_label: str,
-                            ministry: str, enforcement_date: str, mst: str) -> list[Document]:
+def create_paragraph_chunks(
+    article,
+    law_name: str,
+    domain: str,
+    domain_label: str,
+    ministry: str,
+    enforcement_date: str,
+    mst: str,
+) -> list[Document]:
     """조문을 항 단위로 청킹하여 Document 리스트 생성"""
     documents = []
 
@@ -196,17 +204,14 @@ async def collect_and_store_laws():
     print("=" * 60)
 
     # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
-    )
+    embeddings = OpenAIEmbeddings(model=settings.LLM_EMBEDDING_MODEL)
 
     # Chroma DB 초기화
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     vectorstore = Chroma(
-        collection_name="domain_laws",
+        collection_name=COLLECTION_LAWS,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
@@ -294,7 +299,9 @@ async def collect_and_store_laws():
     print("수집 완료 요약:")
     print("=" * 60)
     for law in collected_laws:
-        print(f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})")
+        print(
+            f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})"
+        )
     print(f"\n총 청크 수: {len(documents)}개 (항/조 단위)")
     print(f"저장 위치: {persist_dir}")
 

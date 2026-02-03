@@ -26,6 +26,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.core.constants import COLLECTION_REGULATIONS
 
 # 로컬 데이터 파일 (fallback)
 LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r1" / "r1_rag_ict_only.json"
@@ -62,7 +63,7 @@ def load_json_data() -> tuple[list[dict], str]:
     # 환경변수에 Google Drive 폴더 ID가 설정된 경우 다운로드
     if settings.R1_DATA_ID:
         folder_url = f"{settings.GOOGLE_DRIVE_URL}{settings.R1_DATA_ID}"
-        print(f"Google Drive 폴더에서 데이터 다운로드 중...")
+        print("Google Drive 폴더에서 데이터 다운로드 중...")
         print(f"  Folder ID: {settings.R1_DATA_ID}")
 
         # 임시 디렉토리에 폴더 다운로드
@@ -86,6 +87,7 @@ def load_json_data() -> tuple[list[dict], str]:
 
         # 임시 디렉토리 삭제
         import shutil
+
         shutil.rmtree(tmp_dir)
 
         return data, f"Google Drive Folder (ID: {settings.R1_DATA_ID})"
@@ -183,10 +185,7 @@ def collect_and_store_regulations(reset: bool = True):
         print(f"  - {k}: {v}개")
 
     # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        openai_api_key=settings.OPENAI_API_KEY,
-    )
+    embeddings = OpenAIEmbeddings(model=settings.LLM_EMBEDDING_MODEL)
 
     # Chroma DB 초기화
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
@@ -195,15 +194,16 @@ def collect_and_store_regulations(reset: bool = True):
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
         import chromadb
+
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
-            client.delete_collection("r1_data")
-            print("\n[OK] 기존 r1_data 컬렉션 삭제")
+            client.delete_collection(COLLECTION_REGULATIONS)
+            print(f"\n[OK] 기존 {COLLECTION_REGULATIONS} 컬렉션 삭제")
         except Exception:
             pass
 
     vectorstore = Chroma(
-        collection_name="r1_data",
+        collection_name=COLLECTION_REGULATIONS,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
@@ -241,7 +241,7 @@ def collect_and_store_regulations(reset: bool = True):
     print(f"  - 소스: {source_path}")
     print(f"  - 총 청크 수: {len(documents)}개")
     print(f"  - 저장 위치: {persist_dir}")
-    print(f"  - 컬렉션명: r1_data")
+    print(f"  - 컬렉션명: {COLLECTION_REGULATIONS}")
 
 
 if __name__ == "__main__":

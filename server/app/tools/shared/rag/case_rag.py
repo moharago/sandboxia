@@ -12,6 +12,7 @@ from typing import Any
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from app.core.constants import COLLECTION_CASES
 from app.db.vector import get_vector_store
 
 # 데이터 경로
@@ -148,7 +149,7 @@ def search_case(
         >>> search_case("AI 기반 건강 모니터링")
         >>> search_case("자율주행", track="실증특례")
     """
-    vector_store = get_vector_store("r2_cases")
+    vector_store = get_vector_store(COLLECTION_CASES)
 
     # 중복 제거 고려해서 더 많이 검색
     fetch_count = top_k * 3 if deduplicate else top_k

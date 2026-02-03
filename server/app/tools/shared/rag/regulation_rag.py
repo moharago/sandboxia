@@ -11,6 +11,7 @@ from typing import Any
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from app.core.constants import COLLECTION_REGULATIONS
 from app.db.vector import SearchResult, get_vector_store
 
 # 관련도 임계값: 이 값 미만의 결과는 반환하지 않음
@@ -204,7 +205,7 @@ def search_regulation(
         >>> search_regulation("심사 기준", category="criteria")
         >>> search_regulation("ICT 규제샌드박스", ministry="과기부")
     """
-    vector_store = get_vector_store("r1_data")
+    vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
     # 필터 정규화
     normalized_track = normalize_track(track)
@@ -253,7 +254,7 @@ def get_track_definition(track: str) -> list[RegulationResult]:
     Returns:
         해당 트랙의 정의 및 관련 정보 리스트
     """
-    vector_store = get_vector_store("r1_data")
+    vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
     normalized_track = normalize_track(track)
     if not normalized_track:
@@ -295,7 +296,7 @@ def get_application_requirements(track: str | None = None) -> list[RegulationRes
     Returns:
         신청 요건 및 제출 서류 정보 리스트
     """
-    vector_store = get_vector_store("r1_data")
+    vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
     normalized_track = normalize_track(track)
 
@@ -337,7 +338,7 @@ def get_review_criteria(track: str | None = None) -> list[RegulationResult]:
     Returns:
         심사 기준 정보 리스트
     """
-    vector_store = get_vector_store("r1_data")
+    vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
     normalized_track = normalize_track(track)
 
@@ -376,7 +377,7 @@ def compare_tracks() -> list[RegulationResult]:
     Returns:
         트랙 비교 정보 리스트
     """
-    vector_store = get_vector_store("r1_data")
+    vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
     search_results = vector_store.similarity_search(
         query="신속확인 실증특례 임시허가 비교 차이점",
