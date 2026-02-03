@@ -126,6 +126,10 @@ class EligibilityResult(BaseModel):
         default_factory=EvidenceData,
         description="판단 근거 + 승인사례 + 법령",
     )
+    model_name: str = Field(
+        default="",
+        description="사용된 LLM 모델명",
+    )
 
 
 # ================================

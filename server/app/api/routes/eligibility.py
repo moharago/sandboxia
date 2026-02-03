@@ -94,7 +94,7 @@ async def evaluate_eligibility(
             project_id=project_id,
             canonical=canonical,
         )
-        print(f"[Eligibility] 대상성 판단 완료 - label: {result.eligibility_label.value}")
+        print(f"[Eligibility] 대상성 판단 완료 - label: {result.eligibility_label.value}\n ---------------------------")
     except Exception as e:
         logger.error(f"[Eligibility] 대상성 판단 실행 실패: {e}")
         raise HTTPException(
@@ -112,6 +112,7 @@ async def evaluate_eligibility(
             "result_summary": result.result_summary,
             "direct_launch_risks": [r.model_dump() for r in result.direct_launch_risks],
             "evidence_data": result.evidence_data.model_dump(),
+            "model_name": result.model_name,
         }
 
         # upsert: project_id가 있으면 UPDATE, 없으면 INSERT
