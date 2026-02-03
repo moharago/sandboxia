@@ -7,7 +7,7 @@
 // Enum 타입
 export type EligibilityLabel = "required" | "not_required" | "unclear"
 export type JudgmentType = "법령 기준" | "사례 기준" | "규제 기준"
-export type ReasonType = "positive" | "negative" | "neutral"
+export type ReasonType = "negative"
 
 // 판단 근거 (왼쪽 패널)
 export interface JudgmentSummary {

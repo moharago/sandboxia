@@ -283,6 +283,7 @@ application_draft ← 초안 저장 → 사용자 수정 → UPDATE
 | 컬럼                  | 화면 요소               | 설명                                 |
 | --------------------- | ----------------------- | ------------------------------------ |
 | `eligibility_label`   | AI 추천 배지            | 바로 시장 출시 / 규제 샌드박스 신청  |
+| `final_eligibility_label` | 사용자 최종 선택 배지  | 바로 시장 출시 / 규제 샌드박스 신청  |
 | `confidence_score`    | 신뢰도 94%              | 우측 상단 배지                       |
 | `result_summary`      | AI 분석 결과 텍스트     | 본 서비스는 현행 규제 체계 내에서... |
 | `direct_launch_risks` | -                       | 바로 출시 시 리스크 (JSONB)          |

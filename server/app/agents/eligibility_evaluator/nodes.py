@@ -18,7 +18,6 @@ from .prompts import (
     COMPOSE_DECISION_PROMPT,
     EXPLAIN_CASE_PROMPT,
     EXPLAIN_LAW_PROMPT,
-    R1_JUDGMENT_TEMPLATES,
     R1_SANDBOX_REQUIREMENTS,
     SYSTEM_PROMPT,
 )
@@ -28,7 +27,6 @@ from .schemas import (
     EligibilityLabel,
     JudgmentSummary,
     JudgmentType,
-    ReasonType,
     Regulation,
 )
 from .state import EligibilityState, ScreeningResult
@@ -347,7 +345,7 @@ def search_laws_node(state: EligibilityState) -> dict:
     laws = []
 
     # 도메인별 검색
-    for domain in domains[:2]:  # 최대 2개 도메인
+    for domain in domains[:3]:  # 최대 3개 도메인
         query = " ".join(keywords[:3]) if keywords else domain
         result = search_domain_law.invoke({
             "query": query,
@@ -441,6 +439,8 @@ def compose_decision_node(state: EligibilityState) -> dict:
     print("[Step 5/5] LLM 응답 수신 완료")
 
     # 응답 파싱 시도
+    direct_launch_risks: list[DirectLaunchRisk] = []
+    llm_result: dict = {}  # 파싱 실패 시 기본값
     try:
         response_text = response.content
         # JSON 블록 추출
@@ -453,34 +453,38 @@ def compose_decision_node(state: EligibilityState) -> dict:
 
         llm_result = json.loads(json_str.strip())
         result_summary = llm_result.get("result_summary", result.reasoning)
+
+        # direct_launch_risks 파싱
+        raw_risks = llm_result.get("direct_launch_risks", [])
+        print(f"[DEBUG] LLM eligibility_label: {llm_result.get('eligibility_label')}")
+        print(f"[DEBUG] LLM raw_risks: {raw_risks}")
+        for risk in raw_risks[:3]:  # 최대 3개
+            direct_launch_risks.append(DirectLaunchRisk(
+                title=risk.get("title", "규제 리스크"),
+                description=risk.get("description", ""),
+                source=risk.get("source"),
+            ))
+        print(f"[Step 5/5] direct_launch_risks 파싱 완료: {len(direct_launch_risks)}개")
     except (json.JSONDecodeError, IndexError):
         result_summary = result.reasoning
 
-    # EligibilityLabel 변환
+    # EligibilityLabel 변환 - LLM 결과를 그대로 사용
     label_map = {
         "required": EligibilityLabel.REQUIRED,
         "not_required": EligibilityLabel.NOT_REQUIRED,
         "unclear": EligibilityLabel.UNCLEAR,
     }
 
-    # canonical의 regulatory_issues 상태에 따른 판정 오버라이드
-    if has_unclear_issue:
-        # unclear 상태가 있으면 UNCLEAR로 판정
-        eligibility_label = EligibilityLabel.UNCLEAR
-        confidence_score = min(result.confidence_score, 0.6)  # 신뢰도 하향
-    elif has_blocking_issue or (has_regulation_conflict and not has_similar_case):
-        # 명확한 규제 저촉이 있으면 REQUIRED
-        eligibility_label = EligibilityLabel.REQUIRED
-        confidence_score = result.confidence_score
-    else:
-        # 그 외에는 Decision Composer 결과 사용
-        eligibility_label = label_map.get(result.eligibility_label, EligibilityLabel.UNCLEAR)
-        confidence_score = result.confidence_score
+    # LLM이 반환한 eligibility_label 사용 (오버라이드 없음)
+    llm_label = llm_result.get("eligibility_label", "unclear")
+    eligibility_label = label_map.get(llm_label, EligibilityLabel.UNCLEAR)
+    confidence_score = llm_result.get("confidence_score", result.confidence_score)
 
     return {
         "eligibility_label": eligibility_label,
         "confidence_score": confidence_score,
         "result_summary": result_summary,
+        "direct_launch_risks": direct_launch_risks,
     }
 
 
@@ -502,35 +506,23 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     # 분석 대상 서비스 정보 (LLM 설명 생성용)
     target_service = get_service_description(canonical) or get_service_name(canonical) or "분석 대상 서비스"
 
-    # judgment_summary 생성
+    # judgment_summary 생성 (RAG 결과 기반, 없으면 비워둠)
     judgment_summary: list[JudgmentSummary] = []
 
-    # 규제 기준: R1 RAG 검색 결과 사용, 없으면 fallback 템플릿
-    if regulations:
-        for reg in regulations[:2]:  # 최대 2개
-            judgment_summary.append(JudgmentSummary(
-                type=JudgmentType.REGULATION,
-                title=reg.get("section_title") or reg.get("document_title") or "규제 기준",
-                summary=clean_rag_content(reg.get("content", ""), max_length=200),
-                source=reg.get("citation") or reg.get("document_title") or "ICT 규제샌드박스",
-            ))
-    else:
-        # fallback: 고정 템플릿 사용
-        label_key = eligibility_label.value if eligibility_label else "unclear"
-        r1_templates = R1_JUDGMENT_TEMPLATES.get(label_key, R1_JUDGMENT_TEMPLATES["unclear"])
-
-        for template in r1_templates:
-            judgment_summary.append(JudgmentSummary(
-                type=JudgmentType.REGULATION,
-                title=template["title"],
-                summary=template["summary"],
-                source=template["source"],
-            ))
+    # 규제 기준: R1 RAG 검색 결과 사용
+    for reg in regulations[:3]:  # 최대 3개
+        judgment_summary.append(JudgmentSummary(
+            type=JudgmentType.REGULATION,
+            title=reg.get("section_title") or reg.get("document_title") or "규제 기준",
+            summary=clean_rag_content(reg.get("content", ""), max_length=200),
+            source=reg.get("citation") or reg.get("document_title") or "ICT 규제샌드박스",
+        ))
+    # RAG 결과 없으면 judgment_summary는 빈 배열
 
     # 사례 기반 근거 (LLM으로 설명 생성)
-    print(f"[Evidence] 사례 설명 LLM 생성 중... ({len(cases[:2])}건)")
-    for i, case in enumerate(cases[:2]):
-        print(f"[Evidence] 사례 {i+1}/{len(cases[:2])} 설명 생성 중...")
+    print(f"[Evidence 1/6] 사례 설명 LLM 생성 중... ({len(cases[:3])}건)")
+    for i, case in enumerate(cases[:3]):
+        print(f"[Evidence 2/6] 사례 {i+1}/{len(cases[:3])} 설명 생성 중...")
         service_name = case.get("service_name") or "유사 서비스"
         track = case.get("track") or ""
         company = case.get("company_name") or "기업"
@@ -545,12 +537,12 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             summary=clean_rag_content(case_summary, max_length=250),
             source=f"{company} - {case_id}" if case_id else company,
         ))
-    print("[Evidence] 사례 설명 생성 완료")
+    print("[Evidence 3/6] 사례 설명 생성 완료")
 
     # 법령 기반 근거 (LLM으로 설명 생성)
-    print(f"[Evidence] 법령 설명 LLM 생성 중... ({len(laws[:2])}건)")
-    for i, law in enumerate(laws[:2]):
-        print(f"[Evidence] 법령 {i+1}/{len(laws[:2])} 설명 생성 중...")
+    print(f"[Evidence 4/6] 법령 설명 LLM 생성 중... ({len(laws[:3])}건)")
+    for i, law in enumerate(laws[:3]):
+        print(f"[Evidence 5/6] 법령 {i+1}/{len(laws[:3])} 설명 생성 중...")
         law_name = law.get("law_name", "")
         article_no = law.get("article_no", "")
         citation = law.get("citation") or f"{law_name} {article_no}"
@@ -564,7 +556,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             summary=clean_rag_content(law_summary, max_length=250),
             source=f"{law_name} {article_no}".strip(),
         ))
-    print("[Evidence] 법령 설명 생성 완료")
+    print("[Evidence 6/6] 법령 설명 생성 완료")
 
     # approval_cases 생성 (Step 2,3,4 재사용)
     approval_cases: list[ApprovalCase] = []
@@ -603,22 +595,12 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             source_url=None,
         ))
 
-    # direct_launch_risks 생성
-    direct_launch_risks: list[DirectLaunchRisk] = []
-    risk_signals = screening.risk_signals if screening else []
-
-    for signal in risk_signals[:3]:
-        direct_launch_risks.append(DirectLaunchRisk(
-            type=ReasonType.NEGATIVE,
-            title="규제 저촉 가능성",
-            description=signal,
-            source=None,
-        ))
+    # direct_launch_risks는 compose_decision_node에서 LLM이 생성하여 state에 저장됨
+    # 여기서는 생성하지 않음
 
     print("[Evidence] 근거 데이터 생성 완료")
     return {
         "judgment_summary": judgment_summary,
         "approval_cases": approval_cases,
         "regulations": regulation_list,
-        "direct_launch_risks": direct_launch_risks,
     }

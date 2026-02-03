@@ -111,14 +111,19 @@ export const projectsApi = {
     },
 
     /**
-     * 프로젝트 status 업데이트
+     * 프로젝트 status 업데이트 (current_step도 함께 업데이트 가능)
      */
-    updateStatus: async (projectId: string, status: number): Promise<void> => {
+    updateStatus: async (projectId: string, status: number, currentStep?: number): Promise<void> => {
         const supabase = createClient()
+
+        const updateData: { status: number; current_step?: number } = { status }
+        if (currentStep !== undefined) {
+            updateData.current_step = currentStep
+        }
 
         const { error } = await supabase
             .from("projects")
-            .update({ status })
+            .update(updateData)
             .eq("id", projectId)
 
         if (error) {
