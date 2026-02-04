@@ -43,3 +43,9 @@ app = create_app()
 @app.get("/")
 async def root():
     return {"message": "SandboxIA API 서버 실행 중"}
+
+
+@app.get("/health")
+async def health_check():
+    """헬스체크 엔드포인트 (Docker, 로드밸런서용)"""
+    return {"status": "healthy"}
