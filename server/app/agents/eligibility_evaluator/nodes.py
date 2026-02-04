@@ -18,6 +18,7 @@ from .prompts import (
     COMPOSE_DECISION_PROMPT,
     EXPLAIN_CASE_PROMPT,
     EXPLAIN_LAW_PROMPT,
+    EXPLAIN_REGULATION_PROMPT,
     R1_SANDBOX_REQUIREMENTS,
     SYSTEM_PROMPT,
 )
@@ -208,6 +209,31 @@ def generate_law_explanation(
         return f"{law_name} {article_no}에 따라 해당 서비스의 규제 적용 여부를 확인할 필요가 있습니다."
 
 
+def generate_regulation_explanation(
+    target_service: str,
+    regulation: dict,
+) -> str:
+    """LLM으로 규제제도 설명 생성"""
+    llm = get_fast_llm()
+
+    prompt = EXPLAIN_REGULATION_PROMPT.format(
+        target_service=target_service,
+        document_title=regulation.get("document_title") or "규제제도",
+        section_title=regulation.get("section_title") or "",
+        track=regulation.get("track") or "참고",
+        regulation_content=regulation.get("content") or "내용 없음",
+    )
+
+    try:
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return response.content.strip()
+    except Exception as e:
+        logger.warning(f"규제제도 설명 생성 실패: {e}")
+        # fallback
+        title = regulation.get("section_title") or regulation.get("document_title") or "규제제도"
+        return f"{title}에 따라 해당 서비스의 규제샌드박스 적용 여부를 검토할 필요가 있습니다."
+
+
 # ================================
 # 노드 함수들
 # ================================
@@ -246,18 +272,28 @@ def screen_node(state: EligibilityState) -> dict:
 def search_regulations_node(state: EligibilityState) -> dict:
     """규제제도 참조 노드 (R1)
 
-    R1은 제도 중심 고정 쿼리로 검색합니다.
-    도메인 키워드가 아닌, 규제샌드박스 제도/기준 관련 쿼리만 사용합니다.
+    서비스 설명 + 스크리닝 키워드를 활용하여 서비스별 맞춤 규제제도를 검색합니다.
     """
     print("[Step 2/5] R1 규제제도 검색 시작...")
-    # R1 고정 쿼리 (도메인 키워드 사용 금지)
-    # 이 쿼리는 R1 데이터의 의미 공간(제도/요건/절차)에 맞춰져 있음
-    R1_FIXED_QUERY = """규제샌드박스 신속확인 실증특례 임시허가 대상 기준
-법령 적용 여부 불명확 규제 공백 신기술 서비스"""
+    canonical = state["canonical"]
+    screening = state.get("screening_result")
+
+    # 서비스 설명에서 핵심 내용 추출 (최대 200자)
+    service_desc = get_service_description(canonical) or ""
+    service_name = get_service_name(canonical) or ""
+    keywords = screening.search_keywords if screening else []
+
+    # 동적 쿼리: 서비스 정보 + 제도 키워드 조합
+    service_part = f"{service_name} {service_desc}"[:200].strip()
+    keyword_part = " ".join(keywords[:3]) if keywords else ""
+    base_part = "규제샌드박스 신청 대상 요건 실증특례 임시허가 신속확인"
+
+    query = f"{service_part} {keyword_part} {base_part}".strip()
+    print(f"[Step 2/5] R1 검색 쿼리: {query[:100]}...")
 
     # R1 RAG 검색 실행
     result = search_regulation.invoke({
-        "query": R1_FIXED_QUERY,
+        "query": query,
         "top_k": 5,
     })
 
@@ -478,29 +514,26 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     # judgment_summary 생성 (R1 규제 기준 + R2 사례 + R3 법령)
     judgment_summary: list[JudgmentSummary] = []
 
-    # 규제 기준 (R1): 판정 결과와 무관하게 동일한 쿼리로 신청 요건 검색
-    # 차이는 LLM이 result_summary에서 해석하는 방식 (해당/비해당)
-    R1_JUDGMENT_QUERY = "규제샌드박스 신청 요건 실증특례 신청 대상 조건 임시허가 신속확인"
-    print(f"[Evidence 0/6] R1 규제 기준 검색 - label: {eligibility_label}")
-    judgment_r1_result = search_regulation.invoke({
-        "query": R1_JUDGMENT_QUERY,
-        "top_k": 3,
-    })
+    # 규제 기준 (R1): state의 regulation_results 사용 (오른쪽 패널과 동일 데이터)
+    # LLM으로 서비스와 연결한 설명 생성
+    print(f"[Evidence 1/3] 규제제도 설명 생성 중... ({len(regulations[:3])}건)")
+    for i, reg in enumerate(regulations[:3]):
+        print(f"[Evidence 1/3] 규제제도 {i+1}/{len(regulations[:3])}")
+        reg_summary = generate_regulation_explanation(target_service, reg)
 
-    if hasattr(judgment_r1_result, "results") and judgment_r1_result.results:
-        for reg in judgment_r1_result.results:
-            judgment_summary.append(JudgmentSummary(
-                type=JudgmentType.REGULATION,
-                title=reg.section_title or reg.document_title or "규제 기준",
-                summary=clean_rag_content(reg.content, max_length=200),
-                source=reg.citation or reg.document_title or "ICT 규제샌드박스",
-                source_url=reg.source_url,
-            ))
+        judgment_summary.append(JudgmentSummary(
+            type=JudgmentType.REGULATION,
+            title=reg.get("section_title") or reg.get("document_title") or "규제 기준",
+            summary=clean_rag_content(reg_summary, max_length=250),
+            source=reg.get("citation") or reg.get("document_title") or "ICT 규제샌드박스",
+            source_url=reg.get("source_url"),
+        ))
+    print("[Evidence 1/3] 규제제도 설명 생성 완료")
 
     # 사례 기반 근거 (LLM으로 설명 생성)
-    print(f"[Evidence 1/6] 사례 설명 LLM 생성 중... ({len(cases[:3])}건)")
+    print(f"[Evidence 2/3] 사례 설명 생성 중... ({len(cases[:3])}건)")
     for i, case in enumerate(cases[:3]):
-        print(f"[Evidence 2/6] 사례 {i+1}/{len(cases[:3])} 설명 생성 중...")
+        print(f"[Evidence 2/3] 사례 {i+1}/{len(cases[:3])}")
         service_name = case.get("service_name") or case.get("case_id") or "유사 서비스"
         track = case.get("track") or ""
         company = case.get("company_name") or "기업"
@@ -518,12 +551,12 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             source=f"{company} - {case_id}" if case_id else company,
             source_url=case_source_url,
         ))
-    print("[Evidence 3/6] 사례 설명 생성 완료")
+    print("[Evidence 2/3] 사례 설명 생성 완료")
 
     # 법령 기반 근거 (LLM으로 설명 생성)
-    print(f"[Evidence 4/6] 법령 설명 LLM 생성 중... ({len(laws[:3])}건)")
+    print(f"[Evidence 3/3] 법령 설명 생성 중... ({len(laws[:3])}건)")
     for i, law in enumerate(laws[:3]):
-        print(f"[Evidence 5/6] 법령 {i+1}/{len(laws[:3])} 설명 생성 중...")
+        print(f"[Evidence 3/3] 법령 {i+1}/{len(laws[:3])}")
         law_name = law.get("law_name", "")
         article_no = law.get("article_no", "")
         citation = law.get("citation") or f"{law_name} {article_no}"
@@ -538,7 +571,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             source=f"{law_name} {article_no}".strip(),
             source_url=law.get("source_url"),
         ))
-    print("[Evidence 6/6] 법령 설명 생성 완료")
+    print("[Evidence 3/3] 법령 설명 생성 완료")
 
     # approval_cases 생성 (Step 2,3,4 재사용)
     approval_cases: list[ApprovalCase] = []
