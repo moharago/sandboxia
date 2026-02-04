@@ -64,28 +64,6 @@ def save_track_result(
     return result.data[0]
 
 
-def get_track_result(project_id: str) -> dict | None:
-    """프로젝트의 트랙 추천 결과 조회
-
-    Args:
-        project_id: 프로젝트 UUID
-
-    Returns:
-        track_results 레코드 또는 None
-    """
-    result = supabase.table("track_results") \
-        .select("*") \
-        .eq("project_id", project_id) \
-        .order("created_at", desc=True) \
-        .limit(1) \
-        .execute()
-
-    if not result.data:
-        return None
-
-    return result.data[0]
-
-
 def update_project_track(project_id: str, track: str) -> dict | None:
     """프로젝트의 선택된 트랙 업데이트
 
