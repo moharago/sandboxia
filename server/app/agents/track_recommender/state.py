@@ -21,6 +21,7 @@ class TrackEvidence(TypedDict):
     """트랙 추천 근거"""
     source_type: str  # "법령" | "사례" | "규제"
     source: str
+    description: str  # 출처가 왜 근거가 되는지 짧은 설명
 
 
 class TrackComparison(TypedDict):
@@ -38,12 +39,12 @@ class TrackRecommenderState(TypedDict):
     # 입력
     project_id: str
     canonical: dict  # projects.canonical
-    eligibility_result: dict | None  # eligibility_results 테이블
 
     # 중간 결과
     track_scores: dict[str, TrackScore]  # {demo, temp_permit, quick_check}
     track_definitions: list[dict]  # R1 RAG 결과
     similar_cases: dict[str, list[dict]]  # 트랙별 R2 RAG 결과
+    domain_constraints: dict  # R3 도메인 규제/법령 RAG 결과
 
     # 최종 출력
     recommended_track: str  # "demo" | "temp_permit" | "quick_check"

@@ -36,6 +36,7 @@ class CaseResult(BaseModel):
     pilot_scope: str = Field(description="실증 범위")
     expected_effect: str = Field(description="기대 효과")
     review_result: str = Field(description="심의 결과")
+    designation_date: str = Field(default="", description="지정(승인) 날짜")
     relevance_score: float | None = Field(description="관련도 점수")
     source_url: str | None = Field(description="원본 문서 URL")
 
@@ -93,6 +94,11 @@ def _build_case_result(
     if not all_companies and company_name:
         all_companies = [company_name]
 
+    # 첫 번째 기업의 지정(승인) 날짜 추출
+    designation_date = ""
+    if companies:
+        designation_date = companies[0].get("designation_date", "")
+
     return CaseResult(
         case_id=case_id,
         company_name=company_name or (all_companies[0] if all_companies else ""),
@@ -102,6 +108,7 @@ def _build_case_result(
         ),
         track=meta.get("track", "") if meta else case.get("track", ""),
         designation_number=meta.get("designation_number", "") if meta else "",
+        designation_date=designation_date,
         service_description=common.get("service_description", ""),
         current_regulation=common.get("current_regulation", ""),
         special_provisions=common.get("special_provisions", ""),

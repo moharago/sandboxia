@@ -5,6 +5,8 @@
 
 from langgraph.graph import END, StateGraph
 
+from app.core.config import settings
+
 from .nodes import (
     compose_decision_node,
     generate_evidence_node,
@@ -122,4 +124,5 @@ async def run_eligibility_evaluation(
             approval_cases=result.get("approval_cases", []),
             regulations=result.get("regulations", []),
         ),
+        model_name=settings.LLM_MODEL,
     )

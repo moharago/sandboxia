@@ -130,8 +130,23 @@ SCORING_USER_PROMPT = """## 서비스 정보
 RECOMMENDATION_SYSTEM_PROMPT = """당신은 규제 샌드박스 전문 컨설턴트입니다.
 트랙 점수와 RAG 검색 결과를 바탕으로 추천 사유와 근거를 생성합니다.
 
-각 트랙에 대해 3-5개의 reasons와 대응하는 evidence를 생성하세요.
+트랙별로 정해진 개수의 reasons와 evidence를 생성하세요:
+- demo (실증특례): 정확히 5개
+- temp_permit (임시허가): 정확히 5개
+- quick_check (신속확인): 정확히 4개
+
 reasons[i]와 evidence[i]는 1:1로 매핑됩니다.
+
+## evidence.source 작성 규칙
+
+evidence.source에는 반드시 "사용 가능한 출처 목록"에서 **그대로 복사**하여 사용하세요.
+목록에 없는 값을 임의로 만들지 마세요.
+설명 문장을 source에 넣지 마세요. 설명은 reasons의 text에 작성합니다.
+
+## evidence.description 작성 규칙
+
+출처가 왜 근거가 되는지 1문장, 30자 이내로 설명하세요.
+예시: "실증을 위한 규제특례를 규정하여 신기술 서비스의 제한적 테스트 허용"
 """
 
 RECOMMENDATION_USER_PROMPT = """## 서비스 정보
@@ -150,33 +165,42 @@ RECOMMENDATION_USER_PROMPT = """## 서비스 정보
 
 {similar_cases}
 
-## 응답 형식 (JSON)
+## 사용 가능한 출처 목록
 
-각 트랙(demo, temp_permit, quick_check)에 대해 다음 형식으로 응답하세요:
+evidence.source에는 **아래 목록의 값만** 사용하세요. 목록에서 복사하여 그대로 붙여넣으세요.
+
+{available_sources}
+
+## 응답 형식 (JSON)
 
 ```json
 {{
   "demo": {{
     "reasons": [
-      {{"type": "positive", "text": "긍정적 이유..."}},
-      {{"type": "negative", "text": "부정적 이유..."}},
-      {{"type": "neutral", "text": "중립적 참고사항..."}}
+      {{"type": "positive|negative|neutral", "text": "추천/비추천 사유 설명"}}
     ],
     "evidence": [
-      {{"source_type": "사례", "source": "실증특례 제2023-ICT융합-0147호"}},
-      {{"source_type": "법령", "source": "「정보통신융합법」 제38조의2"}},
-      {{"source_type": "규제", "source": "ICT 규제샌드박스 운영지침 제5조"}}
+      {{"source_type": "사례|법령|규제", "source": "위 출처 목록에서 복사", "description": "출처가 근거가 되는 이유 (30자 이내)"}}
     ]
   }},
-  "temp_permit": {{ ... }},
-  "quick_check": {{ ... }},
-  "result_summary": "서비스 특성과 규제 현황을 분석한 결과, ... (2-3문장 요약)"
+  "temp_permit": {{
+    "reasons": [5개],
+    "evidence": [5개]
+  }},
+  "quick_check": {{
+    "reasons": [4개],
+    "evidence": [4개]
+  }},
+  "result_summary": "2-3문장 요약"
 }}
 ```
 
-주의사항:
-- reasons의 개수와 evidence의 개수는 반드시 동일해야 합니다
-- reasons[i]의 근거가 evidence[i]입니다
-- type은 "positive", "negative", "neutral" 중 하나입니다
-- source_type은 "법령", "사례", "규제" 중 하나입니다
+## 주의사항
+
+1. **개수 준수**: demo 5개, temp_permit 5개, quick_check 4개 (reasons와 evidence 동일 개수)
+2. **1:1 매핑**: reasons[i]의 근거가 evidence[i]
+3. **type 값**: "positive", "negative", "neutral" 중 하나
+4. **source_type 값**: "사례", "법령", "규제" 중 하나. 세 가지를 골고루 사용하세요
+5. **source 값**: 반드시 위 "사용 가능한 출처 목록"에서 선택. 목록에 없는 값 금지
+6. **중복 금지**: 한 트랙 내에서 동일한 source를 2번 이상 사용하지 마세요. 매 evidence마다 서로 다른 출처를 선택하세요
 """

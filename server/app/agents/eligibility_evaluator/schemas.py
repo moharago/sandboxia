@@ -4,6 +4,7 @@ DB 테이블 eligibility_results와 매핑되는 Pydantic 모델
 """
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -27,13 +28,6 @@ class JudgmentType(str, Enum):
     REGULATION = "규제 기준"
 
 
-class ReasonType(str, Enum):
-    """리스크/사유 유형"""
-
-    POSITIVE = "positive"
-    NEGATIVE = "negative"
-    NEUTRAL = "neutral"
-
 
 # ================================
 # evidence_data 내부 구조
@@ -45,6 +39,7 @@ class JudgmentSummary(BaseModel):
     title: str = Field(description="근거 제목")
     summary: str = Field(description="설명 텍스트")
     source: str = Field(description="근거 출처")
+    source_url: str | None = Field(default=None, description="출처 URL (있는 경우)")
 
 
 class ApprovalCase(BaseModel):
@@ -59,7 +54,7 @@ class ApprovalCase(BaseModel):
     title: str = Field(description="사례 제목")
     company: str = Field(description="회사명")
     summary: str = Field(description="요약")
-    detail_url: str | None = Field(default=None, description="상세보기 링크")
+    source_url: str | None = Field(default=None, description="상세보기 링크")
 
 
 class Regulation(BaseModel):
@@ -97,7 +92,7 @@ class EvidenceData(BaseModel):
 class DirectLaunchRisk(BaseModel):
     """바로 시장 출시 시 리스크"""
 
-    type: ReasonType = Field(description="리스크 유형")
+    type: Literal["negative"] = Field(default="negative", description="리스크 유형 (항상 negative)")
     title: str = Field(description="리스크 제목")
     description: str = Field(description="리스크 설명")
     source: str | None = Field(default=None, description="근거 출처")
@@ -125,6 +120,10 @@ class EligibilityResult(BaseModel):
     evidence_data: EvidenceData = Field(
         default_factory=EvidenceData,
         description="판단 근거 + 승인사례 + 법령",
+    )
+    model_name: str = Field(
+        default="",
+        description="사용된 LLM 모델명",
     )
 
 

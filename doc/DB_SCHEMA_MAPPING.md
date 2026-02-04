@@ -64,7 +64,8 @@ Google 로그인 → auth.users 생성 → users 자동 생성 (트리거)
 | 1   | 기업상담   |
 | 2   | 신청서작성 |
 | 3   | 결과대기   |
-| 4   | 완료       |
+| 4   | 완료      |
+| 5   | 바로출시   |
 
 ---
 
@@ -283,6 +284,7 @@ application_draft ← 초안 저장 → 사용자 수정 → UPDATE
 | 컬럼                  | 화면 요소               | 설명                                 |
 | --------------------- | ----------------------- | ------------------------------------ |
 | `eligibility_label`   | AI 추천 배지            | 바로 시장 출시 / 규제 샌드박스 신청  |
+| `final_eligibility_label` | 사용자 최종 선택 배지  | 바로 시장 출시 / 규제 샌드박스 신청  |
 | `confidence_score`    | 신뢰도 94%              | 우측 상단 배지                       |
 | `result_summary`      | AI 분석 결과 텍스트     | 본 서비스는 현행 규제 체계 내에서... |
 | `direct_launch_risks` | -                       | 바로 출시 시 리스크 (JSONB)          |
@@ -317,6 +319,7 @@ application_draft ← 초안 저장 → 사용자 수정 → UPDATE
 | `title`   | 근거 제목   | 규제 저촉 사항 없음                  |
 | `summary` | 설명 텍스트 | 대형 시설 내 자율주행 청소 로봇은... |
 | `source`  | 근거 출처   | 「도로교통법」 제2조 (정의)...       |
+| `source_url` | 원문보기 링크 | https://...                          |
 
 ### approval_cases (오른쪽 패널 - 승인사례 탭)
 
@@ -328,7 +331,7 @@ application_draft ← 초안 저장 → 사용자 수정 → UPDATE
 | `title`      | 사례 제목     | 자율주행 배달로봇 실증특례               |
 | `company`    | 회사명        | 뉴빌리티                                 |
 | `summary`    | 요약          | 보도 위 자율주행 배달로봇 운행을 위한... |
-| `detail_url` | 상세보기 링크 | https://...                              |
+| `source_url` | 원문보기 링크 | https://...                              |
 
 ### regulations (오른쪽 패널 - 법령·제도 탭)
 

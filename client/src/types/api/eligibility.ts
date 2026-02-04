@@ -7,7 +7,7 @@
 // Enum 타입
 export type EligibilityLabel = "required" | "not_required" | "unclear"
 export type JudgmentType = "법령 기준" | "사례 기준" | "규제 기준"
-export type ReasonType = "positive" | "negative" | "neutral"
+export type ReasonType = "negative"
 
 // 판단 근거 (왼쪽 패널)
 export interface JudgmentSummary {
@@ -15,6 +15,7 @@ export interface JudgmentSummary {
     title: string
     summary: string
     source: string
+    source_url: string | null
 }
 
 // 승인 사례 (오른쪽 패널 - 승인사례 탭)
@@ -25,7 +26,7 @@ export interface ApprovalCase {
     title: string
     company: string
     summary: string
-    detail_url: string | null
+    source_url: string | null
 }
 
 // 법령/제도 (오른쪽 패널 - 법령/제도 탭)
