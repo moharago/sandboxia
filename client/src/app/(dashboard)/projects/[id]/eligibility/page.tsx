@@ -308,7 +308,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         runAnalysis(true)
     }
 
-    const isLoading = eligibilityMutation.isPending || isLoadingExisting || isLoadingProject
+    const isQueryLoading = isLoadingExisting || isLoadingProject
 
     // Step 1 완료 전이면 리다이렉트 중이므로 로딩 표시
     if (!isLoadingProject && !isStep1Completed) {
@@ -317,7 +317,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     return (
         <div className="py-6">
-            {isLoading && <AILoadingOverlay message="AI 분석 중" />}
+            {isQueryLoading && <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />}
+            {eligibilityMutation.isPending && <AILoadingOverlay message="AI 분석 중" />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}
@@ -512,7 +513,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
                             isAnalyzed={isAnalyzed || devIsAnalyzed}
                             hasChanges={devHasChanges}
-                            isLoading={isLoading}
+                            isLoading={eligibilityMutation.isPending || isQueryLoading}
                         />
                     </div>
 

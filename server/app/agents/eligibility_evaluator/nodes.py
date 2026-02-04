@@ -365,6 +365,7 @@ def search_laws_node(state: EligibilityState) -> dict:
                     "citation": law.citation,
                     "domain": law.domain,
                     "domain_label": law.domain_label,
+                    "source_url": law.source_url,
                     "relevance_score": law.relevance_score,
                 })
 
@@ -535,6 +536,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             title=citation,
             summary=clean_rag_content(law_summary, max_length=250),
             source=f"{law_name} {article_no}".strip(),
+            source_url=law.get("source_url"),
         ))
     print("[Evidence 6/6] 법령 설명 생성 완료")
 
@@ -567,7 +569,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
             category=category,
             title=law.get("citation", law.get("law_name", "")),
             summary=clean_rag_content(law.get("content", ""), max_length=300),
-            source_url=None,
+            source_url=law.get("source_url"),
         ))
 
     # R1 제도 정보

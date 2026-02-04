@@ -23,6 +23,7 @@ class DomainLawResult(BaseModel):
     citation: str = Field(description="인용 형식 (예: 의료법 제34조 제1항)")
     domain: str = Field(description="도메인 코드")
     domain_label: str = Field(description="도메인 한글명")
+    source_url: str | None = Field(default=None, description="국가법령정보센터 URL")
     relevance_score: float = Field(description="관련도 점수")
 
 
@@ -66,6 +67,14 @@ def normalize_domain(domain: str | None) -> str | None:
     return DOMAIN_MAPPING.get(domain_lower, domain_lower)
 
 
+def _build_law_source_url(meta: dict) -> str | None:
+    """메타데이터의 law_mst로 국가법령정보센터 URL 생성"""
+    law_mst = meta.get("law_mst")
+    if not law_mst:
+        return None
+    return f"https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq={law_mst}"
+
+
 def _build_domain_law_result(result: SearchResult) -> DomainLawResult:
     """SearchResult를 DomainLawResult로 변환"""
     meta = result.metadata
@@ -78,6 +87,7 @@ def _build_domain_law_result(result: SearchResult) -> DomainLawResult:
         citation=meta.get("citation", ""),
         domain=meta.get("domain", ""),
         domain_label=meta.get("domain_label", ""),
+        source_url=_build_law_source_url(meta),
         relevance_score=round(result.score, 4),
     )
 
