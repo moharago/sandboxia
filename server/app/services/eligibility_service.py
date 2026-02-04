@@ -115,11 +115,15 @@ def update_project_after_eligibility(project_id: str) -> dict | None:
         supabase.table("projects")
         .select("current_step")
         .eq("id", project_id)
-        .single()
+        .maybe_single()
         .execute()
     )
 
-    current = project.data.get("current_step", 1) if project.data else 1
+    if not project.data:
+        logger.error(f"프로젝트를 찾을 수 없습니다: {project_id}")
+        return None
+
+    current = project.data.get("current_step", 1)
 
     # 재분석인 경우 (이미 step 3 이상 진행) → step 2로 리셋
     # 최초 분석인 경우 → step 3으로 올림
