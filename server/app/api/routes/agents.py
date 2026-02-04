@@ -35,7 +35,6 @@ from app.services.eligibility_service import (
 from app.services.structure_service import StructureService, StructureServiceError
 from app.services.track_service import (
     get_project_canonical,
-    get_track_result,
     save_track_result,
 )
 
@@ -224,28 +223,6 @@ class TrackRecommendResponse(BaseModel):
     confidence_score: float
     result_summary: str
     track_comparison: dict
-
-
-@router.get(
-    "/track/{project_id}",
-    response_model=TrackRecommendResponse | None,
-    summary="트랙 추천 결과 조회 (캐시)",
-    description="이미 분석된 트랙 추천 결과가 있으면 반환합니다. 없으면 null을 반환합니다.",
-)
-async def get_track_recommendation(project_id: str) -> TrackRecommendResponse | None:
-    """캐시된 트랙 추천 결과 조회"""
-    result = get_track_result(project_id)
-
-    if not result:
-        return None
-
-    return TrackRecommendResponse(
-        project_id=result["project_id"],
-        recommended_track=result["recommended_track"],
-        confidence_score=result["confidence_score"],
-        result_summary=result["result_summary"],
-        track_comparison=result["track_comparison"],
-    )
 
 
 @router.post(

@@ -1,8 +1,8 @@
 "use client"
 
-import { use, useEffect, useRef, useState } from "react"
+import { use, useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, XCircle, AlertCircle, Info, Loader2 } from "lucide-react"
+import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
 import { WizardNavigation } from "@/components/features/wizard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
@@ -14,7 +14,7 @@ import { tracks } from "@/data"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
-import { agentsApi } from "@/lib/api/agents"
+import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { cn } from "@/lib/utils/cn"
 import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
 
@@ -105,23 +105,21 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
-    const [analysisResult, setAnalysisResult] = useState<ReturnType<typeof transformApiResponse> | null>(null)
-    const [isCheckingCache, setIsCheckingCache] = useState(true)
-    const hasCalledApi = useRef(false)
+
+    // Supabase에서 트랙 추천 결과 조회
+    const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
+
+    // 결과 변환
+    const analysisResult = trackResult ? transformApiResponse(trackResult) : null
+    const defaultTrackId = trackResult ? API_TO_UI_TRACK[trackResult.recommended_track] : null
+
+    // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
+    const effectiveSelectedTrackId = selectedTrackId ?? defaultTrackId
 
     // API Mutations
     const recommendMutation = useTrackRecommendMutation({
-        onSuccess: (data) => {
-            const transformed = transformApiResponse(data)
-            setAnalysisResult(transformed)
-
-            // AI 추천 트랙을 기본 선택으로
-            const recommendedTrackId = API_TO_UI_TRACK[data.recommended_track]
-            setSelectedTrackId(recommendedTrackId)
-        },
         onError: (error) => {
             console.error("트랙 추천 실패:", error)
-            // TODO: Toast 알림
         },
     })
 
@@ -133,40 +131,8 @@ export default function TrackPage({ params }: TrackPageProps) {
         },
         onError: (error) => {
             console.error("트랙 저장 실패:", error)
-            // TODO: Toast 알림
         },
     })
-
-    // 페이지 진입 시: 1) 캐시 확인 → 2) 없으면 AI 분석 호출
-    useEffect(() => {
-        if (hasCalledApi.current) return
-        hasCalledApi.current = true
-
-        const loadTrackResult = async () => {
-            setIsCheckingCache(true)
-            try {
-                // 1. 캐시 확인
-                const cached = await agentsApi.getTrackResult(id)
-                if (cached) {
-                    // 캐시 있음 - 바로 표시
-                    const transformed = transformApiResponse(cached)
-                    setAnalysisResult(transformed)
-                    const recommendedTrackId = API_TO_UI_TRACK[cached.recommended_track]
-                    setSelectedTrackId(recommendedTrackId)
-                    setIsCheckingCache(false)
-                    return
-                }
-            } catch (error) {
-                console.error("캐시 조회 실패:", error)
-            }
-
-            // 2. 캐시 없음 - AI 분석 호출
-            setIsCheckingCache(false)
-            recommendMutation.mutate({ project_id: id })
-        }
-
-        loadTrackResult()
-    }, [id, recommendMutation])
 
     const handleSelectTrack = (trackId: string) => {
         setSelectedTrackId(trackId)
@@ -182,12 +148,12 @@ export default function TrackPage({ params }: TrackPageProps) {
     }
 
     const handleSave = async () => {
-        if (!selectedTrackId) return
+        if (!effectiveSelectedTrackId) return
 
-        const apiTrackId = UI_TO_API_TRACK[selectedTrackId]
+        const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
         if (!apiTrackId) return
 
-        const track = tracks.find((t) => t.id === selectedTrackId)
+        const track = tracks.find((t) => t.id === effectiveSelectedTrackId)
         if (track) {
             setTrackSelection(track)
         }
@@ -215,41 +181,14 @@ export default function TrackPage({ params }: TrackPageProps) {
     const isSaving = selectMutation.isPending
     const isError = recommendMutation.isError
 
-    // 캐시 확인 중
-    if (isCheckingCache) {
-        return (
-            <div className="py-6">
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                            <p className="text-muted-foreground">이전 분석 결과를 확인하고 있습니다...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+    // 데이터 로딩 중
+    if (isLoadingTrack) {
+        return <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />
     }
 
-    // AI 분석 중
+    // AI 분석 중 (재분석 시에만 해당)
     if (isAnalyzing) {
-        return (
-            <div className="py-6">
-                <AILoadingOverlay message="AI가 트랙을 분석하고 있습니다..." />
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-                            <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">AI가 트랙을 분석하고 있습니다</h2>
-                                <p className="text-muted-foreground">서비스 정보, 규제 사례, 법령을 종합 분석 중입니다.</p>
-                                <p className="text-sm text-muted-foreground/70">⏱ 약 1~2분 소요됩니다. 잠시만 기다려주세요.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <AILoadingOverlay message="AI 트랙 추천 중" />
     }
 
     // 에러
@@ -265,9 +204,9 @@ export default function TrackPage({ params }: TrackPageProps) {
                             <button
                                 type="button"
                                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                                onClick={() => recommendMutation.mutate({ project_id: id })}
+                                onClick={() => router.push(`/projects/${id}/eligibility`)}
                             >
-                                다시 시도
+                                이전 단계로 돌아가기
                             </button>
                         </div>
                     </div>
@@ -276,9 +215,28 @@ export default function TrackPage({ params }: TrackPageProps) {
         )
     }
 
-    // 결과 없음
+    // 결과 없음 - 이전 단계에서 트랙 추천이 실행되지 않은 경우
     if (!analysisResult) {
-        return null
+        return (
+            <div className="py-6">
+                <div className="container">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center space-y-4">
+                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
+                            <h2 className="text-lg font-semibold">트랙 추천 결과가 없습니다</h2>
+                            <p className="text-muted-foreground">이전 단계(시장출시 진단)에서 &quot;다음 단계&quot;를 눌러 진행해주세요.</p>
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                                onClick={() => router.push(`/projects/${id}/eligibility`)}
+                            >
+                                이전 단계로 돌아가기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     const sortedRecommendations = analysisResult.recommendations
@@ -305,7 +263,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                     const track = tracks.find((t) => t.id === rec.trackId)
                                     if (!track) return null
 
-                                    const isSelected = selectedTrackId === track.id
+                                    const isSelected = effectiveSelectedTrackId === track.id
                                     const style = verdictStyles[rec.verdict] || verdictStyles["비추천"]
 
                                     return (
@@ -390,8 +348,8 @@ export default function TrackPage({ params }: TrackPageProps) {
                                 onBack={handleBack}
                                 onAnalyze={handleSave}
                                 onNext={() => {
-                                    if (!selectedTrackId) return
-                                    const track = tracks.find((t) => t.id === selectedTrackId)
+                                    if (!effectiveSelectedTrackId) return
+                                    const track = tracks.find((t) => t.id === effectiveSelectedTrackId)
                                     if (track) {
                                         setTrackSelection(track)
                                         markStepComplete(3)
@@ -404,7 +362,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                 isAnalyzed={!!analysisResult}
                                 hasChanges={devHasChanges}
                                 isLoading={isSaving}
-                                isAnalyzeDisabled={!selectedTrackId}
+                                isAnalyzeDisabled={!effectiveSelectedTrackId}
                             />
                         </div>
 

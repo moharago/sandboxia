@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { agentsApi } from "@/lib/api/agents"
 import { eligibilityApi } from "@/lib/api/eligibility"
 import { projectsApi } from "@/lib/api/projects"
 import { cn } from "@/lib/utils/cn"
@@ -174,6 +175,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     const [selectedDecision, setSelectedDecision] = useState<DecisionType>("sandbox")
     const [isAnalyzed, setIsAnalyzed] = useState(false)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
+    const [isRunningTrackAgent, setIsRunningTrackAgent] = useState(false)
 
     // 오른쪽 패널용 데이터
     const [approvalCases, setApprovalCases] = useState<ApprovalCase[]>()
@@ -246,8 +248,18 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             markStepComplete(2)
             router.push("/dashboard")
         } else {
-            // 샌드박스 신청 선택 → status 유지 (Step 1~3은 status=1)
+            // 샌드박스 신청 선택 → 트랙 추천 에이전트 실행 후 이동
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            try {
+                setIsRunningTrackAgent(true)
+                await agentsApi.recommendTrack({ project_id: id })
+            } catch (error) {
+                console.error("트랙 추천 실패:", error)
+                alert("트랙 추천 중 오류가 발생했습니다. 다시 시도해주세요.")
+                setIsRunningTrackAgent(false)
+                return
+            }
+            setIsRunningTrackAgent(false)
             markStepComplete(2)
             setCurrentStep(3)
             router.push(`/projects/${id}/track`)
@@ -287,8 +299,18 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             markStepComplete(2)
                             router.push("/dashboard")
                         } else {
-                            // 샌드박스 신청 → status 유지 (Step 1~3은 status=1)
+                            // 샌드박스 신청 → 트랙 추천 에이전트 실행 후 이동
                             await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            try {
+                                setIsRunningTrackAgent(true)
+                                await agentsApi.recommendTrack({ project_id: id })
+                            } catch (error) {
+                                console.error("트랙 추천 실패:", error)
+                                alert("트랙 추천 중 오류가 발생했습니다. 다시 시도해주세요.")
+                                setIsRunningTrackAgent(false)
+                                return
+                            }
+                            setIsRunningTrackAgent(false)
                             markStepComplete(2)
                             setCurrentStep(3)
                             router.push(`/projects/${id}/track`)
@@ -328,7 +350,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     return (
         <div className="py-6">
             {isQueryLoading && <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />}
-            {eligibilityMutation.isPending && <AILoadingOverlay message="AI 분석 중" />}
+            {eligibilityMutation.isPending && <AILoadingOverlay message="AI 대상성 분석 중" />}
+            {isRunningTrackAgent && <AILoadingOverlay message="AI 트랙 추천 중" />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}
@@ -523,7 +546,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
                             isAnalyzed={isAnalyzed || devIsAnalyzed}
                             hasChanges={devHasChanges}
-                            isLoading={eligibilityMutation.isPending || isQueryLoading}
+                            isLoading={eligibilityMutation.isPending || isQueryLoading || isRunningTrackAgent}
                         />
                     </div>
 
