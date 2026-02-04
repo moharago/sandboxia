@@ -15,9 +15,9 @@ import { projectsApi } from "@/lib/api/projects"
 import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
-import type { EligibilityResponse, EligibilityResult, JudgmentType } from "@/types/api/eligibility"
+import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType, Regulation } from "@/types/api/eligibility"
 import { useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, CheckCircle2, Play, Scale } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ExternalLink, Play, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
 
@@ -28,6 +28,7 @@ interface AnalysisReason {
     title: string
     description: string
     source: string
+    sourceUrl: string | null
 }
 
 const CATEGORY_CONFIG: Record<ReasonCategory, { label: string; badgeClass: string }> = {
@@ -86,6 +87,7 @@ function mapResponseToAnalysisData(response: EligibilityResponse | EligibilityRe
         title: item.title,
         description: item.summary,
         source: item.source,
+        sourceUrl: item.source_url ?? null,
     }))
 
     // direct_launch_risks → directLaunchRisks 변환 (description만 추출)
@@ -149,6 +151,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             setAnalysisData(mappedData)
             setSelectedDecision(mappedData.recommendation)
             setIsAnalyzed(true)
+            setApprovalCases(data.evidence_data.approval_cases ?? [])
+            setRegulations(data.evidence_data.regulations ?? [])
         },
         onError: (error) => {
             alert(`분석 실패: ${error.message}`)
@@ -161,11 +165,17 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     const [isAnalyzed, setIsAnalyzed] = useState(false)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
 
+    // 오른쪽 패널용 데이터
+    const [approvalCases, setApprovalCases] = useState<ApprovalCase[]>()
+    const [regulations, setRegulations] = useState<Regulation[]>()
+
     // 기존 결과가 로드되면 화면에 표시
     useEffect(() => {
         if (existingResult && hasExistingResult) {
             const mappedData = mapResponseToAnalysisData(existingResult)
             setAnalysisData(mappedData)
+            setApprovalCases(existingResult.evidence_data.approval_cases ?? [])
+            setRegulations(existingResult.evidence_data.regulations ?? [])
 
             // 사용자가 이미 선택한 값이 있으면 그걸 사용, 없으면 AI 추천값 사용
             if (existingResult.final_eligibility_label) {
@@ -338,13 +348,14 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="divide-y divide-border">
-                                        {/* 카테고리별로 그룹핑 */}
-                                        {(["regulation", "case", "law"] as ReasonCategory[])
+                                        {/* sandbox(required): 규제+법령+사례 모두 표시 / direct(not_required): 규제+법령만 */}
+                                        {(analysisData.recommendation === "sandbox"
+                                            ? (["regulation", "law", "case"] as ReasonCategory[])
+                                            : (["regulation", "law"] as ReasonCategory[])
+                                        )
                                             .map((category) => {
-                                                // 해당 카테고리의 reasons 필터링 + 중복 제거 (title 기준)
                                                 const categoryReasons = analysisData.reasons
                                                     .filter((r) => r.category === category)
-                                                    .filter((r, i, arr) => arr.findIndex((x) => x.title === r.title) === i)
 
                                                 if (categoryReasons.length === 0) return null
 
@@ -360,7 +371,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                                                     <div key={idx}>
                                                                         <h4 className="font-medium">{reason.title}</h4>
                                                                         <p className="text-sm text-foreground mt-1">{reason.description}</p>
-                                                                        <p className="text-sm text-foreground/70 mt-2">근거: {reason.source}</p>
+                                                                        <p className="text-sm text-foreground/70 mt-2">
+                                                                            근거: {reason.sourceUrl ? (
+                                                                                <a href={reason.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                                                                                    {reason.source} <ExternalLink className="h-3 w-3" />
+                                                                                </a>
+                                                                            ) : reason.source}
+                                                                        </p>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -369,6 +386,41 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                                 )
                                             })
                                             .filter(Boolean)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* 참고 사례 - not_required일 때만 별도 카드로 표시 */}
+                        {isAnalyzed && analysisData.recommendation === "direct" && analysisData.reasons.filter((r) => r.category === "case").length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>참고 사례</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="divide-y divide-border">
+                                        {analysisData.reasons
+                                            .filter((r) => r.category === "case")
+                                            .map((reason, idx) => (
+                                                <div key={idx} className="py-4 first:pt-0 last:pb-0">
+                                                    <div className="flex items-start gap-3">
+                                                        <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", CATEGORY_CONFIG.case.badgeClass)}>
+                                                            {CATEGORY_CONFIG.case.label}
+                                                        </Badge>
+                                                        <div className="flex-1">
+                                                            <h4 className="font-medium">{reason.title}</h4>
+                                                            <p className="text-sm text-foreground mt-1">{reason.description}</p>
+                                                            <p className="text-sm text-foreground/70 mt-2">
+                                                                근거: {reason.sourceUrl ? (
+                                                                    <a href={reason.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                                                                        {reason.source} <ExternalLink className="h-3 w-3" />
+                                                                    </a>
+                                                                ) : reason.source}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -465,9 +517,14 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                     </div>
 
                     {/* 오른쪽: 참고 패널 */}
-                    <div className={isReferencePanelOpen ? "flex-1" : ""}>
+                    <div className={isReferencePanelOpen ? "flex-1 min-w-0" : ""}>
                         <div className="sticky top-16">
-                            <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} />
+                            <ReferencePanel
+                                isOpen={isReferencePanelOpen}
+                                onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
+                                approvalCases={approvalCases}
+                                regulations={regulations}
+                            />
                         </div>
                     </div>
                 </div>

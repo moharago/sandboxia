@@ -29,6 +29,7 @@ class RegulationResult(BaseModel):
     category_label: str = Field(description="카테고리 한글명")
     ministry: str = Field(description="관련 부처")
     citation: str = Field(description="인용 형식")
+    source_url: str | None = Field(default=None, description="원본 문서 URL")
     relevance_score: float = Field(description="관련도 점수")
 
 
@@ -173,6 +174,7 @@ def _build_regulation_result(result: SearchResult, score_override: float | None 
         category_label=meta.get("category_label", ""),
         ministry=meta.get("ministry", "all"),
         citation=meta.get("citation", ""),
+        source_url=meta.get("source_url"),
         relevance_score=round(score_override if score_override is not None else result.score, 4),
     )
 
