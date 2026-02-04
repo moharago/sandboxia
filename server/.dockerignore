@@ -1,0 +1,69 @@
+# =============================================================================
+# Docker Build Ignore
+# =============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.docker/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Data & Cache
+data/
+*.db
+*.sqlite
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Test
+tests/
+test/
+*.test.py
+conftest.py
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Scripts (배포에 불필요)
+scripts/
+
+# Misc
+.DS_Store
+*.log
+tmp/
+temp/
