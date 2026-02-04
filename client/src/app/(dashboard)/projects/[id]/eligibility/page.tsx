@@ -19,7 +19,7 @@ import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, CheckCircle2, ExternalLink, Play, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useState } from "react"
+import { use, useEffect, useRef, useState } from "react"
 
 type ReasonCategory = "law" | "regulation" | "case"
 
@@ -129,6 +129,14 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     // 기존 eligibility 결과 조회
     const { data: existingResult, isLoading: isLoadingExisting } = useEligibilityQuery(id)
 
+    // 트랙 추천 결과 유무 (재분석 경고용)
+    const [hasTrackResult, setHasTrackResult] = useState(false)
+    useEffect(() => {
+        if (id) {
+            eligibilityApi.hasTrackResult(id).then(setHasTrackResult)
+        }
+    }, [id])
+
     // 기존 결과가 있는지 확인 (evidence_data가 있고 비어있지 않은 경우)
     const hasExistingResult = existingResult?.evidence_data &&
         Object.keys(existingResult.evidence_data).length > 0
@@ -136,9 +144,11 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     // Step 1 완료 여부 확인 (current_step >= 2이면 Step 1 완료)
     const isStep1Completed = project && project.current_step >= 2
 
-    // Step 1 미완료 시 alert 후 리다이렉트
+    // Step 1 미완료 시 alert 후 리다이렉트 (Strict Mode 중복 방지)
+    const hasRedirected = useRef(false)
     useEffect(() => {
-        if (!isLoadingProject && project && !isStep1Completed) {
+        if (!isLoadingProject && project && !isStep1Completed && !hasRedirected.current) {
+            hasRedirected.current = true
             alert("서비스 분석을 먼저 완료해주세요.")
             router.push(`/projects/${id}/service`)
         }
@@ -200,16 +210,18 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         router.push(`/projects/${id}/service`)
     }
 
+    // 재분석 확인 (기존 결과가 있으면 confirm, 없으면 바로 true)
+    const confirmReanalysis = (): boolean => {
+        if (!hasExistingResult) return true
+        const message = hasTrackResult
+            ? "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있으며,\n트랙 추천 등 이후 단계도 재분석이 필요합니다."
+            : "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
+        return window.confirm(message)
+    }
+
     // AI 분석 실행 (분석만, 다음 단계로 안 감)
     const handleAnalyze = () => {
-        // 기존 결과가 있으면 재분석 확인
-        if (hasExistingResult) {
-            const confirmed = window.confirm(
-                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
-            )
-            if (!confirmed) return
-        }
-
+        if (!confirmReanalysis()) return
         runAnalysis(false)
     }
 
@@ -253,6 +265,9 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                     setSelectedDecision(mappedData.recommendation)
                     setIsAnalyzed(true)
 
+                    // 서버에서 current_step이 변경될 수 있으므로 프로젝트 캐시 갱신
+                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+
                     if (goNextAfter) {
                         // 바로 다음 단계로 이동
                         setMarketAnalysis({
@@ -293,22 +308,17 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         }
 
         // 기존 결과가 있으면 재분석 확인
-        if (hasExistingResult) {
-            const confirmed = window.confirm(
-                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
-            )
-            if (!confirmed) {
-                // 취소하면 기존 결과로 다음 단계 진행
-                handleNext()
-                return
-            }
+        if (!confirmReanalysis()) {
+            // 취소하면 기존 결과로 다음 단계 진행
+            handleNext()
+            return
         }
 
         // 분석 실행 후 다음 단계로 이동
         runAnalysis(true)
     }
 
-    const isLoading = eligibilityMutation.isPending || isLoadingExisting || isLoadingProject
+    const isQueryLoading = isLoadingExisting || isLoadingProject
 
     // Step 1 완료 전이면 리다이렉트 중이므로 로딩 표시
     if (!isLoadingProject && !isStep1Completed) {
@@ -317,7 +327,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     return (
         <div className="py-6">
-            {isLoading && <AILoadingOverlay message="AI 분석 중" />}
+            {isQueryLoading && <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />}
+            {eligibilityMutation.isPending && <AILoadingOverlay message="AI 분석 중" />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}
@@ -512,7 +523,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
                             isAnalyzed={isAnalyzed || devIsAnalyzed}
                             hasChanges={devHasChanges}
-                            isLoading={isLoading}
+                            isLoading={eligibilityMutation.isPending || isQueryLoading}
                         />
                     </div>
 

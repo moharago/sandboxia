@@ -43,6 +43,21 @@ export const eligibilityApi = {
     },
 
     /**
+     * 트랙 추천 결과가 있는지 확인
+     */
+    hasTrackResult: async (projectId: string): Promise<boolean> => {
+        const supabase = createClient()
+
+        const { count, error } = await supabase
+            .from("track_results")
+            .select("*", { count: "exact", head: true })
+            .eq("project_id", projectId)
+
+        if (error) return false
+        return (count ?? 0) > 0
+    },
+
+    /**
      * 사용자 최종 선택 저장
      * @param projectId 프로젝트 ID
      * @param finalLabel 사용자 선택 (required=샌드박스, not_required=바로출시)
