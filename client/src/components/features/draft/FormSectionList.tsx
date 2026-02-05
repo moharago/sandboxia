@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
 
@@ -71,27 +71,88 @@ const getCardName = (formType: FormType, cardKey: string): string => {
     return application?.name || cardKey
 }
 
-interface FormSectionListProps {
-    formType: FormType
+/**
+ * 중첩된 객체를 flat한 key 구조로 변환
+ * { applicant: { companyName: "ABC" } } → { "applicant.companyName": "ABC" }
+ */
+function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string, string> {
+    const result: Record<string, string> = {}
+
+    for (const [key, value] of Object.entries(obj)) {
+        const newKey = prefix ? `${prefix}.${key}` : key
+
+        if (value === null || value === undefined) {
+            // null/undefined는 빈 문자열로
+            result[newKey] = ""
+        } else if (typeof value === "object" && !Array.isArray(value)) {
+            // 중첩 객체는 재귀 처리
+            Object.assign(result, flattenObject(value as Record<string, unknown>, newKey))
+        } else if (typeof value === "boolean") {
+            // boolean은 문자열로 변환
+            result[newKey] = value ? "true" : ""
+        } else {
+            // 나머지는 문자열로 변환
+            result[newKey] = String(value)
+        }
+    }
+
+    return result
 }
 
-export function FormSectionList({ formType }: FormSectionListProps) {
-    const [formValues, setFormValues] = useState<Record<string, string>>({})
+interface FormSectionListProps {
+    formType: FormType
+    initialValues?: Record<string, unknown>
+}
+
+export function FormSectionList({ formType, initialValues }: FormSectionListProps) {
+    const [formValues, setFormValues] = useState<Record<string, Record<string, string>>>({})
+    const prevInitialValuesRef = useRef<Record<string, unknown> | undefined>(undefined)
+
+    // initialValues를 카드별 flat 구조로 변환
+    const flattenedInitialValues = useMemo(() => {
+        if (!initialValues) return {}
+
+        const result: Record<string, Record<string, string>> = {}
+
+        for (const [cardKey, cardData] of Object.entries(initialValues)) {
+            if (cardData && typeof cardData === "object") {
+                // cardData.data가 있으면 그 안의 데이터를 flatten
+                const data = (cardData as Record<string, unknown>).data as Record<string, unknown> | undefined
+                if (data && typeof data === "object") {
+                    result[cardKey] = flattenObject(data)
+                }
+            }
+        }
+
+        return result
+    }, [initialValues])
+
+    // initialValues가 변경되면 formValues 업데이트 (새로운 AI 초안 생성 시 반영)
+    useEffect(() => {
+        if (initialValues && initialValues !== prevInitialValuesRef.current) {
+            prevInitialValuesRef.current = initialValues
+            // 새 initialValues로 formValues 덮어쓰기 (사용자 입력보다 AI 초안 우선)
+            setFormValues(flattenedInitialValues)
+        }
+    }, [initialValues, flattenedInitialValues])
     const [savedMessage, setSavedMessage] = useState<string | null>(null)
 
     const formData = formDataMap[formType]
     const cardKeys = Object.keys(formData)
 
-    const handleValueChange = useCallback((key: string, value: string) => {
+    const handleValueChange = useCallback((cardKey: string, fieldKey: string, value: string) => {
         setFormValues((prev) => ({
             ...prev,
-            [key]: value,
+            [cardKey]: {
+                ...(prev[cardKey] || {}),
+                [fieldKey]: value,
+            },
         }))
     }, [])
 
     const handleSave = useCallback((cardKey: string) => {
         // 임시저장 로직 (실제로는 API 호출 또는 localStorage 저장)
-        console.log(`Saving card ${cardKey}:`, formValues)
+        console.log(`Saving card ${cardKey}:`, formValues[cardKey])
         setSavedMessage(`${cardKey} 임시저장 완료`)
         setTimeout(() => setSavedMessage(null), 2000)
     }, [formValues])
@@ -110,8 +171,8 @@ export function FormSectionList({ formType }: FormSectionListProps) {
                     cardKey={cardKey}
                     cardName={getCardName(formType, cardKey)}
                     formSchema={formData[cardKey]}
-                    values={formValues}
-                    onValueChange={handleValueChange}
+                    values={formValues[cardKey] || {}}
+                    onValueChange={(fieldKey, value) => handleValueChange(cardKey, fieldKey, value)}
                     onSave={() => handleSave(cardKey)}
                 />
             ))}

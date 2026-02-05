@@ -1,7 +1,8 @@
 "use client"
 
-import { use, useState, useMemo } from "react"
+import { use, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
 import { WizardNavigation } from "@/components/features/wizard"
 import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
@@ -14,6 +15,7 @@ import { tracks } from "@/data"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
+import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { cn } from "@/lib/utils/cn"
 import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
@@ -142,12 +144,14 @@ function extractCasesFromEvidence(response: TrackRecommendResponse): CaseData[] 
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
+    const queryClient = useQueryClient()
 
     const { setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
 
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
+    const [isRunningDraftAgent, setIsRunningDraftAgent] = useState(false)
 
     // Supabase에서 트랙 추천 결과 조회
     const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
@@ -172,12 +176,9 @@ export default function TrackPage({ params }: TrackPageProps) {
         },
     })
 
+    const draftMutation = useDraftGenerateMutation()
+
     const selectMutation = useTrackSelectMutation({
-        onSuccess: () => {
-            markStepComplete(3)
-            setCurrentStep(4)
-            router.push(`/projects/${id}/draft`)
-        },
         onError: (error) => {
             console.error("트랙 저장 실패:", error)
         },
@@ -196,7 +197,7 @@ export default function TrackPage({ params }: TrackPageProps) {
         router.push(`/projects/${id}/eligibility`)
     }
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         if (!effectiveSelectedTrackId) return
 
         const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
@@ -207,11 +208,33 @@ export default function TrackPage({ params }: TrackPageProps) {
             setTrackSelection(track)
         }
 
-        selectMutation.mutate({
-            projectId: id,
-            track: apiTrackId,
-        })
-    }
+        // 1. 트랙 선택 저장 (projects.track 업데이트)
+        selectMutation.mutate(
+            { projectId: id, track: apiTrackId },
+            {
+                onSuccess: async () => {
+                    // 프로젝트 캐시 invalidate (track 변경 반영)
+                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+
+                    // 2. Draft Agent 실행
+                    setIsRunningDraftAgent(true)
+                    try {
+                        await draftMutation.mutateAsync({ project_id: id })
+                    } catch (error) {
+                        console.error("신청서 초안 생성 실패:", error)
+                        // 초안 생성 실패해도 다음 단계로 이동
+                    } finally {
+                        setIsRunningDraftAgent(false)
+                    }
+
+                    // 3. 다음 단계로 이동
+                    markStepComplete(3)
+                    setCurrentStep(4)
+                    router.push(`/projects/${id}/draft`)
+                },
+            },
+        )
+    }, [effectiveSelectedTrackId, id, selectMutation, draftMutation, setTrackSelection, markStepComplete, setCurrentStep, router, queryClient])
 
     const getReasonIcon = (type: string) => {
         switch (type) {
@@ -227,7 +250,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     }
 
     const isAnalyzing = recommendMutation.isPending
-    const isSaving = selectMutation.isPending
+    const isSaving = selectMutation.isPending || isRunningDraftAgent
     const isError = recommendMutation.isError
 
     // 데이터 로딩 중
@@ -293,7 +316,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoadingOverlay message="트랙 선택을 저장하고 있습니다..." />}
+                {isSaving && <AILoadingOverlay message={isRunningDraftAgent ? "AI 신청서 초안 생성 중" : "트랙 선택을 저장하고 있습니다..."} />}
                 <div className="container">
                     <div className="flex gap-4">
                         {/* 왼쪽: 메인 콘텐츠 */}
@@ -395,23 +418,11 @@ export default function TrackPage({ params }: TrackPageProps) {
 
                             <WizardNavigation
                                 onBack={handleBack}
-                                onAnalyze={handleSave}
-                                onNext={() => {
-                                    if (!effectiveSelectedTrackId) return
-                                    const track = tracks.find((t) => t.id === effectiveSelectedTrackId)
-                                    if (track) {
-                                        setTrackSelection(track)
-                                        markStepComplete(3)
-                                        setCurrentStep(4)
-                                        router.push(`/projects/${id}/draft`)
-                                    }
-                                }}
-                                analyzeLabel="저장 및 다음 단계"
+                                onReanalyze={() => recommendMutation.mutate({ project_id: id })}
+                                onNext={handleSave}
                                 nextLabel="다음 단계"
                                 isAnalyzed={!!analysisResult}
-                                hasChanges={devHasChanges}
-                                isLoading={isSaving}
-                                isAnalyzeDisabled={!effectiveSelectedTrackId}
+                                isLoading={isSaving || recommendMutation.isPending}
                             />
                         </div>
 

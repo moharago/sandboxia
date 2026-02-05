@@ -166,10 +166,12 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
             case "textarea":
                 return (
                     <div key={fieldKey} className="space-y-1.5">
-                        <Label htmlFor={fieldKey} className="text-sm">
-                            {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
+                        {field.label && (
+                            <Label htmlFor={fieldKey} className="text-sm">
+                                {field.label}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                        )}
                         <Textarea
                             id={fieldKey}
                             value={value}
@@ -194,10 +196,17 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
             case "radio":
                 return (
                     <div key={fieldKey} className="space-y-2">
-                        <Label className="text-sm">
-                            {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <Label className="text-sm">
+                                {field.label}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                            {!value && (
+                                <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
+                                    선택 필요
+                                </span>
+                            )}
+                        </div>
                         <div className="space-y-1.5">
                             {field.options?.map((option) => (
                                 <label key={option.id} className="flex items-center gap-2 cursor-pointer">
@@ -220,15 +229,24 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                 // options가 있으면 체크박스 그룹, 없으면 단독 체크박스
                 if (field.options && field.options.length > 0) {
                     // 체크박스 그룹
+                    const checkedValues = value ? value.split(",").filter(Boolean) : []
+                    const hasSelection = checkedValues.length > 0
+
                     return (
                         <div key={fieldKey} className="space-y-2">
-                            <Label className="text-sm">
-                                {field.label}
-                                {field.required && <span className="text-destructive ml-1">*</span>}
-                            </Label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Label className="text-sm">
+                                    {field.label}
+                                    {field.required && <span className="text-destructive ml-1">*</span>}
+                                </Label>
+                                {!hasSelection && field.required && (
+                                    <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
+                                        선택 필요
+                                    </span>
+                                )}
+                            </div>
                             <div className="space-y-1.5">
                                 {field.options.map((option) => {
-                                    const checkedValues = value ? value.split(",") : []
                                     const isChecked = checkedValues.includes(option.value)
 
                                     return (
@@ -411,9 +429,29 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
             return null
         }
 
+        // 체크박스만 있는 섹션인지 확인 (법적 책임 항목 등)
+        const isCheckboxOnlySection = section.fields.every((f) => f.formType === "checkbox")
+        const hasAnyCheckboxSelected = isCheckboxOnlySection && section.fields.some((field) => {
+            const fieldKey = `${section.key}.${field.key}`
+            return values[fieldKey] === "true"
+        })
+
+        // 라벨 없는 필수 필드가 있는지 확인 (섹션 제목에 * 표시용)
+        const hasRequiredFieldWithoutLabel = section.fields.some((f) => f.required && !f.label)
+
         return (
             <div key={section.key} className="space-y-4">
-                <h4 className="font-bold border-b border-gray-300 pb-2">{section.label}</h4>
+                <div className="flex items-center gap-2 flex-wrap border-b border-gray-300 pb-2">
+                    <h4 className="font-bold">
+                        {section.label}
+                        {hasRequiredFieldWithoutLabel && <span className="text-destructive ml-1">*</span>}
+                    </h4>
+                    {isCheckboxOnlySection && !hasAnyCheckboxSelected && (
+                        <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
+                            선택 필요
+                        </span>
+                    )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {section.fields.map((field) => {
                         // textarea, radio, checkbox는 전체 너비

@@ -7,6 +7,7 @@
 import { createClient } from "@/lib/supabase/client"
 import type { EligibilityRequest, EligibilityResponse } from "@/types/api/eligibility"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
+import type { DraftGenerateRequest, DraftGenerateResponse } from "@/types/api/draft"
 import type { TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/track"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
@@ -123,6 +124,28 @@ export const agentsApi = {
             headers: {
                 "Content-Type": "application/json",
                 ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            body: JSON.stringify(request),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `Request failed: ${response.status}`)
+        }
+
+        return response.json()
+    },
+
+    /**
+     * 신청서 초안 생성 (Application Drafter Agent, Step 4)
+     *
+     * canonical 데이터와 선택된 트랙을 기반으로 신청서 초안을 생성합니다.
+     */
+    generateDraft: async (request: DraftGenerateRequest): Promise<DraftGenerateResponse> => {
+        const response = await fetch(`${API_BASE}/api/v1/agents/draft`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(request),
         })

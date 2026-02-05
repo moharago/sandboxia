@@ -4,7 +4,7 @@
 1. Service Structurer - /agents/structure ✅
 2. Eligibility Evaluator - /agents/eligibility ✅
 3. Track Recommender - /agents/track ✅
-4. Application Drafter - /agents/draft (TODO)
+4. Application Drafter - /agents/draft ✅
 5. Strategy Advisor - /agents/strategy (TODO)
 6. Risk Checker - /agents/risk (TODO)
 """
@@ -33,6 +33,12 @@ from app.services.eligibility_service import (
     update_project_after_eligibility,
 )
 from app.services.structure_service import StructureService, StructureServiceError
+from app.services.draft_service import (
+    DraftServiceError,
+    get_project_data_for_draft,
+    run_draft,
+    save_draft_result,
+)
 from app.services.track_service import (
     get_project_canonical,
     get_track_result,
@@ -327,5 +333,114 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
         similar_cases=similar_cases,
+    )
+
+
+# ===============================
+# Application Drafter 엔드포인트
+# ===============================
+
+
+class DraftGenerateRequest(BaseModel):
+    """신청서 초안 생성 요청"""
+
+    project_id: str
+
+
+class DraftGenerateResponse(BaseModel):
+    """신청서 초안 생성 응답"""
+
+    project_id: str
+    track: str
+    application_draft: dict
+    model_name: str
+
+
+@router.post(
+    "/draft",
+    response_model=DraftGenerateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="신청서 초안 생성 (Step 4)",
+    description="""
+프로젝트의 canonical 데이터와 선택된 트랙을 기반으로 신청서 초안을 생성합니다.
+
+## 입력
+- project_id: 프로젝트 UUID (Step 3 완료 필수)
+
+## 처리
+1. DB에서 canonical + track 조회
+2. 트랙에 맞는 폼 스키마 로드 (서버 내장)
+3. R1(신청 요건/심사 기준), R2(유사 사례) RAG 검색
+4. canonical 기반으로 LLM이 폼 필드 값 생성
+
+## 출력
+- application_draft: AI가 생성한 폼 데이터 (트랙별 폼 스키마 구조)
+    """,
+)
+async def generate_draft(request: DraftGenerateRequest) -> DraftGenerateResponse:
+    """신청서 초안 생성 API
+
+    1. DB에서 프로젝트 데이터 조회
+    2. Application Drafter Agent 실행 (트랙별 폼 스키마 자동 로드)
+    3. 결과를 projects.application_draft에 저장
+    4. 응답 반환
+    """
+    project_id = request.project_id
+
+    # 1. 프로젝트 데이터 조회
+    project = get_project_data_for_draft(project_id)
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
+        )
+
+    canonical = project.get("canonical")
+    if not canonical:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
+        )
+
+    track = project.get("track")
+    if not track:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="트랙이 선택되지 않았습니다. Step 3을 먼저 완료하세요.",
+        )
+
+    # 2. Application Drafter Agent 실행
+    try:
+        result = await run_draft(project_id, canonical, track)
+    except DraftServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except Exception:
+        correlation_id = str(uuid.uuid4())
+        logger.exception(
+            "Application Drafter 실행 중 오류 [correlation_id=%s]", correlation_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"신청서 초안 생성 중 내부 서버 오류가 발생했습니다. (오류 ID: {correlation_id})",
+        )
+
+    # 3. 결과 저장
+    application_draft = result.get("application_draft", {})
+    model_name = result.get("model_name", "")
+
+    try:
+        save_draft_result(
+            project_id=project_id,
+            application_draft=application_draft,
+            model_name=model_name,
+        )
+    except Exception as e:
+        logger.warning("application_draft 저장 실패: %s", str(e))
+
+    return DraftGenerateResponse(
+        project_id=project_id,
+        track=track,
+        application_draft=application_draft,
+        model_name=model_name,
     )
 

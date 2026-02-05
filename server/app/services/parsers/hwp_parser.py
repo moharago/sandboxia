@@ -451,6 +451,9 @@ class HWPParser:
                     value = self._clean_field_value(value)
                     if value and len(value) > 1:
                         self.document.extracted_fields[field_name] = value
+                        # DEBUG: service_type 파싱 로그
+                        if field_name == "service_type":
+                            print(f"[DEBUG HWP] service_type 매칭: pattern={pattern[:50]}..., value={value}")
                         break
 
         # 기술 요소 리스트 추출 (설명서/계획서 문서에서)
