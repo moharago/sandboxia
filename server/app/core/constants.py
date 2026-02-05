@@ -5,10 +5,10 @@
 # =============================================================================
 
 # R1: 규제제도 & 절차 (트랙 정의, 절차, 요건, 심사 포인트)
-COLLECTION_REGULATIONS = "rag_regulations"
+COLLECTION_REGULATIONS = "r1_data"
 
 # R2: 승인 사례 (승인/반려 사례, 조건, 실증 범위)
-COLLECTION_CASES = "rag_cases"
+COLLECTION_CASES = "r2_cases"
 
 # R3: 도메인별 법령 (분야별 법령/인허가 체계)
-COLLECTION_LAWS = "rag_laws"
+COLLECTION_LAWS = "domain_laws"

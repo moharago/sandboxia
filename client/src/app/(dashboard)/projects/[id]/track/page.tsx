@@ -1,10 +1,10 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
 import { WizardNavigation } from "@/components/features/wizard"
-import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
+import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
 import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -96,6 +96,49 @@ function transformApiResponse(response: TrackRecommendResponse) {
     }
 }
 
+// track_comparison evidence에서 사례 데이터 추출
+function extractCasesFromEvidence(response: TrackRecommendResponse): CaseData[] {
+    const seen = new Set<string>()
+    const cases: CaseData[] = []
+
+    const trackKeys: RecommendableTrack[] = ["demo", "temp_permit", "quick_check"]
+
+    for (const key of trackKeys) {
+        const trackData = response.track_comparison[key]
+        if (!trackData) continue
+
+        for (const ev of trackData.evidence) {
+            if (ev.source_type !== "사례") continue
+            if (!ev.service_name) continue
+
+            const id = ev.source || ev.service_name
+            if (seen.has(id)) continue
+            seen.add(id)
+
+            // ev.source (case_id)에서 사례명 추출: "실증특례_162_위비케어 컨소시엄" → "위비케어 컨소시엄"
+            let caseName = ev.company_name || ""
+            if (ev.source) {
+                const parts = ev.source.split("_")
+                if (parts.length >= 3) {
+                    caseName = parts.slice(2).join("_")  // 3번째 이후 부분을 사례명으로 사용
+                }
+            }
+
+            cases.push({
+                id,
+                title: ev.service_name,
+                company: caseName,
+                track: ev.track || "",
+                summary: ev.description || "",
+                relevance: ev.similarity,
+                link: ev.source_url || undefined,
+            })
+        }
+    }
+
+    return cases
+}
+
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
@@ -112,6 +155,12 @@ export default function TrackPage({ params }: TrackPageProps) {
     // 결과 변환
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
     const defaultTrackId = trackResult ? API_TO_UI_TRACK[trackResult.recommended_track] : null
+
+    // evidence에서 사례 데이터 추출
+    const evidenceCases = useMemo(() => {
+        if (!trackResult) return []
+        return extractCasesFromEvidence(trackResult)
+    }, [trackResult])
 
     // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
     const effectiveSelectedTrackId = selectedTrackId ?? defaultTrackId
@@ -369,7 +418,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                         {/* 오른쪽: 참고 패널 */}
                         <div className={isReferencePanelOpen ? "flex-1" : ""}>
                             <div className="sticky top-16">
-                                <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} />
+                                <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} cases={evidenceCases.length > 0 ? evidenceCases : undefined} />
                             </div>
                         </div>
                     </div>

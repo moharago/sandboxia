@@ -16,7 +16,7 @@ from app.core.constants import COLLECTION_CASES
 from app.db.vector import get_vector_store
 
 # 데이터 경로
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2_data"
+DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2"
 CASES_JSON_PATH = DATA_DIR / "cases_structured.json"
 
 

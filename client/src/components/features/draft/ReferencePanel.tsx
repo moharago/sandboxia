@@ -18,7 +18,7 @@ const dummyApprovedCases: ApprovalCase[] = [
         title: "자율주행 배달로봇 실증특례",
         company: "뉴빌리티",
         summary: "보도 위 자율주행 배달로봇 운행을 위한 도로교통법 특례 승인",
-        source_url: null,
+        source_url: "https://www.sandbox.or.kr/board/designated_case_edit.do?bdSeq=723",
     },
     {
         track: "임시허가",
@@ -27,7 +27,7 @@ const dummyApprovedCases: ApprovalCase[] = [
         title: "드론 배송 서비스 임시허가",
         company: "마켓컬리",
         summary: "도심 내 드론을 활용한 신선식품 배송 서비스 임시허가",
-        source_url: null,
+        source_url: "https://www.sandbox.or.kr/board/designated_case_edit.do?bdSeq=927",
     },
     {
         track: "실증특례",
@@ -36,7 +36,7 @@ const dummyApprovedCases: ApprovalCase[] = [
         title: "전동킥보드 공유서비스 실증특례",
         company: "킥고잉",
         summary: "전동킥보드 공유 서비스의 도로교통법 특례 승인",
-        source_url: null,
+        source_url: "https://www.sandbox.or.kr/board/designated_case_edit.do?bdSeq=605",
     },
 ]
 
@@ -46,27 +46,38 @@ const dummyRegulations: Regulation[] = [
         category: "실증특례",
         title: "정보통신융합법 제36조",
         summary: "신규 정보통신융합등 기술·서비스의 실증을 위한 규제특례",
-        source_url: null,
+        source_url: "https://www.law.go.kr/법령/정보통신진흥및융합활성화등에관한특별법/(20240716,19693,20230718)/제36조",
     },
     {
         category: "임시허가",
         title: "정보통신융합법 제37조",
         summary: "신규 정보통신융합등 기술·서비스에 대한 임시허가",
-        source_url: null,
+        source_url: "https://www.law.go.kr/법령/정보통신진흥및융합활성화등에관한특별법/(20240716,19693,20230718)/제37조",
     },
     {
         category: "절차",
         title: "규제샌드박스 운영지침",
         summary: "규제샌드박스 신청 절차 및 심사 기준 안내",
-        source_url: null,
+        source_url: "https://www.sandbox.or.kr/intro/sandbox_intro.do",
     },
     {
         category: "참고",
         title: "ICT 규제샌드박스 FAQ",
         summary: "자주 묻는 질문과 답변 모음",
-        source_url: null,
+        source_url: "https://www.sandbox.or.kr/board/faq.do",
     },
 ]
+
+export interface CaseData {
+    id: string | number
+    title: string
+    company: string
+    approvedDate?: string
+    track: string
+    summary: string
+    relevance?: number
+    link?: string
+}
 
 interface CaseItemProps {
     caseData: ApprovalCase
@@ -99,12 +110,17 @@ function CaseItem({ caseData, index }: CaseItemProps) {
                         <Badge variant="outline" className="text-xs shrink-0">
                             {caseData.track}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>
+                        {caseData.date && <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>}
                     </div>
                     <h4 className="font-medium text-sm truncate">{caseData.title}</h4>
                     <p className="text-xs text-muted-foreground">{caseData.company}</p>
                 </div>
-                <div className="flex items-center">
+                <div className="flex flex-col items-end gap-1">
+                    {caseData.similarity != null && (
+                        <Badge variant="success" className="text-xs">
+                            {caseData.similarity}% 유사
+                        </Badge>
+                    )}
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
             </button>
@@ -174,11 +190,23 @@ interface ReferencePanelProps {
     onToggle: () => void
     approvalCases?: ApprovalCase[]
     regulations?: Regulation[]
+    cases?: CaseData[]  // track 페이지 호환용
 }
 
-export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations }: ReferencePanelProps) {
+export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, cases }: ReferencePanelProps) {
+    // cases (CaseData[])를 ApprovalCase[]로 변환
+    const convertedCases: ApprovalCase[] | undefined = cases?.map(c => ({
+        track: c.track,
+        date: c.approvedDate || "",
+        similarity: c.relevance,  // undefined면 배지 숨김
+        title: c.title,
+        company: c.company,
+        summary: c.summary,
+        source_url: c.link || null,
+    }))
+
     // props가 없으면 더미 데이터 사용
-    const cases = approvalCases ?? dummyApprovedCases
+    const displayCases = approvalCases ?? convertedCases ?? dummyApprovedCases
     const regs = regulations ?? dummyRegulations
 
     // 닫힌 상태: 토글 버튼만 표시
@@ -225,7 +253,7 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations }:
                 </div>
 
                 <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
-                    {cases.map((caseData, index) => (
+                    {displayCases.map((caseData, index) => (
                         <CaseItem key={index} caseData={caseData} index={index} />
                     ))}
                 </TabsContent>

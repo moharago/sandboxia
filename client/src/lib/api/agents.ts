@@ -81,6 +81,34 @@ export const agentsApi = {
     },
 
     /**
+     * 트랙 추천 결과 조회 (캐시)
+     *
+     * 이미 분석된 결과가 있으면 반환, 없으면 null
+     */
+    getTrackResult: async (projectId: string): Promise<TrackRecommendResponse | null> => {
+        const token = await getAuthToken()
+
+        const response = await fetch(`${API_BASE}/api/v1/agents/track/${projectId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
+            },
+        })
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null
+            }
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `Request failed: ${response.status}`)
+        }
+
+        const data = await response.json()
+        return data // null이면 캐시 없음
+    },
+
+    /**
      * 트랙 추천 (Track Recommender Agent)
      *
      * 프로젝트의 canonical 데이터를 분석하여 적합한 트랙을 추천합니다.
@@ -88,10 +116,13 @@ export const agentsApi = {
      * - 신뢰도 점수 및 추천 사유 제공
      */
     recommendTrack: async (request: TrackRecommendRequest): Promise<TrackRecommendResponse> => {
+        const token = await getAuthToken()
+
         const response = await fetch(`${API_BASE}/api/v1/agents/track`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
             },
             body: JSON.stringify(request),
         })

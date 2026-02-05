@@ -127,8 +127,8 @@ SCORING_USER_PROMPT = """## 서비스 정보
 """
 
 # 추천 사유 생성 프롬프트
-RECOMMENDATION_SYSTEM_PROMPT = """당신은 규제 샌드박스 전문 컨설턴트입니다.
-트랙 점수와 RAG 검색 결과를 바탕으로 추천 사유와 근거를 생성합니다.
+RECOMMENDATION_SYSTEM_PROMPT = """당신은 ICT 규제 샌드박스 전문 컨설턴트입니다.
+트랙 점수와 RAG 검색 결과를 바탕으로 각 트랙의 추천 사유와 근거를 생성합니다.
 
 트랙별로 정해진 개수의 reasons와 evidence를 생성하세요:
 - demo (실증특례): 정확히 5개
@@ -137,16 +137,21 @@ RECOMMENDATION_SYSTEM_PROMPT = """당신은 규제 샌드박스 전문 컨설턴
 
 reasons[i]와 evidence[i]는 1:1로 매핑됩니다.
 
-## evidence.source 작성 규칙
+## evidence 작성 규칙
 
-evidence.source에는 반드시 "사용 가능한 출처 목록"에서 **그대로 복사**하여 사용하세요.
-목록에 없는 값을 임의로 만들지 마세요.
-설명 문장을 source에 넣지 마세요. 설명은 reasons의 text에 작성합니다.
+evidence는 해당 reason의 판단 근거를 나타냅니다.
 
-## evidence.description 작성 규칙
+- **source_type**: "사례", "법령", "규제" 중 하나
+- **source**: 구체적인 출처명. 아래 형식 중 하나를 사용하세요:
+  - 법령: "「정보통신융합법」 제36조", "ICT 특별법 제38조" 등
+  - 승인 사례: "실증특례_26_언맨드솔루션", "임시허가_17_KST모빌리티" 등 (사례 ID 그대로)
+  - 제도 문서: "ICT 규제샌드박스 신청 요건", "규제샌드박스 실증특례 심사기준" 등
+  - 근거 부족 시: "추가 확인 필요"
+- **description**: 출처가 왜 근거가 되는지 1문장 설명
 
-출처가 왜 근거가 되는지 1문장, 30자 이내로 설명하세요.
-예시: "실증을 위한 규제특례를 규정하여 신기술 서비스의 제한적 테스트 허용"
+### source 금지 형식
+- "트랙비교 > 상세 비교", "제도정의 > 임시허가" 등 **"○○ > ○○" 형식은 절대 금지**
+- 이것은 RAG 문서 내부 경로이며, 의미 있는 출처가 아닙니다
 """
 
 RECOMMENDATION_USER_PROMPT = """## 서비스 정보
@@ -165,9 +170,7 @@ RECOMMENDATION_USER_PROMPT = """## 서비스 정보
 
 {similar_cases}
 
-## 사용 가능한 출처 목록
-
-evidence.source에는 **아래 목록의 값만** 사용하세요. 목록에서 복사하여 그대로 붙여넣으세요.
+## 참고 출처 목록
 
 {available_sources}
 
@@ -180,7 +183,7 @@ evidence.source에는 **아래 목록의 값만** 사용하세요. 목록에서 
       {{"type": "positive|negative|neutral", "text": "추천/비추천 사유 설명"}}
     ],
     "evidence": [
-      {{"source_type": "사례|법령|규제", "source": "위 출처 목록에서 복사", "description": "출처가 근거가 되는 이유 (30자 이내)"}}
+      {{"source_type": "사례|법령|규제", "source": "출처명", "description": "근거 설명"}}
     ]
   }},
   "temp_permit": {{
@@ -200,7 +203,8 @@ evidence.source에는 **아래 목록의 값만** 사용하세요. 목록에서 
 1. **개수 준수**: demo 5개, temp_permit 5개, quick_check 4개 (reasons와 evidence 동일 개수)
 2. **1:1 매핑**: reasons[i]의 근거가 evidence[i]
 3. **type 값**: "positive", "negative", "neutral" 중 하나
-4. **source_type 값**: "사례", "법령", "규제" 중 하나. 세 가지를 골고루 사용하세요
-5. **source 값**: 반드시 위 "사용 가능한 출처 목록"에서 선택. 목록에 없는 값 금지
-6. **중복 금지**: 한 트랙 내에서 동일한 source를 2번 이상 사용하지 마세요. 매 evidence마다 서로 다른 출처를 선택하세요
+4. **source_type 값**: "사례", "법령", "규제" 중 하나
+5. **source 형식**: 법령 조항, 승인 사례 ID, 제도 문서명 등. 근거가 부족하면 "추가 확인 필요"
+6. **"○○ > ○○" 형식 금지**: RAG 내부 경로(예: "트랙비교 > 상세 비교")를 source에 사용하지 마세요
+7. 서로 다른 트랙에서 동일한 source를 사용해도 됩니다
 """
