@@ -55,7 +55,7 @@ services:
       - IS_PERSISTENT=TRUE
       - ANONYMIZED_TELEMETRY=FALSE
     volumes:
-      - ./data/chroma:/data
+      - ./data/chroma:/data # ChromaDB 데이터는 ./data/chroma에 bind mount됨
     restart: always
     networks:
       - sandbox-network
@@ -75,8 +75,3 @@ services:
 networks:
   sandbox-network:
     driver: bridge
-
-# =============================================================================
-# Volumes
-# =============================================================================
-# ChromaDB 데이터는 ./data/chroma에 bind mount됨
