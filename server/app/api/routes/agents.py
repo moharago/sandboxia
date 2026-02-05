@@ -35,6 +35,7 @@ from app.services.eligibility_service import (
 from app.services.structure_service import StructureService, StructureServiceError
 from app.services.track_service import (
     get_project_canonical,
+    get_track_result,
     save_track_result,
 )
 
@@ -226,6 +227,29 @@ class TrackRecommendResponse(BaseModel):
     similar_cases: dict = Field(default_factory=dict)  # {track_key: [case_dict, ...]}
 
 
+@router.get(
+    "/track/{project_id}",
+    response_model=TrackRecommendResponse | None,
+    summary="트랙 추천 결과 조회 (캐시)",
+    description="이미 분석된 트랙 추천 결과가 있으면 반환합니다. 없으면 null을 반환합니다.",
+)
+async def get_track_recommendation(project_id: str) -> TrackRecommendResponse | None:
+    """캐시된 트랙 추천 결과 조회"""
+    result = get_track_result(project_id)
+
+    if not result:
+        return None
+
+    return TrackRecommendResponse(
+        project_id=result["project_id"],
+        recommended_track=result["recommended_track"],
+        confidence_score=result["confidence_score"],
+        result_summary=result["result_summary"],
+        track_comparison=result["track_comparison"],
+        similar_cases=result.get("similar_cases", {}),
+    )
+
+
 @router.post(
     "/track",
     response_model=TrackRecommendResponse,
@@ -279,6 +303,7 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
         )
 
     # 3. 결과 저장
+    similar_cases = result.get("similar_cases", {})
     try:
         save_track_result(
             project_id=project_id,
@@ -286,6 +311,7 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
             confidence_score=result["confidence_score"],
             result_summary=result["result_summary"],
             track_comparison=result["track_comparison"],
+            similar_cases=similar_cases,
         )
     except Exception as e:
         logger.warning("track_results 저장 실패: %s", str(e))

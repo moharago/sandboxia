@@ -28,12 +28,35 @@ def get_project_canonical(project_id: str) -> dict | None:
     return result.data[0].get("canonical")
 
 
+def get_track_result(project_id: str) -> dict | None:
+    """트랙 추천 결과 조회 (캐시)
+
+    Args:
+        project_id: 프로젝트 UUID
+
+    Returns:
+        track_results 레코드 또는 None (없으면)
+    """
+    result = supabase.table("track_results") \
+        .select("*") \
+        .eq("project_id", project_id) \
+        .order("created_at", desc=True) \
+        .limit(1) \
+        .execute()
+
+    if not result.data:
+        return None
+
+    return result.data[0]
+
+
 def save_track_result(
     project_id: str,
     recommended_track: str,
     confidence_score: float,
     result_summary: str,
     track_comparison: dict,
+    similar_cases: dict | None = None,
     model_name: str = "gpt-4o-mini",
 ) -> dict | None:
     """트랙 추천 결과 저장
@@ -44,6 +67,7 @@ def save_track_result(
         confidence_score: 신뢰도 점수 (0-100)
         result_summary: AI 분석 요약 텍스트
         track_comparison: 트랙별 비교 데이터 (JSONB)
+        similar_cases: 트랙별 유사 승인 사례 (JSONB)
         model_name: 사용된 LLM 모델명
 
     Returns:
@@ -55,6 +79,7 @@ def save_track_result(
         "confidence_score": confidence_score,
         "result_summary": result_summary,
         "track_comparison": track_comparison,
+        "similar_cases": similar_cases or {},
         "model_name": model_name,
     }).execute()
 
