@@ -15,7 +15,7 @@ import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.agents.eligibility_evaluator.schemas import (
     EligibilityRequest,
@@ -223,6 +223,7 @@ class TrackRecommendResponse(BaseModel):
     confidence_score: float
     result_summary: str
     track_comparison: dict
+    similar_cases: dict = Field(default_factory=dict)  # {track_key: [case_dict, ...]}
 
 
 @router.post(
@@ -290,11 +291,15 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
         logger.warning("track_results 저장 실패: %s", str(e))
         # 저장 실패해도 응답은 반환
 
+    # similar_cases 추출
+    similar_cases = result.get("similar_cases", {})
+
     return TrackRecommendResponse(
         project_id=project_id,
         recommended_track=result["recommended_track"],
         confidence_score=result["confidence_score"],
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
+        similar_cases=similar_cases,
     )
 

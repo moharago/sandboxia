@@ -31,7 +31,7 @@ from app.core.constants import COLLECTION_CASES
 
 # 로컬 데이터 파일 (fallback)
 LOCAL_DATA_FILE = (
-    Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
+    Path(__file__).parent.parent / "data" / "r2" / "cases_structured.json"
 )
 
 

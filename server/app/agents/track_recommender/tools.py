@@ -162,16 +162,18 @@ def retrieve_similar_cases(
     service_description: str,
     track_keys: list[str],
     top_k: int = 3,
+    min_score: float = 0.3,
 ) -> dict[str, list[dict]]:
     """트랙별 유사 승인 사례 RAG 검색 (R2)
 
     Args:
         service_description: 서비스 설명
         track_keys: 검색할 트랙 키 목록
-        top_k: 트랙별 반환할 사례 수
+        top_k: 트랙별 반환할 최대 사례 수
+        min_score: 최소 유사도 임계값 (0~1, 기본값 0.3)
 
     Returns:
-        트랙별 유사 사례 목록
+        트랙별 유사 사례 목록 (min_score 이상만 포함)
     """
     track_name_map = {
         "demo": "실증특례",
@@ -198,8 +200,20 @@ def retrieve_similar_cases(
         cases = []
         if search_result and search_result.results:
             for case in search_result.results:
+                # 최소 유사도 임계값 필터링
+                if case.relevance_score is None or case.relevance_score < min_score:
+                    continue
+
+                # case_id에서 사례명 추출 (예: "실증특례_162_위비케어 컨소시엄" → "위비케어 컨소시엄")
+                case_name = ""
+                if case.case_id:
+                    parts = case.case_id.split("_", 2)  # 최대 2번만 분리
+                    if len(parts) >= 3:
+                        case_name = parts[2]
+
                 cases.append({
                     "case_id": case.case_id,
+                    "case_name": case_name,  # 사례명 (컨소시엄명 포함)
                     "company_name": case.company_name,
                     "service_name": case.service_name,
                     "track": case.track,

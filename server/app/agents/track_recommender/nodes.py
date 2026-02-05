@@ -553,6 +553,7 @@ def _enrich_case_evidence(
 
     similar_cases에서 case_id → metadata lookup dict를 구성하고,
     evidence.source에서 base case_id를 추출하여 매칭한다.
+    매칭 실패 시 해당 트랙의 similar_cases에서 순서대로 할당한다.
     """
     track_name_map = {
         "demo": "실증특례",
@@ -573,6 +574,10 @@ def _enrich_case_evidence(
         track_data = track_comparison.get(track_key, {})
         evidence_list = track_data.get("evidence", [])
 
+        # 해당 트랙의 similar_cases (fallback용)
+        track_cases = similar_cases.get(track_key, [])
+        fallback_idx = 0
+
         for ev in evidence_list:
             if not isinstance(ev, dict):
                 continue
@@ -585,6 +590,14 @@ def _enrich_case_evidence(
             base_id = source.split(" (")[0].strip() if " (" in source else source.strip()
 
             case_meta = case_lookup.get(base_id)
+
+            # 매칭 실패 시 해당 트랙의 similar_cases에서 순서대로 할당
+            if not case_meta and track_cases and fallback_idx < len(track_cases):
+                case_meta = track_cases[fallback_idx]
+                fallback_idx += 1
+                # source도 실제 case_id로 업데이트
+                ev["source"] = case_meta.get("case_id", source)
+
             if not case_meta:
                 continue
 
@@ -701,4 +714,5 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
         "confidence_score": confidence_score,
         "result_summary": recommendation_data.get("result_summary", ""),
         "track_comparison": track_comparison,
+        "similar_cases": similar_cases,  # 상태에서 읽어온 값을 명시적으로 전달
     }
