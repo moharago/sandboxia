@@ -81,5 +81,7 @@ ignore = ["E501", "E402"]  # 라인 길이, import 위치 무시
 [dependency-groups]
 dev = [
     "pyright>=1.1.408",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
     "ruff>=0.14.14",
 ]

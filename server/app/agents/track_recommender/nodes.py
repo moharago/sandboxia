@@ -505,6 +505,12 @@ def _fix_evidence_sources(
             if current_source in valid_sources:
                 continue
 
+            # display-form "case_id (service_name)" → base id로 유효성 확인
+            if " (" in current_source:
+                base_id = current_source.split(" (", 1)[0]
+                if base_id in valid_sources:
+                    continue  # base id가 유효하면 display-form 그대로 보존
+
             # 유효 목록에 없는 경우: source_type별 fallback이 있을 때만 교체
             source_type = ev.get("source_type", "규제")
             fallback = sources.get(source_type, [])
@@ -537,6 +543,65 @@ def _fix_evidence_sources(
                 used_sources.add(current_source)
 
     return recommendation_data
+
+
+def _enrich_case_evidence(
+    track_comparison: dict,
+    similar_cases: dict,
+) -> dict:
+    """evidence 중 source_type==='사례'인 항목에 R2 메타데이터 주입
+
+    similar_cases에서 case_id → metadata lookup dict를 구성하고,
+    evidence.source에서 base case_id를 추출하여 매칭한다.
+    """
+    track_name_map = {
+        "demo": "실증특례",
+        "temp_permit": "임시허가",
+        "quick_check": "신속확인",
+    }
+
+    # case_id → metadata lookup dict 구성 (모든 트랙의 사례 통합)
+    case_lookup: dict[str, dict] = {}
+    for track_key, cases in similar_cases.items():
+        for case in cases:
+            case_id = case.get("case_id", "")
+            if case_id:
+                case_lookup[case_id] = case
+
+    # track_comparison 내 evidence에 메타데이터 주입
+    for track_key in ["demo", "temp_permit", "quick_check"]:
+        track_data = track_comparison.get(track_key, {})
+        evidence_list = track_data.get("evidence", [])
+
+        for ev in evidence_list:
+            if not isinstance(ev, dict):
+                continue
+            if ev.get("source_type") != "사례":
+                continue
+
+            # evidence.source에서 base case_id 추출
+            # source 형식: "CASE-001 (서비스명)" → "CASE-001"
+            source = ev.get("source", "")
+            base_id = source.split(" (")[0].strip() if " (" in source else source.strip()
+
+            case_meta = case_lookup.get(base_id)
+            if not case_meta:
+                continue
+
+            # 메타데이터 주입
+            ev["service_name"] = case_meta.get("service_name", "")
+            ev["company_name"] = case_meta.get("company_name", "")
+            ev["track"] = track_name_map.get(
+                case_meta.get("track", ""), case_meta.get("track", "")
+            )
+            ev["source_url"] = case_meta.get("source_url", "")
+            ev["similarity"] = (
+                round(case_meta["relevance_score"] * 100)
+                if case_meta.get("relevance_score") is not None
+                else None
+            )
+
+    return track_comparison
 
 
 def generate_recommendation_node(state: TrackRecommenderState) -> dict:
@@ -617,6 +682,9 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
                 src = ev.get("source", "")
                 if " > " in src:
                     ev["source"] = _clean_citation(src)
+
+    # evidence에 R2 사례 메타데이터 주입
+    track_comparison = _enrich_case_evidence(track_comparison, similar_cases)
 
     # 1순위 트랙 찾기
     recommended_track = "demo"

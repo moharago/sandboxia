@@ -206,6 +206,7 @@ def retrieve_similar_cases(
                     "service_description": case.service_description[:200] if case.service_description else "",
                     "special_provisions": case.special_provisions[:200] if case.special_provisions else "",
                     "relevance_score": case.relevance_score,
+                    "source_url": case.source_url or "",
                 })
 
         results[track_key] = cases

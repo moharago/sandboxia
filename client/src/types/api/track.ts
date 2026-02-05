@@ -24,6 +24,11 @@ export interface TrackEvidence {
     source_type: "사례" | "법령" | "규제"
     source: string
     description?: string
+    service_name?: string
+    company_name?: string
+    track?: string
+    source_url?: string
+    similarity?: number
 }
 
 // 개별 트랙 비교 데이터
