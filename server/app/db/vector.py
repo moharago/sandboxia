@@ -1,18 +1,23 @@
 """Vector DB 추상화 레이어
 
 VectorStore 교체 시 구현체만 변경하면 됩니다.
-현재 구현: ChromaDB
+현재 구현: ChromaDB (HTTP 클라이언트 모드)
 """
 
+import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
+import chromadb
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # 검색 결과 타입
@@ -97,18 +102,70 @@ class BaseVectorStore(ABC):
 # =============================================================================
 
 
+def _create_chroma_client_with_retry(
+    max_retries: int = 5,
+    initial_delay: float = 1.0,
+    max_delay: float = 30.0,
+) -> chromadb.ClientAPI:
+    """ChromaDB HTTP 클라이언트 생성 (재시도 로직 포함)
+
+    Args:
+        max_retries: 최대 재시도 횟수
+        initial_delay: 초기 대기 시간 (초)
+        max_delay: 최대 대기 시간 (초)
+
+    Returns:
+        ChromaDB 클라이언트
+
+    Raises:
+        ConnectionError: 모든 재시도 실패 시
+    """
+    delay = initial_delay
+
+    for attempt in range(max_retries):
+        try:
+            client = chromadb.HttpClient(
+                host=settings.CHROMA_HOST,
+                port=settings.CHROMA_PORT,
+            )
+            # 연결 테스트
+            client.heartbeat()
+            logger.info(
+                f"ChromaDB 연결 성공: {settings.CHROMA_HOST}:{settings.CHROMA_PORT}"
+            )
+            return client
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    f"ChromaDB 연결 실패 (시도 {attempt + 1}/{max_retries}): {e}. "
+                    f"{delay:.1f}초 후 재시도..."
+                )
+                time.sleep(delay)
+                delay = min(delay * 2, max_delay)  # 지수 백오프
+            else:
+                logger.error(f"ChromaDB 연결 실패: 모든 재시도 소진. 마지막 오류: {e}")
+                raise ConnectionError(
+                    f"ChromaDB 서버에 연결할 수 없습니다 "
+                    f"({settings.CHROMA_HOST}:{settings.CHROMA_PORT}): {e}"
+                ) from e
+
+
 class ChromaVectorStore(BaseVectorStore):
-    """ChromaDB 구현체"""
+    """ChromaDB 구현체 (HTTP 클라이언트 모드)"""
 
     def __init__(self, collection_name: str, embeddings: OpenAIEmbeddings):
         from langchain_chroma import Chroma
 
         self._collection_name = collection_name
         self._embeddings = embeddings
+
+        # HTTP 클라이언트로 ChromaDB 서버에 연결 (재시도 로직 포함)
+        http_client = _create_chroma_client_with_retry()
+
         self._client = Chroma(
+            client=http_client,
             collection_name=collection_name,
             embedding_function=embeddings,
-            persist_directory=settings.CHROMA_PERSIST_DIR,
         )
 
     def similarity_search(
