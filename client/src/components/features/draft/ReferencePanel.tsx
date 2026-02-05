@@ -198,7 +198,7 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
     const convertedCases: ApprovalCase[] | undefined = cases?.map(c => ({
         track: c.track,
         date: c.approvedDate || "",
-        similarity: c.relevance ?? 0,
+        similarity: c.relevance,  // undefined면 배지 숨김
         title: c.title,
         company: c.company,
         summary: c.summary,

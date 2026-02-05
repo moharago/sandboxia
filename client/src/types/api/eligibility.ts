@@ -22,7 +22,7 @@ export interface JudgmentSummary {
 export interface ApprovalCase {
     track: string
     date: string
-    similarity: number
+    similarity?: number  // optional - 없으면 유사도 배지 숨김
     title: string
     company: string
     summary: string
