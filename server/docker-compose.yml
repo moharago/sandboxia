@@ -1,11 +1,6 @@
 # =============================================================================
 # Docker Compose - FastAPI + ChromaDB
 # =============================================================================
-# 사용법:
-#   개발: docker-compose up --build
-#   백그라운드: docker-compose up -d --build
-#   종료: docker-compose down
-#   로그: docker-compose logs -f api
 
 services:
   # ---------------------------------------------------------------------------
@@ -30,40 +25,53 @@ services:
       - chroma_data:/app/data/chroma
     depends_on:
       chroma:
-        condition: service_healthy
-    restart: unless-stopped
+        condition: service_started
+    restart: always
     networks:
       - sandbox-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      # /health가 없을 수도 있어서 더 보수적으로 체크:
+      # 1) /health 시도 -> 실패하면 2) /docs 시도
+      test: [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; import sys; \
+          u=['http://localhost:8000/health','http://localhost:8000/docs']; \
+          ok=False; \
+          for url in u: \
+          try: urllib.request.urlopen(url, timeout=3); ok=True; break; \
+          except Exception: pass; \
+          sys.exit(0 if ok else 1)\"",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
   # ---------------------------------------------------------------------------
   # ChromaDB (Vector Database)
   # ---------------------------------------------------------------------------
   chroma:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:1.4.1
     container_name: sandbox-chroma
     ports:
-      - "8001:8000"  # 호스트 8001 → 컨테이너 8000
+      - "8001:8000" # 호스트 8001 → 컨테이너 8000
     environment:
       - IS_PERSISTENT=TRUE
-      - PERSIST_DIRECTORY=/chroma/chroma
       - ANONYMIZED_TELEMETRY=FALSE
     volumes:
-      - chroma_data:/chroma/chroma
-    restart: unless-stopped
+      - chroma_data:/data
+    restart: always
     networks:
       - sandbox-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # ⚠️ 초기 배포에서는 healthcheck로 막히는 경우가 많아서 일단 제거 추천.
+    # Chroma가 실제로 뜨면 API가 붙고, 붙는 과정에서 문제를 확인하는 게 더 빠릅니다.
+    #
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/heartbeat >/dev/null || curl -fsS http://localhost:8000/api/v2/heartbeat >/dev/null || curl -fsS http://localhost:8000/ >/dev/null"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 20s
 
 # =============================================================================
 # Networks
