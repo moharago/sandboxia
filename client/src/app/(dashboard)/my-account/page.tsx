@@ -15,7 +15,7 @@ import { formatPhoneNumber, hasNonDigit } from "@/lib/utils/phone"
 export default function MyAccountPage() {
     const router = useRouter()
     const supabase = createClient()
-    const { user: authUser, profile, fetchProfile, isInitialized } = useAuthStore()
+    const { user: authUser, profile, fetchProfile, getAccessToken, signOut, isInitialized } = useAuthStore()
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -124,9 +124,9 @@ export default function MyAccountPage() {
         setDeleteError(null)
 
         try {
-            const { data: { session } } = await supabase.auth.getSession()
+            const token = await getAccessToken()
 
-            if (!session) {
+            if (!token) {
                 router.push('/login')
                 return
             }
@@ -136,12 +136,12 @@ export default function MyAccountPage() {
             const response = await fetch(`${apiBaseUrl}/api/users/me`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
 
             if (response.ok) {
-                await supabase.auth.signOut()
+                await signOut()
                 setIsDeleteModalOpen(false)
                 router.push("/")
             } else {

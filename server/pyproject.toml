@@ -31,6 +31,8 @@ dependencies = [
   "python-multipart>=0.0.9",
   # HWP Parsing
   "olefile>=0.47",
+  # Auth
+  "pyjwt>=2.10.1",
 ]
 
 [tool.uv]
