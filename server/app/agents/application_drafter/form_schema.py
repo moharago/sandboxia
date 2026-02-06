@@ -52,21 +52,6 @@ def load_form_schema(track: str) -> dict:
     return schema
 
 
-def get_empty_form_structure(track: str) -> dict:
-    """트랙의 빈 폼 구조 반환
-
-    폼 스키마에서 키 구조만 추출하여 반환합니다.
-    모든 값은 null 상태로 유지됩니다.
-
-    Args:
-        track: 트랙 타입
-
-    Returns:
-        빈 폼 구조 딕셔너리
-    """
-    return load_form_schema(track)
-
-
 def _get_all_keys(obj: dict | list, prefix: str = "") -> set[str]:
     """딕셔너리/리스트에서 모든 키 경로 추출 (재귀)"""
     keys = set()
@@ -88,18 +73,18 @@ def _get_all_keys(obj: dict | list, prefix: str = "") -> set[str]:
 def validate_schema_keys(generated: dict, schema: dict) -> dict:
     """LLM 생성 결과가 스키마 구조와 일치하는지 검증
 
+    스키마에 없는 키가 발견되면 에러 로깅, 누락된 키는 경고 로깅만 수행합니다.
+    예외를 발생시키지 않고 검증 결과를 반환합니다.
+
     Args:
         generated: LLM이 생성한 폼 데이터
         schema: 원본 폼 스키마
 
     Returns:
         검증 결과 딕셔너리:
-        - valid: bool - 검증 통과 여부
-        - unknown_keys: list - 스키마에 없는 키들
-        - missing_keys: list - 생성 결과에 없는 키들
-
-    Raises:
-        ValueError: 스키마에 없는 키가 발견된 경우
+        - valid: bool - 검증 통과 여부 (unknown_keys가 없으면 True)
+        - unknown_keys: list - 스키마에 없는 키들 (LLM이 잘못 생성한 경로)
+        - missing_keys: list - 생성 결과에 없는 키들 (누락된 필드)
     """
     schema_keys = _get_all_keys(schema)
     generated_keys = _get_all_keys(generated)

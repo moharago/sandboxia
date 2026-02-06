@@ -17,6 +17,10 @@ import { AlertCircle, Download, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useState } from "react"
 
+/** Track 타입 가드: TRACK_TO_FORM_ID에 존재하는 유효한 Track인지 확인 */
+const isTrack = (value: string | null | undefined): value is Track =>
+    value != null && Object.prototype.hasOwnProperty.call(TRACK_TO_FORM_ID, value)
+
 interface DraftPageProps {
     params: Promise<{ id: string }>
 }
@@ -39,9 +43,9 @@ export default function DraftPage({ params }: DraftPageProps) {
     // AI 초안 생성 mutation
     const draftMutation = useDraftGenerateMutation()
 
-    // track → formType 변환
-    const formType: FormType | null = project?.track
-        ? (TRACK_TO_FORM_ID[project.track as Track] as FormType)
+    // track → formType 변환 (런타임 타입 검증)
+    const formType: FormType | null = isTrack(project?.track)
+        ? (TRACK_TO_FORM_ID[project.track] as FormType)
         : null
 
     // application_draft.form_values를 그대로 initialValues로 사용

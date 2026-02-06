@@ -30,6 +30,56 @@ from app.tools.shared.rag import (
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# PII 마스킹 함수 (외부 LLM 전송 시 개인정보 보호)
+# ============================================================================
+
+def mask_name(name: str) -> str:
+    """이름 마스킹: 첫 글자만 표시 (김영희 → 김**)"""
+    if not name or len(name) < 2:
+        return "[REDACTED]"
+    return name[0] + "*" * (len(name) - 1)
+
+
+def mask_business_number(number: str) -> str:
+    """사업자등록번호 마스킹: 마지막 4자리만 표시 (123-45-67890 → ***-**-*7890)"""
+    if not number:
+        return "[REDACTED]"
+    digits_only = re.sub(r"[^0-9]", "", number)
+    if len(digits_only) < 4:
+        return "[REDACTED]"
+    return f"***-**-*{digits_only[-4:]}"
+
+
+def mask_phone(phone: str) -> str:
+    """전화번호 마스킹: 마지막 4자리만 표시 (010-1234-5678 → ***-****-5678)"""
+    if not phone:
+        return "[REDACTED]"
+    digits_only = re.sub(r"[^0-9]", "", phone)
+    if len(digits_only) < 4:
+        return "[REDACTED]"
+    return f"***-****-{digits_only[-4:]}"
+
+
+def mask_email(email: str) -> str:
+    """이메일 마스킹: 도메인만 표시 (user@example.com → ***@example.com)"""
+    if not email or "@" not in email:
+        return "[REDACTED]"
+    _, domain = email.split("@", 1)
+    return f"***@{domain}"
+
+
+def mask_address(address: str) -> str:
+    """주소 마스킹: 시/도까지만 표시 (서울특별시 강남구 ... → 서울특별시 [상세주소 생략])"""
+    if not address:
+        return "[REDACTED]"
+    # 시/도 패턴 추출
+    match = re.match(r"^(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|충청북도|충청남도|전라북도|전라남도|경상북도|경상남도|제주특별자치도|[가-힣]+시|[가-힣]+도)", address)
+    if match:
+        return f"{match.group(1)} [상세주소 생략]"
+    return "[REDACTED]"
+
+
 def get_llm() -> ChatOpenAI:
     return ChatOpenAI(
         model=settings.LLM_MODEL,
@@ -39,22 +89,28 @@ def get_llm() -> ChatOpenAI:
 
 
 def get_service_info(canonical: dict) -> str:
-    """canonical에서 서비스 정보 텍스트 추출"""
+    """canonical에서 서비스 정보 텍스트 추출
+
+    Note: 외부 LLM(OpenAI) 전송 시 PII 보호를 위해 민감 정보는 마스킹 처리됩니다.
+    실제 값은 클라이언트에서 폼 기본값으로 별도 처리합니다.
+    """
     parts = []
 
     company = canonical.get("company", {})
+    # 회사명은 초안 생성에 필요하므로 유지
     if company.get("company_name"):
         parts.append(f"회사명: {company['company_name']}")
+    # PII 필드는 마스킹 처리
     if company.get("representative"):
-        parts.append(f"대표자: {company['representative']}")
+        parts.append(f"대표자: {mask_name(company['representative'])}")
     if company.get("business_number"):
-        parts.append(f"사업자등록번호: {company['business_number']}")
+        parts.append(f"사업자등록번호: {mask_business_number(company['business_number'])}")
     if company.get("address"):
-        parts.append(f"주소: {company['address']}")
+        parts.append(f"주소: {mask_address(company['address'])}")
     if company.get("contact"):
-        parts.append(f"전화번호: {company['contact']}")
+        parts.append(f"전화번호: {mask_phone(company['contact'])}")
     if company.get("email"):
-        parts.append(f"이메일: {company['email']}")
+        parts.append(f"이메일: {mask_email(company['email'])}")
 
     service = canonical.get("service", {})
     if service.get("service_name"):

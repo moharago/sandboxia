@@ -102,10 +102,10 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
             // null/undefined는 빈 문자열로
             result[newKey] = ""
         } else if (Array.isArray(value)) {
-            // 배열은 인덱스 기반으로 재귀 처리
+            // 배열은 인덱스 기반으로 재귀 처리 (DynamicFormCard와 동일한 dot notation 사용)
             for (let i = 0; i < value.length; i++) {
                 const item = value[i]
-                const arrayKey = `${newKey}[${i}]`
+                const arrayKey = `${newKey}.${i}`
 
                 if (item === null || item === undefined) {
                     result[arrayKey] = ""
