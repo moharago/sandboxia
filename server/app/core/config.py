@@ -16,9 +16,10 @@ class Settings(BaseSettings):
     LAW_API_OC: str
 
     # Vector DB 설정
+    CHROMA_MODE: str = "persistent"  # persistent | http | ephemeral
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
-    CHROMA_PERSIST_DIR: str = "./data/chroma"  # 로컬 개발용 (HTTP 모드 시 미사용)
+    CHROMA_PERSIST_DIR: str = "./data/chroma"  # persistent 모드 시 사용
 
     # LLM 설정
     LLM_MODEL: str
