@@ -30,9 +30,7 @@ from app.core.config import settings
 from app.core.constants import COLLECTION_CASES
 
 # 로컬 데이터 파일 (fallback)
-LOCAL_DATA_FILE = (
-    Path(__file__).parent.parent / "data" / "r2" / "cases_structured.json"
-)
+LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
 
 
 def load_json_data() -> tuple[list[dict], str]:
@@ -69,8 +67,7 @@ def load_json_data() -> tuple[list[dict], str]:
 
             if not json_file:
                 raise FileNotFoundError(
-                    f"Google Drive 폴더에서 JSON 파일을 찾을 수 없습니다.\n"
-                    f"폴더 ID: {settings.R2_DATA_ID}"
+                    f"Google Drive 폴더에서 JSON 파일을 찾을 수 없습니다.\n" f"폴더 ID: {settings.R2_DATA_ID}"
                 )
 
             print(f"  [OK] JSON 파일 발견: {json_file.name}")
@@ -133,9 +130,7 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
         pilot_scope = common.get("pilot_scope", "")
 
         # 기업 정보
-        company_names = [
-            c.get("company_name", "") for c in companies if c.get("company_name")
-        ]
+        company_names = [c.get("company_name", "") for c in companies if c.get("company_name")]
         company_name = company_names[0] if company_names else ""
 
         # 지정번호
