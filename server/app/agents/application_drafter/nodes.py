@@ -584,6 +584,31 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     form_data["applicant"].update(applicant_data)
                     logger.info("[DEBUG] company pass-through applied to %s", form_id)
 
+        # 사업계획서의 organizationProfile.generalInfo에도 원본 데이터 적용
+        # (LLM이 마스킹된 값으로 생성하므로 원본으로 덮어씀)
+        for form_id in ["temporary-2", "demonstration-2"]:
+            form_data = _get_form_data(draft, form_id)
+            if form_data is not None:
+                if "organizationProfile" not in form_data:
+                    form_data["organizationProfile"] = {}
+                org_profile = form_data["organizationProfile"]
+
+                # organizationName = company_name
+                if company.get("company_name"):
+                    org_profile["organizationName"] = company["company_name"]
+
+                # generalInfo 섹션
+                if "generalInfo" not in org_profile:
+                    org_profile["generalInfo"] = {}
+                general_info = org_profile["generalInfo"]
+
+                if company.get("representative"):
+                    general_info["representativeName"] = company["representative"]
+                if company.get("address"):
+                    general_info["address"] = company["address"]
+
+                logger.info("[DEBUG] organizationProfile pass-through applied to %s", form_id)
+
     # 재무현황 병합 (canonical: year별 구조 → form: row별 구조로 변환)
     financial = canonical.get("financial", {})
     if financial and any(financial.get(year) for year in ["yearM2", "yearM1", "average"]):
@@ -758,6 +783,37 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                 if temp_permit_reason.get("unclearOrUnreasonableStandards") is True:
                     form_data["eligibility"]["unclearOrUnreasonableStandards"] = True
                     logger.info("[DEBUG] form_selections: unclearOrUnreasonableStandards = True")
+
+        # 실증특례 체크박스 처리 (demonstrationReason)
+        demo_reason = form_selections.get("demonstrationReason", {})
+        if demo_reason:
+            # demonstration-1: regulatoryExemptionReason
+            form_data_1 = _get_form_data(draft, "demonstration-1")
+            if form_data_1:
+                if "regulatoryExemptionReason" not in form_data_1:
+                    form_data_1["regulatoryExemptionReason"] = {}
+
+                if demo_reason.get("impossibleToApplyPermit") is True:
+                    form_data_1["regulatoryExemptionReason"]["reason1_impossibleToApplyPermit"] = True
+                    logger.info("[DEBUG] form_selections: demo reason1_impossibleToApplyPermit = True")
+
+                if demo_reason.get("unclearOrUnreasonableCriteria") is True:
+                    form_data_1["regulatoryExemptionReason"]["reason2_unclearOrUnreasonableCriteria"] = True
+                    logger.info("[DEBUG] form_selections: demo reason2_unclearOrUnreasonableCriteria = True")
+
+            # demonstration-3: eligibility (소명서)
+            form_data_3 = _get_form_data(draft, "demonstration-3")
+            if form_data_3:
+                if "eligibility" not in form_data_3:
+                    form_data_3["eligibility"] = {}
+
+                if demo_reason.get("impossibleToApplyPermit") is True:
+                    form_data_3["eligibility"]["impossibleToApplyPermitByOtherLaw"] = True
+                    logger.info("[DEBUG] form_selections: demo eligibility impossibleToApplyPermitByOtherLaw = True")
+
+                if demo_reason.get("unclearOrUnreasonableCriteria") is True:
+                    form_data_3["eligibility"]["unclearOrUnreasonableCriteria"] = True
+                    logger.info("[DEBUG] form_selections: demo eligibility unclearOrUnreasonableCriteria = True")
 
     # 신속확인(fastcheck) section_texts pass-through
     section_texts = canonical.get("section_texts", {})

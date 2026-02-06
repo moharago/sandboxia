@@ -11,13 +11,14 @@ DRAFT_SYSTEM_PROMPT = """당신은 규제 샌드박스(ICT 규제 샌드박스) 
 
 ### 1. 적극적으로 생성해야 하는 항목 (서술형 텍스트)
 canonical의 서비스 정보를 바탕으로 **적극적으로 내용을 생성**하세요:
-- 사업 계획, 운영 계획, 확산 계획
+- 사업 계획, 운영 계획, 확산 계획, 복구 계획 (실증특례)
+- 실증 추진 방법, 단계별 일정
 - 기대효과 (정량적/정성적)
 - 시장 현황 및 전망
 - 이용자 보호 방안
 - 이해관계 충돌 해소 방안
 - 안전성 검증 자료
-- 규제 특례 필요성 및 내용
+- 규제 특례 필요성 및 내용, 해당여부 근거
 - 추진 체계 (일반적인 프로젝트 구조로 작성)
 
 **이런 서술형 필드는 빈칸으로 두지 마세요!**
@@ -148,12 +149,12 @@ HWP 신청서 트랙과 선택된 트랙이 다를 수 있습니다. section_tex
 | section_texts 키 | 신속확인 폼 필드 | 임시허가 폼 필드 | 실증특례 폼 필드 |
 |-----------------|----------------|----------------|----------------|
 | technologyServiceDetails | technologyServiceDetails | technologyService.detailedDescription | technologyService.detailedDescription |
-| legalIssues | legalIssues | temporaryPermitRequest.regulationDetails | demonstrationRequest.regulationDetails |
+| legalIssues | legalIssues | temporaryPermitRequest.regulationDetails | regulatoryExemption.regulationDetails |
 | additionalQuestions | additionalQuestions | (참고만) | (참고만) |
 | detailedDescription | technologyServiceDetails | technologyService.detailedDescription | technologyService.detailedDescription |
-| regulationDetails | legalIssues | temporaryPermitRequest.regulationDetails | demonstrationRequest.regulationDetails |
+| regulationDetails | legalIssues | temporaryPermitRequest.regulationDetails | regulatoryExemption.regulationDetails |
 | marketStatusAndOutlook | (없음) | technologyService.marketStatusAndOutlook | technologyService.marketStatusAndOutlook |
-| necessityAndRequest | (없음) | temporaryPermitRequest.necessityAndRequest | demonstrationRequest.necessityAndRequest |
+| necessityAndRequest | (없음) | temporaryPermitRequest.necessityAndRequest | regulatoryExemption.necessityAndRequest |
 
 **매핑 원칙:**
 1. section_texts에 유사한 내용이 있으면 → 해당 내용을 기반으로 target 폼 필드 작성
@@ -182,13 +183,18 @@ HWP 신청서 트랙과 선택된 트랙이 다를 수 있습니다. section_tex
 - quantitative (정량적 기대효과) → "실증 기간 내 이용자 약 N명, 매출 약 N원 예상"
 - qualitative (정성적 기대효과) → 사회적 가치, 산업 혁신 효과
 - expansionPlan (확대·확산 계획) → 실증 후 전국 확대, 해외 진출 등
+- restorationPlan (실증 후 복구 계획, 실증특례 전용) → 실증 종료 후 원상복구 방안, 이용자 보호 조치
+- executionMethod (단계별 추진 방법, 실증특례 전용) → 실증 추진 단계별 세부 방법
 - organizationStructure (추진 체계) → "대표이사 총괄, 기술개발팀, 운영팀, CS팀 구성"
 - budget (추진 예산) → "총 사업비 약 N원 예상 (인건비, 시스템 구축, 마케팅 등)"
 - safetyVerification (안전성 검증) → 서비스의 안전성 확보 방안
+- protectionAndResponse (이용자 보호 및 대응 계획, 실증특례 전용) → 개인정보 보호, 피해 구제, 대응 계획
 - userProtectionPlan (이용자 보호 방안) → 개인정보 보호, 환불 정책, 피해 구제
 - riskAndResponse (위험 및 대응 방안) → 예상 위험과 대응책
+- riskAndMitigation (위험 및 완화 방안, 실증특례 전용) → 예상 위험과 완화 조치
 - stakeholderConflictResolution (이해관계 충돌 해소) → 기존 사업자와의 공존 방안
-- justification (해당여부 근거) → 선택한 신청사유에 대한 근거 설명
+- stakeholderConflict (이해관계 충돌 해소, 실증특례 전용) → 기존 사업자와의 충돌 해소 방안
+- justification (해당여부 근거) → 규제특례가 필요한 이유와 근거 설명 (체크박스 선택과 무관하게 작성)
 - mainBusiness (주요 사업) → 회사의 주요 사업 영역
 - licensesAndPermits (주요 인허가 사항) → 현재 보유 또는 필요한 인허가
 - technologiesAndPatents (보유기술 및 특허) → 핵심 기술, 혁신 포인트
