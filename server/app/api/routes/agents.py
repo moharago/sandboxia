@@ -11,7 +11,6 @@
 
 import logging
 import uuid
-
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -22,26 +21,24 @@ from app.agents.eligibility_evaluator.schemas import (
     EligibilityResponse,
 )
 from app.agents.track_recommender import run_track_recommender
-from app.api.deps import get_auth_user
+from app.api.deps import AuthUser, get_auth_user
+from app.services.project_service import get_authorized_project
 from app.api.schemas.agents import StructureResponse
+from app.services.draft_service import (
+    DraftServiceError,
+    run_draft,
+    save_draft_result,
+    update_draft_card,
+)
 from app.services.eligibility_service import (
     EligibilityServiceError,
-    get_project_for_eligibility,
     run_eligibility,
     save_eligibility_result,
     update_final_eligibility_label,
     update_project_after_eligibility,
 )
 from app.services.structure_service import StructureService, StructureServiceError
-from app.services.draft_service import (
-    DraftServiceError,
-    get_project_data_for_draft,
-    run_draft,
-    save_draft_result,
-    update_draft_card,
-)
 from app.services.track_service import (
-    get_project_canonical,
     get_track_result,
     save_track_result,
 )
@@ -58,12 +55,16 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 
 @router.post("/structure", response_model=StructureResponse, summary="서비스 구조화")
 async def structure_service(
-    session_id: str = Form(...),
+    session_id: str = Form(..., description="프로젝트 ID"),
     requested_track: str = Form(..., description="트랙 (counseling/quick_check/temp_permit/demo)"),
     consultant_input: str = Form(...),
     files: list[UploadFile] = File(default=[]),
+    auth_user: AuthUser = Depends(get_auth_user),
 ) -> StructureResponse:
     """HWP 파일과 컨설턴트 입력을 분석하여 Canonical Structure 생성"""
+    # 프로젝트 조회 + 권한 확인
+    get_authorized_project(session_id, auth_user)
+
     try:
         return await StructureService.run(
             session_id=session_id,
@@ -112,7 +113,7 @@ async def structure_service(
 )
 async def evaluate_eligibility(
     request: EligibilityRequest,
-    auth_user=Depends(get_auth_user),
+    auth_user: AuthUser = Depends(get_auth_user),
 ) -> EligibilityResponse:
     """대상성 판단 실행
 
@@ -121,22 +122,10 @@ async def evaluate_eligibility(
     """
     project_id = request.project_id
 
-    # 1. DB에서 프로젝트 조회
-    project = get_project_for_eligibility(project_id)
-    if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
-        )
+    # 1. 프로젝트 조회 + 권한 확인
+    project = get_authorized_project(project_id, auth_user)
 
-    # 2. 권한 확인 (본인 프로젝트인지)
-    if project.get("user_id") != auth_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="이 프로젝트에 접근할 권한이 없습니다.",
-        )
-
-    # 3. canonical 데이터 확인
+    # 2. canonical 데이터 확인
     canonical = project.get("canonical")
     if not canonical:
         raise HTTPException(
@@ -184,22 +173,11 @@ class FinalDecisionRequest(BaseModel):
 async def update_final_decision(
     project_id: str,
     request: FinalDecisionRequest,
-    auth_user=Depends(get_auth_user),
+    auth_user: AuthUser = Depends(get_auth_user),
 ) -> dict:
     """사용자의 최종 선택 저장"""
-    # 권한 확인
-    project = get_project_for_eligibility(project_id)
-    if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
-        )
-
-    if project.get("user_id") != auth_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="이 프로젝트에 접근할 권한이 없습니다.",
-        )
+    # 프로젝트 조회 + 권한 확인
+    get_authorized_project(project_id, auth_user)
 
     # 최종 선택 저장
     result = update_final_eligibility_label(project_id, request.final_eligibility_label)
@@ -240,8 +218,14 @@ class TrackRecommendResponse(BaseModel):
     summary="트랙 추천 결과 조회 (캐시)",
     description="이미 분석된 트랙 추천 결과가 있으면 반환합니다. 없으면 null을 반환합니다.",
 )
-async def get_track_recommendation(project_id: str) -> TrackRecommendResponse | None:
+async def get_track_recommendation(
+    project_id: str,
+    auth_user: AuthUser = Depends(get_auth_user),
+) -> TrackRecommendResponse | None:
     """캐시된 트랙 추천 결과 조회"""
+    # 프로젝트 조회 + 권한 확인
+    get_authorized_project(project_id, auth_user)
+
     result = get_track_result(project_id)
 
     if not result:
@@ -275,7 +259,10 @@ async def get_track_recommendation(project_id: str) -> TrackRecommendResponse | 
 - track_comparison: 트랙별 비교 데이터 (JSONB)
     """,
 )
-async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendResponse:
+async def recommend_track(
+    request: TrackRecommendRequest,
+    auth_user: AuthUser = Depends(get_auth_user),
+) -> TrackRecommendResponse:
     """트랙 추천 API
 
     1. DB에서 canonical 데이터 조회
@@ -285,12 +272,15 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
     """
     project_id = request.project_id
 
-    # 1. canonical 데이터 조회
-    canonical = get_project_canonical(project_id)
+    # 1. 프로젝트 조회 + 권한 확인
+    project = get_authorized_project(project_id, auth_user)
+
+    # 2. canonical 데이터 확인
+    canonical = project.get("canonical")
     if not canonical:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"프로젝트를 찾을 수 없거나 canonical 데이터가 없습니다: {project_id}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
         )
 
     # 2. Track Recommender Agent 실행
@@ -301,9 +291,7 @@ async def recommend_track(request: TrackRecommendRequest) -> TrackRecommendRespo
         )
     except Exception:
         correlation_id = str(uuid.uuid4())
-        logger.exception(
-            "Track Recommender 실행 중 오류 [correlation_id=%s]", correlation_id
-        )
+        logger.exception("Track Recommender 실행 중 오류 [correlation_id=%s]", correlation_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"트랙 추천 중 내부 서버 오류가 발생했습니다. (오류 ID: {correlation_id})",
@@ -380,7 +368,7 @@ class DraftGenerateResponse(BaseModel):
 )
 async def generate_draft(
     request: DraftGenerateRequest,
-    auth_user=Depends(get_auth_user),
+    auth_user: AuthUser = Depends(get_auth_user),
 ) -> DraftGenerateResponse:
     """신청서 초안 생성 API
 
@@ -391,20 +379,8 @@ async def generate_draft(
     """
     project_id = request.project_id
 
-    # 1. 프로젝트 데이터 조회
-    project = get_project_data_for_draft(project_id)
-    if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
-        )
-
-    # 권한 확인
-    if project.get("user_id") != auth_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="이 프로젝트에 접근할 권한이 없습니다.",
-        )
+    # 1. 프로젝트 조회 + 권한 확인
+    project = get_authorized_project(project_id, auth_user)
 
     canonical = project.get("canonical")
     if not canonical:
@@ -427,9 +403,7 @@ async def generate_draft(
         raise HTTPException(status_code=e.status_code, detail=e.message)
     except Exception:
         correlation_id = str(uuid.uuid4())
-        logger.exception(
-            "Application Drafter 실행 중 오류 [correlation_id=%s]", correlation_id
-        )
+        logger.exception("Application Drafter 실행 중 오류 [correlation_id=%s]", correlation_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"신청서 초안 생성 중 내부 서버 오류가 발생했습니다. (오류 ID: {correlation_id})",
@@ -492,22 +466,11 @@ class DraftCardUpdateResponse(BaseModel):
 async def update_draft_card_endpoint(
     project_id: str,
     request: DraftCardUpdateRequest,
-    auth_user=Depends(get_auth_user),
+    auth_user: AuthUser = Depends(get_auth_user),
 ) -> DraftCardUpdateResponse:
     """신청서 카드 부분 업데이트 API"""
-    # 1. 프로젝트 조회 및 권한 확인
-    project = get_project_data_for_draft(project_id)
-    if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
-        )
-
-    if project.get("user_id") != auth_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="이 프로젝트에 접근할 권한이 없습니다.",
-        )
+    # 1. 프로젝트 조회 + 권한 확인
+    get_authorized_project(project_id, auth_user)
 
     # 2. 카드 업데이트
     result = update_draft_card(
@@ -527,4 +490,3 @@ async def update_draft_card_endpoint(
         project_id=project_id,
         card_key=request.card_key,
     )
-
