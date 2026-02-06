@@ -98,11 +98,15 @@ export const agentsApi = {
     getTrackResult: async (projectId: string): Promise<TrackRecommendResponse | null> => {
         const token = await getAuthToken()
 
+        if (!token) {
+            throw new Error("로그인이 필요합니다.")
+        }
+
         const response = await fetch(`${API_BASE}/api/v1/agents/track/${projectId}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                Authorization: `Bearer ${token}`,
             },
         })
 
@@ -128,11 +132,15 @@ export const agentsApi = {
     recommendTrack: async (request: TrackRecommendRequest): Promise<TrackRecommendResponse> => {
         const token = await getAuthToken()
 
+        if (!token) {
+            throw new Error("로그인이 필요합니다.")
+        }
+
         const response = await fetch(`${API_BASE}/api/v1/agents/track`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(request),
         })
@@ -153,11 +161,15 @@ export const agentsApi = {
     generateDraft: async (request: DraftGenerateRequest): Promise<DraftGenerateResponse> => {
         const token = await getAuthToken()
 
+        if (!token) {
+            throw new Error("로그인이 필요합니다.")
+        }
+
         const response = await fetch(`${API_BASE}/api/v1/agents/draft`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(request),
         })

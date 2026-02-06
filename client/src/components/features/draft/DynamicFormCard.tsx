@@ -449,11 +449,6 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                         {section.label}
                         {hasRequiredFieldWithoutLabel && <span className="text-destructive ml-1">*</span>}
                     </h4>
-                    {isCheckboxOnlySection && !hasAnyCheckboxSelected && (
-                        <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
-                            선택 필요
-                        </span>
-                    )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {section.fields.map((field) => {

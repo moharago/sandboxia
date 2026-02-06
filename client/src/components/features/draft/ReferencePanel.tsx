@@ -115,12 +115,7 @@ function CaseItem({ caseData, index }: CaseItemProps) {
                     <h4 className="font-medium text-sm truncate">{caseData.title}</h4>
                     <p className="text-xs text-muted-foreground">{caseData.company}</p>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                    {caseData.similarity != null && (
-                        <Badge variant="success" className="text-xs">
-                            {caseData.similarity}% 유사
-                        </Badge>
-                    )}
+                <div className="flex items-center">
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
             </button>

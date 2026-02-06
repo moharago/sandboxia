@@ -8,8 +8,17 @@ from langchain_core.prompts import ChatPromptTemplate
 SYSTEM_PROMPT = """당신은 규제 샌드박스 신청 서비스를 구조화하는 전문가입니다.
 HWP 문서에서 파싱된 데이터와 컨설턴트가 입력한 정보를 분석하여
 표준화된 서비스 구조(Canonical Structure)를 생성합니다.
-구조화 결과의 모든 내용은 파싱 데이터와 입력된 정보만을 사용해 작성하며, 
+구조화 결과의 모든 내용은 파싱 데이터와 입력된 정보만을 사용해 작성하며,
 불명확하거나 기재되지 않은 항목은 추정하지 않고 null로 처리한다.
+
+## 트랙별 양식 구분 (매우 중요!)
+
+요청된 트랙에 따라 HWP 문서 양식이 다릅니다:
+- **신속확인(quick_check)**: 별지 5호 양식 사용 - "기술·서비스 세부내용", "법·제도 이슈 사항", "기타 질의 사항" 섹션이 있음
+- **실증특례(demo)**: 별지 1호 양식 사용 - 일반적인 신청서 구조
+- **임시허가(temp_permit)**: 별지 3호 양식 사용 - 임시허가 관련 섹션 포함
+
+**신속확인 트랙인 경우**: section_texts에서 `technologyServiceDetails`, `legalIssues`, `additionalQuestions` 필드를 반드시 채워야 합니다!
 
 ## 규제 샌드박스 판단의 핵심 3요소
 
@@ -70,6 +79,99 @@ E) innovation_points (혁신성/신규성 판단)
         **[시간·비용·접근성·정확도·안전성 등에서의 변화]**를 만든다.”
     - “기존 제도는 [오프라인/대면/전문가 중심/사후 처리] 방식을 전제로 하나,
         본 서비스는 **[비대면/자동화/실시간/플랫폼 기반]**으로 이를 대체·보완한다.”
+
+## section_texts (섹션별 원문 보존) - 매우 중요!
+
+HWP 문서에서 각 섹션의 **원문 텍스트를 그대로** 추출하여 section_texts에 저장합니다.
+이 데이터는 신청서 초안 생성 시 **LLM이 재작성하지 않고 그대로 사용**됩니다.
+
+추출 규칙:
+1. HWP raw_text에서 해당 섹션의 내용을 찾아 **원문 그대로** 저장합니다.
+2. **절대로 요약하거나 축약하지 마세요!** 원본 텍스트 전체를 그대로 복사합니다.
+3. 원본이 여러 문단이면 모든 문단을 포함합니다. 절대 줄이지 마세요.
+4. 해당 섹션이 HWP에 없으면 null로 설정합니다.
+5. 섹션 제목/번호는 제외하고 본문 내용만 저장합니다.
+
+**중요**: 원본 텍스트가 1000자 이상이면 1000자 이상 그대로 저장해야 합니다!
+
+섹션 매핑 (HWP 제목 → section_texts 키):
+- "기술·서비스 세부 내용" / "가. 기술·서비스 세부 내용" → detailedDescription
+- "시장 현황 및 전망" / "나. 기술·서비스 관련 시장 현황 및 전망" → marketStatusAndOutlook
+- "규제 내용" / "가. 규제 내용" → regulationDetails
+- "임시허가의 필요성 및 내용" / "나. 임시허가의 필요성 및 내용" → necessityAndRequest
+- "사업 목표 및 범위" / "가. 사업 목표 및 범위" → objectivesAndScope
+- "사업 내용" / "나. 사업 내용" → businessContent
+- "사업 기간 및 일정 계획" / "다. 사업 기간 및 일정 계획" → schedule
+- "사업 운영 계획" / "4. 사업 운영 계획" → operationPlan
+- "정량적 기대효과" / "가. 정량적 기대효과" → quantitativeEffect
+- "정성적 기대효과" / "나. 정성적 기대효과" → qualitativeEffect
+- "사업 확대·확산 계획" / "6. 사업 확대·확산 계획" → expansionPlan
+- "추진 체계" / "가. 추진 체계" → organizationStructure
+- "추진 예산" / "나. 추진 예산" → budget
+- "안전성 검증 자료" / "1. 안전성 검증 자료" → safetyVerification
+- "이용자 보호 및 대응 계획" / "2. 이용자 보호 및 대응 계획" → userProtectionPlan
+- "임시허가에 따른 위험 및 대응 방안" / "3. 임시허가에 따른 위험 및 대응 방안" → riskAndResponse
+- "이해관계 충돌 가능성 및 해소 방안" / "4. 기존 시장 및 이용자 등의 이해관계 충돌 가능성 및 해소 방안" → stakeholderConflictResolution
+- "해당여부에 대한 근거" / "2. 해당여부에 대한 근거" → justification
+- "주요 사업" → mainBusiness
+- "주요 인허가 사항" → licensesAndPermits
+- "보유기술 및 특허" → technologiesAndPatents
+
+**⚠️ 신속확인(quick_check) 트랙 - section_texts 추출 필수!**
+
+신속확인 트랙의 raw_text에서 다음 3개 섹션의 **본문 내용**을 반드시 추출하세요:
+
+**추출 방법:**
+1. 섹션 제목(예: "3. 기타 질의 사항")을 찾습니다
+2. 그 다음 줄부터 다음 섹션 제목 전까지의 **모든 텍스트**를 추출합니다
+3. "작성 방법" 안내문은 제외하고 실제 내용만 추출합니다
+
+**섹션 매핑 (제목 → 키):**
+- "1. 기술‧서비스 세부내용" 또는 "1. 기술·서비스 세부내용" → technologyServiceDetails
+- "2. 법·제도 이슈 사항" 또는 "2. 법‧제도 이슈 사항" → legalIssues
+- "3. 기타 질의 사항" → additionalQuestions
+
+**예시 - raw_text:**
+```
+3. 기타 질의 사항
+본 서비스는 소비자 맞춤형 화장품 제작 서비스로서...협의가 필요한 사항이 있는지 여부에 대해 확인을 요청하고자 합니다.
+```
+
+**예시 - 추출 결과:**
+```json
+"additionalQuestions": "본 서비스는 소비자 맞춤형 화장품 제작 서비스로서...협의가 필요한 사항이 있는지 여부에 대해 확인을 요청하고자 합니다."
+```
+
+**중요**:
+- 3개 섹션 모두 null이면 안 됩니다! raw_text에 내용이 있으면 반드시 추출하세요.
+- technologyServiceDetails 내용은 detailedDescription에도 동일하게 저장
+
+## 날짜 필드 추출 (매우 중요!)
+
+HWP 문서에서 날짜 필드를 정확히 추출해야 합니다:
+
+1. **신청일자 (applicationDate)**: HWP의 "신청" 섹션 끝부분에 "XXXX년 X월 X일" 형태로 기재
+   - 예: "2025년 11월 14일" → applicants.applicationDate에 그대로 저장
+   - 주의: 오늘 날짜가 아닌 HWP에 기재된 날짜를 사용
+
+2. **제출일자 (submissionDate)**: HWP의 제출/서명 섹션에 기재된 날짜
+   - 예: "2025. 11. 20." → applicants.submissionDate에 저장
+
+## form_selections (체크박스/라디오 선택값 파싱)
+
+HWP 문서에서 체크박스 선택 상태를 파싱하여 form_selections에 저장합니다.
+
+파싱 규칙:
+1. HWP raw_text에서 체크 표시를 찾습니다: ✓, √, ☑, [V], [v], (V), (v), ■, ● 등
+2. 체크 표시가 해당 항목 앞이나 괄호 안에 있으면 true, 없으면 false
+
+임시허가 신청 사유 (법 제37조):
+- "제37조제1항제1호" 또는 "기준·규격·요건 등이 없는 경우" 앞에 체크 표시 → noApplicableStandards: true
+- "제37조제1항제2호" 또는 "불명확하거나 불합리한 경우" 앞에 체크 표시 → unclearOrUnreasonableStandards: true
+
+예시:
+- "( √ ) 법 제37조제1항제1호" → noApplicableStandards: true
+- "(   ) 법 제37조제1항제2호" → unclearOrUnreasonableStandards: false
 
 ## 데이터 우선순위
 
@@ -153,7 +255,117 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
         "blocking_reason": "막히는 이유",
         "relief_direction": "구제 방향"
       }}
+    ],
+    "governing_agency": "예상 소관 중앙행정기관/지방자치단체 또는 null (신속확인용)",
+    "expected_permit": "예상되는 허가등 또는 null (신속확인용)"
+  }},
+  "financial": {{
+    "yearM2": {{
+      "totalAssets": "총자산 또는 null",
+      "equity": "자기자본 또는 null",
+      "currentLiabilities": "유동부채 또는 null",
+      "fixedLiabilities": "고정부채 또는 null",
+      "currentAssets": "유동자산 또는 null",
+      "netIncome": "당기순이익 또는 null",
+      "totalRevenue": "총매출액 또는 null",
+      "returnOnEquity": "자기자본 이익률 또는 null",
+      "debtRatio": "부채비율 또는 null"
+    }},
+    "yearM1": {{
+      "totalAssets": "총자산 또는 null",
+      "equity": "자기자본 또는 null",
+      "currentLiabilities": "유동부채 또는 null",
+      "fixedLiabilities": "고정부채 또는 null",
+      "currentAssets": "유동자산 또는 null",
+      "netIncome": "당기순이익 또는 null",
+      "totalRevenue": "총매출액 또는 null",
+      "returnOnEquity": "자기자본 이익률 또는 null",
+      "debtRatio": "부채비율 또는 null"
+    }},
+    "average": {{
+      "totalAssets": "총자산 평균 또는 null",
+      "equity": "자기자본 평균 또는 null",
+      "currentLiabilities": "유동부채 평균 또는 null",
+      "fixedLiabilities": "고정부채 평균 또는 null",
+      "currentAssets": "유동자산 평균 또는 null",
+      "netIncome": "당기순이익 평균 또는 null",
+      "totalRevenue": "총매출액 평균 또는 null",
+      "returnOnEquity": "자기자본 이익률 평균 또는 null",
+      "debtRatio": "부채비율 평균 또는 null"
+    }}
+  }},
+  "hr": {{
+    "organizationChart": "조직도 설명 또는 null",
+    "totalEmployees": "소속 직원 수 또는 null",
+    "keyPersonnel": [
+      {{
+        "name": "이름 또는 null",
+        "department": "부서명 또는 null",
+        "position": "직책 또는 null",
+        "responsibilities": "담당업무 또는 null",
+        "qualificationsOrSkills": "주요 자격/보유기술 또는 null",
+        "experienceYears": "해당업무 경력(년) 또는 null"
+      }}
     ]
+  }},
+  "project_plan": {{
+    "projectName": "사업명 또는 null",
+    "startDate": "시작일 (YYYY-MM-DD 또는 YYYY년 M월) 또는 null",
+    "endDate": "종료일 (YYYY-MM-DD 또는 YYYY년 M월) 또는 null",
+    "durationMonths": "기간(개월) 또는 null",
+    "schedule": "사업 일정 및 단계별 계획 또는 null"
+  }},
+  "applicants": {{
+    "organizations": [
+      {{
+        "organizationName": "기관명 또는 null",
+        "organizationType": "유형 또는 null",
+        "responsiblePersonName": "책임자 성명 또는 null",
+        "position": "직위 또는 null",
+        "phoneNumber": "전화 또는 null",
+        "email": "이메일 또는 null"
+      }}
+    ],
+    "submissionDate": "제출일자 (YYYY-MM-DD) 또는 null",
+    "applicationDate": "신청일자 또는 null - HWP의 '신청' 섹션에서 'XXXX년 X월 X일' 형태로 기재된 날짜를 찾아 그대로 저장 (예: '2025년 11월 14일')",
+    "signatures": [
+      {{
+        "organizationName": "기관명 또는 null",
+        "name": "성명 또는 null"
+      }}
+    ]
+  }},
+  "section_texts": {{
+    "detailedDescription": "기술·서비스 세부 내용 원문 또는 null",
+    "marketStatusAndOutlook": "시장 현황 및 전망 원문 또는 null",
+    "regulationDetails": "규제 내용 원문 또는 null",
+    "necessityAndRequest": "임시허가의 필요성 및 내용 원문 또는 null",
+    "objectivesAndScope": "사업 목표 및 범위 원문 또는 null",
+    "businessContent": "사업 내용 원문 또는 null",
+    "schedule": "사업 기간 및 일정 계획 원문 또는 null",
+    "operationPlan": "사업 운영 계획 원문 또는 null",
+    "quantitativeEffect": "정량적 기대효과 원문 또는 null",
+    "qualitativeEffect": "정성적 기대효과 원문 또는 null",
+    "expansionPlan": "사업 확대·확산 계획 원문 또는 null",
+    "organizationStructure": "추진 체계 원문 또는 null",
+    "budget": "추진 예산 원문 또는 null",
+    "safetyVerification": "안전성 검증 자료 원문 또는 null",
+    "userProtectionPlan": "이용자 보호 및 대응 계획 원문 또는 null",
+    "riskAndResponse": "임시허가에 따른 위험 및 대응 방안 원문 또는 null",
+    "stakeholderConflictResolution": "이해관계 충돌 해소 방안 원문 또는 null",
+    "justification": "해당여부에 대한 근거 원문 또는 null",
+    "mainBusiness": "주요 사업 원문 또는 null",
+    "licensesAndPermits": "주요 인허가 사항 원문 또는 null",
+    "technologiesAndPatents": "보유기술 및 특허 원문 또는 null",
+    "technologyServiceDetails": "신속확인용 기술·서비스 세부내용 원문 또는 null",
+    "legalIssues": "신속확인용 법·제도 이슈 사항 원문 또는 null",
+    "additionalQuestions": "신속확인용 기타 질의 사항 원문 또는 null"
+  }},
+  "form_selections": {{
+    "temporaryPermitReason": {{
+      "noApplicableStandards": "HWP에서 '법 제37조제1항제1호' 체크되어 있으면 true, 아니면 false",
+      "unclearOrUnreasonableStandards": "HWP에서 '법 제37조제1항제2호' 체크되어 있으면 true, 아니면 false"
+    }}
   }},
   "metadata": {{
     "source_type": "{requested_track}",
@@ -162,7 +374,13 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
       "company": 0.0~1.0,
       "service": 0.0~1.0,
       "technology": 0.0~1.0,
-      "regulatory": 0.0~1.0
+      "regulatory": 0.0~1.0,
+      "financial": 0.0~1.0,
+      "hr": 0.0~1.0,
+      "project_plan": 0.0~1.0,
+      "applicants": 0.0~1.0,
+      "section_texts": 0.0~1.0,
+      "form_selections": 0.0~1.0
     }},
     "missing_fields": ["누락된 중요 필드 경로 리스트"],
     "consultant_memo": "컨설턴트 메모 또는 null"

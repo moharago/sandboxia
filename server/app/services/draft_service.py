@@ -57,6 +57,8 @@ def save_draft_result(
     Returns:
         업데이트된 projects 레코드 또는 None
     """
+    # LLM 출력이 이미 {form_id: {data: {...}, formId: ...}} 구조이므로
+    # 추가 래핑 없이 그대로 저장
     draft_data = {
         "form_values": application_draft,
         "model_name": model_name,

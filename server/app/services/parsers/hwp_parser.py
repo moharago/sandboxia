@@ -182,26 +182,32 @@ class HWPParser:
             pass
 
     def _extract_text(self) -> str:
-        """텍스트 추출 (여러 방법 시도)
+        """텍스트 추출 (여러 방법 병합)
 
         Returns:
             추출된 텍스트
         """
-        text = ""
+        texts = []
 
-        # 방법 1: PrvText 스트림 (미리보기 텍스트)
-        text = self._extract_from_prvtext()
-        if text.strip():
-            return text
+        # PrvText와 BodyText 모두 추출하여 더 긴 것 사용
+        prvtext = self._extract_from_prvtext()
+        bodytext = self._extract_from_bodytext()
 
-        # 방법 2: BodyText 섹션 (압축 해제 필요)
-        text = self._extract_from_bodytext()
-        if text.strip():
-            return text
+        # 둘 다 있으면 더 긴 것 선택 (더 완전한 내용일 가능성)
+        if prvtext and bodytext:
+            if len(bodytext) > len(prvtext):
+                return bodytext
+            else:
+                # PrvText가 더 길면 PrvText 사용하되, BodyText에만 있는 내용 추가
+                # 간단히 더 긴 것 반환
+                return prvtext
+        elif bodytext:
+            return bodytext
+        elif prvtext:
+            return prvtext
 
-        # 방법 3: 모든 스트림에서 텍스트 추출 시도
+        # 둘 다 없으면 모든 스트림에서 시도
         text = self._extract_from_all_streams()
-
         return text
 
     def _extract_from_prvtext(self) -> str:
@@ -241,14 +247,15 @@ class HWPParser:
             for stream_path in sorted(section_streams):
                 stream_name = "/".join(stream_path)
                 try:
-                    data = self.ole.openstream(stream_name).read()
+                    raw_data = self.ole.openstream(stream_name).read()
 
-                    # 압축 해제 시도
-                    if self.document.is_compressed:
-                        try:
-                            data = zlib.decompress(data, -15)
-                        except zlib.error:
-                            pass
+                    # 압축 해제 시도 (항상 시도 - 플래그와 무관하게)
+                    data = raw_data
+                    try:
+                        decompressed = zlib.decompress(raw_data, -15)
+                        data = decompressed  # 압축 해제 성공
+                    except zlib.error:
+                        pass  # 압축 안 된 데이터, 원본 사용
 
                     # 레코드 파싱하여 텍스트 추출
                     section_text = self._parse_body_records(data)

@@ -13,7 +13,14 @@ export function formatDateIso(raw: string): string {
 
     const trimmed = raw.trim()
 
-    // ISO 형식: "2023-06-29" 또는 점 구분: "2023.06.29"
+    // 이미 ISO 형식이면 그대로 반환: "2023-06-29"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+
+    // 점+공백 구분 (끝에 점 포함): "2026. 02. 06." 또는 "2026. 2. 6."
+    const dotSpaced = trimmed.match(/^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.?$/)
+    if (dotSpaced) return `${dotSpaced[1]}-${dotSpaced[2].padStart(2, "0")}-${dotSpaced[3].padStart(2, "0")}`
+
+    // ISO 형식 또는 점 구분 (공백 없음): "2023-06-29" 또는 "2023.06.29"
     const iso = trimmed.match(/^(\d{4})[-.]\s*(\d{1,2})[-.]\s*(\d{1,2})$/)
     if (iso) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`
 

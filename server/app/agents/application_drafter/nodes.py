@@ -9,6 +9,7 @@
 import json
 import logging
 import re
+from datetime import date
 
 from langchain_openai import ChatOpenAI
 
@@ -163,6 +164,53 @@ def get_service_info(canonical: dict) -> str:
                     parts.append(f"규제 이슈: {issue['summary']}")
 
     return "\n".join(parts) if parts else "서비스 정보 없음"
+
+
+def get_section_texts_info(canonical: dict) -> str:
+    """canonical에서 section_texts 정보를 텍스트로 추출
+
+    HWP에서 파싱된 섹션별 원문을 LLM에 전달하여
+    내용을 보존하면서 다듬어서 작성하도록 합니다.
+    """
+    section_texts = canonical.get("section_texts", {})
+    if not section_texts:
+        return "섹션별 원문 없음"
+
+    # 섹션 키 → 한글 라벨 매핑
+    SECTION_LABELS = {
+        "detailedDescription": "기술·서비스 세부 내용",
+        "technologyServiceDetails": "기술·서비스 세부 내용 (신속확인용)",
+        "marketStatusAndOutlook": "시장 현황 및 전망",
+        "regulationDetails": "규제 내용",
+        "legalIssues": "법·제도 이슈 사항 (신속확인용)",
+        "necessityAndRequest": "임시허가/규제특례 필요성 및 내용",
+        "objectivesAndScope": "사업/실증 목표 및 범위",
+        "businessContent": "사업 내용",
+        "schedule": "사업/실증 기간 및 일정 계획",
+        "operationPlan": "사업/실증 운영 계획",
+        "quantitativeEffect": "정량적 기대효과",
+        "qualitativeEffect": "정성적 기대효과",
+        "expansionPlan": "사업 확대·확산 계획",
+        "organizationStructure": "추진 체계",
+        "budget": "추진 예산",
+        "safetyVerification": "안전성 검증 자료",
+        "userProtectionPlan": "이용자 보호 및 대응 계획",
+        "riskAndResponse": "위험 및 대응 방안",
+        "stakeholderConflictResolution": "이해관계 충돌 해소 방안",
+        "justification": "해당여부에 대한 근거",
+        "additionalQuestions": "기타 질의 사항 (신속확인용)",
+        "mainBusiness": "주요 사업",
+        "licensesAndPermits": "주요 인허가 사항",
+        "technologiesAndPatents": "보유기술 및 특허",
+    }
+
+    parts = []
+    for key, raw_text in section_texts.items():
+        if raw_text:  # null이 아닌 경우만
+            label = SECTION_LABELS.get(key, key)
+            parts.append(f"### {label}\n{raw_text}")
+
+    return "\n\n".join(parts) if parts else "섹션별 원문 없음"
 
 
 def get_service_description(canonical: dict) -> str:
@@ -390,12 +438,14 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     domain_laws = state.get("domain_laws", [])
 
     service_info = get_service_info(canonical)
+    section_texts_info = get_section_texts_info(canonical)
 
     # form_schema를 보기 좋은 JSON으로 직렬화
     form_schema_json = json.dumps(form_schema, ensure_ascii=False, indent=2)
 
     prompt = DRAFT_USER_PROMPT.format(
         service_info=service_info,
+        section_texts=section_texts_info,
         track=track_korean,
         application_requirements=format_rag_results(application_requirements),
         review_criteria=format_rag_results(review_criteria),
@@ -463,7 +513,487 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
         logger.error("LLM 호출 실패: %s", e)
         application_draft = form_schema
 
+    # ==============================
+    # 재무현황/인력현황 pass-through
+    # canonical에서 추출한 데이터를 그대로 복사 (AI 생성 아님)
+    # ==============================
+    application_draft = _merge_passthrough_data(application_draft, canonical)
+
     return {
         "application_draft": application_draft,
         "model_name": model_name,
     }
+
+
+def _get_form_data(draft: dict, form_id: str) -> dict:
+    """폼의 data 섹션을 가져오거나 생성합니다.
+
+    폼 스키마 구조: {form_id: {formId: ..., data: {...}}}
+    """
+    if form_id not in draft:
+        return {}
+    if "data" not in draft[form_id]:
+        draft[form_id]["data"] = {}
+    return draft[form_id]["data"]
+
+
+def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
+    """canonical의 재무현황/인력현황/사업계획/신청기관 데이터를 draft에 병합
+
+    AI가 생성하지 않는 숫자/사실 데이터는 canonical에서 그대로 복사합니다.
+    데이터가 없으면 (null) 해당 필드는 그대로 유지됩니다.
+
+    주의: LLM 출력 구조는 {form_id: {formId: ..., data: {...}}}이므로
+    모든 필드는 data 섹션 안에 추가해야 합니다.
+    """
+    # DEBUG: canonical 데이터 확인
+    logger.info("[DEBUG] canonical keys: %s", list(canonical.keys()))
+    logger.info("[DEBUG] canonical.project_plan: %s", canonical.get("project_plan"))
+    logger.info("[DEBUG] canonical.applicants: %s", canonical.get("applicants"))
+
+    # ==============================
+    # 회사 정보 (company) pass-through - 개인정보 원본값 사용
+    # LLM 출력은 마스킹된 값이므로, canonical 원본으로 덮어씀
+    # ==============================
+    company = canonical.get("company", {})
+    if company:
+        logger.info("[DEBUG] Processing company pass-through: %s", company)
+
+        # canonical.company → form.applicant 매핑
+        applicant_data = {}
+        if company.get("company_name"):
+            applicant_data["companyName"] = company["company_name"]
+        if company.get("representative"):
+            applicant_data["representativeName"] = company["representative"]
+        if company.get("business_number"):
+            applicant_data["businessRegistrationNumber"] = company["business_number"]
+        if company.get("address"):
+            applicant_data["address"] = company["address"]
+        if company.get("contact"):
+            applicant_data["phoneNumber"] = company["contact"]
+        if company.get("email"):
+            applicant_data["email"] = company["email"]
+
+        if applicant_data:
+            # 모든 폼의 applicant 섹션에 원본 데이터 적용
+            for form_id in ["temporary-1", "demonstration-1", "fastcheck-1", "counseling-1"]:
+                form_data = _get_form_data(draft, form_id)
+                if form_data is not None:
+                    if "applicant" not in form_data:
+                        form_data["applicant"] = {}
+                    form_data["applicant"].update(applicant_data)
+                    logger.info("[DEBUG] company pass-through applied to %s", form_id)
+
+        # 사업계획서의 organizationProfile.generalInfo에도 원본 데이터 적용
+        # (LLM이 마스킹된 값으로 생성하므로 원본으로 덮어씀)
+        for form_id in ["temporary-2", "demonstration-2"]:
+            form_data = _get_form_data(draft, form_id)
+            if form_data is not None:
+                if "organizationProfile" not in form_data:
+                    form_data["organizationProfile"] = {}
+                org_profile = form_data["organizationProfile"]
+
+                # organizationName = company_name
+                if company.get("company_name"):
+                    org_profile["organizationName"] = company["company_name"]
+
+                # generalInfo 섹션
+                if "generalInfo" not in org_profile:
+                    org_profile["generalInfo"] = {}
+                general_info = org_profile["generalInfo"]
+
+                if company.get("representative"):
+                    general_info["representativeName"] = company["representative"]
+                if company.get("address"):
+                    general_info["address"] = company["address"]
+
+                logger.info("[DEBUG] organizationProfile pass-through applied to %s", form_id)
+
+    # 재무현황 병합 (canonical: year별 구조 → form: row별 구조로 변환)
+    financial = canonical.get("financial", {})
+    if financial and any(financial.get(year) for year in ["yearM2", "yearM1", "average"]):
+        financial_status = {}
+        row_keys = [
+            "totalAssets", "equity", "currentLiabilities", "fixedLiabilities",
+            "currentAssets", "netIncome", "totalRevenue", "returnOnEquity", "debtRatio"
+        ]
+        for row_key in row_keys:
+            row_data = {}
+            for year in ["yearM2", "yearM1", "average"]:
+                year_data = financial.get(year, {})
+                if year_data and year_data.get(row_key):
+                    row_data[year] = year_data[row_key]
+            if row_data:
+                financial_status[row_key] = row_data
+
+        if financial_status:
+            for form_id in ["temporary-2", "demonstration-2"]:
+                form_data = _get_form_data(draft, form_id)
+                if form_data is not None:
+                    form_data["financialStatus"] = financial_status
+
+    # 인력현황 병합
+    hr = canonical.get("hr", {})
+    if hr:
+        hr_data = {}
+        if hr.get("organizationChart"):
+            hr_data["organizationChart"] = hr["organizationChart"]
+        if hr.get("totalEmployees"):
+            hr_data["totalEmployees"] = hr["totalEmployees"]
+
+        key_personnel = hr.get("keyPersonnel", [])
+        if key_personnel and isinstance(key_personnel, list):
+            valid_personnel = [
+                p for p in key_personnel
+                if isinstance(p, dict) and p.get("name")
+            ]
+            if valid_personnel:
+                hr_data["keyPersonnel"] = valid_personnel
+
+        if hr_data:
+            for form_id in ["temporary-2", "demonstration-2"]:
+                form_data = _get_form_data(draft, form_id)
+                if form_data is not None:
+                    if "humanResources" not in form_data:
+                        form_data["humanResources"] = {}
+                    form_data["humanResources"].update(
+                        {k: v for k, v in hr_data.items() if k != "keyPersonnel"}
+                    )
+                    if "keyPersonnel" in hr_data:
+                        form_data["keyPersonnel"] = hr_data["keyPersonnel"]
+
+    # 사업 계획 (project_plan) 병합
+    project_plan = canonical.get("project_plan", {})
+    if project_plan:
+        logger.info("[DEBUG] Processing project_plan: %s", project_plan)
+
+        for form_id in ["temporary-2", "demonstration-2"]:
+            form_data = _get_form_data(draft, form_id)
+            if not form_data:
+                continue
+
+            if "projectInfo" not in form_data:
+                form_data["projectInfo"] = {}
+
+            if project_plan.get("projectName"):
+                form_data["projectInfo"]["projectName"] = project_plan["projectName"]
+
+            if project_plan.get("startDate") or project_plan.get("endDate") or project_plan.get("durationMonths"):
+                if "period" not in form_data["projectInfo"]:
+                    form_data["projectInfo"]["period"] = {}
+
+                if project_plan.get("startDate"):
+                    form_data["projectInfo"]["period"]["startDate"] = project_plan["startDate"]
+                if project_plan.get("endDate"):
+                    form_data["projectInfo"]["period"]["endDate"] = project_plan["endDate"]
+                if project_plan.get("durationMonths"):
+                    form_data["projectInfo"]["period"]["durationMonths"] = project_plan["durationMonths"]
+
+            logger.info("[DEBUG] projectInfo set for %s: %s", form_id, form_data["projectInfo"])
+
+    # 신청기관 (applicants) 병합
+    applicants = canonical.get("applicants", {})
+    if applicants:
+        logger.info("[DEBUG] Processing applicants: %s", applicants)
+
+        organizations = applicants.get("organizations", [])
+        if organizations and isinstance(organizations, list):
+            valid_orgs = [
+                {
+                    "organizationName": org.get("organizationName"),
+                    "organizationType": org.get("organizationType"),
+                    "responsiblePersonName": org.get("responsiblePersonName"),
+                    "position": org.get("position"),
+                    "phoneNumber": org.get("phoneNumber"),
+                    "email": org.get("email"),
+                }
+                for org in organizations
+                if isinstance(org, dict) and org.get("organizationName")
+            ]
+            if valid_orgs:
+                for form_id in ["temporary-2", "demonstration-2"]:
+                    form_data = _get_form_data(draft, form_id)
+                    if form_data:
+                        form_data["applicantOrganizations"] = valid_orgs
+
+        # 제출일자 - HWP에서 파싱된 값 사용, 없으면 오늘 날짜
+        submission_date = applicants.get("submissionDate")
+        if not submission_date:
+            today = date.today()
+            submission_date = today.strftime("%Y. %m. %d.")
+            logger.info("[DEBUG] submissionDate not found, using today: %s", submission_date)
+
+        for form_id in ["temporary-2", "demonstration-2"]:
+            form_data = _get_form_data(draft, form_id)
+            if form_data:
+                if "submissionDate" not in form_data:
+                    form_data["submissionDate"] = {}
+                form_data["submissionDate"]["submissionDate"] = submission_date
+
+        # 서명 목록
+        signatures = applicants.get("signatures", [])
+        if signatures and isinstance(signatures, list):
+            valid_sigs = [
+                {
+                    "organizationName": sig.get("organizationName"),
+                    "name": sig.get("name"),
+                }
+                for sig in signatures
+                if isinstance(sig, dict) and sig.get("name")
+            ]
+            if valid_sigs:
+                for form_id in ["temporary-2", "demonstration-2"]:
+                    form_data = _get_form_data(draft, form_id)
+                    if form_data:
+                        form_data["submission"] = valid_sigs
+
+    # 신청일자 - HWP에서 파싱된 날짜 사용, 없으면 오늘 날짜
+    applicants = canonical.get("applicants", {})
+    application_date = applicants.get("applicationDate") if applicants else None
+    if not application_date:
+        today = date.today()
+        application_date = today.strftime("%Y. %m. %d.")
+        logger.info("[DEBUG] applicationDate not found, using today: %s", application_date)
+    else:
+        logger.info("[DEBUG] applicationDate from HWP: %s", application_date)
+
+    for form_id in ["temporary-1", "demonstration-1", "fastcheck-1"]:
+        form_data = _get_form_data(draft, form_id)
+        if form_data:
+            if "application" not in form_data:
+                form_data["application"] = {}
+            form_data["application"]["applicationDate"] = application_date
+
+    # 체크박스 선택값 (form_selections) 병합
+    form_selections = canonical.get("form_selections", {})
+    if form_selections:
+        logger.info("[DEBUG] Processing form_selections: %s", form_selections)
+
+        temp_permit_reason = form_selections.get("temporaryPermitReason", {})
+        if temp_permit_reason:
+            form_data = _get_form_data(draft, "temporary-3")
+            if form_data:
+                if "eligibility" not in form_data:
+                    form_data["eligibility"] = {}
+
+                if temp_permit_reason.get("noApplicableStandards") is True:
+                    form_data["eligibility"]["noApplicableStandards"] = True
+                    logger.info("[DEBUG] form_selections: noApplicableStandards = True")
+
+                if temp_permit_reason.get("unclearOrUnreasonableStandards") is True:
+                    form_data["eligibility"]["unclearOrUnreasonableStandards"] = True
+                    logger.info("[DEBUG] form_selections: unclearOrUnreasonableStandards = True")
+
+        # 실증특례 체크박스 처리 (demonstrationReason)
+        demo_reason = form_selections.get("demonstrationReason", {})
+        if demo_reason:
+            # demonstration-1: regulatoryExemptionReason
+            form_data_1 = _get_form_data(draft, "demonstration-1")
+            if form_data_1:
+                if "regulatoryExemptionReason" not in form_data_1:
+                    form_data_1["regulatoryExemptionReason"] = {}
+
+                if demo_reason.get("impossibleToApplyPermit") is True:
+                    form_data_1["regulatoryExemptionReason"]["reason1_impossibleToApplyPermit"] = True
+                    logger.info("[DEBUG] form_selections: demo reason1_impossibleToApplyPermit = True")
+
+                if demo_reason.get("unclearOrUnreasonableCriteria") is True:
+                    form_data_1["regulatoryExemptionReason"]["reason2_unclearOrUnreasonableCriteria"] = True
+                    logger.info("[DEBUG] form_selections: demo reason2_unclearOrUnreasonableCriteria = True")
+
+            # demonstration-3: eligibility (소명서)
+            form_data_3 = _get_form_data(draft, "demonstration-3")
+            if form_data_3:
+                if "eligibility" not in form_data_3:
+                    form_data_3["eligibility"] = {}
+
+                if demo_reason.get("impossibleToApplyPermit") is True:
+                    form_data_3["eligibility"]["impossibleToApplyPermitByOtherLaw"] = True
+                    logger.info("[DEBUG] form_selections: demo eligibility impossibleToApplyPermitByOtherLaw = True")
+
+                if demo_reason.get("unclearOrUnreasonableCriteria") is True:
+                    form_data_3["eligibility"]["unclearOrUnreasonableCriteria"] = True
+                    logger.info("[DEBUG] form_selections: demo eligibility unclearOrUnreasonableCriteria = True")
+
+    # 신속확인(fastcheck) section_texts pass-through
+    section_texts = canonical.get("section_texts", {})
+    if section_texts:
+        logger.info("[DEBUG] Processing section_texts for fastcheck: %s", list(section_texts.keys()))
+
+        # fastcheck-2 기술·서비스 세부내용
+        detailed_desc = section_texts.get("detailedDescription") or section_texts.get("technologyServiceDetails")
+        if detailed_desc:
+            form_data = _get_form_data(draft, "fastcheck-2")
+            if form_data:
+                if "technologyServiceDetails" not in form_data:
+                    form_data["technologyServiceDetails"] = {}
+                form_data["technologyServiceDetails"]["technologyServiceDetails"] = detailed_desc
+                logger.info("[DEBUG] section_texts: technologyServiceDetails applied to fastcheck-2")
+
+        # fastcheck-2 법·제도 이슈 사항
+        legal_issues = section_texts.get("legalIssues") or section_texts.get("regulationDetails")
+        if legal_issues:
+            form_data = _get_form_data(draft, "fastcheck-2")
+            if form_data:
+                if "legalIssues" not in form_data:
+                    form_data["legalIssues"] = {}
+                form_data["legalIssues"]["legalIssues"] = legal_issues
+                logger.info("[DEBUG] section_texts: legalIssues applied to fastcheck-2")
+
+        # fastcheck-2 기타 질의 사항
+        additional_q = section_texts.get("additionalQuestions")
+        if additional_q:
+            form_data = _get_form_data(draft, "fastcheck-2")
+            if form_data:
+                if "additionalQuestions" not in form_data:
+                    form_data["additionalQuestions"] = {}
+                form_data["additionalQuestions"]["additionalQuestions"] = additional_q
+                logger.info("[DEBUG] section_texts: additionalQuestions applied to fastcheck-2")
+
+    # 신속확인 authority 필드 (regulatory에서 추출)
+    regulatory = canonical.get("regulatory", {})
+    if regulatory:
+        # 소관 부처 정보가 있으면 fastcheck-1.authority에 적용
+        governing_agency = regulatory.get("governing_agency") or regulatory.get("governingAgency")
+        permit_info = regulatory.get("expected_permit") or regulatory.get("expectedPermit")
+
+        if governing_agency or permit_info:
+            form_data = _get_form_data(draft, "fastcheck-1")
+            if form_data:
+                if "authority" not in form_data:
+                    form_data["authority"] = {}
+                if governing_agency:
+                    form_data["authority"]["expectedGoverningAgency"] = governing_agency
+                if permit_info:
+                    form_data["authority"]["expectedPermitOrApproval"] = permit_info
+                logger.info("[DEBUG] regulatory: authority applied to fastcheck-1")
+
+    return draft
+
+
+# NOTE: _merge_section_texts는 더 이상 사용하지 않음
+# section_texts는 LLM 프롬프트로 전달하여 다듬어서 작성하도록 함
+def _merge_section_texts(draft: dict, section_texts: dict) -> dict:
+    """canonical.section_texts의 원문을 draft에 병합
+
+    HWP에서 추출한 섹션 원문이 있으면 LLM 생성 결과 대신 원문을 사용합니다.
+    원문이 없으면 (null) LLM이 생성한 내용을 그대로 유지합니다.
+    """
+    # section_texts 키 → draft 폼/섹션/필드 매핑
+    # 형식: [(form_id, section_key, field_key), ...] - 여러 폼에 같은 내용이 들어갈 수 있음
+    SECTION_MAPPING = {
+        # 기술·서비스 내용
+        "detailedDescription": [
+            ("temporary-2", "technologyService", "detailedDescription"),
+            ("demonstration-2", "technologyService", "detailedDescription"),
+        ],
+        "marketStatusAndOutlook": [
+            ("temporary-2", "technologyService", "marketStatusAndOutlook"),
+            ("demonstration-2", "technologyService", "marketStatusAndOutlook"),
+        ],
+        # 규제 내용
+        "regulationDetails": [
+            ("temporary-2", "temporaryPermitRequest", "regulationDetails"),
+            ("demonstration-2", "regulatoryExemption", "regulationDetails"),
+        ],
+        "necessityAndRequest": [
+            ("temporary-2", "temporaryPermitRequest", "necessityAndRequest"),
+            ("demonstration-2", "regulatoryExemption", "necessityAndRequest"),
+        ],
+        # 사업/실증 계획
+        "objectivesAndScope": [
+            ("temporary-2", "businessPlan", "objectivesAndScope"),
+            ("demonstration-2", "testPlan", "objectivesAndScope"),
+        ],
+        "businessContent": [
+            ("temporary-2", "businessPlan", "businessContent"),
+            ("demonstration-2", "testPlan", "executionMethod"),  # 실증은 단계별 추진 방법
+        ],
+        "schedule": [
+            ("temporary-2", "businessPlan", "schedule"),
+            ("demonstration-2", "testPlan", "schedule"),
+        ],
+        # 운영 계획
+        "operationPlan": [
+            ("temporary-2", "operationPlan", "operationPlan"),
+            ("demonstration-2", "operationPlan", "operationPlan"),
+        ],
+        # 기대효과
+        "quantitativeEffect": [
+            ("temporary-2", "expectedEffects", "quantitative"),
+            ("demonstration-2", "expectedEffects", "quantitative"),
+        ],
+        "qualitativeEffect": [
+            ("temporary-2", "expectedEffects", "qualitative"),
+            ("demonstration-2", "expectedEffects", "qualitative"),
+        ],
+        # 확산/확대 계획
+        "expansionPlan": [
+            ("temporary-2", "expansionPlan", "expansionPlan"),
+            ("demonstration-2", "postTestPlan", "expansionPlan"),
+        ],
+        # 추진 체계/예산
+        "organizationStructure": [
+            ("temporary-2", "organizationAndBudget", "organizationStructure"),
+            ("demonstration-2", "organizationAndBudget", "organizationStructure"),
+        ],
+        "budget": [
+            ("temporary-2", "organizationAndBudget", "budget"),
+            ("demonstration-2", "organizationAndBudget", "budget"),
+        ],
+        # 기관 현황 (붙임)
+        "mainBusiness": [
+            ("temporary-2", "organizationProfile", "mainBusiness"),
+            ("demonstration-2", "organizationProfile", "mainBusiness"),
+        ],
+        "licensesAndPermits": [
+            ("temporary-2", "organizationProfile", "licensesAndPermits"),
+            ("demonstration-2", "organizationProfile", "licensesAndPermits"),
+        ],
+        "technologiesAndPatents": [
+            ("temporary-2", "organizationProfile", "technologiesAndPatents"),
+            ("demonstration-2", "organizationProfile", "technologiesAndPatents"),
+        ],
+        # 안전성 검증 자료 (temporary-4 / demonstration-4)
+        "safetyVerification": [
+            ("temporary-4", "safetyVerification", "safetyVerification"),
+            ("demonstration-4", "safetyVerification", "safetyVerification"),
+        ],
+        "userProtectionPlan": [
+            ("temporary-4", "userProtectionPlan", "userProtectionPlan"),
+            ("demonstration-4", "userProtectionPlan", "userProtectionPlan"),
+        ],
+        "riskAndResponse": [
+            ("temporary-4", "riskAndResponse", "riskAndResponse"),
+            ("demonstration-4", "riskAndResponse", "riskAndResponse"),
+        ],
+        "stakeholderConflictResolution": [
+            ("temporary-4", "stakeholderConflictResolution", "stakeholderConflictResolution"),
+            ("demonstration-4", "stakeholderConflictResolution", "stakeholderConflictResolution"),
+        ],
+        # 소명서 (temporary-3 / demonstration-3)
+        "justification": [
+            ("temporary-3", "justification", "justification"),
+            ("demonstration-3", "justification", "justification"),
+        ],
+    }
+
+    for section_key, raw_text in section_texts.items():
+        if not raw_text:  # null이면 건너뜀 (LLM 생성 유지)
+            continue
+
+        mappings = SECTION_MAPPING.get(section_key)
+        if not mappings:
+            logger.warning("Unknown section_texts key: %s", section_key)
+            continue
+
+        # 여러 폼에 같은 내용 적용
+        for form_id, section_name, field_name in mappings:
+            # draft에 해당 폼이 있으면 원문으로 덮어쓰기
+            if form_id in draft:
+                if section_name not in draft[form_id]:
+                    draft[form_id][section_name] = {}
+                draft[form_id][section_name][field_name] = raw_text
+                logger.info("[DEBUG] section_texts applied: %s.%s.%s", form_id, section_name, field_name)
+
+    return draft
