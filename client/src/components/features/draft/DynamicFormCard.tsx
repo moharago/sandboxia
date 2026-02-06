@@ -60,9 +60,10 @@ interface DynamicFormCardProps {
     values: Record<string, string>
     onValueChange: (key: string, value: string) => void
     onSave: () => void
+    isSaving?: boolean
 }
 
-export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValueChange, onSave }: DynamicFormCardProps) {
+export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValueChange, onSave, isSaving }: DynamicFormCardProps) {
     const [isOpen, setIsOpen] = useState(true)
     const [listRowCounts, setListRowCounts] = useState<Record<string, number>>({})
 
@@ -508,13 +509,14 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                             variant="outline"
                             size="sm"
                             className="gap-2"
+                            disabled={isSaving}
                             onClick={(e) => {
                                 e.stopPropagation()
                                 onSave()
                             }}
                         >
                             <Save className="h-4 w-4" />
-                            임시저장
+                            {isSaving ? "저장 중..." : "저장"}
                         </Button>
                     </div>
                 </CardContent>

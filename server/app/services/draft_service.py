@@ -82,6 +82,74 @@ def save_draft_result(
     return result.data[0]
 
 
+def update_draft_card(
+    project_id: str,
+    card_key: str,
+    card_data: dict,
+) -> dict | None:
+    """특정 카드만 부분 업데이트 (JSON 병합)
+
+    기존 application_draft.form_values에서 해당 카드만 업데이트하고
+    나머지 카드는 그대로 유지합니다.
+
+    Args:
+        project_id: 프로젝트 UUID
+        card_key: 업데이트할 카드 키 (예: "fastcheck_application")
+        card_data: 카드 데이터 (flat된 필드-값 쌍)
+
+    Returns:
+        업데이트된 projects 레코드 또는 None
+    """
+    try:
+        # 1. 기존 draft 데이터 조회
+        result = supabase.table("projects") \
+            .select("application_draft") \
+            .eq("id", project_id) \
+            .maybe_single() \
+            .execute()
+
+        if not result.data:
+            logger.warning("프로젝트를 찾을 수 없음 (project_id=%s)", project_id)
+            return None
+
+        # 2. 기존 데이터에서 form_values 추출 또는 초기화
+        existing_draft = result.data.get("application_draft") or {}
+        existing_form_values = existing_draft.get("form_values") or {}
+
+        # 3. 해당 카드만 업데이트 (병합)
+        updated_form_values = {
+            **existing_form_values,
+            card_key: {"data": card_data},
+        }
+
+        # 4. 전체 draft 구조 업데이트
+        updated_draft = {
+            **existing_draft,
+            "form_values": updated_form_values,
+            "updated_at": datetime.now().isoformat(),
+        }
+
+        # 5. DB 저장
+        update_result = supabase.table("projects") \
+            .update({
+                "application_draft": updated_draft,
+                "updated_at": datetime.now().isoformat(),
+            }) \
+            .eq("id", project_id) \
+            .execute()
+
+        if not update_result.data or len(update_result.data) == 0:
+            logger.warning("Draft 카드 업데이트 후 데이터 없음 (project_id=%s)", project_id)
+            return None
+
+        logger.info("Draft 카드 업데이트 완료: project=%s, card=%s", project_id, card_key)
+        return update_result.data[0]
+
+    except Exception as e:
+        logger.error("Draft 카드 업데이트 실패 (project_id=%s, card=%s): %s", project_id, card_key, e)
+        return None
+
+
 async def run_draft(
     project_id: str,
     canonical: dict,

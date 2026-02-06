@@ -45,7 +45,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // track → formType 변환 (런타임 타입 검증)
     const formType: FormType | null = isTrack(project?.track)
-        ? (TRACK_TO_FORM_ID[project.track] as FormType)
+        ? TRACK_TO_FORM_ID[project.track]
         : null
 
     // application_draft.form_values를 그대로 initialValues로 사용
@@ -151,7 +151,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
                         {/* 동적 폼 필드 카드 */}
                         {formType ? (
-                            <FormSectionList formType={formType} initialValues={initialValues} />
+                            <FormSectionList formType={formType} initialValues={initialValues} projectId={id} />
                         ) : (
                             <div className="text-center py-8 text-muted-foreground">폼 타입을 확인할 수 없습니다.</div>
                         )}
@@ -169,7 +169,13 @@ export default function DraftPage({ params }: DraftPageProps) {
                                             AI 재생성
                                         </Button>
                                     )}
-                                    <Button variant="outline" onClick={() => setIsDownloadModalOpen(true)} className="gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setIsDownloadModalOpen(true)}
+                                        className="gap-2"
+                                        disabled={!formType}
+                                        title={!formType ? "트랙을 먼저 선택해주세요" : undefined}
+                                    >
                                         <Download className="h-4 w-4" />
                                         다운로드
                                     </Button>

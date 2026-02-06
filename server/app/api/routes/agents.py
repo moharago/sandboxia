@@ -38,6 +38,7 @@ from app.services.draft_service import (
     get_project_data_for_draft,
     run_draft,
     save_draft_result,
+    update_draft_card,
 )
 from app.services.track_service import (
     get_project_canonical,
@@ -452,5 +453,78 @@ async def generate_draft(
         track=track,
         application_draft=application_draft,
         model_name=model_name,
+    )
+
+
+class DraftCardUpdateRequest(BaseModel):
+    """신청서 카드 부분 업데이트 요청"""
+
+    card_key: str = Field(..., description="업데이트할 카드 키 (예: fastcheck_application)")
+    card_data: dict = Field(..., description="카드 데이터 (flat된 필드-값 쌍)")
+
+
+class DraftCardUpdateResponse(BaseModel):
+    """신청서 카드 부분 업데이트 응답"""
+
+    success: bool
+    project_id: str
+    card_key: str
+
+
+@router.patch(
+    "/draft/{project_id}",
+    response_model=DraftCardUpdateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="신청서 카드 부분 저장",
+    description="""
+특정 카드만 부분 업데이트합니다. 다른 카드 데이터는 유지됩니다.
+
+## 입력
+- project_id: 프로젝트 UUID (path parameter)
+- card_key: 업데이트할 카드 키
+- card_data: 카드의 필드-값 데이터
+
+## 처리
+- 기존 application_draft.form_values에서 해당 카드만 업데이트
+- 나머지 카드는 그대로 유지 (JSON 병합)
+    """,
+)
+async def update_draft_card_endpoint(
+    project_id: str,
+    request: DraftCardUpdateRequest,
+    auth_user=Depends(get_auth_user),
+) -> DraftCardUpdateResponse:
+    """신청서 카드 부분 업데이트 API"""
+    # 1. 프로젝트 조회 및 권한 확인
+    project = get_project_data_for_draft(project_id)
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
+        )
+
+    if project.get("user_id") != auth_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="이 프로젝트에 접근할 권한이 없습니다.",
+        )
+
+    # 2. 카드 업데이트
+    result = update_draft_card(
+        project_id=project_id,
+        card_key=request.card_key,
+        card_data=request.card_data,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="카드 저장에 실패했습니다.",
+        )
+
+    return DraftCardUpdateResponse(
+        success=True,
+        project_id=project_id,
+        card_key=request.card_key,
     )
 

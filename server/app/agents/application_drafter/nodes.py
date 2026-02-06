@@ -260,21 +260,52 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
             similar_cases = []
 
             def _case_to_dict(c) -> dict:
-                """CaseResult 객체 또는 dict를 표준 dict로 변환"""
+                """CaseResult 객체 또는 dict를 표준 dict로 변환
+
+                format_rag_results 호환을 위해 "content" 키 포함
+                """
                 # CaseResult Pydantic 모델인 경우
                 if hasattr(c, "service_name") and hasattr(c, "company_name"):
+                    # 개별 필드 추출
+                    case_id = getattr(c, "case_id", "")
+                    company_name = getattr(c, "company_name", "")
+                    service_name = getattr(c, "service_name", "")
+                    track = getattr(c, "track", "")
+                    service_description = getattr(c, "service_description", "")
+                    current_regulation = getattr(c, "current_regulation", "")
+                    special_provisions = getattr(c, "special_provisions", "")
+                    conditions = getattr(c, "conditions", [])
+                    pilot_scope = getattr(c, "pilot_scope", "")
+                    expected_effect = getattr(c, "expected_effect", "")
+                    review_result = getattr(c, "review_result", "")
+
+                    # format_rag_results 호환용 content 문자열 생성
+                    conditions_str = ", ".join(conditions) if conditions else ""
+                    content_parts = [
+                        f"[{track}] {service_name} ({company_name})",
+                        f"서비스: {service_description}" if service_description else "",
+                        f"현행규제: {current_regulation}" if current_regulation else "",
+                        f"특례내용: {special_provisions}" if special_provisions else "",
+                        f"실증범위: {pilot_scope}" if pilot_scope else "",
+                        f"조건: {conditions_str}" if conditions_str else "",
+                        f"기대효과: {expected_effect}" if expected_effect else "",
+                        f"심의결과: {review_result}" if review_result else "",
+                    ]
+                    content = "\n".join(part for part in content_parts if part)
+
                     return {
-                        "case_id": getattr(c, "case_id", ""),
-                        "company_name": getattr(c, "company_name", ""),
-                        "service_name": getattr(c, "service_name", ""),
-                        "track": getattr(c, "track", ""),
-                        "service_description": getattr(c, "service_description", ""),
-                        "current_regulation": getattr(c, "current_regulation", ""),
-                        "special_provisions": getattr(c, "special_provisions", ""),
-                        "conditions": getattr(c, "conditions", []),
-                        "pilot_scope": getattr(c, "pilot_scope", ""),
-                        "expected_effect": getattr(c, "expected_effect", ""),
-                        "review_result": getattr(c, "review_result", ""),
+                        "content": content,
+                        "case_id": case_id,
+                        "company_name": company_name,
+                        "service_name": service_name,
+                        "track": track,
+                        "service_description": service_description,
+                        "current_regulation": current_regulation,
+                        "special_provisions": special_provisions,
+                        "conditions": conditions,
+                        "pilot_scope": pilot_scope,
+                        "expected_effect": expected_effect,
+                        "review_result": review_result,
                     }
                 # dict인 경우
                 elif isinstance(c, dict):

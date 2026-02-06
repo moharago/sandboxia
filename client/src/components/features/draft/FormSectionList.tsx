@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
 import { getTodayIso } from "@/lib/utils/date"
+import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
 
 // 새로운 스키마 타입 정의
 interface FieldOption {
@@ -134,9 +135,10 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
 interface FormSectionListProps {
     formType: FormType
     initialValues?: Record<string, unknown>
+    projectId: string
 }
 
-export function FormSectionList({ formType, initialValues }: FormSectionListProps) {
+export function FormSectionList({ formType, initialValues, projectId }: FormSectionListProps) {
     const [formValues, setFormValues] = useState<Record<string, Record<string, string>>>({})
     const prevInitialValuesRef = useRef<Record<string, unknown> | undefined>(undefined)
 
@@ -191,6 +193,19 @@ export function FormSectionList({ formType, initialValues }: FormSectionListProp
         }
     }, [initialValues, flattenedInitialValues])
     const [savedMessage, setSavedMessage] = useState<string | null>(null)
+    const [saveError, setSaveError] = useState<string | null>(null)
+
+    // 카드 저장 mutation
+    const cardUpdateMutation = useDraftCardUpdateMutation({
+        onSuccess: (data) => {
+            setSavedMessage(`${getCardName(formType, data.card_key)} 저장 완료`)
+            setTimeout(() => setSavedMessage(null), 2000)
+        },
+        onError: (error) => {
+            setSaveError(error.message)
+            setTimeout(() => setSaveError(null), 3000)
+        },
+    })
 
     const formData = formDataMap[formType]
     const cardKeys = Object.keys(formData)
@@ -206,16 +221,25 @@ export function FormSectionList({ formType, initialValues }: FormSectionListProp
     }, [])
 
     const handleSave = useCallback((cardKey: string) => {
-        // TODO: 실제 API 호출로 저장 구현
-        setSavedMessage(`${cardKey} 임시저장 완료`)
-        setTimeout(() => setSavedMessage(null), 2000)
-    }, [formValues])
+        const cardData = formValues[cardKey] || {}
+        cardUpdateMutation.mutate({
+            project_id: projectId,
+            card_key: cardKey,
+            card_data: cardData,
+        })
+    }, [formValues, projectId, cardUpdateMutation])
 
     return (
         <div className="space-y-4">
             {savedMessage && (
                 <div className="fixed top-4 right-4 bg-grass-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2">
                     {savedMessage}
+                </div>
+            )}
+
+            {saveError && (
+                <div className="fixed top-4 right-4 bg-rose-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2">
+                    저장 실패: {saveError}
                 </div>
             )}
 
@@ -228,6 +252,7 @@ export function FormSectionList({ formType, initialValues }: FormSectionListProp
                     values={formValues[cardKey] || {}}
                     onValueChange={(fieldKey, value) => handleValueChange(cardKey, fieldKey, value)}
                     onSave={() => handleSave(cardKey)}
+                    isSaving={cardUpdateMutation.isPending}
                 />
             ))}
         </div>

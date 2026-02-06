@@ -21,3 +21,17 @@ export interface ApplicationDraft {
     model_name: string
     generated_at: string
 }
+
+/** 신청서 카드 부분 업데이트 요청 */
+export interface DraftCardUpdateRequest {
+    project_id: string
+    card_key: string
+    card_data: Record<string, string>
+}
+
+/** 신청서 카드 부분 업데이트 응답 */
+export interface DraftCardUpdateResponse {
+    success: boolean
+    project_id: string
+    card_key: string
+}
