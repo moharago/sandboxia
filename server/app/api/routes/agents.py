@@ -377,7 +377,10 @@ class DraftGenerateResponse(BaseModel):
 - application_draft: AI가 생성한 폼 데이터 (트랙별 폼 스키마 구조)
     """,
 )
-async def generate_draft(request: DraftGenerateRequest) -> DraftGenerateResponse:
+async def generate_draft(
+    request: DraftGenerateRequest,
+    auth_user=Depends(get_auth_user),
+) -> DraftGenerateResponse:
     """신청서 초안 생성 API
 
     1. DB에서 프로젝트 데이터 조회
@@ -393,6 +396,13 @@ async def generate_draft(request: DraftGenerateRequest) -> DraftGenerateResponse
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"프로젝트를 찾을 수 없습니다: {project_id}",
+        )
+
+    # 권한 확인
+    if project.get("user_id") != auth_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="이 프로젝트에 접근할 권한이 없습니다.",
         )
 
     canonical = project.get("canonical")

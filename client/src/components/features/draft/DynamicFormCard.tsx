@@ -201,7 +201,7 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                                 {field.label}
                                 {field.required && <span className="text-destructive ml-1">*</span>}
                             </Label>
-                            {!value && (
+                            {field.required && !value && (
                                 <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
                                     선택 필요
                                 </span>
@@ -433,7 +433,9 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
         const isCheckboxOnlySection = section.fields.every((f) => f.formType === "checkbox")
         const hasAnyCheckboxSelected = isCheckboxOnlySection && section.fields.some((field) => {
             const fieldKey = `${section.key}.${field.key}`
-            return values[fieldKey] === "true"
+            const value = values[fieldKey]
+            // 단일 체크박스: "true", 체크박스 그룹: 콤마 구분 문자열 (예: "option1,option2")
+            return value === "true" || (typeof value === "string" && value.trim() !== "")
         })
 
         // 라벨 없는 필수 필드가 있는지 확인 (섹션 제목에 * 표시용)

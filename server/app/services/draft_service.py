@@ -63,15 +63,20 @@ def save_draft_result(
         "generated_at": datetime.now().isoformat(),
     }
 
-    result = supabase.table("projects") \
-        .update({
-            "application_draft": draft_data,
-            "updated_at": datetime.now().isoformat(),
-        }) \
-        .eq("id", project_id) \
-        .execute()
+    try:
+        result = supabase.table("projects") \
+            .update({
+                "application_draft": draft_data,
+                "updated_at": datetime.now().isoformat(),
+            }) \
+            .eq("id", project_id) \
+            .execute()
+    except Exception as e:
+        logger.error("Draft 저장 실패 (project_id=%s): %s", project_id, e)
+        return None
 
-    if not result.data:
+    if not result.data or len(result.data) == 0:
+        logger.warning("Draft 저장 후 데이터 없음 (project_id=%s)", project_id)
         return None
 
     return result.data[0]

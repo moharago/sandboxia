@@ -2,7 +2,7 @@
 
 워크플로우:
 1. load_form_schema: 트랙에 맞는 폼 스키마 로드
-2. retrieve_context: R1/R2 RAG 검색으로 컨텍스트 수집
+2. retrieve_context: R1/R2/R3 RAG 검색으로 컨텍스트 수집
 3. generate_draft: form_schema를 템플릿으로 canonical 기반 값 생성
 """
 
@@ -61,6 +61,7 @@ async def run_application_drafter(
         "application_requirements": [],
         "review_criteria": [],
         "similar_cases": [],
+        "domain_laws": [],
         "application_draft": {},
         "model_name": "",
     }

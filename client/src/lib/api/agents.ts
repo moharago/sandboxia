@@ -142,10 +142,13 @@ export const agentsApi = {
      * canonical 데이터와 선택된 트랙을 기반으로 신청서 초안을 생성합니다.
      */
     generateDraft: async (request: DraftGenerateRequest): Promise<DraftGenerateResponse> => {
+        const token = await getAuthToken()
+
         const response = await fetch(`${API_BASE}/api/v1/agents/draft`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
             },
             body: JSON.stringify(request),
         })

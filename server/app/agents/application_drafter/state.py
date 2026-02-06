@@ -29,9 +29,10 @@ class ApplicationDrafterState(TypedDict, total=False):
 
     # 중간 결과
     form_schema: dict  # 트랙별 폼 스키마 (서버에서 로드)
-    application_requirements: list[dict]
-    review_criteria: list[dict]
-    similar_cases: list[dict]
+    application_requirements: list[dict]  # R1: 신청 요건/작성 가이드
+    review_criteria: list[dict]  # R1: 심사 기준
+    similar_cases: list[dict]  # R2: 유사 승인 사례
+    domain_laws: list[dict]  # R3: 도메인별 규제/법령
 
     # 최종 출력
     application_draft: dict  # form_schema와 동일 구조, canonical 기반으로 값 생성

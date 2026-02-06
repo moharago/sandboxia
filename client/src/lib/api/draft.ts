@@ -19,7 +19,7 @@ export const draftApi = {
             .from("projects")
             .select("application_draft")
             .eq("id", projectId)
-            .single()
+            .maybeSingle()
 
         if (error) {
             throw new Error(error.message)

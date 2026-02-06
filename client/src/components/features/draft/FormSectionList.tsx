@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
+import { getTodayIso } from "@/lib/utils/date"
 
 // 새로운 스키마 타입 정의
 interface FieldOption {
@@ -72,6 +73,22 @@ const getCardName = (formType: FormType, cardKey: string): string => {
 }
 
 /**
+ * 오늘 날짜를 기본값으로 설정해야 하는 필드 목록
+ */
+const DATE_FIELDS_WITH_TODAY_DEFAULT = [
+    "application.applicationDate", // 신청일자
+    "submissionDate.submissionDate", // 제출일자
+]
+
+/**
+ * 다른 필드 값을 복사해서 기본값으로 설정할 필드 매핑
+ * { 대상필드: 원본필드 }
+ */
+const FIELD_COPY_DEFAULTS: Record<string, string> = {
+    "application.applicantSignature": "applicant.representativeName", // 신청인 성명 ← 대표자명
+}
+
+/**
  * 중첩된 객체를 flat한 key 구조로 변환
  * { applicant: { companyName: "ABC" } } → { "applicant.companyName": "ABC" }
  */
@@ -84,7 +101,22 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
         if (value === null || value === undefined) {
             // null/undefined는 빈 문자열로
             result[newKey] = ""
-        } else if (typeof value === "object" && !Array.isArray(value)) {
+        } else if (Array.isArray(value)) {
+            // 배열은 인덱스 기반으로 재귀 처리
+            for (let i = 0; i < value.length; i++) {
+                const item = value[i]
+                const arrayKey = `${newKey}[${i}]`
+
+                if (item === null || item === undefined) {
+                    result[arrayKey] = ""
+                } else if (typeof item === "object") {
+                    // 배열 내 객체는 재귀 처리
+                    Object.assign(result, flattenObject(item as Record<string, unknown>, arrayKey))
+                } else {
+                    result[arrayKey] = String(item)
+                }
+            }
+        } else if (typeof value === "object") {
             // 중첩 객체는 재귀 처리
             Object.assign(result, flattenObject(value as Record<string, unknown>, newKey))
         } else if (typeof value === "boolean") {
@@ -113,13 +145,30 @@ export function FormSectionList({ formType, initialValues }: FormSectionListProp
         if (!initialValues) return {}
 
         const result: Record<string, Record<string, string>> = {}
+        const todayDate = getTodayIso()
 
         for (const [cardKey, cardData] of Object.entries(initialValues)) {
             if (cardData && typeof cardData === "object") {
                 // cardData.data가 있으면 그 안의 데이터를 flatten
                 const data = (cardData as Record<string, unknown>).data as Record<string, unknown> | undefined
                 if (data && typeof data === "object") {
-                    result[cardKey] = flattenObject(data)
+                    const flatData = flattenObject(data)
+
+                    // 특정 날짜 필드에 오늘 날짜 기본값 적용
+                    for (const fieldKey of DATE_FIELDS_WITH_TODAY_DEFAULT) {
+                        if (fieldKey in flatData && !flatData[fieldKey]) {
+                            flatData[fieldKey] = todayDate
+                        }
+                    }
+
+                    // 다른 필드 값을 복사해서 기본값 적용 (예: 신청인 성명 ← 대표자명)
+                    for (const [targetField, sourceField] of Object.entries(FIELD_COPY_DEFAULTS)) {
+                        if (targetField in flatData && !flatData[targetField] && flatData[sourceField]) {
+                            flatData[targetField] = flatData[sourceField]
+                        }
+                    }
+
+                    result[cardKey] = flatData
                 }
             }
         }
@@ -128,8 +177,14 @@ export function FormSectionList({ formType, initialValues }: FormSectionListProp
     }, [initialValues])
 
     // initialValues가 변경되면 formValues 업데이트 (새로운 AI 초안 생성 시 반영)
+    // deep equality 비교로 실제 데이터 변경 시에만 덮어쓰기 (사용자 입력 보호)
     useEffect(() => {
-        if (initialValues && initialValues !== prevInitialValuesRef.current) {
+        if (!initialValues) return
+
+        const prevJson = JSON.stringify(prevInitialValuesRef.current)
+        const currentJson = JSON.stringify(initialValues)
+
+        if (prevJson !== currentJson) {
             prevInitialValuesRef.current = initialValues
             // 새 initialValues로 formValues 덮어쓰기 (사용자 입력보다 AI 초안 우선)
             setFormValues(flattenedInitialValues)
@@ -151,8 +206,7 @@ export function FormSectionList({ formType, initialValues }: FormSectionListProp
     }, [])
 
     const handleSave = useCallback((cardKey: string) => {
-        // 임시저장 로직 (실제로는 API 호출 또는 localStorage 저장)
-        console.log(`Saving card ${cardKey}:`, formValues[cardKey])
+        // TODO: 실제 API 호출로 저장 구현
         setSavedMessage(`${cardKey} 임시저장 완료`)
         setTimeout(() => setSavedMessage(null), 2000)
     }, [formValues])

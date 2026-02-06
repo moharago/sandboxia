@@ -65,3 +65,67 @@ def get_empty_form_structure(track: str) -> dict:
         빈 폼 구조 딕셔너리
     """
     return load_form_schema(track)
+
+
+def _get_all_keys(obj: dict | list, prefix: str = "") -> set[str]:
+    """딕셔너리/리스트에서 모든 키 경로 추출 (재귀)"""
+    keys = set()
+
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            full_key = f"{prefix}.{key}" if prefix else key
+            keys.add(full_key)
+            if isinstance(value, (dict, list)):
+                keys.update(_get_all_keys(value, full_key))
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            if isinstance(item, (dict, list)):
+                keys.update(_get_all_keys(item, prefix))
+
+    return keys
+
+
+def validate_schema_keys(generated: dict, schema: dict) -> dict:
+    """LLM 생성 결과가 스키마 구조와 일치하는지 검증
+
+    Args:
+        generated: LLM이 생성한 폼 데이터
+        schema: 원본 폼 스키마
+
+    Returns:
+        검증 결과 딕셔너리:
+        - valid: bool - 검증 통과 여부
+        - unknown_keys: list - 스키마에 없는 키들
+        - missing_keys: list - 생성 결과에 없는 키들
+
+    Raises:
+        ValueError: 스키마에 없는 키가 발견된 경우
+    """
+    schema_keys = _get_all_keys(schema)
+    generated_keys = _get_all_keys(generated)
+
+    # 스키마에 없는 키 (LLM이 만들어낸 잘못된 경로)
+    unknown_keys = generated_keys - schema_keys
+
+    # 생성 결과에 없는 키 (누락된 필드 - 경고용)
+    missing_keys = schema_keys - generated_keys
+
+    result = {
+        "valid": len(unknown_keys) == 0,
+        "unknown_keys": list(unknown_keys),
+        "missing_keys": list(missing_keys),
+    }
+
+    if unknown_keys:
+        logger.error(
+            "스키마에 없는 키 발견: %s",
+            ", ".join(sorted(unknown_keys)[:10])  # 최대 10개만 로깅
+        )
+
+    if missing_keys:
+        logger.warning(
+            "누락된 키 (정상일 수 있음): %d개",
+            len(missing_keys)
+        )
+
+    return result

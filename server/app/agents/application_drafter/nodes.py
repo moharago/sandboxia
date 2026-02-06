@@ -12,7 +12,7 @@ import re
 
 from langchain_openai import ChatOpenAI
 
-from app.agents.application_drafter.form_schema import load_form_schema
+from app.agents.application_drafter.form_schema import load_form_schema, validate_schema_keys
 from app.agents.application_drafter.prompts import (
     DRAFT_SYSTEM_PROMPT,
     DRAFT_USER_PROMPT,
@@ -24,6 +24,7 @@ from app.tools.shared.rag import (
     get_application_requirements,
     get_review_criteria,
     get_similar_cases_for_application,
+    search_domain_law,
 )
 
 logger = logging.getLogger(__name__)
@@ -223,10 +224,42 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
         logger.warning("R2 유사 사례 검색 실패: %s", e)
         similar_cases = []
 
+    # R3: 도메인별 규제/법령 (근거 문장용)
+    try:
+        if service_desc:
+            law_result = search_domain_law.invoke({
+                "query": service_desc,
+                "top_k": 5,
+            })
+            domain_laws = []
+            if hasattr(law_result, "results"):
+                for r in law_result.results:
+                    domain_laws.append({
+                        "content": r.content if hasattr(r, "content") else str(r),
+                        "metadata": {
+                            "law_name": getattr(r, "law_name", ""),
+                            "article": getattr(r, "article", ""),
+                        }
+                    })
+            elif isinstance(law_result, dict):
+                for r in law_result.get("results", []):
+                    domain_laws.append({
+                        "content": r.get("content", str(r)),
+                        "metadata": r.get("metadata", {}),
+                    })
+            else:
+                domain_laws = []
+        else:
+            domain_laws = []
+    except Exception as e:
+        logger.warning("R3 도메인 법령 검색 실패: %s", e)
+        domain_laws = []
+
     return {
         "application_requirements": application_requirements,
         "review_criteria": review_criteria,
         "similar_cases": similar_cases,
+        "domain_laws": domain_laws,
     }
 
 
@@ -248,6 +281,7 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     application_requirements = state.get("application_requirements", [])
     review_criteria = state.get("review_criteria", [])
     similar_cases = state.get("similar_cases", [])
+    domain_laws = state.get("domain_laws", [])
 
     service_info = get_service_info(canonical)
 
@@ -260,6 +294,7 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
         application_requirements=format_rag_results(application_requirements),
         review_criteria=format_rag_results(review_criteria),
         similar_cases=format_rag_results(similar_cases),
+        domain_laws=format_rag_results(domain_laws),
         form_schema_json=form_schema_json,
     )
 
@@ -272,6 +307,15 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
             {"role": "user", "content": prompt},
         ])
 
+        # 응답 유효성 검사
+        if not response.content:
+            logger.error("LLM 응답이 비어있습니다")
+            application_draft = form_schema
+            return {
+                "application_draft": application_draft,
+                "model_name": model_name,
+            }
+
         raw_text = response.content.strip()
 
         # JSON 파싱 (코드 블록 제거)
@@ -280,7 +324,30 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
         if json_match:
             json_text = json_match.group(1)
 
+        if not json_text:
+            logger.error("JSON 텍스트가 비어있습니다")
+            application_draft = form_schema
+            return {
+                "application_draft": application_draft,
+                "model_name": model_name,
+            }
+
         application_draft = json.loads(json_text)
+
+        # 스키마 검증: LLM이 잘못된 경로를 만들었는지 확인
+        validation = validate_schema_keys(application_draft, form_schema)
+        if not validation["valid"]:
+            logger.error(
+                "LLM이 스키마에 없는 키를 생성함: %s",
+                validation["unknown_keys"][:5]
+            )
+            # 잘못된 키가 있어도 일단 반환 (MVP: 로깅만, 추후 에러 처리 강화)
+
+        if validation["missing_keys"]:
+            logger.info(
+                "생성되지 않은 필드: %d개 (정상일 수 있음)",
+                len(validation["missing_keys"])
+            )
 
     except json.JSONDecodeError as e:
         logger.error("LLM 응답 JSON 파싱 실패: %s", e)

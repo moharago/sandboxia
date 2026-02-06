@@ -54,7 +54,8 @@ export default function DraftPage({ params }: DraftPageProps) {
             // 성공 시 draft query invalidate하여 새 데이터 로드
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
         } catch (error) {
-            console.error("AI 초안 생성 실패:", error)
+            const message = error instanceof Error ? error.message : "알 수 없는 오류"
+            alert(`AI 초안 생성에 실패했습니다: ${message}`)
         }
     }
 
@@ -70,20 +71,13 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 데이터 로딩 중
     if (isLoadingProject || isLoadingDraft) {
-        return <AILoadingOverlay message="데이터를 불러오고 있습니다..." />
+        return <AILoadingOverlay message="저장된 초안을 불러오고 있습니다..." />
     }
 
     // AI 초안 생성 중
     if (draftMutation.isPending) {
         return <AILoadingOverlay message="AI 신청서 초안 생성 중" />
     }
-
-    // 디버그 정보
-    console.log("[Draft Page Debug]", {
-        "project.track": project?.track,
-        "formType": formType,
-        "draftData keys": draftData?.form_values ? Object.keys(draftData.form_values) : null,
-    })
 
     // track 정보 없음
     if (!project?.track) {
