@@ -132,7 +132,7 @@ export default function MyAccountPage() {
             }
 
             // 계정 삭제는 서버 API 사용 (service_role 필요)
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
             const response = await fetch(`${apiBaseUrl}/api/users/me`, {
                 method: 'DELETE',
                 headers: {
