@@ -2,9 +2,7 @@
 
 R2. 승인 사례 RAG Tool용 데이터 수집
 
-데이터 소스:
-- 환경변수 R2_DATA_ID가 설정된 경우: Google Drive에서 다운로드
-- 미설정 시: data/r2_data/cases_structured.json (로컬 fallback)
+데이터 소스: 환경변수 R2_DATA_ID로 지정된 Google Drive 폴더에서 다운로드
 
 실행:
     cd server
@@ -29,78 +27,69 @@ from langchain_openai import OpenAIEmbeddings
 from app.core.config import settings
 from app.core.constants import COLLECTION_CASES
 
-# 로컬 데이터 파일 (fallback)
-LOCAL_DATA_FILE = Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
+# 다운로드된 JSON 캐싱 경로
+LOCAL_CACHE_FILE = Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
 
 
 def load_json_data() -> tuple[list[dict], str]:
-    """JSON 데이터 로드 (Google Drive 폴더 또는 로컬 파일)
+    """Google Drive 폴더에서 JSON 데이터 다운로드
 
     Returns:
         (데이터 리스트, 소스 경로/URL)
     """
-    # 환경변수에 Google Drive 폴더 ID가 설정된 경우 다운로드
-    if settings.R2_DATA_ID:
-        folder_url = f"{settings.GOOGLE_DRIVE_URL}{settings.R2_DATA_ID}"
-        print("Google Drive 폴더에서 데이터 다운로드 중...")
-        print(f"  Folder ID: {settings.R2_DATA_ID}")
-
-        # 임시 디렉토리에 폴더 다운로드
-        tmp_dir = tempfile.mkdtemp()
-        try:
-            gdown.download_folder(folder_url, output=tmp_dir, quiet=False)
-
-            # 다운로드된 폴더에서 JSON 파일 찾기
-            tmp_path = Path(tmp_dir)
-            json_file = None
-
-            for item in tmp_path.iterdir():
-                if item.name == "cases_structured.json":
-                    json_file = item
-                    break
-
-            if not json_file:
-                # 모든 JSON 파일 검색
-                json_files = list(tmp_path.rglob("*.json"))
-                if json_files:
-                    json_file = json_files[0]
-
-            if not json_file:
-                raise FileNotFoundError(
-                    f"Google Drive 폴더에서 JSON 파일을 찾을 수 없습니다.\n" f"폴더 ID: {settings.R2_DATA_ID}"
-                )
-
-            print(f"  [OK] JSON 파일 발견: {json_file.name}")
-
-            with open(json_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            # 로컬에 JSON 파일 복사 (캐싱)
-            LOCAL_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(json_file, LOCAL_DATA_FILE)
-            print(f"  [OK] 로컬에 캐싱: {LOCAL_DATA_FILE}")
-
-            return data, f"Google Drive Folder (ID: {settings.R2_DATA_ID})"
-
-        finally:
-            # 임시 디렉토리 삭제
-            try:
-                shutil.rmtree(tmp_dir)
-            except Exception:
-                pass
-
-    # 로컬 파일 사용 (fallback)
-    if not LOCAL_DATA_FILE.exists():
-        raise FileNotFoundError(
-            f"데이터 파일을 찾을 수 없습니다.\n"
-            f"- R2_DATA_ID 환경변수를 설정하거나\n"
-            f"- {LOCAL_DATA_FILE} 파일을 생성하세요."
+    if not settings.R2_DATA_ID:
+        raise RuntimeError(
+            "R2_DATA_ID 환경변수가 설정되지 않았습니다.\n"
+            ".env 파일에 R2_DATA_ID=<Google Drive 폴더 ID>를 추가하세요."
         )
 
-    print(f"로컬 파일에서 데이터 로드: {LOCAL_DATA_FILE}")
-    with open(LOCAL_DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data, str(LOCAL_DATA_FILE)
+    folder_url = f"{settings.GOOGLE_DRIVE_URL}{settings.R2_DATA_ID}"
+    print("Google Drive 폴더에서 데이터 다운로드 중...")
+    print(f"  Folder ID: {settings.R2_DATA_ID}")
+
+    # 임시 디렉토리에 폴더 다운로드
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        gdown.download_folder(folder_url, output=tmp_dir, quiet=False)
+
+        # 다운로드된 폴더에서 JSON 파일 찾기
+        tmp_path = Path(tmp_dir)
+        json_file = None
+
+        for item in tmp_path.iterdir():
+            if item.name == "cases_structured.json":
+                json_file = item
+                break
+
+        if not json_file:
+            # 모든 JSON 파일 검색
+            json_files = list(tmp_path.rglob("*.json"))
+            if json_files:
+                json_file = json_files[0]
+
+        if not json_file:
+            raise FileNotFoundError(
+                f"Google Drive 폴더에서 JSON 파일을 찾을 수 없습니다.\n" f"폴더 ID: {settings.R2_DATA_ID}"
+            )
+
+        print(f"  [OK] JSON 파일 발견: {json_file.name}")
+
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # 로컬에 JSON 파일 복사 (캐싱)
+        LOCAL_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(json_file, LOCAL_CACHE_FILE)
+        print(f"  [OK] 로컬에 캐싱: {LOCAL_CACHE_FILE}")
+
+        return data, f"Google Drive Folder (ID: {settings.R2_DATA_ID})"
+
+    finally:
+        # 임시 디렉토리 삭제
+        try:
+            shutil.rmtree(tmp_dir)
+        except Exception:
+            pass
 
 
 def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
