@@ -1,7 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  reactCompiler: true,
-};
+    /* config options here */
+    reactCompiler: true,
 
-export default nextConfig;
+    // API 프록시
+    // Vercel에서 EC2 HTTP 서버로 프록시
+    async rewrites() {
+        const backendUrl = process.env.BACKEND_URL || "http://localhost:8000"
+
+        return [
+            {
+                source: "/api/v1/:path*",
+                destination: `${backendUrl}/api/v1/:path*`,
+            },
+        ]
+    },
+}
+
+export default nextConfig
