@@ -1,13 +1,19 @@
 """Vector DB 추상화 레이어
 
 VectorStore 교체 시 구현체만 변경하면 됩니다.
-현재 구현: ChromaDB (HTTP 클라이언트 모드)
+현재 구현: ChromaDB (모드별 분기)
+
+CHROMA_MODE:
+- persistent: 로컬 파일 기반 (개발용, Docker 불필요)
+- http: HTTP 클라이언트 (운영용, ChromaDB 서버 필요)
+- ephemeral: 인메모리 (테스트용)
 """
 
 import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from functools import lru_cache
 from typing import Any
 
@@ -18,6 +24,14 @@ from langchain_openai import OpenAIEmbeddings
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+class ChromaMode(str, Enum):
+    """ChromaDB 연결 모드"""
+
+    PERSISTENT = "persistent"  # 로컬 파일 기반
+    HTTP = "http"  # HTTP 클라이언트 (서버 연결)
+    EPHEMERAL = "ephemeral"  # 인메모리 (테스트용)
 
 # =============================================================================
 # 검색 결과 타입
@@ -102,7 +116,40 @@ class BaseVectorStore(ABC):
 # =============================================================================
 
 
-def _create_chroma_client_with_retry(
+def _create_chroma_client() -> chromadb.ClientAPI:
+    """ChromaDB 클라이언트 생성 (모드별 분기)
+
+    Returns:
+        ChromaDB 클라이언트
+
+    Raises:
+        ConnectionError: HTTP 모드에서 연결 실패 시
+        ValueError: 알 수 없는 모드
+    """
+    mode = settings.CHROMA_MODE.lower()
+
+    if mode == ChromaMode.PERSISTENT:
+        # 로컬 파일 기반 (Docker 불필요)
+        logger.info(f"ChromaDB persistent 모드: {settings.CHROMA_PERSIST_DIR}")
+        return chromadb.PersistentClient(path=settings.CHROMA_PERSIST_DIR)
+
+    elif mode == ChromaMode.EPHEMERAL:
+        # 인메모리 (테스트용)
+        logger.info("ChromaDB ephemeral 모드 (인메모리)")
+        return chromadb.EphemeralClient()
+
+    elif mode == ChromaMode.HTTP:
+        # HTTP 클라이언트 (서버 연결)
+        return _create_http_client_with_retry()
+
+    else:
+        raise ValueError(
+            f"알 수 없는 CHROMA_MODE: {mode}. "
+            f"사용 가능: persistent, http, ephemeral"
+        )
+
+
+def _create_http_client_with_retry(
     max_retries: int = 5,
     initial_delay: float = 1.0,
     max_delay: float = 30.0,
@@ -131,7 +178,7 @@ def _create_chroma_client_with_retry(
             # 연결 테스트
             client.heartbeat()
             logger.info(
-                f"ChromaDB 연결 성공: {settings.CHROMA_HOST}:{settings.CHROMA_PORT}"
+                f"ChromaDB HTTP 모드 연결 성공: {settings.CHROMA_HOST}:{settings.CHROMA_PORT}"
             )
             return client
         except Exception as e:
@@ -151,7 +198,7 @@ def _create_chroma_client_with_retry(
 
 
 class ChromaVectorStore(BaseVectorStore):
-    """ChromaDB 구현체 (HTTP 클라이언트 모드)"""
+    """ChromaDB 구현체 (모드별 분기 지원)"""
 
     def __init__(self, collection_name: str, embeddings: OpenAIEmbeddings):
         from langchain_chroma import Chroma
@@ -159,11 +206,11 @@ class ChromaVectorStore(BaseVectorStore):
         self._collection_name = collection_name
         self._embeddings = embeddings
 
-        # HTTP 클라이언트로 ChromaDB 서버에 연결 (재시도 로직 포함)
-        http_client = _create_chroma_client_with_retry()
+        # 모드별 ChromaDB 클라이언트 생성
+        chroma_client = _create_chroma_client()
 
         self._client = Chroma(
-            client=http_client,
+            client=chroma_client,
             collection_name=collection_name,
             embedding_function=embeddings,
         )

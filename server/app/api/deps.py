@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=True)
 
-# JWKS 클라이언트 (공개키 캐싱)
+# JWKS 클라이언트 (ECC P-256 공개키 캐싱)
 _jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
 _jwks_client = PyJWKClient(_jwks_url, cache_keys=True)
 
@@ -53,11 +53,11 @@ def get_auth_user(
         # JWKS에서 토큰의 kid에 맞는 공개키 가져오기
         signing_key = _jwks_client.get_signing_key_from_jwt(token)
 
-        # 토큰 검증 및 디코딩
+        # 토큰 검증 및 디코딩 (Supabase ECC P-256은 ES256 사용)
         payload = decode(
             token,
             signing_key.key,
-            algorithms=["RS256"],
+            algorithms=["ES256"],
             audience="authenticated",
         )
 
