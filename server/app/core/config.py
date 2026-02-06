@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     TAVILY_API_KEY: str
     CORS_ORIGINS: str = ""
+    CORS_ORIGIN_REGEX: str | None = None  # Preview 도메인용 정규식 패턴
 
     # 디버그 설정
     ENABLE_DEBUG_PII_LOGS: bool = True

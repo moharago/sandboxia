@@ -13,6 +13,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
     )
 
+    # CORS Origins 설정
     origins = [
         origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()
     ]
@@ -25,9 +26,10 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=settings.CORS_ORIGIN_REGEX,  # Vercel Preview 도메인용
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     # 라우터 등록
