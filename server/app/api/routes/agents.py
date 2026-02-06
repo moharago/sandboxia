@@ -22,7 +22,6 @@ from app.agents.eligibility_evaluator.schemas import (
 )
 from app.agents.track_recommender import run_track_recommender
 from app.api.deps import AuthUser, get_auth_user
-from app.services.project_service import get_authorized_project
 from app.api.schemas.agents import StructureResponse
 from app.services.draft_service import (
     DraftServiceError,
@@ -37,6 +36,7 @@ from app.services.eligibility_service import (
     update_final_eligibility_label,
     update_project_after_eligibility,
 )
+from app.services.project_service import get_authorized_project
 from app.services.structure_service import StructureService, StructureServiceError
 from app.services.track_service import (
     get_track_result,

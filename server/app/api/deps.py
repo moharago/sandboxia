@@ -4,6 +4,7 @@ API Dependencies
 인증 및 공통 의존성을 정의합니다.
 """
 
+import logging
 from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
@@ -11,6 +12,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import ExpiredSignatureError, InvalidTokenError, PyJWKClient, decode
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=True)
 
@@ -58,8 +61,18 @@ def get_auth_user(
             audience="authenticated",
         )
 
+        # sub claim 검증 (필수)
+        user_id = payload.get("sub")
+        if not user_id:
+            logger.warning("Token missing required 'sub' claim")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: missing user identifier",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         return AuthUser(
-            id=payload.get("sub"),
+            id=user_id,
             email=payload.get("email"),
             role=payload.get("role"),
         )
@@ -70,15 +83,17 @@ def get_auth_user(
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except InvalidTokenError as e:
+    except InvalidTokenError:
+        logger.exception("Invalid token error during authentication")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {str(e)}",
+            detail="Invalid authentication token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("Unexpected error during authentication")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {str(e)}",
+            detail="Authentication failed",
             headers={"WWW-Authenticate": "Bearer"},
         )
