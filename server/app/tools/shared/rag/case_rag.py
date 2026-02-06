@@ -67,9 +67,7 @@ def _load_cases_data() -> dict[str, Any]:
     global _cases_data
     if _cases_data is None:
         if not CASES_JSON_PATH.exists():
-            raise FileNotFoundError(
-                f"사례 데이터 파일을 찾을 수 없습니다: {CASES_JSON_PATH}"
-            )
+            raise FileNotFoundError(f"사례 데이터 파일을 찾을 수 없습니다: {CASES_JSON_PATH}")
         with open(CASES_JSON_PATH, encoding="utf-8") as f:
             cases = json.load(f)
             _cases_data = {c["case_id"]: c for c in cases}
@@ -88,9 +86,7 @@ def _build_case_result(
     common = case.get("common_info", {})
     companies = case.get("companies", [])
 
-    all_companies = [
-        c.get("company_name", "") for c in companies if c.get("company_name")
-    ]
+    all_companies = [c.get("company_name", "") for c in companies if c.get("company_name")]
     if not all_companies and company_name:
         all_companies = [company_name]
 
@@ -103,9 +99,7 @@ def _build_case_result(
         case_id=case_id,
         company_name=company_name or (all_companies[0] if all_companies else ""),
         all_companies=all_companies,
-        service_name=(
-            meta.get("service_name", "") if meta else common.get("service_name", "")
-        ),
+        service_name=(meta.get("service_name", "") if meta else common.get("service_name", "")),
         track=meta.get("track", "") if meta else case.get("track", ""),
         designation_number=meta.get("designation_number", "") if meta else "",
         designation_date=designation_date,
@@ -328,14 +322,10 @@ def get_approval_patterns(
     common_conditions = [c for c, _ in Counter(all_conditions).most_common(10)]
 
     # 특례 내용 수집
-    special_provisions_samples = [
-        case.special_provisions[:200] for case in cases if case.special_provisions
-    ][:5]
+    special_provisions_samples = [case.special_provisions[:200] for case in cases if case.special_provisions][:5]
 
     # 실증 범위 수집
-    pilot_scope_samples = [
-        case.pilot_scope[:200] for case in cases if case.pilot_scope
-    ][:5]
+    pilot_scope_samples = [case.pilot_scope[:200] for case in cases if case.pilot_scope][:5]
 
     return {
         "domain": domain_keyword,

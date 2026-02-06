@@ -1,3 +1,6 @@
+import re
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from supabase import create_client
 
@@ -6,6 +9,22 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     TAVILY_API_KEY: str
     CORS_ORIGINS: str = ""
+    CORS_ORIGIN_REGEX: str | None = None  # Preview 도메인용 정규식 패턴
+
+    @field_validator("CORS_ORIGIN_REGEX")
+    @classmethod
+    def validate_cors_origin_regex(cls, v: str | None) -> str | None:
+        """CORS_ORIGIN_REGEX가 유효한 정규식인지 검증"""
+        if v is None or v == "":
+            return None
+        try:
+            re.compile(v)
+            return v
+        except re.error as e:
+            raise ValueError(
+                f"CORS_ORIGIN_REGEX가 유효한 정규식이 아닙니다: '{v}'. "
+                f"오류: {e.msg}"
+            ) from e
 
     # 디버그 설정
     ENABLE_DEBUG_PII_LOGS: bool = True
@@ -15,9 +34,10 @@ class Settings(BaseSettings):
     LAW_API_OC: str
 
     # Vector DB 설정
+    CHROMA_MODE: str = "persistent"  # persistent | http | ephemeral
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
-    CHROMA_PERSIST_DIR: str = "./data/chroma"  # 로컬 개발용 (HTTP 모드 시 미사용)
+    CHROMA_PERSIST_DIR: str = "./data/chroma"  # persistent 모드 시 사용
 
     # LLM 설정
     LLM_MODEL: str
