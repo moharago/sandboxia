@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
-import { getTodayIso } from "@/lib/utils/date"
+import { getTodayIso, formatDateIso } from "@/lib/utils/date"
 import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
 
 // 새로운 스키마 타입 정의
@@ -90,6 +90,24 @@ const FIELD_COPY_DEFAULTS: Record<string, string> = {
 }
 
 /**
+ * 문자열이 날짜 형식인지 확인하고 ISO 형식으로 변환
+ * "2025년 11월 24일" → "2025-11-24"
+ * "2026. 02. 06." → "2026-02-06"
+ */
+function tryConvertDateToIso(value: string): string {
+    // 날짜 패턴 감지: 년/월/일 포함 또는 YYYY.MM.DD 형식
+    const isDateLike =
+        /\d{4}\s*년/.test(value) || // 2025년
+        /^\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?$/.test(value.trim()) // 2026. 02. 06.
+
+    if (isDateLike) {
+        const converted = formatDateIso(value)
+        return converted || value // 변환 실패 시 원본 반환
+    }
+    return value
+}
+
+/**
  * 중첩된 객체를 flat한 key 구조로 변환
  * { applicant: { companyName: "ABC" } } → { "applicant.companyName": "ABC" }
  */
@@ -114,7 +132,9 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
                     // 배열 내 객체는 재귀 처리
                     Object.assign(result, flattenObject(item as Record<string, unknown>, arrayKey))
                 } else {
-                    result[arrayKey] = String(item)
+                    // 배열 내 문자열도 날짜 변환 적용
+                    const strItem = String(item)
+                    result[arrayKey] = tryConvertDateToIso(strItem)
                 }
             }
         } else if (typeof value === "object") {
@@ -124,8 +144,9 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
             // boolean은 문자열로 변환
             result[newKey] = value ? "true" : ""
         } else {
-            // 나머지는 문자열로 변환
-            result[newKey] = String(value)
+            // 나머지는 문자열로 변환 (날짜 형식이면 ISO로 변환)
+            const strValue = String(value)
+            result[newKey] = tryConvertDateToIso(strValue)
         }
     }
 

@@ -106,13 +106,13 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
             merged_hwp_data = merge_hwp_documents.invoke(
                 {"parse_results": hwp_parse_results}
             )
-            # 원문 텍스트 결합 (최대 5000자)
+            # 원문 텍스트 결합 (최대 15000자 - 신속확인 문서의 모든 섹션 포함 필요)
             raw_texts = [
-                r.get("raw_text", "")[:2000]
+                r.get("raw_text", "")[:10000]  # 각 파일당 최대 10000자
                 for r in hwp_parse_results
                 if r.get("parse_success")
             ]
-            raw_text_combined = "\n---\n".join(raw_texts)[:5000]
+            raw_text_combined = "\n---\n".join(raw_texts)[:15000]
         except Exception as e:
             logger.error(f"HWP merge error: {e}")
 
