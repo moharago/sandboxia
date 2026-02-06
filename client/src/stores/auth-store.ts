@@ -15,12 +15,14 @@ export interface UserProfile {
 interface AuthState {
     user: SupabaseUser | null
     profile: UserProfile | null
+    accessToken: string | null
     isLoading: boolean
     isInitialized: boolean
 
     initialize: () => Promise<void>
     fetchProfile: () => Promise<void>
     updateProfile: (data: Partial<Pick<UserProfile, "name" | "company" | "phone" | "status">>) => Promise<void>
+    getAccessToken: () => Promise<string | null>
     signOut: () => Promise<void>
     reset: () => void
 }
@@ -28,6 +30,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     profile: null,
+    accessToken: null,
     isLoading: false,
     isInitialized: false,
 
@@ -40,7 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } = await supabase.auth.getSession()
 
         if (session?.user) {
-            set({ user: session.user })
+            set({ user: session.user, accessToken: session.access_token })
             await get().fetchProfile()
         }
 
@@ -49,12 +52,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // 인증 상태 변경 구독
         supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === "SIGNED_IN" && session?.user) {
-                set({ user: session.user })
+                set({ user: session.user, accessToken: session.access_token })
                 await get().fetchProfile()
+            } else if (event === "TOKEN_REFRESHED" && session) {
+                set({ accessToken: session.access_token })
             } else if (event === "SIGNED_OUT") {
                 get().reset()
             }
         })
+    },
+
+    getAccessToken: async () => {
+        const { accessToken } = get()
+        if (accessToken) return accessToken
+
+        // 토큰이 없으면 세션에서 다시 가져오기
+        const supabase = createClient()
+        const {
+            data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+            set({ accessToken: session.access_token })
+            return session.access_token
+        }
+
+        return null
     },
 
     fetchProfile: async () => {
@@ -113,6 +136,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
             user: null,
             profile: null,
+            accessToken: null,
             isLoading: false,
         })
     },

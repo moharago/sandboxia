@@ -4,7 +4,7 @@
  * AI 에이전트 관련 API 호출 함수
  */
 
-import { createClient } from "@/lib/supabase/client"
+import { useAuthStore } from "@/stores/auth-store"
 import type { EligibilityRequest, EligibilityResponse } from "@/types/api/eligibility"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
 import type { DraftGenerateRequest, DraftGenerateResponse, DraftCardUpdateRequest, DraftCardUpdateResponse } from "@/types/api/draft"
@@ -13,12 +13,10 @@ import type { TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 
 /**
- * Supabase 세션에서 인증 토큰 가져오기
+ * auth-store에서 인증 토큰 가져오기
  */
 async function getAuthToken(): Promise<string | null> {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token ?? null
+    return useAuthStore.getState().getAccessToken()
 }
 
 export const agentsApi = {
@@ -29,6 +27,12 @@ export const agentsApi = {
      * requestedTrack: counseling/quick_check/temp_permit/demo
      */
     parseService: async (request: ServiceParseRequest): Promise<ServiceParseResponse> => {
+        const token = await getAuthToken()
+
+        if (!token) {
+            throw new Error("로그인이 필요합니다.")
+        }
+
         const formData = new FormData()
         formData.append("session_id", request.sessionId)
         formData.append("requested_track", request.requestedTrack)
@@ -41,6 +45,9 @@ export const agentsApi = {
 
         const response = await fetch(`${API_BASE}/api/v1/agents/structure`, {
             method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
             body: formData,
         })
 
