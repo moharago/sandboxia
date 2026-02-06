@@ -109,8 +109,11 @@ export default function DraftPage({ params }: DraftPageProps) {
         )
     }
 
-    // 초안 데이터 있는지 여부
-    const hasDraftData = !!draftData?.form_values
+    // 초안 데이터 있는지 여부 (빈 객체 {}는 false로 처리)
+    const hasDraftData =
+        !!draftData?.form_values &&
+        typeof draftData.form_values === "object" &&
+        Object.keys(draftData.form_values).length > 0
 
     return (
         <div className="py-6">

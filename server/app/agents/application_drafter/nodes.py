@@ -258,20 +258,39 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
                 "top_k": 5,
             })
             similar_cases = []
+
+            def _case_to_dict(c) -> dict:
+                """CaseResult 객체 또는 dict를 표준 dict로 변환"""
+                # CaseResult Pydantic 모델인 경우
+                if hasattr(c, "service_name") and hasattr(c, "company_name"):
+                    return {
+                        "case_id": getattr(c, "case_id", ""),
+                        "company_name": getattr(c, "company_name", ""),
+                        "service_name": getattr(c, "service_name", ""),
+                        "track": getattr(c, "track", ""),
+                        "service_description": getattr(c, "service_description", ""),
+                        "current_regulation": getattr(c, "current_regulation", ""),
+                        "special_provisions": getattr(c, "special_provisions", ""),
+                        "conditions": getattr(c, "conditions", []),
+                        "pilot_scope": getattr(c, "pilot_scope", ""),
+                        "expected_effect": getattr(c, "expected_effect", ""),
+                        "review_result": getattr(c, "review_result", ""),
+                    }
+                # dict인 경우
+                elif isinstance(c, dict):
+                    return {
+                        "content": c.get("content", c.get("service_description", "")),
+                        "metadata": c.get("metadata", {}),
+                        **{k: v for k, v in c.items() if k not in ("content", "metadata")},
+                    }
+                # 기타 (fallback)
+                else:
+                    return {"content": str(c), "metadata": {}}
+
             if hasattr(case_result, "similar_cases"):
-                for c in case_result.similar_cases:
-                    similar_cases.append(
-                        {"content": c.get("content", ""), "metadata": c.get("metadata", {})}
-                        if isinstance(c, dict)
-                        else {"content": str(c), "metadata": {}}
-                    )
+                similar_cases = [_case_to_dict(c) for c in case_result.similar_cases]
             elif isinstance(case_result, dict):
-                for c in case_result.get("similar_cases", []):
-                    similar_cases.append(
-                        {"content": c.get("content", ""), "metadata": c.get("metadata", {})}
-                        if isinstance(c, dict)
-                        else {"content": str(c), "metadata": {}}
-                    )
+                similar_cases = [_case_to_dict(c) for c in case_result.get("similar_cases", [])]
             else:
                 similar_cases = []
         else:
