@@ -7,6 +7,7 @@
 import { useAuthStore } from "@/stores/auth-store"
 import type { EligibilityRequest, EligibilityResponse } from "@/types/api/eligibility"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
+import type { DraftGenerateRequest, DraftGenerateResponse, DraftCardUpdateRequest, DraftCardUpdateResponse } from "@/types/api/draft"
 import type { TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/track"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
@@ -132,6 +133,63 @@ export const agentsApi = {
                 ...(token && { Authorization: `Bearer ${token}` }),
             },
             body: JSON.stringify(request),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `Request failed: ${response.status}`)
+        }
+
+        return response.json()
+    },
+
+    /**
+     * 신청서 초안 생성 (Application Drafter Agent, Step 4)
+     *
+     * canonical 데이터와 선택된 트랙을 기반으로 신청서 초안을 생성합니다.
+     */
+    generateDraft: async (request: DraftGenerateRequest): Promise<DraftGenerateResponse> => {
+        const token = await getAuthToken()
+
+        const response = await fetch(`${API_BASE}/api/v1/agents/draft`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            body: JSON.stringify(request),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `Request failed: ${response.status}`)
+        }
+
+        return response.json()
+    },
+
+    /**
+     * 신청서 카드 부분 저장 (Step 4)
+     *
+     * 특정 카드만 업데이트하고 나머지 카드는 유지합니다.
+     */
+    updateDraftCard: async (request: DraftCardUpdateRequest): Promise<DraftCardUpdateResponse> => {
+        const token = await getAuthToken()
+
+        if (!token) {
+            throw new Error("로그인이 필요합니다.")
+        }
+
+        const response = await fetch(`${API_BASE}/api/v1/agents/draft/${request.project_id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                card_key: request.card_key,
+                card_data: request.card_data,
+            }),
         })
 
         if (!response.ok) {

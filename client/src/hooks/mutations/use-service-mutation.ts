@@ -47,8 +47,6 @@ export function useServiceMutation(options?: UseServiceMutationOptions) {
     return useMutation<ServiceParseResponse, Error, ServiceParseRequest>({
         mutationFn: agentsApi.parseService,
         onSuccess: (data, variables) => {
-            console.log("HWP 파싱 결과:", data)
-
             // 프로젝트 상세 캐시 무효화 (서비스 정보, current_step 등 업데이트됨)
             queryClient.invalidateQueries({
                 queryKey: projectKeys.detail(variables.sessionId),

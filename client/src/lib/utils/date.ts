@@ -1,3 +1,12 @@
+/** 오늘 날짜를 "YYYY-MM-DD" 형식으로 반환 */
+export function getTodayIso(): string {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, "0")
+    const day = String(today.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+}
+
 /** 날짜 문자열 → "YYYY-MM-DD" 변환 (OCR 오류 패턴 포함) */
 export function formatDateIso(raw: string): string {
     if (!raw) return ""

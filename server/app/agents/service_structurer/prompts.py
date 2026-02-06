@@ -132,6 +132,7 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
   }},
   "service": {{
     "service_name": "서비스명 또는 null",
+    "service_type": "유형 - '기술인 경우' / '서비스인 경우' / '기술과 서비스가 융합된 경우' 중 하나 또는 null",
     "what_action": "핵심 행위/기능 - 구체적으로 작성",
     "target_users": "서비스 대상 - 구체적으로 작성",
     "delivery_method": "제공 방식 - 구체적으로 작성",

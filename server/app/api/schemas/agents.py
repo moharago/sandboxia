@@ -35,6 +35,7 @@ class ServiceInfo(BaseModel):
     """서비스 정보"""
 
     service_name: str | None = None
+    service_type: str | None = None  # 유형: 기술인 경우 / 서비스인 경우 / 기술과 서비스가 융합된 경우
     what_action: str | None = None
     target_users: str | None = None
     delivery_method: str | None = None

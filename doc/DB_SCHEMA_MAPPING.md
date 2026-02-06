@@ -152,7 +152,7 @@ canonical ← 통일 구조로 변환 (에이전트용)
 Step 2: canonical 읽고 → 대상성 판단
 Step 3: canonical 읽고 → 트랙 추천
     ↓
-Step 4: application_input 바탕으로 AI 초안 생성
+Step 4: canonical 바탕으로 AI 초안 생성
     ↓
 application_draft ← 초안 저장 → 사용자 수정 → UPDATE
 ```

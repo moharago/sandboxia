@@ -38,7 +38,6 @@ export function useEligibilityMutation(options?: UseEligibilityMutationOptions) 
     return useMutation<EligibilityResponse, Error, EligibilityRequest>({
         mutationFn: agentsApi.evaluateEligibility,
         onSuccess: (data) => {
-            console.log("대상성 판단 결과:", data)
             options?.onSuccess?.(data)
         },
         onError: (error) => {
