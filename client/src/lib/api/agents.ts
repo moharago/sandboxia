@@ -10,7 +10,9 @@ import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/stru
 import type { DraftGenerateRequest, DraftGenerateResponse, DraftCardUpdateRequest, DraftCardUpdateResponse } from "@/types/api/draft"
 import type { TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/track"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+// 프로덕션: 비워두면 상대경로로 요청 → Vercel rewrites가 EC2로 프록시
+// 개발: http://localhost:8000 설정
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 
 /**
  * auth-store에서 인증 토큰 가져오기
