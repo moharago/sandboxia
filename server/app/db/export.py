@@ -25,12 +25,14 @@ def save_chunks_json(
         저장된 청크 수
     """
     chunks = []
-    for doc, chunk_id in zip(documents, doc_ids):
-        chunks.append({
-            "chunk_id": chunk_id,
-            "content": doc.page_content,
-            "metadata": doc.metadata,
-        })
+    for doc, chunk_id in zip(documents, doc_ids, strict=True):
+        chunks.append(
+            {
+                "chunk_id": chunk_id,
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+            }
+        )
 
     # 도메인/카테고리별로 정렬 (있으면)
     def sort_key(c):
