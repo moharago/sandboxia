@@ -90,4 +90,5 @@ async def run_track_recommender(
         "result_summary": result["result_summary"],
         "track_comparison": result["track_comparison"],
         "similar_cases": result.get("similar_cases", {}),
+        "domain_constraints": result.get("domain_constraints", {}),
     }
