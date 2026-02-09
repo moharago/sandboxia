@@ -26,6 +26,7 @@ from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_CASES
+from app.db.export import save_chunks_json
 
 # 다운로드된 JSON 캐싱 경로
 LOCAL_CACHE_FILE = Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
@@ -231,7 +232,12 @@ def collect_and_store_cases(reset: bool = True):
     # Vector DB에 저장 (ID 포함)
     vectorstore.add_documents(documents, ids=document_ids)
 
-    print("[OK] 저장 완료!")
+    print("[OK] Vector DB 저장 완료!")
+
+    # 청크 JSON 저장 (평가용)
+    chunks_json_path = Path(__file__).parent.parent / "data" / "r2_data" / "chunks.json"
+    saved_count = save_chunks_json(documents, document_ids, chunks_json_path)
+    print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
     # 수집 결과 저장
     result_file = persist_dir / "r2_collection_info.json"

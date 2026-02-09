@@ -59,6 +59,23 @@ export interface SimilarCase {
 // 트랙별 유사 사례 목록
 export type SimilarCases = Partial<Record<RecommendableTrack, SimilarCase[]>>
 
+// R3 도메인 법령 개별 항목
+export interface DomainConstraint {
+    content: string           // 조문 내용
+    source: string            // 인용 (예: "의료법 제34조 제1항")
+    law_name: string          // 법령명
+    article_title: string     // 조문 제목
+    domain_label: string      // 도메인 한글명
+    source_url: string | null // 국가법령정보센터 URL
+}
+
+// R3 도메인 법령 RAG 검색 결과
+export interface DomainConstraints {
+    constraints: DomainConstraint[]
+    blocking_regulations: DomainConstraint[]
+    has_blocking_issue: boolean
+}
+
 // 트랙 추천 요청
 export interface TrackRecommendRequest {
     project_id: string
@@ -72,6 +89,7 @@ export interface TrackRecommendResponse {
     result_summary: string
     track_comparison: TrackComparison
     similar_cases?: SimilarCases  // 트랙별 유사 승인 사례 (서버에서 omit 가능)
+    domain_constraints?: DomainConstraints  // R3 도메인 법령 RAG 검색 결과
 }
 
 // 트랙 선택 저장 요청
