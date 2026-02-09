@@ -27,6 +27,7 @@ from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_REGULATIONS
+from app.db.export import save_chunks_json
 
 # 로컬 데이터 파일 (fallback)
 LOCAL_DATA_FILE = (
@@ -232,7 +233,12 @@ def collect_and_store_regulations(reset: bool = True):
     # Vector DB에 저장 (ID 포함)
     vectorstore.add_documents(documents, ids=document_ids)
 
-    print("[OK] 저장 완료!")
+    print("[OK] Vector DB 저장 완료!")
+
+    # 청크 JSON 저장 (평가용)
+    chunks_json_path = Path(__file__).parent.parent / "data" / "r1_data" / "chunks.json"
+    saved_count = save_chunks_json(documents, document_ids, chunks_json_path)
+    print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
     # 수집 결과 저장
     result_file = persist_dir / "r1_collection_info.json"
