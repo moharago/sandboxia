@@ -237,12 +237,15 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
         const prevJson = JSON.stringify(prevInitialValuesRef.current)
         const currentJson = JSON.stringify(initialValues)
 
-        if (prevJson !== currentJson) {
+        // Fast Refresh 등으로 formValues가 초기화된 경우도 처리
+        const isFormValuesEmpty = Object.keys(formValues).length === 0
+        const hasFlattenedData = Object.keys(flattenedInitialValues).length > 0
+
+        if (prevJson !== currentJson || (isFormValuesEmpty && hasFlattenedData)) {
             prevInitialValuesRef.current = initialValues
-            // 새 initialValues로 formValues 덮어쓰기 (사용자 입력보다 AI 초안 우선)
             setFormValues(flattenedInitialValues)
         }
-    }, [initialValues, flattenedInitialValues])
+    }, [initialValues, flattenedInitialValues, formValues])
     const [savedMessage, setSavedMessage] = useState<string | null>(null)
     const [saveError, setSaveError] = useState<string | null>(null)
 

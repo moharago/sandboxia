@@ -194,6 +194,14 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
                 canonical_dict["form_selections"][key] = value
                 logger.info(f"[HWP Parser] form_selections[{key}] = {value}")
 
+        # HWP 파서에서 추출한 signatures 강제 적용
+        if merged_hwp_data.get("applicants", {}).get("signatures"):
+            hwp_signatures = merged_hwp_data["applicants"]["signatures"]
+            if "applicants" not in canonical_dict:
+                canonical_dict["applicants"] = {}
+            canonical_dict["applicants"]["signatures"] = hwp_signatures
+            logger.info(f"[HWP Parser] applicants.signatures = {hwp_signatures}")
+
         logger.info(f"Canonical structure created for session: {session_id}")
 
         return {

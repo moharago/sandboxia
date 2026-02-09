@@ -312,6 +312,10 @@ PLAN_COMMON_PATTERNS: dict[str, list[str]] = {
     "technologies_and_patents": [
         r"보유기술\s*및\s*특허[:\s]*(.+?)(?:\n\n|재무|$)",
     ],
+    # 제출 서명 (신청기관의 장)
+    "submission_signatures": [
+        r"\(기관명\)\s*(.+?)\s*\(성명\)\s*(.+?)\s*\(인\)",
+    ],
 }
 
 

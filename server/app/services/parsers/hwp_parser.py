@@ -442,8 +442,15 @@ class HWPParser:
         # 문서 타입별 패턴 가져오기
         type_patterns = get_patterns_for_subtype(self.document.document_subtype)
 
+        # submission_signatures 특별 처리 (여러 그룹 캡처, 다중 매칭)
+        self._extract_submission_signatures(cleaned_text, type_patterns)
+
         # 단일 값 필드 추출
         for field_name, patterns in type_patterns.items():
+            # submission_signatures는 위에서 별도 처리
+            if field_name == "submission_signatures":
+                continue
+
             for pattern in patterns:
                 match = re.search(
                     pattern, cleaned_text, re.IGNORECASE | re.MULTILINE | re.DOTALL
@@ -703,6 +710,44 @@ class HWPParser:
 
         return states
 
+    def _extract_submission_signatures(
+        self, text: str, type_patterns: dict[str, list[str]]
+    ) -> None:
+        """제출 서명 정보 추출 (여러 서명 지원)
+
+        HWP 형식: (기관명) OOO 주식회사 (성명)홍길동 (인)
+
+        Args:
+            text: 정제된 텍스트
+            type_patterns: 필드 패턴 딕셔너리
+        """
+        if "submission_signatures" not in type_patterns:
+            return
+
+        signatures: list[dict[str, str]] = []
+
+        for pattern in type_patterns["submission_signatures"]:
+            # finditer로 모든 매칭 찾기
+            for match in re.finditer(
+                pattern, text, re.IGNORECASE | re.MULTILINE | re.DOTALL
+            ):
+                if match.lastindex and match.lastindex >= 2:
+                    org_name = self._clean_field_value(match.group(1).strip())
+                    signer_name = self._clean_field_value(match.group(2).strip())
+
+                    if org_name and signer_name:
+                        signatures.append({
+                            "organization_name": org_name,
+                            "signer_name": signer_name,
+                        })
+                        print(
+                            f"[DEBUG HWP] submission_signatures 매칭: "
+                            f"org={org_name}, signer={signer_name}"
+                        )
+
+        if signatures:
+            self.document.extracted_fields["submission_signatures"] = signatures
+
     def _clean_hwp_text(self, text: str) -> str:
         """HWP 제어 문자 정리
 
@@ -823,6 +868,9 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
         "safety_and_protection": {},
         "justification": {},
         "form_selections": {},  # 체크박스/라디오 선택 상태
+        "applicants": {  # 신청인/서명 정보
+            "signatures": [],
+        },
         "metadata": {
             "source_files": [],
             "document_category": None,
@@ -843,7 +891,7 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
 
         fields = doc.extracted_fields
 
-        # 회사 정보 매핑
+        # 회사 정보 매핑 (붙임 1. 신청기관 현황자료 포함)
         company_fields = [
             "company_name",
             "representative",
@@ -853,6 +901,10 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
             "email",
             "position",
             "name",
+            # 붙임 1. 신청기관 현황자료
+            "establishment_date",
+            "main_business",
+            "licenses_and_permits",
         ]
         for f in company_fields:
             if f in fields and f not in merged["company_info"]:
@@ -938,6 +990,13 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
                 if selection_key not in merged["form_selections"]:
                     merged["form_selections"][selection_key] = selection_value
                     print(f"[DEBUG merge] form_selections[{selection_key}] = {selection_value}")
+
+        # 제출 서명 매핑
+        if "submission_signatures" in fields:
+            sigs = fields["submission_signatures"]
+            if isinstance(sigs, list):
+                merged["applicants"]["signatures"].extend(sigs)
+                print(f"[DEBUG merge] applicants.signatures 추가: {sigs}")
 
     # 빈 딕셔너리 제거
     return {k: v for k, v in merged.items() if v}

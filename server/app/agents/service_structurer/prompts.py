@@ -149,7 +149,21 @@ HWP의 "재무상태" 또는 "재무현황" 테이블에서 숫자 데이터를 
 HWP의 "주요인력 현황" 테이블에서 데이터를 추출하세요:
 - "조직도" 셀 → hr.organizationChart (텍스트 설명 그대로)
 - "소속 직원 수" 또는 "총 인원" → hr.totalEmployees (숫자만, 예: "3")
-- 인력 테이블 각 행 → hr.keyPersonnel 배열
+- 인력 테이블 각 행 → hr.keyPersonnel 배열 (아래 구조)
+
+**keyPersonnel 객체 구조 (필수!):**
+```json
+{
+  "name": "성명",
+  "department": "담당부서 또는 소속부서",
+  "position": "직책/직급",
+  "qualifications": "자격/보유기술 (자격증, 전공, 기술 등)",
+  "experience": "해당업무 경력 (연수 또는 설명)",
+  "responsibilities": "담당업무 또는 역할"
+}
+```
+
+테이블에서 각 인력의 모든 정보를 빠짐없이 추출하세요!
 
 **신속확인(quick_check) 트랙 - section_texts 추출 필수!**
 
@@ -209,16 +223,16 @@ HWP 파서가 체크박스 상태를 정확하게 추출했으므로, 직접 파
 
 출력 JSON 구조:
 {
-  "company": { "company_name", "representative", "business_number", "address", "contact", "email", "establishment_date" },
+  "company": { "company_name", "representative", "business_number", "address", "contact", "email", "establishment_date", "main_business", "licenses_and_permits" },
   "service": { "service_name", "service_type", "what_action", "target_users", "delivery_method", "service_description", "service_category" },
-  "technology": { "core_technology", "innovation_points": [] },
+  "technology": { "core_technology", "innovation_points": [], "technologies_and_patents" },
   "regulatory": { "related_regulations": [], "regulatory_issues": [], "governing_agency", "expected_permit" },
   "financial": {
     "yearM2": { "totalAssets", "equity", "currentLiabilities", "fixedLiabilities", "currentAssets", "netIncome", "totalRevenue", "returnOnEquity", "debtRatio" },
     "yearM1": { "totalAssets", "equity", "currentLiabilities", "fixedLiabilities", "currentAssets", "netIncome", "totalRevenue", "returnOnEquity", "debtRatio" },
     "average": { "totalAssets", "equity", "currentLiabilities", "fixedLiabilities", "currentAssets", "netIncome", "totalRevenue", "returnOnEquity", "debtRatio" }
   },
-  "hr": { "organizationChart", "totalEmployees", "keyPersonnel": [] },
+  "hr": { "organizationChart", "totalEmployees", "keyPersonnel": [{ "name", "department", "position", "qualifications", "experience", "responsibilities" }] },
   "project_plan": { "projectName", "startDate", "endDate", "durationMonths", "schedule" },
   "applicants": { "organizations": [{ "organizationName", "organizationType", "responsiblePersonName", "position", "phoneNumber", "email" }], "submissionDate", "applicationDate", "signatures": [] },
   "section_texts": { "detailedDescription", "marketStatusAndOutlook", ... },

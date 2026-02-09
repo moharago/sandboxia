@@ -24,12 +24,10 @@ export function DownloadModal({ isOpen, onClose, formType }: DownloadModalProps)
 
     const handleDownload = (applicationId: string, applicationName: string) => {
         // TODO: 실제 다운로드 로직 구현
-        console.log(`Downloading ${applicationName} as ${fileFormat}`)
     }
 
     const handleDownloadAll = () => {
         // TODO: 일괄 다운로드 로직 구현
-        console.log(`Downloading all as ${fileFormat}`)
     }
 
     return (
