@@ -499,7 +499,10 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                 <CardContent className="space-y-6">
                     {formSchema.sections.map(renderSection)}
 
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-end gap-3">
+                        <span className="text-xs text-muted-foreground">
+                            수정 후 저장 버튼을 클릭해야 변경사항이 반영됩니다
+                        </span>
                         <Button
                             variant="outline"
                             size="sm"

@@ -281,10 +281,7 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
     # R1: 신청 요건/작성 가이드
     try:
         app_req_results = get_application_requirements.invoke({"track": track_korean})
-        application_requirements = [
-            {"content": r.content, "metadata": r.metadata}
-            for r in app_req_results
-        ]
+        application_requirements = [r.model_dump() for r in app_req_results]
     except Exception as e:
         logger.warning("R1 신청 요건 검색 실패: %s", e)
         application_requirements = []
@@ -292,10 +289,7 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
     # R1: 심사 기준
     try:
         review_results = get_review_criteria.invoke({"track": track_korean})
-        review_criteria = [
-            {"content": r.content, "metadata": r.metadata}
-            for r in review_results
-        ]
+        review_criteria = [r.model_dump() for r in review_results]
     except Exception as e:
         logger.warning("R1 심사 기준 검색 실패: %s", e)
         review_criteria = []
@@ -604,7 +598,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     logger.info("[DEBUG] company pass-through applied to %s", form_id)
 
         # 사업계획서의 organizationProfile.generalInfo에도 원본 데이터 적용
-        # (LLM이 마스킹된 값으로 생성하므로 원본으로 덮어씀)
+        # (LLM이 마스킹된 값으로 생성할 수 있으므로 canonical 원본으로 항상 덮어씀)
         for form_id in ["temporary-2", "demonstration-2"]:
             form_data = _get_form_data(draft, form_id)
             if form_data is not None:
@@ -612,7 +606,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     form_data["organizationProfile"] = {}
                 org_profile = form_data["organizationProfile"]
 
-                # organizationName = company_name
+                # organizationName = company_name (항상 canonical 값 우선)
                 if company.get("company_name"):
                     org_profile["organizationName"] = company["company_name"]
 
@@ -621,6 +615,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     org_profile["generalInfo"] = {}
                 general_info = org_profile["generalInfo"]
 
+                # LLM이 마스킹된 값을 생성할 수 있으므로, canonical에 값이 있으면 항상 덮어씀
                 if company.get("representative"):
                     general_info["representativeName"] = company["representative"]
                 if company.get("address"):
@@ -665,21 +660,36 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
             logger.info("[DEBUG] mainBusiness applied to %s", form_id)
 
     # 재무현황 병합 (canonical: year별 구조 → form: row별 구조로 변환)
+    # canonical 한글 키 → form 영문 키 매핑
+    FINANCIAL_KEY_MAP = {
+        "총자산": "totalAssets",
+        "자기자본": "equity",
+        "유동부채": "currentLiabilities",
+        "고정부채": "fixedLiabilities",
+        "유동자산": "currentAssets",
+        "당기순이익": "netIncome",
+        "총매출액": "totalRevenue",
+        "자기자본 이익률": "returnOnEquity",
+        "부채비율": "debtRatio",
+    }
+
     financial = canonical.get("financial", {})
     if financial and any(financial.get(year) for year in ["yearM2", "yearM1", "average"]):
         financial_status = {}
-        row_keys = [
-            "totalAssets", "equity", "currentLiabilities", "fixedLiabilities",
-            "currentAssets", "netIncome", "totalRevenue", "returnOnEquity", "debtRatio"
-        ]
-        for row_key in row_keys:
-            row_data = {}
-            for year in ["yearM2", "yearM1", "average"]:
-                year_data = financial.get(year, {})
-                if year_data and year_data.get(row_key):
-                    row_data[year] = year_data[row_key]
-            if row_data:
-                financial_status[row_key] = row_data
+
+        for year in ["yearM2", "yearM1", "average"]:
+            year_data = financial.get(year, {})
+            if not year_data:
+                continue
+
+            for korean_key, english_key in FINANCIAL_KEY_MAP.items():
+                value = year_data.get(korean_key)
+                if value is not None:
+                    if english_key not in financial_status:
+                        financial_status[english_key] = {}
+                    financial_status[english_key][year] = value
+
+        logger.info("[DEBUG] financial_status after mapping: %s", financial_status)
 
         if financial_status:
             for form_id in ["temporary-2", "demonstration-2"]:
@@ -748,28 +758,49 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
     # 신청기관 (applicants) 병합
     applicants = canonical.get("applicants", {})
-    if applicants:
-        logger.info("[DEBUG] Processing applicants: %s", applicants)
+    logger.info("[DEBUG] Processing applicants: %s", applicants)
 
-        organizations = applicants.get("organizations", [])
-        if organizations and isinstance(organizations, list):
-            valid_orgs = [
-                {
-                    "organizationName": org.get("organizationName"),
-                    "organizationType": org.get("organizationType"),
-                    "responsiblePersonName": org.get("responsiblePersonName"),
-                    "position": org.get("position"),
-                    "phoneNumber": org.get("phoneNumber"),
-                    "email": org.get("email"),
-                }
-                for org in organizations
-                if isinstance(org, dict) and org.get("organizationName")
-            ]
-            if valid_orgs:
-                for form_id in ["temporary-2", "demonstration-2"]:
-                    form_data = _get_form_data(draft, form_id)
-                    if form_data:
-                        form_data["applicantOrganizations"] = valid_orgs
+    organizations = applicants.get("organizations", []) if applicants else []
+    valid_orgs = []
+
+    if organizations and isinstance(organizations, list):
+        valid_orgs = [
+            {
+                "organizationName": org.get("organizationName"),
+                "organizationType": org.get("organizationType"),
+                "responsiblePersonName": org.get("responsiblePersonName"),
+                "position": org.get("position"),
+                "phoneNumber": org.get("phoneNumber"),
+                "email": org.get("email"),
+            }
+            for org in organizations
+            if isinstance(org, dict) and org.get("organizationName")
+        ]
+
+    # organizations가 비어있으면 company 정보로 기본 신청기관 생성
+    if not valid_orgs and company:
+        default_org = {
+            "organizationName": company.get("company_name"),
+            "organizationType": "법인",  # 기본값
+            "responsiblePersonName": company.get("representative"),
+            "position": "대표이사",  # 기본값
+            "phoneNumber": company.get("contact"),
+            "email": company.get("email"),
+        }
+        # organizationName이 있어야 유효
+        if default_org["organizationName"]:
+            valid_orgs = [default_org]
+            logger.info("[DEBUG] Created default applicantOrganization from company: %s", default_org)
+
+    if valid_orgs:
+        for form_id in ["temporary-2", "demonstration-2"]:
+            form_data = _get_form_data(draft, form_id)
+            if form_data:
+                # LLM이 마스킹된 이름을 생성할 수 있으므로 항상 canonical 값으로 덮어씀
+                form_data["applicantOrganizations"] = valid_orgs
+                logger.info("[DEBUG] applicantOrganizations overwritten with canonical for %s", form_id)
+
+    if applicants:
 
         # 제출일자 - HWP에서 파싱된 값 사용, 없으면 오늘 날짜
         submission_date = applicants.get("submissionDate")
@@ -785,7 +816,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     form_data["submissionDate"] = {}
                 form_data["submissionDate"]["submissionDate"] = submission_date
 
-        # 서명 목록
+        # 서명 목록 (LLM이 마스킹된 이름을 생성할 수 있으므로 항상 canonical 값으로 덮어씀)
         signatures = applicants.get("signatures", [])
         if signatures and isinstance(signatures, list):
             valid_sigs = [
@@ -800,7 +831,9 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                 for form_id in ["temporary-2", "demonstration-2"]:
                     form_data = _get_form_data(draft, form_id)
                     if form_data:
+                        # LLM이 마스킹된 이름을 생성할 수 있으므로 항상 canonical 값으로 덮어씀
                         form_data["submission"] = valid_sigs
+                        logger.info("[DEBUG] submission overwritten with canonical signatures for %s", form_id)
 
     # 신청일자 - HWP에서 파싱된 날짜 사용, 없으면 오늘 날짜
     applicants = canonical.get("applicants", {})
@@ -862,30 +895,22 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
             # demonstration-1: regulatoryExemptionReason
             form_data_1 = _get_form_data(draft, "demonstration-1")
             if form_data_1:
-                if "regulatoryExemptionReason" not in form_data_1 or not isinstance(form_data_1.get("regulatoryExemptionReason"), dict):
-                    form_data_1["regulatoryExemptionReason"] = {}
-
-                if demo_reason.get("impossibleToApplyPermit") is True:
-                    form_data_1["regulatoryExemptionReason"]["reason1_impossibleToApplyPermit"] = True
-                    logger.info("[DEBUG] form_selections: demo reason1_impossibleToApplyPermit = True")
-
-                if demo_reason.get("unclearOrUnreasonableCriteria") is True:
-                    form_data_1["regulatoryExemptionReason"]["reason2_unclearOrUnreasonableCriteria"] = True
-                    logger.info("[DEBUG] form_selections: demo reason2_unclearOrUnreasonableCriteria = True")
+                # LLM이 잘못 생성한 값 초기화 후 form_selections 값으로 설정
+                form_data_1["regulatoryExemptionReason"] = {
+                    "reason1_impossibleToApplyPermit": demo_reason.get("impossibleToApplyPermit") is True,
+                    "reason2_unclearOrUnreasonableCriteria": demo_reason.get("unclearOrUnreasonableCriteria") is True,
+                }
+                logger.info("[DEBUG] form_selections: demo regulatoryExemptionReason = %s", form_data_1["regulatoryExemptionReason"])
 
             # demonstration-3: eligibility (소명서)
             form_data_3 = _get_form_data(draft, "demonstration-3")
             if form_data_3:
-                if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
-                    form_data_3["eligibility"] = {}
-
-                if demo_reason.get("impossibleToApplyPermit") is True:
-                    form_data_3["eligibility"]["impossibleToApplyPermitByOtherLaw"] = True
-                    logger.info("[DEBUG] form_selections: demo eligibility impossibleToApplyPermitByOtherLaw = True")
-
-                if demo_reason.get("unclearOrUnreasonableCriteria") is True:
-                    form_data_3["eligibility"]["unclearOrUnreasonableCriteria"] = True
-                    logger.info("[DEBUG] form_selections: demo eligibility unclearOrUnreasonableCriteria = True")
+                # LLM이 잘못 생성한 값 초기화 후 form_selections 값으로 설정
+                form_data_3["eligibility"] = {
+                    "impossibleToApplyPermitByOtherLaw": demo_reason.get("impossibleToApplyPermit") is True,
+                    "unclearOrUnreasonableCriteria": demo_reason.get("unclearOrUnreasonableCriteria") is True,
+                }
+                logger.info("[DEBUG] form_selections: demo eligibility = %s", form_data_3["eligibility"])
 
     # 신속확인(fastcheck) section_texts - LLM이 다듬어서 생성하도록 pass-through 제거
     # 서술형 필드는 LLM 프롬프트에 전달되어 다듬어진 결과가 사용됨

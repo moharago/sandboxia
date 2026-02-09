@@ -11,7 +11,6 @@ from typing import Any
 from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI
 
-from app.agents.service_structurer.prompts import STRUCTURE_BUILDER_PROMPT
 from app.agents.service_structurer.state import ServiceStructurerState
 from app.agents.service_structurer.tools import (
     merge_hwp_documents,
@@ -133,15 +132,48 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
             api_key=settings.OPENAI_API_KEY,
         )
 
-        prompt = STRUCTURE_BUILDER_PROMPT.format(
-            consultant_input=json.dumps(consultant_input, ensure_ascii=False, indent=2),
-            merged_hwp_data=json.dumps(merged_hwp_data, ensure_ascii=False, indent=2),
-            raw_text=raw_text_combined if raw_text_combined else "(원문 없음)",
-            requested_track=track_label,
-            session_id=session_id,
-        )
+        # 프롬프트 직접 구성 (ChatPromptTemplate의 중괄호 문제 완전 회피)
+        from langchain_core.messages import HumanMessage, SystemMessage
+        from app.agents.service_structurer.prompts import SYSTEM_PROMPT
 
-        response = await llm.ainvoke(prompt)
+        consultant_input_str = json.dumps(consultant_input, ensure_ascii=False, indent=2)
+        merged_hwp_data_str = json.dumps(merged_hwp_data, ensure_ascii=False, indent=2)
+        raw_text_str = raw_text_combined if raw_text_combined else "(원문 없음)"
+
+        # Human 메시지 직접 구성 (f-string 사용, 템플릿 시스템 우회)
+        human_content = f"""다음 데이터를 분석하여 Canonical Structure를 생성하세요.
+
+## 컨설턴트 입력 데이터
+```json
+{consultant_input_str}
+```
+
+## HWP 파싱 결과 (병합됨)
+```json
+{merged_hwp_data_str}
+```
+
+## HWP 원문 텍스트 (참고용)
+```
+{raw_text_str}
+```
+
+## 요청된 트랙
+{track_label}
+
+## 세션 정보
+- session_id: {session_id}
+
+---
+
+위 데이터를 분석하여 Canonical Structure JSON을 생성하세요. JSON만 출력하세요."""
+
+        messages = [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=human_content),
+        ]
+
+        response = await llm.ainvoke(messages)
         response_text = response.content
 
         # JSON 파싱
@@ -151,6 +183,16 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
         canonical_dict = _validate_and_complete_structure(
             canonical_dict, session_id, requested_track, consultant_input
         )
+
+        # HWP 파서에서 추출한 form_selections 강제 적용 (LLM 파싱보다 우선)
+        if merged_hwp_data.get("form_selections"):
+            hwp_form_selections = merged_hwp_data["form_selections"]
+            if "form_selections" not in canonical_dict:
+                canonical_dict["form_selections"] = {}
+            # HWP 파서 결과로 덮어씀 (LLM이 잘못 파싱했을 수 있으므로)
+            for key, value in hwp_form_selections.items():
+                canonical_dict["form_selections"][key] = value
+                logger.info(f"[HWP Parser] form_selections[{key}] = {value}")
 
         logger.info(f"Canonical structure created for session: {session_id}")
 
@@ -165,7 +207,9 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
         }
 
     except Exception as e:
+        import traceback
         logger.error(f"Structure building error: {e}")
+        logger.error(f"Structure building traceback:\n{traceback.format_exc()}")
         return {
             "canonical_structure": None,
             "error": f"LLM 구조화 오류: {str(e)}",
@@ -179,15 +223,29 @@ def _parse_llm_json_response(response_text: str) -> dict[str, Any]:
     if "```json" in response_text:
         start = response_text.find("```json") + 7
         end = response_text.find("```", start)
-        json_str = response_text[start:end].strip()
+        if end == -1:
+            # 닫는 ``` 없으면 끝까지
+            json_str = response_text[start:].strip()
+        else:
+            json_str = response_text[start:end].strip()
     elif "```" in response_text:
         start = response_text.find("```") + 3
         end = response_text.find("```", start)
-        json_str = response_text[start:end].strip()
+        if end == -1:
+            json_str = response_text[start:].strip()
+        else:
+            json_str = response_text[start:end].strip()
     else:
         json_str = response_text.strip()
 
-    return json.loads(json_str)
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        # JSON 파싱 실패 시 디버그 로깅
+        logger.error(f"[JSON Parse Error] {e}")
+        logger.error(f"[JSON Parse Error] json_str 시작 200자: {json_str[:200]}")
+        logger.error(f"[JSON Parse Error] json_str 끝 200자: {json_str[-200:]}")
+        raise
 
 
 def _validate_and_complete_structure(
