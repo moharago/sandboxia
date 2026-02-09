@@ -90,26 +90,48 @@ const FIELD_COPY_DEFAULTS: Record<string, string> = {
 }
 
 /**
+ * 종료일 필드인지 확인
+ */
+const END_DATE_FIELDS = ["endDate", "period.endDate", "projectInfo.period.endDate"]
+
+function isEndDateField(fieldKey: string): boolean {
+    return END_DATE_FIELDS.some((f) => fieldKey.endsWith(f))
+}
+
+/**
  * 문자열이 날짜 형식인지 확인하고 ISO 형식으로 변환
  * "2025년 11월 24일" → "2025-11-24"
  * "2026. 02. 06." → "2026-02-06"
+ * @param fieldKey 필드 키 (종료일 여부 판단용)
  */
-function tryConvertDateToIso(value: string): string {
+function tryConvertDateToIso(value: string, fieldKey = ""): string {
     // 날짜 패턴 감지: 년/월/일 포함 또는 YYYY.MM.DD 형식
     const isDateLike =
         /\d{4}\s*년/.test(value) || // 2025년
         /^\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?$/.test(value.trim()) // 2026. 02. 06.
 
     if (isDateLike) {
-        const converted = formatDateIso(value)
+        const isEndDate = isEndDateField(fieldKey)
+        const converted = formatDateIso(value, isEndDate)
         return converted || value // 변환 실패 시 원본 반환
     }
     return value
 }
 
 /**
+ * 배열이 문자열만 포함하는지 확인 (체크박스 그룹용)
+ */
+function isStringArray(arr: unknown[]): arr is string[] {
+    return arr.length > 0 && arr.every((item) => typeof item === "string")
+}
+
+/**
  * 중첩된 객체를 flat한 key 구조로 변환
  * { applicant: { companyName: "ABC" } } → { "applicant.companyName": "ABC" }
+ *
+ * 배열 처리:
+ * - 문자열 배열 (체크박스 그룹): ["a", "b"] → "a,b" (쉼표 구분 문자열)
+ * - 객체 배열 (동적 행): [{...}, {...}] → { "key.0.field": "...", "key.1.field": "..." }
  */
 function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string, string> {
     const result: Record<string, string> = {}
@@ -121,20 +143,28 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
             // null/undefined는 빈 문자열로
             result[newKey] = ""
         } else if (Array.isArray(value)) {
-            // 배열은 인덱스 기반으로 재귀 처리 (DynamicFormCard와 동일한 dot notation 사용)
-            for (let i = 0; i < value.length; i++) {
-                const item = value[i]
-                const arrayKey = `${newKey}.${i}`
+            // 문자열 배열은 체크박스 그룹으로 간주 → 쉼표 구분 문자열로 변환
+            if (isStringArray(value)) {
+                result[newKey] = value.join(",")
+            } else if (value.length === 0) {
+                // 빈 배열은 빈 문자열
+                result[newKey] = ""
+            } else {
+                // 객체 배열은 인덱스 기반으로 재귀 처리 (DynamicFormCard와 동일한 dot notation 사용)
+                for (let i = 0; i < value.length; i++) {
+                    const item = value[i]
+                    const arrayKey = `${newKey}.${i}`
 
-                if (item === null || item === undefined) {
-                    result[arrayKey] = ""
-                } else if (typeof item === "object") {
-                    // 배열 내 객체는 재귀 처리
-                    Object.assign(result, flattenObject(item as Record<string, unknown>, arrayKey))
-                } else {
-                    // 배열 내 문자열도 날짜 변환 적용
-                    const strItem = String(item)
-                    result[arrayKey] = tryConvertDateToIso(strItem)
+                    if (item === null || item === undefined) {
+                        result[arrayKey] = ""
+                    } else if (typeof item === "object") {
+                        // 배열 내 객체는 재귀 처리
+                        Object.assign(result, flattenObject(item as Record<string, unknown>, arrayKey))
+                    } else {
+                        // 기타 primitive는 문자열로 변환
+                        const strItem = String(item)
+                        result[arrayKey] = tryConvertDateToIso(strItem, arrayKey)
+                    }
                 }
             }
         } else if (typeof value === "object") {
@@ -146,7 +176,7 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
         } else {
             // 나머지는 문자열로 변환 (날짜 형식이면 ISO로 변환)
             const strValue = String(value)
-            result[newKey] = tryConvertDateToIso(strValue)
+            result[newKey] = tryConvertDateToIso(strValue, newKey)
         }
     }
 

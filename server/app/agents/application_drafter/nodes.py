@@ -15,8 +15,11 @@ from langchain_openai import ChatOpenAI
 
 from app.agents.application_drafter.form_schema import load_form_schema, validate_schema_keys
 from app.agents.application_drafter.prompts import (
+    ADDITIONAL_QUESTIONS_PROMPT,
     DRAFT_SYSTEM_PROMPT,
     DRAFT_USER_PROMPT,
+    REGULATORY_EXEMPTION_REASON_PROMPT,
+    TEMPORARY_PERMIT_REASON_PROMPT,
     TRACK_NAME_MAP,
 )
 from app.agents.application_drafter.state import ApplicationDrafterState
@@ -519,6 +522,22 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     # ==============================
     application_draft = _merge_passthrough_data(application_draft, canonical)
 
+    # ==============================
+    # AI 추론 생성 (트랙 변환 시 원본에 없는 필드)
+    # ==============================
+    # 임시허가/실증특례 → 신속확인: additionalQuestions
+    application_draft = await _generate_additional_questions(
+        application_draft, canonical, track
+    )
+    # 신속확인 → 실증특례: regulatoryExemptionReason
+    application_draft = await _generate_regulatory_exemption_reason(
+        application_draft, canonical, track
+    )
+    # 신속확인 → 임시허가: temporaryPermitReason
+    application_draft = await _generate_temporary_permit_reason(
+        application_draft, canonical, track
+    )
+
     return {
         "application_draft": application_draft,
         "model_name": model_name,
@@ -606,8 +625,44 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     general_info["representativeName"] = company["representative"]
                 if company.get("address"):
                     general_info["address"] = company["address"]
+                if company.get("establishment_date"):
+                    general_info["establishmentDate"] = company["establishment_date"]
 
                 logger.info("[DEBUG] organizationProfile pass-through applied to %s", form_id)
+
+    # ==============================
+    # 기관 현황 필드 pass-through (section_texts에서 직접 가져옴)
+    # licensesAndPermits, technologiesAndPatents, mainBusiness
+    # 문서 기반 생성이므로 fallback 없음 - section_texts에 없으면 빈칸 유지
+    # ==============================
+    section_texts = canonical.get("section_texts", {})
+
+    for form_id in ["temporary-2", "demonstration-2"]:
+        form_data = _get_form_data(draft, form_id)
+        if form_data is None:
+            continue
+
+        if "organizationProfile" not in form_data:
+            form_data["organizationProfile"] = {}
+        org_profile = form_data["organizationProfile"]
+
+        # technologiesAndPatents: section_texts에서만
+        tech_patents = section_texts.get("technologiesAndPatents")
+        if tech_patents and not org_profile.get("technologiesAndPatents"):
+            org_profile["technologiesAndPatents"] = tech_patents
+            logger.info("[DEBUG] technologiesAndPatents applied to %s", form_id)
+
+        # licensesAndPermits: section_texts에서만
+        licenses = section_texts.get("licensesAndPermits")
+        if licenses and not org_profile.get("licensesAndPermits"):
+            org_profile["licensesAndPermits"] = licenses
+            logger.info("[DEBUG] licensesAndPermits applied to %s", form_id)
+
+        # mainBusiness: section_texts에서만
+        main_biz = section_texts.get("mainBusiness")
+        if main_biz and not org_profile.get("mainBusiness"):
+            org_profile["mainBusiness"] = main_biz
+            logger.info("[DEBUG] mainBusiness applied to %s", form_id)
 
     # 재무현황 병합 (canonical: year별 구조 → form: row별 구조로 변환)
     financial = canonical.get("financial", {})
@@ -771,17 +826,34 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
         temp_permit_reason = form_selections.get("temporaryPermitReason", {})
         if temp_permit_reason:
-            form_data = _get_form_data(draft, "temporary-3")
-            if form_data:
-                if "eligibility" not in form_data:
-                    form_data["eligibility"] = {}
+            # temporary-1: temporaryPermitReason (체크박스 그룹 - 배열 형태)
+            form_data_1 = _get_form_data(draft, "temporary-1")
+            if form_data_1:
+                # LLM이 리스트나 다른 타입으로 생성했을 수 있으므로 dict로 보장
+                if "temporaryPermitReason" not in form_data_1 or not isinstance(form_data_1.get("temporaryPermitReason"), dict):
+                    form_data_1["temporaryPermitReason"] = {}
+
+                selected_reasons = []
+                if temp_permit_reason.get("noApplicableStandards") is True:
+                    selected_reasons.append("noApplicableStandards")
+                if temp_permit_reason.get("unclearOrUnreasonableStandards") is True:
+                    selected_reasons.append("unclearOrUnreasonableStandards")
+
+                form_data_1["temporaryPermitReason"]["temporaryPermitReason"] = selected_reasons
+                logger.info("[DEBUG] form_selections: temporary-1 temporaryPermitReason = %s", selected_reasons)
+
+            # temporary-3: eligibility (소명서 - 개별 boolean 형태)
+            form_data_3 = _get_form_data(draft, "temporary-3")
+            if form_data_3:
+                if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
+                    form_data_3["eligibility"] = {}
 
                 if temp_permit_reason.get("noApplicableStandards") is True:
-                    form_data["eligibility"]["noApplicableStandards"] = True
+                    form_data_3["eligibility"]["noApplicableStandards"] = True
                     logger.info("[DEBUG] form_selections: noApplicableStandards = True")
 
                 if temp_permit_reason.get("unclearOrUnreasonableStandards") is True:
-                    form_data["eligibility"]["unclearOrUnreasonableStandards"] = True
+                    form_data_3["eligibility"]["unclearOrUnreasonableStandards"] = True
                     logger.info("[DEBUG] form_selections: unclearOrUnreasonableStandards = True")
 
         # 실증특례 체크박스 처리 (demonstrationReason)
@@ -790,7 +862,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
             # demonstration-1: regulatoryExemptionReason
             form_data_1 = _get_form_data(draft, "demonstration-1")
             if form_data_1:
-                if "regulatoryExemptionReason" not in form_data_1:
+                if "regulatoryExemptionReason" not in form_data_1 or not isinstance(form_data_1.get("regulatoryExemptionReason"), dict):
                     form_data_1["regulatoryExemptionReason"] = {}
 
                 if demo_reason.get("impossibleToApplyPermit") is True:
@@ -804,7 +876,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
             # demonstration-3: eligibility (소명서)
             form_data_3 = _get_form_data(draft, "demonstration-3")
             if form_data_3:
-                if "eligibility" not in form_data_3:
+                if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
                     form_data_3["eligibility"] = {}
 
                 if demo_reason.get("impossibleToApplyPermit") is True:
@@ -815,58 +887,325 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
                     form_data_3["eligibility"]["unclearOrUnreasonableCriteria"] = True
                     logger.info("[DEBUG] form_selections: demo eligibility unclearOrUnreasonableCriteria = True")
 
-    # 신속확인(fastcheck) section_texts pass-through
-    section_texts = canonical.get("section_texts", {})
-    if section_texts:
-        logger.info("[DEBUG] Processing section_texts for fastcheck: %s", list(section_texts.keys()))
+    # 신속확인(fastcheck) section_texts - LLM이 다듬어서 생성하도록 pass-through 제거
+    # 서술형 필드는 LLM 프롬프트에 전달되어 다듬어진 결과가 사용됨
+    # (메타데이터/숫자 필드만 pass-through, 서술형은 AI 다듬기)
 
-        # fastcheck-2 기술·서비스 세부내용
-        detailed_desc = section_texts.get("detailedDescription") or section_texts.get("technologyServiceDetails")
-        if detailed_desc:
-            form_data = _get_form_data(draft, "fastcheck-2")
-            if form_data:
-                if "technologyServiceDetails" not in form_data:
-                    form_data["technologyServiceDetails"] = {}
-                form_data["technologyServiceDetails"]["technologyServiceDetails"] = detailed_desc
-                logger.info("[DEBUG] section_texts: technologyServiceDetails applied to fastcheck-2")
+    # ==============================
+    # 해당여부에 대한 근거 (justification) pass-through
+    # 소명서(temporary-3, demonstration-3)에 section_texts에서 직접 복사
+    # ==============================
+    justification_text = section_texts.get("justification")
+    if justification_text:
+        for form_id in ["temporary-3", "demonstration-3"]:
+            form_data = _get_form_data(draft, form_id)
+            if form_data is not None:
+                if "justification" not in form_data or not isinstance(form_data.get("justification"), dict):
+                    form_data["justification"] = {}
+                # section_texts에서 추출한 원문 그대로 사용
+                form_data["justification"]["justification"] = justification_text
+                logger.info("[DEBUG] justification pass-through applied to %s", form_id)
 
-        # fastcheck-2 법·제도 이슈 사항
-        legal_issues = section_texts.get("legalIssues") or section_texts.get("regulationDetails")
-        if legal_issues:
-            form_data = _get_form_data(draft, "fastcheck-2")
-            if form_data:
-                if "legalIssues" not in form_data:
-                    form_data["legalIssues"] = {}
-                form_data["legalIssues"]["legalIssues"] = legal_issues
-                logger.info("[DEBUG] section_texts: legalIssues applied to fastcheck-2")
-
-        # fastcheck-2 기타 질의 사항
-        additional_q = section_texts.get("additionalQuestions")
-        if additional_q:
-            form_data = _get_form_data(draft, "fastcheck-2")
-            if form_data:
-                if "additionalQuestions" not in form_data:
-                    form_data["additionalQuestions"] = {}
-                form_data["additionalQuestions"]["additionalQuestions"] = additional_q
-                logger.info("[DEBUG] section_texts: additionalQuestions applied to fastcheck-2")
-
-    # 신속확인 authority 필드 (regulatory에서 추출)
+    # 신속확인 authority 필드 (regulatory에서만 추출 - 문서 기반)
     regulatory = canonical.get("regulatory", {})
-    if regulatory:
-        # 소관 부처 정보가 있으면 fastcheck-1.authority에 적용
-        governing_agency = regulatory.get("governing_agency") or regulatory.get("governingAgency")
-        permit_info = regulatory.get("expected_permit") or regulatory.get("expectedPermit")
 
-        if governing_agency or permit_info:
-            form_data = _get_form_data(draft, "fastcheck-1")
-            if form_data:
-                if "authority" not in form_data:
-                    form_data["authority"] = {}
-                if governing_agency:
-                    form_data["authority"]["expectedGoverningAgency"] = governing_agency
-                if permit_info:
-                    form_data["authority"]["expectedPermitOrApproval"] = permit_info
-                logger.info("[DEBUG] regulatory: authority applied to fastcheck-1")
+    # regulatory에서만 찾기 (패턴 추출 결과만 신뢰)
+    governing_agency = (
+        regulatory.get("governing_agency")
+        or regulatory.get("governingAgency")
+        or regulatory.get("expected_agency")  # HWP 파서 키
+    )
+    permit_info = (
+        regulatory.get("expected_permit")
+        or regulatory.get("expectedPermit")
+    )
+
+    if governing_agency or permit_info:
+        form_data = _get_form_data(draft, "fastcheck-1")
+        if form_data:
+            if "authority" not in form_data:
+                form_data["authority"] = {}
+            if governing_agency:
+                form_data["authority"]["expectedGoverningAgency"] = governing_agency
+            if permit_info:
+                form_data["authority"]["expectedPermitOrApproval"] = permit_info
+            logger.info("[DEBUG] regulatory: authority applied to fastcheck-1")
+
+    return draft
+
+
+async def _generate_additional_questions(
+    draft: dict,
+    canonical: dict,
+    target_track: str,
+) -> dict:
+    """임시허가/실증특례 → 신속확인 변환 시 기타 질의 사항 AI 추론 생성
+
+    조건:
+    - source_type이 temp_permit 또는 demo
+    - target_track이 quick_check
+    - additionalQuestions가 null인 경우
+
+    생성된 내용에는 generated_by: "ai" 마킹을 추가합니다.
+    """
+    # 조건 체크
+    metadata = canonical.get("metadata", {})
+    source_type = metadata.get("source_type", "")
+
+    # 임시허가/실증특례 → 신속확인 변환인 경우만
+    if source_type not in ("temp_permit", "demo"):
+        return draft
+    if target_track != "quick_check":
+        return draft
+
+    # fastcheck-2의 additionalQuestions가 null인지 확인
+    form_data = _get_form_data(draft, "fastcheck-2")
+    if not form_data:
+        return draft
+
+    current_value = form_data.get("additionalQuestions", {}).get("additionalQuestions")
+    if current_value:  # 이미 값이 있으면 스킵
+        return draft
+
+    # 서비스 정보 추출
+    service = canonical.get("service", {})
+    service_info = f"""- 서비스명: {service.get("service_name", "N/A")}
+- 서비스 설명: {service.get("service_description", "N/A")}
+- 핵심 행위: {service.get("what_action", "N/A")}"""
+
+    # 규제 정보 추출
+    regulatory = canonical.get("regulatory", {})
+    regulatory_issues = regulatory.get("regulatory_issues", [])
+    regulatory_info = ""
+    if regulatory_issues:
+        for issue in regulatory_issues[:3]:  # 최대 3개만
+            regulatory_info += f"- {issue.get('summary', '')}: {issue.get('blocking_reason', '')}\n"
+    else:
+        regulatory_info = "- 규제 이슈 정보 없음"
+
+    # LLM 호출
+    try:
+        llm = ChatOpenAI(
+            model=settings.LLM_MODEL,
+            temperature=0.3,
+            api_key=settings.OPENAI_API_KEY,
+        )
+
+        prompt = ADDITIONAL_QUESTIONS_PROMPT.format(
+            service_info=service_info,
+            regulatory_info=regulatory_info,
+        )
+
+        response = await llm.ainvoke([{"role": "user", "content": prompt}])
+        generated_text = response.content.strip()
+
+        if generated_text:
+            # additionalQuestions 필드에 AI 생성 내용 + 마킹 추가
+            if "additionalQuestions" not in form_data or not isinstance(form_data.get("additionalQuestions"), dict):
+                form_data["additionalQuestions"] = {}
+
+            form_data["additionalQuestions"]["additionalQuestions"] = generated_text
+            form_data["additionalQuestions"]["generated_by"] = "ai"
+
+            logger.info("[DEBUG] AI generated additionalQuestions for track conversion")
+
+    except Exception as e:
+        logger.warning("additionalQuestions AI 생성 실패: %s", e)
+
+    return draft
+
+
+async def _generate_regulatory_exemption_reason(
+    draft: dict,
+    canonical: dict,
+    target_track: str,
+) -> dict:
+    """신속확인 → 실증특례 변환 시 신청사유/해당여부 근거 AI 추론 생성
+
+    조건:
+    - source_type이 quick_check
+    - target_track이 demo
+
+    생성된 내용에는 generated_by: "ai" 마킹을 추가합니다.
+    """
+    metadata = canonical.get("metadata", {})
+    source_type = metadata.get("source_type", "")
+
+    # 신속확인 → 실증특례 변환인 경우만
+    if source_type != "quick_check":
+        return draft
+    if target_track != "demo":
+        return draft
+
+    # 서비스 정보 추출
+    service = canonical.get("service", {})
+    service_info = f"""- 서비스명: {service.get("service_name", "N/A")}
+- 서비스 설명: {service.get("service_description", "N/A")}
+- 핵심 행위: {service.get("what_action", "N/A")}"""
+
+    # 규제 정보 추출
+    regulatory = canonical.get("regulatory", {})
+    regulatory_issues = regulatory.get("regulatory_issues", [])
+    regulatory_info = ""
+    if regulatory_issues:
+        for issue in regulatory_issues[:3]:
+            regulatory_info += f"- {issue.get('summary', '')}: {issue.get('blocking_reason', '')}\n"
+    else:
+        regulatory_info = "- 규제 이슈 정보 없음"
+
+    try:
+        llm = ChatOpenAI(
+            model=settings.LLM_MODEL,
+            temperature=0.3,
+            api_key=settings.OPENAI_API_KEY,
+        )
+
+        prompt = REGULATORY_EXEMPTION_REASON_PROMPT.format(
+            service_info=service_info,
+            regulatory_info=regulatory_info,
+        )
+
+        response = await llm.ainvoke([{"role": "user", "content": prompt}])
+        raw_text = response.content.strip()
+
+        # JSON 파싱
+        json_text = raw_text
+        json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw_text)
+        if json_match:
+            json_text = json_match.group(1)
+
+        result = json.loads(json_text)
+        selected_reason = result.get("selectedReason", "")
+        justification = result.get("justification", "")
+
+        if selected_reason and justification:
+            # demonstration-1: regulatoryExemptionReason 체크박스 + 마킹
+            form_data_1 = _get_form_data(draft, "demonstration-1")
+            if form_data_1:
+                if "regulatoryExemptionReason" not in form_data_1 or not isinstance(form_data_1.get("regulatoryExemptionReason"), dict):
+                    form_data_1["regulatoryExemptionReason"] = {}
+
+                if selected_reason == "impossibleToApplyPermit":
+                    form_data_1["regulatoryExemptionReason"]["reason1_impossibleToApplyPermit"] = True
+                elif selected_reason == "unclearOrUnreasonableCriteria":
+                    form_data_1["regulatoryExemptionReason"]["reason2_unclearOrUnreasonableCriteria"] = True
+
+                form_data_1["regulatoryExemptionReason"]["generated_by"] = "ai"
+
+            # demonstration-3: eligibility 체크박스 + justification + 마킹
+            form_data_3 = _get_form_data(draft, "demonstration-3")
+            if form_data_3:
+                if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
+                    form_data_3["eligibility"] = {}
+
+                if selected_reason == "impossibleToApplyPermit":
+                    form_data_3["eligibility"]["impossibleToApplyPermitByOtherLaw"] = True
+                elif selected_reason == "unclearOrUnreasonableCriteria":
+                    form_data_3["eligibility"]["unclearOrUnreasonableCriteria"] = True
+
+                form_data_3["eligibility"]["generated_by"] = "ai"
+
+                # justification 텍스트
+                if "justification" not in form_data_3 or not isinstance(form_data_3.get("justification"), dict):
+                    form_data_3["justification"] = {}
+                form_data_3["justification"]["justification"] = justification
+                form_data_3["justification"]["generated_by"] = "ai"
+
+            logger.info("[DEBUG] AI generated regulatoryExemptionReason for track conversion")
+
+    except Exception as e:
+        logger.warning("regulatoryExemptionReason AI 생성 실패: %s", e)
+
+    return draft
+
+
+async def _generate_temporary_permit_reason(
+    draft: dict,
+    canonical: dict,
+    target_track: str,
+) -> dict:
+    """신속확인 → 임시허가 변환 시 신청사유/해당여부 근거 AI 추론 생성
+
+    조건:
+    - source_type이 quick_check
+    - target_track이 temp_permit
+
+    생성된 내용에는 generated_by: "ai" 마킹을 추가합니다.
+    """
+    metadata = canonical.get("metadata", {})
+    source_type = metadata.get("source_type", "")
+
+    # 신속확인 → 임시허가 변환인 경우만
+    if source_type != "quick_check":
+        return draft
+    if target_track != "temp_permit":
+        return draft
+
+    # 서비스 정보 추출
+    service = canonical.get("service", {})
+    service_info = f"""- 서비스명: {service.get("service_name", "N/A")}
+- 서비스 설명: {service.get("service_description", "N/A")}
+- 핵심 행위: {service.get("what_action", "N/A")}"""
+
+    # 규제 정보 추출
+    regulatory = canonical.get("regulatory", {})
+    regulatory_issues = regulatory.get("regulatory_issues", [])
+    regulatory_info = ""
+    if regulatory_issues:
+        for issue in regulatory_issues[:3]:
+            regulatory_info += f"- {issue.get('summary', '')}: {issue.get('blocking_reason', '')}\n"
+    else:
+        regulatory_info = "- 규제 이슈 정보 없음"
+
+    try:
+        llm = ChatOpenAI(
+            model=settings.LLM_MODEL,
+            temperature=0.3,
+            api_key=settings.OPENAI_API_KEY,
+        )
+
+        prompt = TEMPORARY_PERMIT_REASON_PROMPT.format(
+            service_info=service_info,
+            regulatory_info=regulatory_info,
+        )
+
+        response = await llm.ainvoke([{"role": "user", "content": prompt}])
+        raw_text = response.content.strip()
+
+        # JSON 파싱
+        json_text = raw_text
+        json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw_text)
+        if json_match:
+            json_text = json_match.group(1)
+
+        result = json.loads(json_text)
+        selected_reason = result.get("selectedReason", "")
+        justification = result.get("justification", "")
+
+        if selected_reason and justification:
+            # temporary-3: eligibility 체크박스 + justification + 마킹
+            form_data_3 = _get_form_data(draft, "temporary-3")
+            if form_data_3:
+                if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
+                    form_data_3["eligibility"] = {}
+
+                if selected_reason == "noApplicableStandards":
+                    form_data_3["eligibility"]["noApplicableStandards"] = True
+                elif selected_reason == "unclearOrUnreasonableStandards":
+                    form_data_3["eligibility"]["unclearOrUnreasonableStandards"] = True
+
+                form_data_3["eligibility"]["generated_by"] = "ai"
+
+                # justification 텍스트
+                if "justification" not in form_data_3 or not isinstance(form_data_3.get("justification"), dict):
+                    form_data_3["justification"] = {}
+                form_data_3["justification"]["justification"] = justification
+                form_data_3["justification"]["generated_by"] = "ai"
+
+            logger.info("[DEBUG] AI generated temporaryPermitReason for track conversion")
+
+    except Exception as e:
+        logger.warning("temporaryPermitReason AI 생성 실패: %s", e)
 
     return draft
 

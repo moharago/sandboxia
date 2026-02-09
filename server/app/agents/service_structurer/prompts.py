@@ -62,7 +62,15 @@ D) regulatory_issues (규제 이슈 — 리스트 형태로 작성)
   "status": "unclear | blocked | license_required | requirement_mismatch | no_basis | allowed_but_conditions",
   "blocking_reason": "막히는 이유 (금지/근거부재/요건불충족/인허가 필요 등)",
   "relief_direction": "interpretation_needed | temporary_permission | pilot_exception"
-}} 
+}}
+
+## 소관 부처 및 허가 정보 - 문서 원본 필수 사용!
+
+**governing_agency** (소관 부처)와 **expected_permit** (예상 허가등)은 반드시 HWP 문서에서 추출된 값을 사용합니다.
+- merged_hwp_data.regulatory_info.expected_agency → canonical.regulatory.governing_agency
+- merged_hwp_data.regulatory_info.expected_permit → canonical.regulatory.expected_permit
+
+**절대 추론하거나 새로 생성하지 마세요!** 문서에 없으면 null로 설정합니다.
 
 E) innovation_points (혁신성/신규성 판단)
 서비스의 혁신 요소를 기존 방식과의 비교를 포함하여 2~5개 항목으로 작성한다.
@@ -117,7 +125,90 @@ HWP 문서에서 각 섹션의 **원문 텍스트를 그대로** 추출하여 se
 - "주요 인허가 사항" → licensesAndPermits
 - "보유기술 및 특허" → technologiesAndPatents
 
-**⚠️ 신속확인(quick_check) 트랙 - section_texts 추출 필수!**
+**기관 현황 테이블 (붙임) - section_texts 추출 필수!**
+
+HWP의 "붙임 1. 신청기관 현황자료" 테이블에서 다음 필드를 **반드시** 추출하세요:
+- "주요 사업" 셀 내용 → mainBusiness
+- "주요 인허가 사항" 셀 내용 → licensesAndPermits
+- "보유기술 및 특허" 셀 내용 → technologiesAndPatents
+
+**예시 - 주요 사업:**
+HWP에 다음과 같이 적혀있으면:
+```
+ABC 서비스 기획 및 제작
+XYZ 관련 서비스 연구 및 기획
+디지털 서비스 기획 및 운영
+```
+→ mainBusiness: "ABC 서비스 기획 및 제작\nXYZ 관련 서비스 연구 및 기획\n디지털 서비스 기획 및 운영"
+
+**괄호, 특수문자 등 모든 내용을 빠뜨리지 마세요!** 원문 그대로 모든 줄을 추출합니다.
+
+**예시 - 주요 인허가 사항:**
+HWP에 다음과 같이 적혀있으면:
+```
+• OO업 신고(예정)
+• XX 관련 임시허가 신청 진행 중
+• 허가 승인 이후 관련 법령에 따른 인허가 절차를 순차적으로 이행할 예정임
+```
+→ licensesAndPermits: "• OO업 신고(예정)\n• XX 관련 임시허가 신청 진행 중\n• 허가 승인 이후 관련 법령에 따른 인허가 절차를 순차적으로 이행할 예정임"
+
+**절대 축약/요약 금지!** 모든 bullet point, 모든 문장을 원본 그대로 포함해야 합니다.
+
+**예시 - 보유기술 및 특허:**
+HWP에 다음과 같이 적혀있으면:
+```
+AAA 기반 BBB 설계 기술
+CCC 제작 프로세스 기획 기술
+(특허 보유 없음 / 향후 필요 시 검토 예정)
+```
+→ technologiesAndPatents: "AAA 기반 BBB 설계 기술\nCCC 제작 프로세스 기획 기술\n(특허 보유 없음 / 향후 필요 시 검토 예정)"
+
+**모든 줄을 빠짐없이 추출!** 첫 번째 줄만 가져오면 안 됩니다.
+
+**중요**: 테이블 셀 내용이 비어있지 않으면 **반드시 추출**하세요! null로 두지 마세요.
+테이블 형태여도 각 셀의 **전체 내용**을 빠짐없이 그대로 추출합니다.
+
+**해당여부에 대한 근거 (justification) - 추출 필수!**
+
+임시허가 신청서에서 "2. 해당여부에 대한 근거" 섹션의 **전체 내용**을 추출합니다:
+
+**추출 방법:**
+1. raw_text에서 "2. 해당여부에 대한 근거" 제목을 찾습니다
+2. 그 다음 줄부터 다음 섹션("3."으로 시작) 전까지의 **모든 텍스트**를 추출합니다
+3. 가. 나. 다. 등의 하위 항목 전체를 포함합니다
+
+**예시 - raw_text:**
+```
+2. 해당여부에 대한 근거
+가. 화장품법 제3조에 따르면 맞춤형 화장품은...
+나. 현재 화장품법 시행규칙 제00조 제0항에 의하면...
+다. 따라서 본 서비스는 임시허가가 필요한 사유에 해당합니다.
+```
+
+**예시 - 추출 결과:**
+```json
+"justification": "가. 화장품법 제3조에 따르면 맞춤형 화장품은...\n나. 현재 화장품법 시행규칙 제00조 제0항에 의하면...\n다. 따라서 본 서비스는 임시허가가 필요한 사유에 해당합니다."
+```
+
+**중요**: 이 섹션은 임시허가 신청의 핵심 근거이므로 **절대 null로 두지 마세요!** raw_text에 내용이 있으면 반드시 추출합니다.
+
+**재무상태 테이블 - financial 추출 필수!**
+
+HWP의 "재무상태" 또는 "재무현황" 테이블에서 숫자 데이터를 추출하세요:
+- 테이블 컬럼: M-2년도, M-1년도, 평균
+- 테이블 행: 총자산, 자기자본, 유동부채, 고정부채, 유동자산, 당기순이익, 총매출액, 자기자본 이익률, 부채비율
+- 예: "1억 원" → "1억 원" (원본 그대로 저장)
+- 값이 "없음"이면 null
+
+**인력현황 테이블 - hr 추출 필수!**
+
+HWP의 "주요인력 현황" 테이블에서 데이터를 추출하세요:
+- "조직도" 셀 → hr.organizationChart (텍스트 설명 그대로)
+- "소속 직원 수" 또는 "총 인원" → hr.totalEmployees (숫자만, 예: "3")
+- 인력 테이블 각 행 → hr.keyPersonnel 배열
+  - 이름, 부서명, 직책, 담당업무, 주요 자격/보유기술, 해당업무 경력(년)
+
+**신속확인(quick_check) 트랙 - section_texts 추출 필수!**
 
 신속확인 트랙의 raw_text에서 다음 3개 섹션의 **본문 내용**을 반드시 추출하세요:
 
@@ -157,21 +248,36 @@ HWP 문서에서 날짜 필드를 정확히 추출해야 합니다:
 2. **제출일자 (submissionDate)**: HWP의 제출/서명 섹션에 기재된 날짜
    - 예: "2025. 11. 20." → applicants.submissionDate에 저장
 
+## 서명 추출 (signatures) - 주의!
+
+HWP 문서 하단의 "신청기관의 장" 섹션에서 서명 정보를 추출합니다:
+- 형식: "(기관명) XXX (성명) YYY (인)"
+- 예: "(기관명) 화장품 주식회사 (성명) 김헐희 (인)"
+  → signatures: [{{"organizationName": "화장품 주식회사", "name": "김헐희"}}]
+
+**주의**: "과학기술정보통신부장관 귀하"는 수신자이지 신청기관이 아닙니다! signatures에 포함하지 마세요.
+
 ## form_selections (체크박스/라디오 선택값 파싱)
 
 HWP 문서에서 체크박스 선택 상태를 파싱하여 form_selections에 저장합니다.
 
 파싱 규칙:
-1. HWP raw_text에서 체크 표시를 찾습니다: ✓, √, ☑, [V], [v], (V), (v), ■, ● 등
-2. 체크 표시가 해당 항목 앞이나 괄호 안에 있으면 true, 없으면 false
+1. HWP raw_text에서 체크 표시를 찾습니다: ✓, √, ☑, [V], [v], (V), (v), ■, ●, O, o, ○ 등
+2. 체크 표시가 해당 항목 앞이나 뒤, 또는 "해당여부" 열에 있으면 true, 없으면 false
+3. 표 형식에서 "해당여부" 열에 O가 있으면 해당 행의 항목이 체크된 것입니다
 
-임시허가 신청 사유 (법 제37조):
-- "제37조제1항제1호" 또는 "기준·규격·요건 등이 없는 경우" 앞에 체크 표시 → noApplicableStandards: true
-- "제37조제1항제2호" 또는 "불명확하거나 불합리한 경우" 앞에 체크 표시 → unclearOrUnreasonableStandards: true
+임시허가 신청 사유 (법 제37조) - 두 개 모두 체크될 수 있음:
+- "제37조제1항제1호" 또는 "기준·규격·요건 등이 없는 경우" 행에 O/체크 표시 → noApplicableStandards: true
+- "제37조제1항제2호" 또는 "불명확하거나 불합리한 경우" 행에 O/체크 표시 → unclearOrUnreasonableStandards: true
+- **주의**: 두 항목 모두 체크되어 있을 수 있습니다! 각각 독립적으로 확인하세요.
 
-예시:
+예시 1 (괄호 형식):
 - "( √ ) 법 제37조제1항제1호" → noApplicableStandards: true
 - "(   ) 법 제37조제1항제2호" → unclearOrUnreasonableStandards: false
+
+예시 2 (표 형식 - 해당여부 열에 O 표시):
+- "제1호... | O" → noApplicableStandards: true
+- "제2호... | O" → unclearOrUnreasonableStandards: true
 
 ## 데이터 우선순위
 
@@ -230,7 +336,8 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
     "business_number": "사업자번호 또는 null",
     "address": "주소 또는 null",
     "contact": "연락처 또는 null",
-    "email": "이메일 또는 null"
+    "email": "이메일 또는 null",
+    "establishment_date": "설립일 - HWP '붙임 1. 신청기관 현황자료' 테이블의 '설립일' 셀에서 추출 (예: '2023년 3월 15일') 또는 null"
   }},
   "service": {{
     "service_name": "서비스명 또는 null",
@@ -256,8 +363,8 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
         "relief_direction": "구제 방향"
       }}
     ],
-    "governing_agency": "예상 소관 중앙행정기관/지방자치단체 또는 null (신속확인용)",
-    "expected_permit": "예상되는 허가등 또는 null (신속확인용)"
+    "governing_agency": "regulatory_info.expected_agency 값 그대로 사용 (없으면 null)",
+    "expected_permit": "regulatory_info.expected_permit 값 그대로 사용 (없으면 null)"
   }},
   "financial": {{
     "yearM2": {{
@@ -310,8 +417,8 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
   }},
   "project_plan": {{
     "projectName": "사업명 또는 null",
-    "startDate": "시작일 (YYYY-MM-DD 또는 YYYY년 M월) 또는 null",
-    "endDate": "종료일 (YYYY-MM-DD 또는 YYYY년 M월) 또는 null",
+    "startDate": "시작일 - HWP 원본 그대로 (예: '2026. 3. 1.', '2026년 3월 1일'). 일자까지 반드시 포함! 또는 null",
+    "endDate": "종료일 - HWP 원본 그대로 (예: '2027. 2. 28.', '2027년 2월 28일'). 일자까지 반드시 포함! 또는 null",
     "durationMonths": "기간(개월) 또는 null",
     "schedule": "사업 일정 및 단계별 계획 또는 null"
   }},
@@ -326,12 +433,12 @@ STRUCTURE_BUILDER_PROMPT = ChatPromptTemplate.from_messages(
         "email": "이메일 또는 null"
       }}
     ],
-    "submissionDate": "제출일자 (YYYY-MM-DD) 또는 null",
+    "submissionDate": "제출일자 또는 null - '신청기관의 장' 섹션 위쪽에 'YYYY년 M월 D일' 형태로 기재된 날짜 (예: '2025년 11월 24일'). '~장관 귀하' 바로 위에 있음",
     "applicationDate": "신청일자 또는 null - HWP의 '신청' 섹션에서 'XXXX년 X월 X일' 형태로 기재된 날짜를 찾아 그대로 저장 (예: '2025년 11월 14일')",
     "signatures": [
       {{
-        "organizationName": "기관명 또는 null",
-        "name": "성명 또는 null"
+        "organizationName": "기관명 또는 null - '신청기관의 장' 섹션에서 '(기관명) XXX' 형태로 기재된 값 (예: '화장품 주식회사')",
+        "name": "성명 또는 null - '신청기관의 장' 섹션에서 '(성명) YYY' 형태로 기재된 값 (예: '김헐희')"
       }}
     ]
   }},

@@ -316,7 +316,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoadingOverlay message={isRunningDraftAgent ? "AI 신청서 초안 생성 중" : "트랙 선택을 저장하고 있습니다..."} />}
+                {isSaving && <AILoadingOverlay message={isRunningDraftAgent ? "AI 신청서 초안 생성 중" : "트랙 저장 중..."} />}
                 <div className="container">
                     <div className="flex gap-4">
                         {/* 왼쪽: 메인 콘텐츠 */}
