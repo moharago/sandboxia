@@ -38,6 +38,7 @@ from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
+from app.db.export import save_chunks_json
 from app.services.law_api import law_api_client
 
 # 수집 대상 법령 (검색명, 도메인)
@@ -356,7 +357,12 @@ async def collect_and_store_laws():
     # Vector DB에 저장 (고유 ID 포함)
     vectorstore.add_documents(documents, ids=unique_ids)
 
-    print("[OK] 저장 완료!")
+    print("[OK] Vector DB 저장 완료!")
+
+    # 청크 JSON 저장 (평가용)
+    chunks_json_path = Path(__file__).parent.parent / "data" / "r3_data" / "chunks.json"
+    saved_count = save_chunks_json(documents, unique_ids, chunks_json_path)
+    print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
     # 수집 결과 저장
     result_file = persist_dir / "r3_collection_info.json"
