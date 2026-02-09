@@ -276,6 +276,9 @@ def retrieve_domain_constraints(
                     "content": r.content,
                     "source": getattr(r, "citation", ""),
                     "law_name": getattr(r, "law_name", ""),
+                    "article_title": getattr(r, "article_title", ""),
+                    "domain_label": getattr(r, "domain_label", ""),
+                    "source_url": getattr(r, "source_url", None),
                 }
                 results["constraints"].append(constraint)
 

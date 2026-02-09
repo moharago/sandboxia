@@ -210,6 +210,7 @@ class TrackRecommendResponse(BaseModel):
     result_summary: str
     track_comparison: dict
     similar_cases: dict = Field(default_factory=dict)  # {track_key: [case_dict, ...]}
+    domain_constraints: dict = Field(default_factory=dict)  # R3 도메인 법령 RAG 결과
 
 
 @router.get(
@@ -238,6 +239,7 @@ async def get_track_recommendation(
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
         similar_cases=result.get("similar_cases", {}),
+        domain_constraints=result.get("domain_constraints", {}),
     )
 
 
@@ -299,6 +301,7 @@ async def recommend_track(
 
     # 3. 결과 저장
     similar_cases = result.get("similar_cases", {})
+    domain_constraints = result.get("domain_constraints", {})
     try:
         save_track_result(
             project_id=project_id,
@@ -307,13 +310,11 @@ async def recommend_track(
             result_summary=result["result_summary"],
             track_comparison=result["track_comparison"],
             similar_cases=similar_cases,
+            domain_constraints=domain_constraints,
         )
     except Exception as e:
         logger.warning("track_results 저장 실패: %s", str(e))
         # 저장 실패해도 응답은 반환
-
-    # similar_cases 추출
-    similar_cases = result.get("similar_cases", {})
 
     return TrackRecommendResponse(
         project_id=project_id,
@@ -322,6 +323,7 @@ async def recommend_track(
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
         similar_cases=similar_cases,
+        domain_constraints=domain_constraints,
     )
 
 

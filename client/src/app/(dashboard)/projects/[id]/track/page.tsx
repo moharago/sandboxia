@@ -18,7 +18,8 @@ import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutat
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { cn } from "@/lib/utils/cn"
-import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
+import type { Regulation } from "@/types/api/eligibility"
+import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse, DomainConstraints } from "@/types/api/track"
 
 interface TrackPageProps {
     params: Promise<{ id: string }>
@@ -141,6 +142,33 @@ function extractCasesFromEvidence(response: TrackRecommendResponse): CaseData[] 
     return cases
 }
 
+// domain_constraints 원본 데이터에서 법령·제도 데이터 추출
+function extractRegulationsFromDomainConstraints(domainConstraints?: DomainConstraints): Regulation[] {
+    if (!domainConstraints?.constraints) return []
+
+    const seen = new Set<string>()
+    const regulations: Regulation[] = []
+
+    for (const constraint of domainConstraints.constraints) {
+        if (!constraint.source) continue
+        if (seen.has(constraint.source)) continue
+        seen.add(constraint.source)
+
+        const summary = constraint.article_title
+            ? `[${constraint.article_title}] ${constraint.content.slice(0, 80)}${constraint.content.length > 80 ? "..." : ""}`
+            : constraint.content.slice(0, 100) + (constraint.content.length > 100 ? "..." : "")
+
+        regulations.push({
+            category: constraint.domain_label || "법령",
+            title: constraint.source,
+            summary,
+            source_url: constraint.source_url || null,
+        })
+    }
+
+    return regulations
+}
+
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
@@ -164,6 +192,12 @@ export default function TrackPage({ params }: TrackPageProps) {
     const evidenceCases = useMemo(() => {
         if (!trackResult) return []
         return extractCasesFromEvidence(trackResult)
+    }, [trackResult])
+
+    // domain_constraints에서 법령·제도 데이터 추출
+    const evidenceRegulations = useMemo(() => {
+        if (!trackResult) return []
+        return extractRegulationsFromDomainConstraints(trackResult.domain_constraints)
     }, [trackResult])
 
     // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
@@ -429,7 +463,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                         {/* 오른쪽: 참고 패널 */}
                         <div className={isReferencePanelOpen ? "flex-1" : ""}>
                             <div className="sticky top-16">
-                                <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} cases={evidenceCases.length > 0 ? evidenceCases : undefined} />
+                                <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} cases={evidenceCases.length > 0 ? evidenceCases : undefined} regulations={evidenceRegulations.length > 0 ? evidenceRegulations : undefined} />
                             </div>
                         </div>
                     </div>

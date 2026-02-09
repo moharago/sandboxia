@@ -57,6 +57,7 @@ def save_track_result(
     result_summary: str,
     track_comparison: dict,
     similar_cases: dict | None = None,
+    domain_constraints: dict | None = None,
     model_name: str = "gpt-4o-mini",
 ) -> dict | None:
     """트랙 추천 결과 저장
@@ -68,20 +69,25 @@ def save_track_result(
         result_summary: AI 분석 요약 텍스트
         track_comparison: 트랙별 비교 데이터 (JSONB)
         similar_cases: 트랙별 유사 승인 사례 (JSONB)
+        domain_constraints: R3 도메인 법령 RAG 검색 결과 (JSONB)
         model_name: 사용된 LLM 모델명
 
     Returns:
         생성된 track_results 레코드 또는 None (저장 실패 시)
     """
-    result = supabase.table("track_results").insert({
-        "project_id": project_id,
-        "recommended_track": recommended_track,
-        "confidence_score": confidence_score,
-        "result_summary": result_summary,
-        "track_comparison": track_comparison,
-        "similar_cases": similar_cases or {},
-        "model_name": model_name,
-    }).execute()
+    result = supabase.table("track_results").upsert(
+        {
+            "project_id": project_id,
+            "recommended_track": recommended_track,
+            "confidence_score": confidence_score,
+            "result_summary": result_summary,
+            "track_comparison": track_comparison,
+            "similar_cases": similar_cases or {},
+            "domain_constraints": domain_constraints or {},
+            "model_name": model_name,
+        },
+        on_conflict="project_id",
+    ).execute()
 
     if not result.data:
         return None
