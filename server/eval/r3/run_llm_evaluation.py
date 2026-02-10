@@ -13,12 +13,15 @@ RAGAS 라이브러리를 사용하여 Generation 품질을 평가합니다.
 옵션:
     --top_k 10        # Top-K 값 변경 (기본: 5)
     --output result   # 결과 파일명 (기본: 타임스탬프)
-    --model gpt-4o    # 평가 LLM 모델 (기본: gpt-4o-mini)
     --limit 5         # 평가 항목 수 제한 (테스트용)
+    --trace           # LangSmith 추적 활성화 (토큰/비용 확인)
+
+Judge 모델: gpt-4.1 (고정)
 """
 
 import asyncio
 import json
+import os
 import statistics
 import sys
 import time
@@ -27,6 +30,29 @@ from pathlib import Path
 
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+
+def enable_langsmith_tracing(project_name: str = "rag-eval") -> bool:
+    """LangSmith 추적 활성화
+
+    Args:
+        project_name: LangSmith 프로젝트 이름
+
+    Returns:
+        True if enabled, False if API key not found
+    """
+    # .env에서 LANGCHAIN_API_KEY 확인
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    api_key = os.getenv("LANGCHAIN_API_KEY")
+    if not api_key:
+        print("⚠️  LANGCHAIN_API_KEY가 .env에 없습니다. --trace 무시됨.")
+        return False
+
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_PROJECT"] = project_name
+    return True
 
 from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -282,10 +308,12 @@ async def evaluate_single_item(
     return retrieval_metrics, llm_metrics, retrieval_latency, generation_latency, detail
 
 
+JUDGE_MODEL = "gpt-4.1"  # LLM-as-Judge 모델 (고정)
+
+
 async def run_evaluation_async(
     top_k: int = 5,
     output_name: str | None = None,
-    judge_model: str = "gpt-4o-mini",
     limit: int | None = None,
 ):
     """전체 평가 실행 (비동기)"""
@@ -303,13 +331,13 @@ async def run_evaluation_async(
 
     print(f"\n평가셋: {len(items)}개 항목")
     print(f"Top-K: {top_k}")
-    print(f"Judge Model: {judge_model}")
+    print(f"Judge Model: {JUDGE_MODEL}")
 
     # 초기화
     print("\n초기화 중...")
     vector_store = get_vector_store()
     llm = get_llm()
-    evaluator = RAGASEvaluator(model=judge_model)
+    evaluator = RAGASEvaluator(model=JUDGE_MODEL)
 
     # 평가 실행
     print("\n평가 진행 중...\n")
@@ -376,7 +404,7 @@ async def run_evaluation_async(
     print(f"  - Recall@{top_k}:           {retrieval_agg['avg_recall_at_k']:.4f}")
     print(f"  - MRR:                      {retrieval_agg['avg_mrr']:.4f}")
 
-    print(f"\n🤖 LLM-as-Judge 지표 ({judge_model}):")
+    print(f"\n🤖 LLM-as-Judge 지표 ({JUDGE_MODEL}):")
     if llm_agg.get("avg_faithfulness") is not None:
         print(f"  - Faithfulness:         {llm_agg['avg_faithfulness']:.4f}")
     else:
@@ -409,7 +437,7 @@ async def run_evaluation_async(
         "config": {
             "top_k": top_k,
             "embedding_model": settings.LLM_EMBEDDING_MODEL,
-            "judge_model": judge_model,
+            "judge_model": JUDGE_MODEL,
             "generation_model": "gpt-4o-mini",
             "collection": COLLECTION_LAWS,
             "num_items": len(items),
@@ -442,7 +470,6 @@ async def run_evaluation_async(
 def run_evaluation(
     top_k: int = 5,
     output_name: str | None = None,
-    judge_model: str = "gpt-4o-mini",
     limit: int | None = None,
 ):
     """전체 평가 실행 (동기 래퍼)"""
@@ -450,7 +477,6 @@ def run_evaluation(
         run_evaluation_async(
             top_k=top_k,
             output_name=output_name,
-            judge_model=judge_model,
             limit=limit,
         )
     )
@@ -466,24 +492,27 @@ def main():
     parser.add_argument("--top_k", type=int, default=5, help="Top-K 값 (기본: 5)")
     parser.add_argument("--output", type=str, default=None, help="결과 파일명")
     parser.add_argument(
-        "--model",
-        type=str,
-        default="gpt-4o-mini",
-        help="Judge LLM 모델 (기본: gpt-4o-mini)",
-    )
-    parser.add_argument(
         "--limit",
         type=int,
         default=None,
         help="평가 항목 수 제한 (테스트용)",
     )
+    parser.add_argument(
+        "--trace",
+        action="store_true",
+        help="LangSmith 추적 활성화 (토큰/비용 확인)",
+    )
 
     args = parser.parse_args()
+
+    # LangSmith 추적 활성화 (--trace 플래그 사용 시)
+    if args.trace:
+        if enable_langsmith_tracing("rag-eval"):
+            print("📊 LangSmith 추적 활성화됨 (https://smith.langchain.com)")
 
     run_evaluation(
         top_k=args.top_k,
         output_name=args.output,
-        judge_model=args.model,
         limit=args.limit,
     )
 

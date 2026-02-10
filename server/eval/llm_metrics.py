@@ -44,14 +44,14 @@ class RAGASEvaluator:
 
     def __init__(
         self,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-4.1",
         embedding_model: str = "text-embedding-3-small",
         api_key: str | None = None,
     ):
         """RAGAS 평가기 초기화
 
         Args:
-            model: 평가에 사용할 LLM 모델 (기본: gpt-4o-mini)
+            model: 평가에 사용할 LLM 모델 (기본: gpt-4.1)
             embedding_model: 임베딩 모델 (기본: text-embedding-3-small)
             api_key: OpenAI API 키 (없으면 환경변수 사용)
         """
