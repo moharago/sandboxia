@@ -35,7 +35,7 @@ from eval.metrics import RetrievalMetrics, aggregate_metrics
 # 경로 설정
 EVAL_DIR = Path(__file__).parent
 EVALUATION_SET_PATH = EVAL_DIR / "evaluation_set.json"
-RESULTS_DIR = EVAL_DIR / "results"
+RESULTS_DIR = EVAL_DIR / "results" / "retrieval"
 
 
 def load_evaluation_set() -> dict:
