@@ -9,12 +9,13 @@ LLM을 평가자로 사용하여 Generation 품질을 측정합니다.
 """
 
 import asyncio
+import concurrent.futures
 from dataclasses import dataclass
 
 from openai import AsyncOpenAI
 from ragas.embeddings.base import embedding_factory
 from ragas.llms import llm_factory
-from ragas.metrics.collections import AnswerRelevancy, Faithfulness
+from ragas.metrics import Faithfulness, ResponseRelevancy
 
 
 @dataclass
@@ -30,7 +31,7 @@ class RAGASEvaluator:
     """RAGAS 기반 LLM-as-Judge 평가기
 
     Usage:
-        evaluator = RAGASEvaluator(model="gpt-4o-mini")
+        evaluator = RAGASEvaluator(model="gpt-4.1")
 
         result = await evaluator.evaluate(
             question="간편결제 서비스에서 부정결제 사고가 발생하면 책임은 누가 지나요?",
@@ -69,7 +70,7 @@ class RAGASEvaluator:
 
         # 메트릭 초기화
         self.faithfulness_scorer = Faithfulness(llm=self.llm)
-        self.relevancy_scorer = AnswerRelevancy(llm=self.llm, embeddings=self.embeddings)
+        self.relevancy_scorer = ResponseRelevancy(llm=self.llm, embeddings=self.embeddings)
 
     async def evaluate_faithfulness(
         self,
@@ -144,12 +145,8 @@ class RAGASEvaluator:
         """
         try:
             # 병렬로 평가 실행
-            faithfulness_task = self.evaluate_faithfulness(
-                question, response, contexts
-            )
-            relevancy_task = self.evaluate_answer_relevancy(
-                question, response
-            )
+            faithfulness_task = self.evaluate_faithfulness(question, response, contexts)
+            relevancy_task = self.evaluate_answer_relevancy(question, response)
 
             faithfulness, relevancy = await asyncio.gather(
                 faithfulness_task,
@@ -173,8 +170,23 @@ class RAGASEvaluator:
         response: str,
         contexts: list[str],
     ) -> LLMMetricsResult:
-        """동기 방식 평가 (asyncio 이벤트 루프가 없는 환경용)"""
-        return asyncio.run(self.evaluate(question, response, contexts))
+        """동기 방식 평가 (기존 이벤트 루프 내에서도 호출 가능)
+
+        FastAPI 핸들러 등 이미 이벤트 루프가 실행 중인 환경에서도
+        안전하게 호출할 수 있습니다. 이벤트 루프가 없으면 새로 생성합니다.
+        """
+        coro = self.evaluate(question, response, contexts)
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # 이벤트 루프가 없는 경우 새로 생성하여 실행
+            return asyncio.run(coro)
+
+        # 이벤트 루프가 실행 중인 경우 별도 스레드에서 실행
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
 
 
 def aggregate_llm_metrics(results: list[LLMMetricsResult]) -> dict:
@@ -195,15 +207,9 @@ def aggregate_llm_metrics(results: list[LLMMetricsResult]) -> dict:
     return {
         "num_evaluated": len(results),
         "avg_faithfulness": (
-            round(sum(faithfulness_scores) / len(faithfulness_scores), 4)
-            if faithfulness_scores
-            else None
+            round(sum(faithfulness_scores) / len(faithfulness_scores), 4) if faithfulness_scores else None
         ),
-        "avg_answer_relevancy": (
-            round(sum(relevancy_scores) / len(relevancy_scores), 4)
-            if relevancy_scores
-            else None
-        ),
+        "avg_answer_relevancy": (round(sum(relevancy_scores) / len(relevancy_scores), 4) if relevancy_scores else None),
         "faithfulness_evaluated": len(faithfulness_scores),
         "relevancy_evaluated": len(relevancy_scores),
         "errors": sum(1 for r in results if r.error is not None),

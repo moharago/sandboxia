@@ -54,155 +54,33 @@ def enable_langsmith_tracing(project_name: str = "rag-eval") -> bool:
     os.environ["LANGCHAIN_PROJECT"] = project_name
     return True
 
-from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from eval.llm_metrics import LLMMetricsResult, RAGASEvaluator, aggregate_llm_metrics
 from eval.metrics import RetrievalMetrics, aggregate_metrics
-
-# 경로 설정
-EVAL_DIR = Path(__file__).parent
-EVALUATION_SET_PATH = EVAL_DIR / "evaluation_set.json"
-RESULTS_DIR = EVAL_DIR / "results" / "llm"
-
-
-def load_evaluation_set() -> dict:
-    """평가셋 로드"""
-    with open(EVALUATION_SET_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+from eval.r3.common import (
+    RESULTS_DIR_LLM,
+    build_gold_chunk_ids,
+    calculate_retrieval_metrics,
+    extract_chunk_id_from_doc,
+    format_chunk_ids,
+    get_vector_store,
+    load_evaluation_set,
+)
 
 
-def get_vector_store() -> Chroma:
-    """Vector Store 연결"""
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
-
-    return Chroma(
-        collection_name=COLLECTION_LAWS,
-        embedding_function=embeddings,
-        persist_directory=str(settings.CHROMA_PERSIST_DIR),
-    )
+GENERATION_MODEL = "gpt-4o-mini"  # 응답 생성 모델
 
 
-def get_llm(model: str = "gpt-4o-mini") -> ChatOpenAI:
+def get_llm(model: str = GENERATION_MODEL) -> ChatOpenAI:
     """LLM 인스턴스 생성"""
     return ChatOpenAI(
         model=model,
         temperature=0.1,
         api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
-
-
-def build_gold_chunk_ids(
-    gold_citations: list[dict],
-) -> tuple[list[dict], list[dict]]:
-    """gold_citations에서 매칭용 ID 생성"""
-    all_ids = []
-    must_have_ids = []
-
-    for citation in gold_citations:
-        base_id = f"{citation.get('law_name', '')}|{citation.get('article_no', '')}|{citation.get('paragraph_no', '')}"
-        article_title = citation.get("article_title", "")
-
-        gold_id = {
-            "base_id": base_id,
-            "article_title": article_title,
-        }
-
-        all_ids.append(gold_id)
-
-        if citation.get("must_have", False):
-            must_have_ids.append(gold_id)
-
-    return all_ids, must_have_ids
-
-
-def extract_chunk_id_from_doc(doc) -> dict:
-    """Document에서 매칭용 chunk_id 추출"""
-    meta = doc.metadata
-    base_id = f"{meta.get('law_name', '')}|{meta.get('article_no', '')}|{meta.get('paragraph_no', '')}"
-    article_title = meta.get("article_title", "")
-
-    return {
-        "base_id": base_id,
-        "article_title": article_title,
-    }
-
-
-def match_ids(retrieved_id: dict, gold_id: dict) -> bool:
-    """두 ID가 매칭되는지 확인"""
-    if retrieved_id["base_id"] != gold_id["base_id"]:
-        return False
-
-    if gold_id["article_title"]:
-        return retrieved_id["article_title"] == gold_id["article_title"]
-
-    return True
-
-
-def calculate_retrieval_metrics(
-    retrieved_ids: list[dict],
-    gold_ids: list[dict],
-    must_have_ids: list[dict],
-    k: int,
-) -> RetrievalMetrics:
-    """Retrieval 지표 계산"""
-    top_k_retrieved = retrieved_ids[:k]
-
-    # Recall@K
-    if not gold_ids:
-        recall = 1.0
-        retrieved_gold = 0
-    else:
-        matched_gold = 0
-        for gold in gold_ids:
-            for ret in top_k_retrieved:
-                if match_ids(ret, gold):
-                    matched_gold += 1
-                    break
-        recall = matched_gold / len(gold_ids)
-        retrieved_gold = matched_gold
-
-    # Must-Have Recall@K
-    if not must_have_ids:
-        must_have_recall = 1.0
-        retrieved_must_have = 0
-    else:
-        matched_must_have = 0
-        for gold in must_have_ids:
-            for ret in top_k_retrieved:
-                if match_ids(ret, gold):
-                    matched_must_have += 1
-                    break
-        must_have_recall = matched_must_have / len(must_have_ids)
-        retrieved_must_have = matched_must_have
-
-    # MRR
-    mrr = 0.0
-    first_hit_rank = None
-    for rank, ret in enumerate(retrieved_ids, start=1):
-        for gold in gold_ids:
-            if match_ids(ret, gold):
-                mrr = 1.0 / rank
-                first_hit_rank = rank
-                break
-        if first_hit_rank:
-            break
-
-    return RetrievalMetrics(
-        recall_at_k=recall,
-        must_have_recall_at_k=must_have_recall,
-        mrr=mrr,
-        k=k,
-        total_gold=len(gold_ids),
-        retrieved_gold=retrieved_gold,
-        total_must_have=len(must_have_ids),
-        retrieved_must_have=retrieved_must_have,
-        first_hit_rank=first_hit_rank,
     )
 
 
@@ -226,7 +104,7 @@ async def generate_response(llm: ChatOpenAI, question: str, contexts: list[str])
 
 
 async def evaluate_single_item(
-    vector_store: Chroma,
+    vector_store,
     llm: ChatOpenAI,
     evaluator: RAGASEvaluator,
     item: dict,
@@ -275,23 +153,14 @@ async def evaluate_single_item(
     )
 
     # 상세 정보
-    gold_ids_str = [
-        f"{g['base_id']}|{g['article_title']}" if g["article_title"] else g["base_id"]
-        for g in gold_ids
-    ]
-    retrieved_ids_str = [
-        f"{r['base_id']}|{r['article_title']}" if r["article_title"] else r["base_id"]
-        for r in retrieved_ids[:top_k]
-    ]
-
     detail = {
         "id": item["id"],
         "domain": item.get("domain", ""),
         "question": question,
         "response": response,
         "contexts": contexts[:3],  # 상위 3개만 저장
-        "gold_ids": gold_ids_str,
-        "retrieved_ids": retrieved_ids_str,
+        "gold_ids": format_chunk_ids(gold_ids),
+        "retrieved_ids": format_chunk_ids(retrieved_ids[:top_k]),
         # Retrieval 지표
         "recall_at_k": retrieval_metrics.recall_at_k,
         "must_have_recall_at_k": retrieval_metrics.must_have_recall_at_k,
@@ -365,8 +234,8 @@ async def run_evaluation_async(
         all_details.append(detail)
 
         # 진행 상황 출력
-        faith_str = f"{llm_metrics.faithfulness:.2f}" if llm_metrics.faithfulness else "N/A"
-        rel_str = f"{llm_metrics.answer_relevancy:.2f}" if llm_metrics.answer_relevancy else "N/A"
+        faith_str = f"{llm_metrics.faithfulness:.2f}" if llm_metrics.faithfulness is not None else "N/A"
+        rel_str = f"{llm_metrics.answer_relevancy:.2f}" if llm_metrics.answer_relevancy is not None else "N/A"
 
         print(
             f"  [{i:2d}/{len(items)}] {item['id']} | "
@@ -417,12 +286,12 @@ async def run_evaluation_async(
     if llm_agg.get("errors", 0) > 0:
         print(f"  - 평가 오류:            {llm_agg['errors']}건")
 
-    print(f"\n⏱️  Latency:")
+    print("\n⏱️  Latency:")
     print(f"  - Retrieval P50: {retrieval_p50:.1f}ms | P95: {retrieval_p95:.1f}ms")
     print(f"  - Generation P50: {generation_p50:.1f}ms | P95: {generation_p95:.1f}ms")
 
     # 결과 저장
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    RESULTS_DIR_LLM.mkdir(parents=True, exist_ok=True)
 
     if output_name:
         result_filename = f"{output_name}.json"
@@ -430,7 +299,7 @@ async def run_evaluation_async(
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         result_filename = f"{timestamp}.json"
 
-    result_path = RESULTS_DIR / result_filename
+    result_path = RESULTS_DIR_LLM / result_filename
 
     result_data = {
         "timestamp": datetime.now().isoformat(),
@@ -438,7 +307,7 @@ async def run_evaluation_async(
             "top_k": top_k,
             "embedding_model": settings.LLM_EMBEDDING_MODEL,
             "judge_model": JUDGE_MODEL,
-            "generation_model": "gpt-4o-mini",
+            "generation_model": GENERATION_MODEL,
             "collection": COLLECTION_LAWS,
             "num_items": len(items),
         },
