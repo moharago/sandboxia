@@ -250,8 +250,12 @@ def create_paragraph_chunks(
     return documents, doc_ids
 
 
-async def collect_and_store_laws():
-    """법령 데이터 수집 및 Vector DB 저장 (조/항/호 단위 청킹)"""
+async def collect_and_store_laws(export_chunks: bool = False):
+    """법령 데이터 수집 및 Vector DB 저장 (조/항/호 단위 청킹)
+
+    Args:
+        export_chunks: True면 청크 JSON도 함께 저장 (평가셋 작성용)
+    """
 
     print("=" * 60)
     print("법령 데이터 수집 시작 (조/항/호 단위 청킹)")
@@ -359,10 +363,11 @@ async def collect_and_store_laws():
 
     print("[OK] Vector DB 저장 완료!")
 
-    # 청크 JSON 저장 (평가용)
-    chunks_json_path = Path(__file__).parent.parent / "data" / "r3_data" / "chunks.json"
-    saved_count = save_chunks_json(documents, unique_ids, chunks_json_path)
-    print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
+    # 청크 JSON 저장 (평가용, 플래그가 True일 때만)
+    if export_chunks:
+        chunks_json_path = Path(__file__).parent.parent / "data" / "r3_data" / "chunks.json"
+        saved_count = save_chunks_json(documents, unique_ids, chunks_json_path)
+        print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
     # 수집 결과 저장
     result_file = persist_dir / "r3_collection_info.json"
@@ -391,4 +396,14 @@ async def collect_and_store_laws():
 
 
 if __name__ == "__main__":
-    asyncio.run(collect_and_store_laws())
+    import argparse
+
+    parser = argparse.ArgumentParser(description="법령 데이터 수집 및 Vector DB 저장")
+    parser.add_argument(
+        "--export-chunks",
+        action="store_true",
+        help="청크 JSON도 함께 저장 (평가셋 작성용)",
+    )
+    args = parser.parse_args()
+
+    asyncio.run(collect_and_store_laws(export_chunks=args.export_chunks))
