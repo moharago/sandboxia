@@ -116,3 +116,6 @@ retrospective.md
 
 # Presentation files
 doc/Presentation_Mid/
+
+# Docx template files
+server/app/templates/*.docx

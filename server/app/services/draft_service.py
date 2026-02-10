@@ -8,6 +8,7 @@ from datetime import datetime
 
 from app.agents.application_drafter import run_application_drafter
 from app.core.config import supabase
+from app.services.utils import is_flat_structure, unflatten
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,11 @@ def update_draft_card(
         existing_draft = result.data.get("application_draft") or {}
         existing_form_values = existing_draft.get("form_values") or {}
 
-        # 3. 해당 카드만 업데이트 (병합)
+        # 3. flat 구조면 nested로 변환
+        if is_flat_structure(card_data):
+            card_data = unflatten(card_data)
+
+        # 4. 해당 카드만 업데이트 (병합)
         updated_form_values = {
             **existing_form_values,
             card_key: {"data": card_data},

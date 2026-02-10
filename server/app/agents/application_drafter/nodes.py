@@ -6,6 +6,7 @@
 - 결과를 application_draft로 저장
 """
 
+import copy
 import json
 import logging
 import re
@@ -18,6 +19,8 @@ from app.agents.application_drafter.prompts import (
     ADDITIONAL_QUESTIONS_PROMPT,
     DRAFT_SYSTEM_PROMPT,
     DRAFT_USER_PROMPT,
+    EMPTY_FIELDS_SYSTEM_PROMPT,
+    EMPTY_FIELDS_USER_PROMPT,
     REGULATORY_EXEMPTION_REASON_PROMPT,
     TEMPORARY_PERMIT_REASON_PROMPT,
     TRACK_NAME_MAP,
@@ -32,6 +35,229 @@ from app.tools.shared.rag import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# 트랙별 section_texts → 폼 필드 매핑 테이블
+# ============================================================================
+
+# section_texts 키 → (form_id, section_key, field_key) 매핑
+# 트랙별로 다른 폼 구조에 맞게 매핑
+SECTION_TEXT_MAPPING = {
+    # 신속확인 (quick_check) 폼 매핑
+    "quick_check": {
+        "technologyServiceDetails": [("fastcheck-1", "technologyServiceDetails", "technologyServiceDetails")],
+        "legalIssues": [("fastcheck-1", "legalIssues", "legalIssues")],
+        "additionalQuestions": [("fastcheck-1", "additionalQuestions", "additionalQuestions")],
+        # 임시/실증에서 오는 경우 변환
+        "detailedDescription": [("fastcheck-1", "technologyServiceDetails", "technologyServiceDetails")],
+        "regulationDetails": [("fastcheck-1", "legalIssues", "legalIssues")],
+        "necessityAndRequest": [("fastcheck-1", "additionalQuestions", "additionalQuestions")],
+    },
+    # 임시허가 (temp_permit) 폼 매핑
+    "temp_permit": {
+        "detailedDescription": [("temporary-2", "technologyService", "detailedDescription")],
+        "marketStatusAndOutlook": [("temporary-2", "technologyService", "marketStatusAndOutlook")],
+        "regulationDetails": [("temporary-2", "temporaryPermitRequest", "regulationDetails")],
+        "necessityAndRequest": [("temporary-2", "temporaryPermitRequest", "necessityAndRequest")],
+        "objectivesAndScope": [("temporary-2", "businessPlan", "objectivesAndScope")],
+        "businessContent": [("temporary-2", "businessPlan", "businessContent")],
+        "schedule": [("temporary-2", "businessPlan", "schedule")],
+        "operationPlan": [("temporary-2", "operationPlan", "operationPlan")],
+        "quantitativeEffect": [("temporary-2", "expectedEffects", "quantitative")],
+        "qualitativeEffect": [("temporary-2", "expectedEffects", "qualitative")],
+        "expansionPlan": [("temporary-2", "expansionPlan", "expansionPlan")],
+        "organizationStructure": [("temporary-2", "organizationAndBudget", "organizationStructure")],
+        "budget": [("temporary-2", "organizationAndBudget", "budget")],
+        "mainBusiness": [("temporary-2", "organizationProfile", "mainBusiness")],
+        "licensesAndPermits": [("temporary-2", "organizationProfile", "licensesAndPermits")],
+        "technologiesAndPatents": [("temporary-2", "organizationProfile", "technologiesAndPatents")],
+        "safetyVerification": [("temporary-4", "safetyVerification", "safetyVerification")],
+        "userProtectionPlan": [("temporary-4", "userProtectionPlan", "userProtectionPlan")],
+        "riskAndResponse": [("temporary-4", "riskAndResponse", "riskAndResponse")],
+        "stakeholderConflictResolution": [("temporary-4", "stakeholderConflictResolution", "stakeholderConflictResolution")],
+        "justification": [("temporary-3", "justification", "justification")],
+        # 신속확인에서 오는 경우 변환
+        "technologyServiceDetails": [("temporary-2", "technologyService", "detailedDescription")],
+        "legalIssues": [("temporary-2", "temporaryPermitRequest", "regulationDetails")],
+    },
+    # 실증특례 (demo) 폼 매핑
+    "demo": {
+        "detailedDescription": [("demonstration-2", "technologyService", "detailedDescription")],
+        "marketStatusAndOutlook": [("demonstration-2", "technologyService", "marketStatusAndOutlook")],
+        "regulationDetails": [("demonstration-2", "regulatoryExemption", "regulationDetails")],
+        "necessityAndRequest": [("demonstration-2", "regulatoryExemption", "necessityAndRequest")],
+        "objectivesAndScope": [("demonstration-2", "testPlan", "objectivesAndScope")],
+        "executionMethod": [("demonstration-2", "testPlan", "executionMethod")],
+        "businessContent": [("demonstration-2", "testPlan", "executionMethod")],
+        "schedule": [("demonstration-2", "testPlan", "schedule")],
+        "operationPlan": [("demonstration-2", "operationPlan", "operationPlan")],
+        "quantitativeEffect": [("demonstration-2", "expectedEffects", "quantitative")],
+        "qualitativeEffect": [("demonstration-2", "expectedEffects", "qualitative")],
+        "expansionPlan": [("demonstration-2", "postTestPlan", "expansionPlan")],
+        "restorationPlan": [("demonstration-2", "postTestPlan", "restorationPlan")],
+        "organizationStructure": [("demonstration-2", "organizationAndBudget", "organizationStructure")],
+        "budget": [("demonstration-2", "organizationAndBudget", "budget")],
+        "mainBusiness": [("demonstration-2", "organizationProfile", "mainBusiness")],
+        "licensesAndPermits": [("demonstration-2", "organizationProfile", "licensesAndPermits")],
+        "technologiesAndPatents": [("demonstration-2", "organizationProfile", "technologiesAndPatents")],
+        "safetyVerification": [("demonstration-4", "safetyVerification", "safetyVerification")],
+        "userProtectionPlan": [("demonstration-4", "userProtectionPlan", "userProtectionPlan")],
+        "protectionAndResponse": [("demonstration-4", "protectionAndResponse", "protectionAndResponse")],
+        "riskAndMitigation": [("demonstration-4", "riskAndMitigation", "riskAndMitigation")],
+        "riskAndResponse": [("demonstration-4", "riskAndMitigation", "riskAndMitigation")],
+        "stakeholderConflict": [("demonstration-4", "stakeholderConflict", "stakeholderConflict")],
+        "stakeholderConflictResolution": [("demonstration-4", "stakeholderConflict", "stakeholderConflict")],
+        "justification": [("demonstration-3", "justification", "justification")],
+        # 신속확인에서 오는 경우 변환
+        "technologyServiceDetails": [("demonstration-2", "technologyService", "detailedDescription")],
+        "legalIssues": [("demonstration-2", "regulatoryExemption", "regulationDetails")],
+    },
+}
+
+# 서술형 필드 목록 (LLM 생성 대상)
+DESCRIPTIVE_FIELDS = {
+    "detailedDescription", "marketStatusAndOutlook", "regulationDetails",
+    "necessityAndRequest", "objectivesAndScope", "businessContent",
+    "executionMethod", "schedule", "operationPlan", "quantitative",
+    "qualitative", "expansionPlan", "restorationPlan", "organizationStructure",
+    "budget", "safetyVerification", "userProtectionPlan", "riskAndResponse",
+    "riskAndMitigation", "protectionAndResponse", "stakeholderConflictResolution",
+    "stakeholderConflict", "justification", "mainBusiness", "licensesAndPermits",
+    "technologiesAndPatents", "technologyServiceDetails", "legalIssues",
+    "additionalQuestions",
+}
+
+
+# HWP 템플릿의 플레이스홀더/가이드 텍스트 목록
+# 이 텍스트들은 실제 내용이 아니므로 빈 값으로 취급
+PLACEHOLDER_TEXTS = {
+    "작성 방법",
+    "작성방법",
+    "작성 예시",
+    "작성예시",
+    "(작성 방법)",
+    "(작성방법)",
+    "[작성 방법]",
+    "[작성방법]",
+    "내용을 입력하세요",
+    "내용 입력",
+    "여기에 입력",
+    "예시",
+    "예:",
+    "ex)",
+    "ex:",
+}
+
+
+def _is_placeholder_text(text: str) -> bool:
+    """플레이스홀더/가이드 텍스트인지 확인"""
+    if not text:
+        return True
+    text_stripped = text.strip()
+    # 정확히 일치하는 경우
+    if text_stripped in PLACEHOLDER_TEXTS:
+        return True
+    # "작성 방법"으로 시작하는 짧은 텍스트 (예: "작성 방법\n")
+    if text_stripped.startswith("작성") and len(text_stripped) < 20:
+        return True
+    return False
+
+
+def _prefill_from_section_texts(draft: dict, canonical: dict, target_track: str) -> dict:
+    """section_texts에서 폼 필드로 직접 매핑 (LLM 호출 없이)
+
+    같은 트랙이든 다른 트랙이든, section_texts에 내용이 있으면 그대로 복사합니다.
+    트랙별 매핑 테이블을 사용하여 올바른 폼 필드에 배치합니다.
+    플레이스홀더 텍스트(예: "작성 방법")는 건너뜁니다.
+    """
+    section_texts = canonical.get("section_texts", {})
+    if not section_texts:
+        return draft
+
+    mapping = SECTION_TEXT_MAPPING.get(target_track, {})
+    if not mapping:
+        logger.warning("Unknown target track for mapping: %s", target_track)
+        return draft
+
+    filled_count = 0
+    skipped_count = 0
+    for section_key, raw_text in section_texts.items():
+        if not raw_text:  # null이면 건너뜀
+            continue
+
+        # 플레이스홀더 텍스트는 건너뜀 (LLM이 생성하도록)
+        if _is_placeholder_text(raw_text):
+            skipped_count += 1
+            logger.debug("[PREFILL] 플레이스홀더 텍스트 건너뜀: %s = '%s'", section_key, raw_text[:30])
+            continue
+
+        targets = mapping.get(section_key)
+        if not targets:
+            # 매핑이 없는 키는 무시 (다른 트랙 전용 필드일 수 있음)
+            continue
+
+        for form_id, section_name, field_name in targets:
+            if form_id not in draft:
+                continue
+
+            form_data = draft[form_id]
+            if "data" in form_data:
+                form_data = form_data["data"]
+
+            if section_name not in form_data:
+                form_data[section_name] = {}
+
+            # 원문 그대로 복사
+            form_data[section_name][field_name] = raw_text
+            filled_count += 1
+
+    logger.info("[PREFILL] section_texts에서 %d개 필드 직접 매핑, %d개 플레이스홀더 건너뜀", filled_count, skipped_count)
+    return draft
+
+
+def _get_empty_descriptive_fields(draft: dict) -> list[dict]:
+    """채워지지 않은 서술형 필드 목록 반환
+
+    플레이스홀더 텍스트(예: "작성 방법")도 빈 값으로 취급합니다.
+
+    Returns:
+        list of {"form_id": str, "section": str, "field": str}
+    """
+    empty_fields = []
+
+    for form_id, form_content in draft.items():
+        if not isinstance(form_content, dict):
+            continue
+
+        # data 키가 있으면 그 안을 확인
+        data = form_content.get("data", form_content)
+        if not isinstance(data, dict):
+            continue
+
+        for section_key, section_data in data.items():
+            if not isinstance(section_data, dict):
+                continue
+            if section_key in ("formId", "formName", "version", "sections"):
+                continue
+
+            for field_key, field_value in section_data.items():
+                # 서술형 필드이고 비어있거나 플레이스홀더인 경우
+                if field_key in DESCRIPTIVE_FIELDS:
+                    is_empty = (
+                        not field_value
+                        or field_value == ""
+                        or field_value is None
+                        or _is_placeholder_text(str(field_value))
+                    )
+                    if is_empty:
+                        empty_fields.append({
+                            "form_id": form_id,
+                            "section": section_key,
+                            "field": field_key,
+                        })
+
+    return empty_fields
 
 
 # ============================================================================
@@ -125,16 +351,24 @@ def get_service_info(canonical: dict) -> str:
         # HWP에서 파싱된 유형을 폼 값으로 변환
         service_type_raw = service["service_type"]
         service_type_map = {
+            # 정식 표현 (HWP 파서에서 추출)
             "기술인 경우": "technology",
             "기술인경우": "technology",
             "서비스인 경우": "service",
             "서비스인경우": "service",
             "기술과 서비스가 융합된 경우": "technologyAndService",
             "기술과서비스가융합된경우": "technologyAndService",
+            # 단축 표현 (HWP 체크박스 라벨에서 추출된 경우)
+            "기술": "technology",
+            "서비스": "service",
+            "기술과서비스": "technologyAndService",
+            "기술과 서비스": "technologyAndService",
+            "기술서비스": "technologyAndService",
+            "융합": "technologyAndService",
         }
         # 공백 제거 후 매핑
         service_type_normalized = service_type_raw.replace(" ", "")
-        service_type_value = service_type_map.get(service_type_normalized, service_type_raw)
+        service_type_value = service_type_map.get(service_type_normalized) or service_type_map.get(service_type_raw, service_type_raw)
         print(f"[DEBUG Draft] service_type 변환: {service_type_raw} -> {service_type_value}")
         parts.append(f"서비스 유형(type): {service_type_value}")
     if service.get("service_description"):
@@ -406,6 +640,35 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
         logger.warning("R3 도메인 법령 검색 실패: %s", e)
         domain_laws = []
 
+    # DEBUG: RAG 검색 결과 출력
+    print("\n" + "=" * 60)
+    print("[DEBUG] RAG 검색 결과")
+    print("=" * 60)
+
+    print(f"\n[R1] 신청 요건 ({len(application_requirements)}건):")
+    for i, req in enumerate(application_requirements, 1):
+        content = req.get("content", str(req))[:200]
+        print(f"  {i}. {content}...")
+
+    print(f"\n[R1] 심사 기준 ({len(review_criteria)}건):")
+    for i, crit in enumerate(review_criteria, 1):
+        content = crit.get("content", str(crit))[:200]
+        print(f"  {i}. {content}...")
+
+    print(f"\n[R2] 유사 승인 사례 ({len(similar_cases)}건):")
+    for i, case in enumerate(similar_cases, 1):
+        content = case.get("content", str(case))[:200]
+        print(f"  {i}. {content}...")
+
+    print(f"\n[R3] 도메인 법령 ({len(domain_laws)}건):")
+    for i, law in enumerate(domain_laws, 1):
+        content = law.get("content", str(law))[:200]
+        metadata = law.get("metadata", {})
+        law_name = metadata.get("law_name", "")
+        print(f"  {i}. [{law_name}] {content}...")
+
+    print("=" * 60 + "\n")
+
     return {
         "application_requirements": application_requirements,
         "review_criteria": review_criteria,
@@ -419,14 +682,16 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
 # ===============================
 
 async def generate_draft_node(state: ApplicationDrafterState) -> dict:
-    """form_schema를 템플릿으로 사용하여 LLM이 canonical 기반으로 값 생성
+    """form_schema를 기반으로 초안 생성
 
-    입력: form_schema (트랙별 폼 구조), canonical (서비스 정보)
-    출력: application_draft (form_schema와 동일 구조, 값은 canonical 기반 생성)
+    새로운 효율적 접근 방식:
+    1. form_schema 복사 → 빈 드래프트 생성
+    2. pass-through 데이터 채움 (회사정보, 재무현황 등)
+    3. section_texts에서 직접 매핑 (LLM 없이)
+    4. 비어있는 서술형 필드만 LLM에게 생성 요청
     """
     canonical = state.get("canonical", {})
     track = state.get("track", "demo")
-    track_korean = TRACK_NAME_MAP.get(track, "실증특례")
     form_schema = state.get("form_schema", {})
 
     application_requirements = state.get("application_requirements", [])
@@ -434,90 +699,109 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     similar_cases = state.get("similar_cases", [])
     domain_laws = state.get("domain_laws", [])
 
-    service_info = get_service_info(canonical)
-    section_texts_info = get_section_texts_info(canonical)
-
-    # form_schema를 보기 좋은 JSON으로 직렬화
-    form_schema_json = json.dumps(form_schema, ensure_ascii=False, indent=2)
-
-    prompt = DRAFT_USER_PROMPT.format(
-        service_info=service_info,
-        section_texts=section_texts_info,
-        track=track_korean,
-        application_requirements=format_rag_results(application_requirements),
-        review_criteria=format_rag_results(review_criteria),
-        similar_cases=format_rag_results(similar_cases),
-        domain_laws=format_rag_results(domain_laws),
-        form_schema_json=form_schema_json,
-    )
-
-    llm = get_llm()
     model_name = settings.LLM_MODEL
 
-    try:
-        response = await llm.ainvoke([
-            {"role": "system", "content": DRAFT_SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ])
-
-        # 응답 유효성 검사
-        if not response.content:
-            logger.error("LLM 응답이 비어있습니다")
-            application_draft = form_schema
-            return {
-                "application_draft": application_draft,
-                "model_name": model_name,
-            }
-
-        raw_text = response.content.strip()
-
-        # JSON 파싱 (코드 블록 제거)
-        json_text = raw_text
-        json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw_text)
-        if json_match:
-            json_text = json_match.group(1)
-
-        if not json_text:
-            logger.error("JSON 텍스트가 비어있습니다")
-            application_draft = form_schema
-            return {
-                "application_draft": application_draft,
-                "model_name": model_name,
-            }
-
-        application_draft = json.loads(json_text)
-
-        # 스키마 검증: LLM이 잘못된 경로를 만들었는지 확인
-        validation = validate_schema_keys(application_draft, form_schema)
-        if not validation["valid"]:
-            logger.error(
-                "LLM이 스키마에 없는 키를 생성함: %s",
-                validation["unknown_keys"][:5]
-            )
-            # 잘못된 키가 있어도 일단 반환 (MVP: 로깅만, 추후 에러 처리 강화)
-
-        if validation["missing_keys"]:
-            logger.info(
-                "생성되지 않은 필드: %d개 (정상일 수 있음)",
-                len(validation["missing_keys"])
-            )
-
-    except json.JSONDecodeError as e:
-        logger.error("LLM 응답 JSON 파싱 실패: %s", e)
-        # 파싱 실패 시 빈 폼 스키마 그대로 반환
-        application_draft = form_schema
-    except Exception as e:
-        logger.error("LLM 호출 실패: %s", e)
-        application_draft = form_schema
+    # ==============================
+    # Step 1: 폼 스키마 복사
+    # ==============================
+    application_draft = copy.deepcopy(form_schema)
+    logger.info("[DRAFT] Step 1: 폼 스키마 복사 완료")
 
     # ==============================
-    # 재무현황/인력현황 pass-through
-    # canonical에서 추출한 데이터를 그대로 복사 (AI 생성 아님)
+    # Step 2: Pass-through 데이터 먼저 채움
+    # 회사정보, 재무현황 등 canonical에서 그대로 복사
     # ==============================
     application_draft = _merge_passthrough_data(application_draft, canonical)
+    logger.info("[DRAFT] Step 2: Pass-through 데이터 채움 완료")
 
     # ==============================
-    # AI 추론 생성 (트랙 변환 시 원본에 없는 필드)
+    # Step 3: section_texts에서 직접 매핑 (LLM 없이)
+    # 같은 트랙이든 다른 트랙이든, 원문이 있으면 그대로 복사
+    # ==============================
+    application_draft = _prefill_from_section_texts(application_draft, canonical, track)
+    logger.info("[DRAFT] Step 3: section_texts 직접 매핑 완료")
+
+    # ==============================
+    # Step 4: 비어있는 서술형 필드만 LLM에게 생성 요청
+    # ==============================
+    empty_fields = _get_empty_descriptive_fields(application_draft)
+
+    print("\n" + "=" * 60)
+    print(f"[DEBUG] 빈 서술형 필드: {len(empty_fields)}개")
+    for ef in empty_fields[:10]:  # 처음 10개만 출력
+        print(f"  - {ef['form_id']}.{ef['section']}.{ef['field']}")
+    if len(empty_fields) > 10:
+        print(f"  ... 외 {len(empty_fields) - 10}개")
+    print("=" * 60 + "\n")
+
+    if empty_fields:
+        logger.info("[DRAFT] Step 4: %d개 빈 필드 LLM 생성 시작", len(empty_fields))
+
+        # 빈 필드 목록을 JSON으로 변환
+        empty_fields_json = json.dumps(
+            [f"{ef['form_id']}.{ef['section']}.{ef['field']}" for ef in empty_fields],
+            ensure_ascii=False,
+            indent=2
+        )
+
+        service_info = get_service_info(canonical)
+
+        prompt = EMPTY_FIELDS_USER_PROMPT.format(
+            service_info=service_info,
+            application_requirements=format_rag_results(application_requirements),
+            review_criteria=format_rag_results(review_criteria),
+            similar_cases=format_rag_results(similar_cases),
+            domain_laws=format_rag_results(domain_laws),
+            empty_fields_json=empty_fields_json,
+        )
+
+        llm = get_llm()
+
+        try:
+            response = await llm.ainvoke([
+                {"role": "system", "content": EMPTY_FIELDS_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ])
+
+            if response.content:
+                raw_text = response.content.strip()
+
+                # JSON 파싱
+                json_text = raw_text
+                json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw_text)
+                if json_match:
+                    json_text = json_match.group(1)
+
+                if json_text:
+                    generated_fields = json.loads(json_text)
+
+                    # 생성된 필드를 드래프트에 병합
+                    filled_count = 0
+                    for field_path, value in generated_fields.items():
+                        parts = field_path.split(".")
+                        if len(parts) == 3:
+                            form_id, section, field = parts
+                            if form_id in application_draft:
+                                form_data = application_draft[form_id]
+                                if "data" in form_data:
+                                    form_data = form_data["data"]
+                                if section not in form_data:
+                                    form_data[section] = {}
+                                form_data[section][field] = value
+                                form_data[section]["generated_by"] = "ai"
+                                filled_count += 1
+
+                    logger.info("[DRAFT] LLM이 %d개 빈 필드 생성 완료", filled_count)
+
+        except json.JSONDecodeError as e:
+            logger.error("LLM 응답 JSON 파싱 실패: %s", e)
+        except Exception as e:
+            logger.error("LLM 빈 필드 생성 실패: %s", e)
+    else:
+        logger.info("[DRAFT] Step 4: 빈 서술형 필드 없음, LLM 호출 스킵")
+
+    # ==============================
+    # Step 5: 트랙 변환 시 추가 처리
     # ==============================
     # 임시허가/실증특례 → 신속확인: additionalQuestions
     application_draft = await _generate_additional_questions(
@@ -531,6 +815,12 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     application_draft = await _generate_temporary_permit_reason(
         application_draft, canonical, track
     )
+    # 임시허가 ↔ 실증특례: 사유 체크박스 매핑
+    application_draft = _convert_temp_demo_reason(
+        application_draft, canonical, track
+    )
+
+    logger.info("[DRAFT] 초안 생성 완료")
 
     return {
         "application_draft": application_draft,
@@ -538,13 +828,16 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     }
 
 
-def _get_form_data(draft: dict, form_id: str) -> dict:
+def _get_form_data(draft: dict, form_id: str) -> dict | None:
     """폼의 data 섹션을 가져오거나 생성합니다.
 
     폼 스키마 구조: {form_id: {formId: ..., data: {...}}}
+
+    Returns:
+        form_id가 없으면 None, 있으면 data dict 참조 반환
     """
     if form_id not in draft:
-        return {}
+        return None
     if "data" not in draft[form_id]:
         draft[form_id]["data"] = {}
     return draft[form_id]["data"]
@@ -563,6 +856,54 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
     logger.info("[DEBUG] canonical keys: %s", list(canonical.keys()))
     logger.info("[DEBUG] canonical.project_plan: %s", canonical.get("project_plan"))
     logger.info("[DEBUG] canonical.applicants: %s", canonical.get("applicants"))
+
+    # ==============================
+    # 서비스 정보 (service) pass-through
+    # canonical.service → form.technologyService 매핑
+    # ==============================
+    service = canonical.get("service", {})
+    if service:
+        logger.info("[DEBUG] Processing service pass-through: %s", service)
+
+        # service_type 변환 (HWP 한글 → 폼 value)
+        service_type_raw = service.get("service_type", "")
+        service_type_map = {
+            # 정식 표현 (HWP 파서에서 추출)
+            "기술인 경우": "technology",
+            "기술인경우": "technology",
+            "서비스인 경우": "service",
+            "서비스인경우": "service",
+            "기술과 서비스가 융합된 경우": "technologyAndService",
+            "기술과서비스가융합된경우": "technologyAndService",
+            # 단축 표현 (HWP 체크박스 라벨에서 추출된 경우)
+            "기술": "technology",
+            "서비스": "service",
+            "기술과서비스": "technologyAndService",
+            "기술과 서비스": "technologyAndService",
+            "기술서비스": "technologyAndService",
+            "융합": "technologyAndService",
+        }
+        service_type_normalized = service_type_raw.replace(" ", "") if service_type_raw else ""
+        service_type_value = service_type_map.get(service_type_normalized) or service_type_map.get(service_type_raw, service_type_raw)
+
+        # technologyService 데이터 구성
+        tech_service_data = {}
+        if service.get("service_name"):
+            tech_service_data["name"] = service["service_name"]
+        if service_type_value:
+            tech_service_data["type"] = service_type_value
+        if service.get("service_description"):
+            tech_service_data["mainContent"] = service["service_description"]
+
+        if tech_service_data:
+            # 모든 -1 폼의 technologyService 섹션에 적용 (신청서)
+            for form_id in ["temporary-1", "demonstration-1", "fastcheck-1"]:
+                form_data = _get_form_data(draft, form_id)
+                if form_data is not None:
+                    if "technologyService" not in form_data:
+                        form_data["technologyService"] = {}
+                    form_data["technologyService"].update(tech_service_data)
+                    logger.info("[DEBUG] service pass-through applied to %s: %s", form_id, tech_service_data)
 
     # ==============================
     # 회사 정보 (company) pass-through - 개인정보 원본값 사용
@@ -660,8 +1001,9 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
             logger.info("[DEBUG] mainBusiness applied to %s", form_id)
 
     # 재무현황 병합 (canonical: year별 구조 → form: row별 구조로 변환)
-    # canonical 한글 키 → form 영문 키 매핑
+    # canonical 키 (한글 또는 영문) → form 영문 키 매핑
     FINANCIAL_KEY_MAP = {
+        # 한글 키 (HWP 파서 출력)
         "총자산": "totalAssets",
         "자기자본": "equity",
         "유동부채": "currentLiabilities",
@@ -671,6 +1013,16 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
         "총매출액": "totalRevenue",
         "자기자본 이익률": "returnOnEquity",
         "부채비율": "debtRatio",
+        # 영문 키 (이미 변환된 경우)
+        "totalAssets": "totalAssets",
+        "equity": "equity",
+        "currentLiabilities": "currentLiabilities",
+        "fixedLiabilities": "fixedLiabilities",
+        "currentAssets": "currentAssets",
+        "netIncome": "netIncome",
+        "totalRevenue": "totalRevenue",
+        "returnOnEquity": "returnOnEquity",
+        "debtRatio": "debtRatio",
     }
 
     financial = canonical.get("financial", {})
@@ -682,12 +1034,12 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
             if not year_data:
                 continue
 
-            for korean_key, english_key in FINANCIAL_KEY_MAP.items():
-                value = year_data.get(korean_key)
+            for source_key, target_key in FINANCIAL_KEY_MAP.items():
+                value = year_data.get(source_key)
                 if value is not None:
-                    if english_key not in financial_status:
-                        financial_status[english_key] = {}
-                    financial_status[english_key][year] = value
+                    if target_key not in financial_status:
+                        financial_status[target_key] = {}
+                    financial_status[target_key][year] = value
 
         logger.info("[DEBUG] financial_status after mapping: %s", financial_status)
 
@@ -734,7 +1086,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
         for form_id in ["temporary-2", "demonstration-2"]:
             form_data = _get_form_data(draft, form_id)
-            if not form_data:
+            if form_data is None:
                 continue
 
             if "projectInfo" not in form_data:
@@ -795,7 +1147,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
     if valid_orgs:
         for form_id in ["temporary-2", "demonstration-2"]:
             form_data = _get_form_data(draft, form_id)
-            if form_data:
+            if form_data is not None:
                 # LLM이 마스킹된 이름을 생성할 수 있으므로 항상 canonical 값으로 덮어씀
                 form_data["applicantOrganizations"] = valid_orgs
                 logger.info("[DEBUG] applicantOrganizations overwritten with canonical for %s", form_id)
@@ -811,26 +1163,33 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
         for form_id in ["temporary-2", "demonstration-2"]:
             form_data = _get_form_data(draft, form_id)
-            if form_data:
+            if form_data is not None:
                 if "submissionDate" not in form_data:
                     form_data["submissionDate"] = {}
                 form_data["submissionDate"]["submissionDate"] = submission_date
 
         # 서명 목록 (LLM이 마스킹된 이름을 생성할 수 있으므로 항상 canonical 값으로 덮어씀)
+        # canonical 필드명: signer_name, organization_name
+        # 폼 필드명: name, organizationName
         signatures = applicants.get("signatures", [])
         if signatures and isinstance(signatures, list):
-            valid_sigs = [
-                {
-                    "organizationName": sig.get("organizationName"),
-                    "name": sig.get("name"),
-                }
-                for sig in signatures
-                if isinstance(sig, dict) and sig.get("name")
-            ]
+            valid_sigs = []
+            for sig in signatures:
+                if not isinstance(sig, dict):
+                    continue
+                # canonical 필드명 또는 폼 필드명으로 추출
+                name = sig.get("name") or sig.get("signer_name")
+                org_name = sig.get("organizationName") or sig.get("organization_name")
+                # 플레이스홀더 텍스트 필터링
+                if name and "(기관명)" not in name and "(성명)" not in name:
+                    valid_sigs.append({
+                        "organizationName": org_name or "",
+                        "name": name,
+                    })
             if valid_sigs:
                 for form_id in ["temporary-2", "demonstration-2"]:
                     form_data = _get_form_data(draft, form_id)
-                    if form_data:
+                    if form_data is not None:
                         # LLM이 마스킹된 이름을 생성할 수 있으므로 항상 canonical 값으로 덮어씀
                         form_data["submission"] = valid_sigs
                         logger.info("[DEBUG] submission overwritten with canonical signatures for %s", form_id)
@@ -847,7 +1206,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
     for form_id in ["temporary-1", "demonstration-1", "fastcheck-1"]:
         form_data = _get_form_data(draft, form_id)
-        if form_data:
+        if form_data is not None:
             if "application" not in form_data:
                 form_data["application"] = {}
             form_data["application"]["applicationDate"] = application_date
@@ -861,7 +1220,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
         if temp_permit_reason:
             # temporary-1: temporaryPermitReason (체크박스 그룹 - 배열 형태)
             form_data_1 = _get_form_data(draft, "temporary-1")
-            if form_data_1:
+            if form_data_1 is not None:
                 # LLM이 리스트나 다른 타입으로 생성했을 수 있으므로 dict로 보장
                 if "temporaryPermitReason" not in form_data_1 or not isinstance(form_data_1.get("temporaryPermitReason"), dict):
                     form_data_1["temporaryPermitReason"] = {}
@@ -877,7 +1236,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
             # temporary-3: eligibility (소명서 - 개별 boolean 형태)
             form_data_3 = _get_form_data(draft, "temporary-3")
-            if form_data_3:
+            if form_data_3 is not None:
                 if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
                     form_data_3["eligibility"] = {}
 
@@ -894,7 +1253,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
         if demo_reason:
             # demonstration-1: regulatoryExemptionReason
             form_data_1 = _get_form_data(draft, "demonstration-1")
-            if form_data_1:
+            if form_data_1 is not None:
                 # LLM이 잘못 생성한 값 초기화 후 form_selections 값으로 설정
                 form_data_1["regulatoryExemptionReason"] = {
                     "reason1_impossibleToApplyPermit": demo_reason.get("impossibleToApplyPermit") is True,
@@ -904,7 +1263,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
             # demonstration-3: eligibility (소명서)
             form_data_3 = _get_form_data(draft, "demonstration-3")
-            if form_data_3:
+            if form_data_3 is not None:
                 # LLM이 잘못 생성한 값 초기화 후 form_selections 값으로 설정
                 form_data_3["eligibility"] = {
                     "impossibleToApplyPermitByOtherLaw": demo_reason.get("impossibleToApplyPermit") is True,
@@ -947,7 +1306,7 @@ def _merge_passthrough_data(draft: dict, canonical: dict) -> dict:
 
     if governing_agency or permit_info:
         form_data = _get_form_data(draft, "fastcheck-1")
-        if form_data:
+        if form_data is not None:
             if "authority" not in form_data:
                 form_data["authority"] = {}
             if governing_agency:
@@ -985,7 +1344,7 @@ async def _generate_additional_questions(
 
     # fastcheck-2의 additionalQuestions가 null인지 확인
     form_data = _get_form_data(draft, "fastcheck-2")
-    if not form_data:
+    if form_data is None:
         return draft
 
     current_value = form_data.get("additionalQuestions", {}).get("additionalQuestions")
@@ -1106,7 +1465,7 @@ async def _generate_regulatory_exemption_reason(
         if selected_reason and justification:
             # demonstration-1: regulatoryExemptionReason 체크박스 + 마킹
             form_data_1 = _get_form_data(draft, "demonstration-1")
-            if form_data_1:
+            if form_data_1 is not None:
                 if "regulatoryExemptionReason" not in form_data_1 or not isinstance(form_data_1.get("regulatoryExemptionReason"), dict):
                     form_data_1["regulatoryExemptionReason"] = {}
 
@@ -1119,7 +1478,7 @@ async def _generate_regulatory_exemption_reason(
 
             # demonstration-3: eligibility 체크박스 + justification + 마킹
             form_data_3 = _get_form_data(draft, "demonstration-3")
-            if form_data_3:
+            if form_data_3 is not None:
                 if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
                     form_data_3["eligibility"] = {}
 
@@ -1210,7 +1569,7 @@ async def _generate_temporary_permit_reason(
         if selected_reason and justification:
             # temporary-3: eligibility 체크박스 + justification + 마킹
             form_data_3 = _get_form_data(draft, "temporary-3")
-            if form_data_3:
+            if form_data_3 is not None:
                 if "eligibility" not in form_data_3 or not isinstance(form_data_3.get("eligibility"), dict):
                     form_data_3["eligibility"] = {}
 
@@ -1231,6 +1590,75 @@ async def _generate_temporary_permit_reason(
 
     except Exception as e:
         logger.warning("temporaryPermitReason AI 생성 실패: %s", e)
+
+    return draft
+
+
+def _convert_temp_demo_reason(draft: dict, canonical: dict, target_track: str) -> dict:
+    """임시허가 ↔ 실증특례 변환 시 사유 체크박스 매핑
+
+    임시허가와 실증특례는 폼 구조가 거의 동일하지만 사유 체크박스 키가 다릅니다.
+
+    임시허가 → 실증특례:
+    - noApplicableStandards → reason1_impossibleToApplyPermit
+    - unclearOrUnreasonableStandards → reason2_unclearOrUnreasonableCriteria
+
+    실증특례 → 임시허가:
+    - reason1_impossibleToApplyPermit → noApplicableStandards
+    - reason2_unclearOrUnreasonableCriteria → unclearOrUnreasonableStandards
+    """
+    metadata = canonical.get("metadata", {})
+    source_type = metadata.get("source_type", "")
+
+    # 임시 → 실증 변환
+    if source_type == "temp_permit" and target_track == "demo":
+        form_selections = canonical.get("form_selections", {})
+        temp_reason = form_selections.get("temporaryPermitReason", [])
+
+        if temp_reason:
+            form_data_1 = _get_form_data(draft, "demonstration-1")
+            if form_data_1 is not None:
+                if "regulatoryExemptionReason" not in form_data_1:
+                    form_data_1["regulatoryExemptionReason"] = {}
+
+                reason_data = form_data_1["regulatoryExemptionReason"]
+
+                # 매핑 변환
+                if "noApplicableStandards" in temp_reason:
+                    reason_data["reason1_impossibleToApplyPermit"] = True
+                if "unclearOrUnreasonableStandards" in temp_reason:
+                    reason_data["reason2_unclearOrUnreasonableCriteria"] = True
+
+                reason_data["converted_from"] = "temp_permit"
+                logger.info("[DEBUG] 임시→실증 사유 체크박스 변환 완료")
+
+    # 실증 → 임시 변환
+    elif source_type == "demo" and target_track == "temp_permit":
+        form_selections = canonical.get("form_selections", {})
+        demo_reason = form_selections.get("regulatoryExemptionReason", {})
+
+        # 실증특례는 dict 형태 (reason1_...: True/False)
+        has_reason1 = demo_reason.get("reason1_impossibleToApplyPermit", False)
+        has_reason2 = demo_reason.get("reason2_unclearOrUnreasonableCriteria", False)
+
+        if has_reason1 or has_reason2:
+            form_data_1 = _get_form_data(draft, "temporary-1")
+            if form_data_1 is not None:
+                if "temporaryPermitReason" not in form_data_1:
+                    form_data_1["temporaryPermitReason"] = {}
+
+                reason_data = form_data_1["temporaryPermitReason"]
+                selected_reasons = []
+
+                # 매핑 변환
+                if has_reason1:
+                    selected_reasons.append("noApplicableStandards")
+                if has_reason2:
+                    selected_reasons.append("unclearOrUnreasonableStandards")
+
+                reason_data["temporaryPermitReason"] = selected_reasons
+                reason_data["converted_from"] = "demo"
+                logger.info("[DEBUG] 실증→임시 사유 체크박스 변환 완료")
 
     return draft
 

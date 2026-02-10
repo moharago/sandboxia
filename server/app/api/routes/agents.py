@@ -391,6 +391,12 @@ async def generate_draft(
             detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
         )
 
+    # DEBUG: canonical 데이터 확인
+    logger.info("[DEBUG Draft API] canonical keys: %s", list(canonical.keys()))
+    logger.info("[DEBUG Draft API] canonical.project_plan: %s", canonical.get("project_plan"))
+    logger.info("[DEBUG Draft API] canonical.applicants: %s", canonical.get("applicants"))
+    logger.info("[DEBUG Draft API] canonical.financial: %s", canonical.get("financial"))
+
     track = project.get("track")
     if not track:
         raise HTTPException(
