@@ -49,17 +49,22 @@ uv run python eval/r3/run_evaluation.py --output 2024-01-15_embed_3-large
 
 ### LLM-as-Judge 평가 (Retrieval + Generation)
 
+Judge 모델: **gpt-4.1** (고정)
+
 ```bash
 cd server
 
-# 기본 평가 (K=5, Judge: gpt-4o-mini)
+# 기본 평가 (K=5)
 uv run python eval/r3/run_llm_evaluation.py
 
-# Top-K 및 Judge 모델 변경
-uv run python eval/r3/run_llm_evaluation.py --top_k 10 --model gpt-4o
+# Top-K 변경
+uv run python eval/r3/run_llm_evaluation.py --top_k 10
 
 # 테스트용 (항목 수 제한)
 uv run python eval/r3/run_llm_evaluation.py --limit 5
+
+# LangSmith 추적 활성화 (토큰/비용 확인)
+uv run python eval/r3/run_llm_evaluation.py --trace --limit 5
 
 # 결과 파일명 지정
 uv run python eval/r3/run_llm_evaluation.py --output 2024-01-15_baseline
@@ -74,7 +79,7 @@ R3 법령 RAG 평가 (Retrieval + LLM-as-Judge)
 
 평가셋: 30개 항목
 Top-K: 5
-Judge Model: gpt-4o-mini
+Judge Model: gpt-4.1
 
 평가 진행 중...
 
@@ -91,7 +96,7 @@ Judge Model: gpt-4o-mini
   - Recall@5:           0.3389
   - MRR:                0.4861
 
-🤖 LLM-as-Judge 지표 (gpt-4o-mini):
+🤖 LLM-as-Judge 지표 (gpt-4.1):
   - Faithfulness:       0.7500
   - Answer Relevancy:   0.6234
 
@@ -466,6 +471,37 @@ uv run python eval/r3/run_evaluation.py --top_k 10 --output k10
 | R2 수집               | `server/scripts/collect_cases.py`         | 승인사례 수집 (--export-chunks로 청크 저장) |
 | R1 수집               | `server/scripts/collect_regulations.py`   | 규제제도 수집 (--export-chunks로 청크 저장) |
 
+## LangSmith 연동 (Token/Cost 추적)
+
+`--trace` 플래그를 사용하면 평가 스크립트에서만 LangSmith 추적이 활성화됩니다.
+(서비스 전체가 아닌 평가 시에만 토큰/비용 추적)
+
+### 설정 방법
+
+1. [LangSmith](https://smith.langchain.com/)에서 계정 생성 (무료)
+2. API 키 발급
+3. `.env`에 추가:
+
+```bash
+LANGCHAIN_API_KEY=lsv2_pt_...
+```
+
+### 사용법
+
+```bash
+# --trace 플래그로 LangSmith 활성화
+uv run python eval/r3/run_llm_evaluation.py --trace --limit 5
+```
+
+### 확인 가능한 지표
+
+- **Token Usage**: 프롬프트/완성 토큰 수
+- **Cost**: 요청당 예상 비용
+- **Latency**: LLM 응답 시간
+- **Trace**: 전체 실행 흐름
+
+https://smith.langchain.com 에서 대시보드 확인
+
 ## LLM-as-Judge 사용법
 
 ### RAGASEvaluator 클래스
@@ -475,7 +511,7 @@ from eval.llm_metrics import RAGASEvaluator, LLMMetricsResult
 
 # 평가기 초기화
 evaluator = RAGASEvaluator(
-    model="gpt-4o-mini",           # Judge LLM 모델
+    model="gpt-4.1",               # Judge LLM 모델 (고정)
     embedding_model="text-embedding-3-small",  # 임베딩 모델 (Answer Relevancy용)
 )
 
