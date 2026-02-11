@@ -60,10 +60,20 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 | --------- | -------------------------------------------------------------- | ----------------------- |
 | 평가 유형 | `--llm` 포함 여부                                              | retrieval / llm         |
 | RAG 타입  | "R1", "R2", "R3", "r1", "r2", "r3", "규제제도", "사례", "법령" | r1 / r2 / r3 (기본: r3) |
+| strategy  | "strategy all", "전략 비교", "structured", "hybrid", "fulltext" | `--strategy {값}` (R2 전용) |
 | top_k     | "top-k 10", "10개씩", "상위 10개"                              | `--top_k 10`            |
 | output    | "~로 저장" (아래 파일명 생성 규칙 참조)                        | `--output {파일명}`     |
 | limit     | "5개만 테스트", "3개로 제한"                                   | `--limit 5`             |
 | trace     | "LangSmith 추적", "trace 켜줘", "추적해줘"                     | `--trace`               |
+
+**R2 전용: strategy 매핑** (R2일 때만 적용):
+
+| 자연어                                          | CLI 옵션               |
+| ----------------------------------------------- | ---------------------- |
+| "strategy all", "전략 비교", "전략 전부"        | `--strategy all`       |
+| "structured", "구조화", "baseline"              | `--strategy structured`|
+| "hybrid", "하이브리드", "fallback"              | `--strategy hybrid`    |
+| "fulltext", "풀텍스트", "전문"                  | `--strategy fulltext`  |
 
 **RAG 타입 매핑**:
 
@@ -79,23 +89,28 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 
 **변경요소 매핑**:
 
-| 자연어                           | 변경요소 |
-| -------------------------------- | -------- |
-| embedding, embed, 임베딩         | `embed`  |
-| topk, top-k, top_k, k값          | `topk`   |
-| chunk, chunking, 청킹, 청크      | `chunk`  |
-| rerank, reranker, 재랭커, 재랭킹 | `rerank` |
+| 자연어                           | 변경요소   |
+| -------------------------------- | ---------- |
+| embedding, embed, 임베딩         | `embed`    |
+| topk, top-k, top_k, k값          | `topk`     |
+| chunk, chunking, 청킹, 청크      | `chunk`    |
+| rerank, reranker, 재랭커, 재랭킹 | `rerank`   |
+| strategy, 전략, 데이터전략       | `strategy` |
 
 **변경값 매핑**:
 
-| 자연어              | 변경값      |
-| ------------------- | ----------- |
-| large, 3-large      | `3-large`   |
-| small, 3-small      | `3-small`   |
-| ada, ada-002        | `ada-002`   |
-| paragraph, 문단     | `paragraph` |
-| article, 조문       | `article`   |
-| 숫자 (5, 10, 15 등) | 그대로      |
+| 자연어                            | 변경값       |
+| --------------------------------- | ------------ |
+| large, 3-large                    | `3-large`    |
+| small, 3-small                    | `3-small`    |
+| ada, ada-002                      | `ada-002`    |
+| paragraph, 문단                   | `paragraph`  |
+| article, 조문                     | `article`    |
+| structured, 구조화                | `structured` |
+| hybrid, 하이브리드                | `hybrid`     |
+| fulltext, 풀텍스트                | `fulltext`   |
+| all, 전체                         | `all`        |
+| 숫자 (5, 10, 15 등)               | 그대로       |
 
 **예시 변환**:
 
@@ -107,6 +122,8 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 | "topk 10으로 저장"       | `2026-02-10_topk_10`                    |
 | "청킹 paragraph로 저장"  | `2026-02-10_chunk_paragraph`            |
 | "rerank cohere로 저장"   | `2026-02-10_rerank_cohere`              |
+| "전략 hybrid로 저장"     | `2026-02-10_strategy_hybrid`            |
+| "전략 all로 저장"        | `2026-02-10_strategy_all`               |
 | "v2로 저장"              | `2026-02-10_v2`                         |
 
 **구현**: 오늘 날짜는 `date +%Y-%m-%d` 명령어로 얻거나 현재 날짜 사용
@@ -124,8 +141,10 @@ ls server/eval/{rag_type}/run_llm_evaluation.py 2>/dev/null || echo "NOT_FOUND"
 ### 3. 명령어 실행
 
 ```bash
-cd /Users/aistudy/Documents/ai-agent-kdt/2nd-pj-Sandbox/server && uv run python eval/{rag_type}/run_{type}.py [옵션]
+cd server && uv run python eval/{rag_type}/run_{type}.py [옵션]
 ```
+
+> 프로젝트 루트에서 `cd server`로 이동하여 실행. 절대 경로 하드코딩 금지.
 
 ### 4. 결과 보고
 
@@ -199,17 +218,20 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 
 ## 사용 예시
 
-| 명령어                             | 모드 | 동작                                | 저장 파일명 예시           |
-| ---------------------------------- | ---- | ----------------------------------- | -------------------------- |
-| `/rag-eval`                        | A    | R3 retrieval 직접 실행              | (타임스탬프)               |
-| `/rag-eval baseline으로 저장`      | A    | R3 retrieval + 파일명 지정          | `2026-02-10_baseline`      |
-| `/rag-eval embedding large로 저장` | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_embed_3-large` |
-| `/rag-eval topk 10으로 저장`       | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_topk_10`       |
-| `/rag-eval --llm R3 5개만`         | A    | R3 LLM 평가 직접 실행               | (타임스탬프)               |
-| `/rag-eval top-k 5, 10 비교`       | B    | 서브에이전트 2개 병렬 → 비교표      | -                          |
-| `/rag-eval R1, R2, R3 전체`        | C    | 서브에이전트 3개 병렬 → 종합 리포트 | -                          |
-| `/rag-eval 결과 분석`              | D    | 서브에이전트가 결과 파일 분석       | -                          |
-| `/rag-eval embed끼리 비교`         | D    | 서브에이전트가 embed 변경요소 비교  | -                          |
+| 명령어                             | 모드 | 동작                                | 저장 파일명 예시             |
+| ---------------------------------- | ---- | ----------------------------------- | ---------------------------- |
+| `/rag-eval`                        | A    | R3 retrieval 직접 실행              | (타임스탬프)                 |
+| `/rag-eval baseline으로 저장`      | A    | R3 retrieval + 파일명 지정          | `2026-02-10_baseline`        |
+| `/rag-eval embedding large로 저장` | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_embed_3-large`   |
+| `/rag-eval topk 10으로 저장`       | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_topk_10`         |
+| `/rag-eval R2 전략 비교`           | A    | R2 retrieval + strategy all         | `2026-02-10_strategy_all`    |
+| `/rag-eval R2 structured`          | A    | R2 retrieval + strategy structured  | (타임스탬프)                 |
+| `/rag-eval R2 hybrid로 저장`       | A    | R2 retrieval + strategy hybrid      | `2026-02-10_strategy_hybrid` |
+| `/rag-eval --llm R3 5개만`         | A    | R3 LLM 평가 직접 실행               | (타임스탬프)                 |
+| `/rag-eval top-k 5, 10 비교`       | B    | 서브에이전트 2개 병렬 → 비교표      | -                            |
+| `/rag-eval R1, R2, R3 전체`        | C    | 서브에이전트 3개 병렬 → 종합 리포트 | -                            |
+| `/rag-eval 결과 분석`              | D    | 서브에이전트가 결과 파일 분석       | -                            |
+| `/rag-eval embed끼리 비교`         | D    | 서브에이전트가 embed 변경요소 비교  | -                            |
 
 ## 주의사항
 

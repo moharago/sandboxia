@@ -15,6 +15,14 @@ server/
 │   ├── __init__.py
 │   ├── metrics.py                  # Retrieval 지표 계산 함수
 │   ├── llm_metrics.py              # LLM-as-Judge 지표 (RAGAS 기반)
+│   ├── r2/
+│   │   ├── __init__.py
+│   │   ├── evaluation_set.json     # R2 평가셋 (30개 항목)
+│   │   ├── common.py               # R2 공통 유틸 (전략별 임시 VectorStore 등)
+│   │   ├── run_evaluation.py       # R2 Retrieval 평가 (--strategy 지원)
+│   │   └── results/
+│   │       └── retrieval/
+│   │           └── {날짜}_{전략}.json
 │   └── r3/
 │       ├── __init__.py
 │       ├── evaluation_set.json     # R3 평가셋 (30개 항목)
@@ -26,6 +34,8 @@ server/
 │           └── llm/                # LLM-as-Judge 평가 결과
 │               └── {날짜}_{변경요소}.json
 └── data/                           # 데이터 (gitignore)
+    ├── r2/
+    │   └── cases_structured.json   # R2 원본 데이터 (281건)
     └── r3_data/
         └── chunks.json             # 청킹 결과 (평가 시 참조)
 ```
@@ -46,6 +56,36 @@ uv run python eval/r3/run_evaluation.py --top_k 10
 # 결과 파일명 지정
 uv run python eval/r3/run_evaluation.py --output 2024-01-15_embed_3-large
 ```
+
+### R2 Retrieval 평가 (전략 비교)
+
+R2는 데이터 전략(structured/hybrid/fulltext) 비교가 핵심입니다.
+
+```bash
+cd server
+
+# 단일 전략 평가 (기본: structured)
+uv run python eval/r2/run_evaluation.py
+
+# 전략 비교 (3개 전략 일괄 비교)
+uv run python eval/r2/run_evaluation.py --strategy all
+
+# 특정 전략만
+uv run python eval/r2/run_evaluation.py --strategy hybrid
+
+# 결과 파일명 지정
+uv run python eval/r2/run_evaluation.py --strategy all --output 2026-02-11_strategy_all
+```
+
+**R2 전용 옵션:**
+
+| 옵션              | 설명                                       | 기본값     |
+| ----------------- | ------------------------------------------ | ---------- |
+| `--strategy MODE` | structured / hybrid / fulltext / all       | structured |
+| `--top_k N`       | Top-K 검색 개수                            | 5          |
+| `--output NAME`   | 결과 파일명                                | 타임스탬프 |
+
+**R2 평가 지표:** Must-Have Recall@K, Recall@K, MRR, **Negative@K** (낮을수록 좋음), Latency
 
 ### LLM-as-Judge 평가 (Retrieval + Generation)
 
@@ -460,6 +500,10 @@ uv run python eval/r3/run_evaluation.py --top_k 10 --output k10
 | --------------------- | ----------------------------------------- | ------------------------------------------- |
 | Retrieval 지표        | `server/eval/metrics.py`                  | Recall, MRR 등 계산 함수                    |
 | LLM-as-Judge 지표     | `server/eval/llm_metrics.py`              | Faithfulness, Answer Relevancy (RAGAS 기반) |
+| R2 평가셋             | `server/eval/r2/evaluation_set.json`      | R2 RAG 평가셋 (30개)                        |
+| R2 공통 유틸          | `server/eval/r2/common.py`                | 전략별 임시 VectorStore, 매칭, 지표 계산    |
+| R2 Retrieval 평가     | `server/eval/r2/run_evaluation.py`        | R2 Retrieval 평가 (--strategy 지원)         |
+| R2 Retrieval 결과     | `server/eval/r2/results/retrieval/`       | R2 Retrieval 평가 결과 JSON                 |
 | R3 평가셋             | `server/eval/r3/evaluation_set.json`      | R3 RAG 평가셋 (30개)                        |
 | R3 Retrieval 평가     | `server/eval/r3/run_evaluation.py`        | R3 Retrieval 평가 실행                      |
 | R3 LLM-as-Judge 평가  | `server/eval/r3/run_llm_evaluation.py`    | R3 Retrieval + Generation 평가 실행         |
@@ -468,7 +512,7 @@ uv run python eval/r3/run_evaluation.py --top_k 10 --output k10
 | 청크 데이터           | `server/data/{r1,r2,r3}_data/chunks.json` | 청킹 결과 (gitignore)                       |
 | 공통 유틸             | `server/app/db/export.py`                 | 청크 JSON 저장 함수                         |
 | R3 수집               | `server/scripts/collect_laws.py`          | 법령 수집 (--export-chunks로 청크 저장)     |
-| R2 수집               | `server/scripts/collect_cases.py`         | 승인사례 수집 (--export-chunks로 청크 저장) |
+| R2 수집               | `server/scripts/collect_cases.py`         | 승인사례 수집 (--strategy 지원)             |
 | R1 수집               | `server/scripts/collect_regulations.py`   | 규제제도 수집 (--export-chunks로 청크 저장) |
 
 ## LangSmith 연동 (Token/Cost 추적)
