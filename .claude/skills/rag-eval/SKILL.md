@@ -226,20 +226,22 @@ reranker.yaml  → reranker  (새 파일 추가 시 자동 지원)
 ```bash
 cd server
 
-# 1단계: 데이터 수집 + Vector DB 생성
-uv run python scripts/collect_{type}.py --config {프리셋ID}
+# 1단계: 기존 컬렉션 삭제 + 데이터 수집 + Vector DB 생성
+uv run python scripts/collect_{type}.py --config {프리셋ID} --reset
 
 # 2단계: 평가 실행
 uv run python eval/{rag_type}/run_evaluation.py --output {날짜}_{변경요소}_{프리셋ID}
 ```
+
+**`--reset` 옵션**: 기존 컬렉션을 삭제하고 새로 생성 (프리셋 변경 시 필수)
 
 **예시** (`/rag-eval R3 C1 적용해줘`):
 
 ```bash
 cd server
 
-# 1단계: C1 청킹 전략으로 법령 데이터 수집 + Vector DB 생성
-uv run python scripts/collect_laws.py --config C1
+# 1단계: 기존 컬렉션 삭제 + C1 청킹 전략으로 법령 데이터 수집 + Vector DB 생성
+uv run python scripts/collect_laws.py --config C1 --reset
 
 # 2단계: 평가 실행 (결과 파일: 2026-02-11_chunking_C1.json)
 uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunking_C1

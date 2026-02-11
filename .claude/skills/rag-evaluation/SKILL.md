@@ -177,7 +177,7 @@ Judge Model: gpt-4.1
 | 임베딩 모델 비교   | `2024-01-15_embedding_E0.json`, `2024-01-15_embedding_E1.json`           |
 | Vector DB 비교     | `2024-01-15_vectordb_V0.json`, `2024-01-15_vectordb_V1.json`             |
 | Top-K 비교         | `2024-01-15_topk_5.json`, `2024-01-15_topk_10.json`                      |
-| 재랭커 추가        | `2024-01-15_rerank_cohere.json`, `2024-01-15_rerank_none.json`     |
+| 재랭커 추가        | `2024-01-15_reranker_cohere.json`, `2024-01-15_reranker_none.json` |
 
 **실행 예시**:
 
@@ -186,8 +186,8 @@ Judge Model: gpt-4.1
 uv run python eval/r3/run_evaluation.py --output 2024-01-15_baseline
 
 # 임베딩 모델 비교
-uv run python eval/r3/run_evaluation.py --output 2024-01-15_embed_3-small
-uv run python eval/r3/run_evaluation.py --output 2024-01-15_embed_3-large
+uv run python eval/r3/run_evaluation.py --output 2024-01-15_embedding_3-small
+uv run python eval/r3/run_evaluation.py --output 2024-01-15_embedding_3-large
 
 # Top-K 비교
 uv run python eval/r3/run_evaluation.py --top_k 5 --output 2024-01-15_topk_5
@@ -479,8 +479,8 @@ uv run python scripts/collect_regulations.py --config C1
 ### 1. 청킹 전략 비교
 
 ```bash
-# 1. C1 청킹 전략으로 데이터 수집
-uv run python scripts/collect_laws.py --config C1
+# 1. C1 청킹 전략으로 데이터 수집 (기존 컬렉션 삭제 후 새로 생성)
+uv run python scripts/collect_laws.py --config C1 --reset
 
 # 2. 평가 실행
 uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunking_C1
@@ -491,8 +491,8 @@ uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunking_C1
 ```bash
 # .env에서 LLM_EMBEDDING_MODEL 변경 후
 
-# 1. 데이터 재수집
-uv run python scripts/collect_laws.py
+# 1. 데이터 재수집 (기존 컬렉션 삭제 후 새로 생성)
+uv run python scripts/collect_laws.py --reset
 
 # 2. 평가 실행
 uv run python eval/r3/run_evaluation.py --output embedding-3-large

@@ -22,6 +22,9 @@
     # 특정 설정으로 실행
     uv run python scripts/collect_laws.py --config C1
 
+    # 기존 컬렉션 삭제 후 새로 생성 (프리셋 변경 시 권장)
+    uv run python scripts/collect_laws.py --config C1 --reset
+
     # 사용 가능한 설정 목록 확인
     uv run python scripts/collect_laws.py --list-configs
 
@@ -121,9 +124,7 @@ class ChunkingConfig(BaseModel):
         if self.overlap < 0:
             raise ValueError(f"overlap은 0 이상이어야 합니다: {self.overlap}")
         if self.max_tokens is not None and self.overlap >= self.max_tokens:
-            raise ValueError(
-                f"overlap({self.overlap})은 max_tokens({self.max_tokens})보다 작아야 합니다"
-            )
+            raise ValueError(f"overlap({self.overlap})은 max_tokens({self.max_tokens})보다 작아야 합니다")
         return self
 
 
@@ -363,7 +364,8 @@ class LawChunker:
                 )
                 documents.extend(docs)
                 doc_ids.extend(ids)
-            elif self.config.chunk_unit == ChunkUnit.PARAGRAPH:
+            elif self.config.chunk_unit == ChunkUnit.PARAGRAPH and MultiGranularity.ARTICLE not in granularities:
+                # 항이 없는 경우 조 단위로 fallback (단, multi_granularity에 ARTICLE이 없을 때만)
                 docs, ids = self._create_article_chunks(
                     article, law_name, article_no, article_title, base_metadata, mst
                 )
@@ -617,8 +619,16 @@ async def collect_and_store_laws(
     config: ChunkingConfig,
     export_chunks: bool = False,
     collection_suffix: str = "",
+    reset: bool = False,
 ):
-    """법령 데이터 수집 및 Vector DB 저장 (설정 기반 청킹)"""
+    """법령 데이터 수집 및 Vector DB 저장 (설정 기반 청킹)
+
+    Args:
+        config: 청킹 설정
+        export_chunks: 청크 JSON 내보내기 여부
+        collection_suffix: 컬렉션 이름에 붙일 접미사
+        reset: 기존 컬렉션 삭제 후 새로 생성 여부
+    """
 
     print("=" * 60)
     print("법령 데이터 수집 시작")
@@ -646,6 +656,18 @@ async def collect_and_store_laws(
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     collection_name = COLLECTION_LAWS + collection_suffix
+
+    # 기존 컬렉션 삭제 (reset 옵션)
+    if reset:
+        import chromadb
+
+        print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
+        client = chromadb.PersistentClient(path=str(persist_dir))
+        try:
+            client.delete_collection(name=collection_name)
+            print("  ✓ 기존 컬렉션 삭제 완료")
+        except ValueError:
+            print("  - 기존 컬렉션 없음 (새로 생성)")
 
     vectorstore = Chroma(
         collection_name=collection_name,
@@ -807,6 +829,11 @@ if __name__ == "__main__":
         default="",
         help="컬렉션 이름에 붙일 접미사 (예: _C1)",
     )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="기존 컬렉션 삭제 후 새로 생성 (프리셋 변경 시 권장)",
+    )
     args = parser.parse_args()
 
     if args.list_configs:
@@ -832,5 +859,6 @@ if __name__ == "__main__":
             config=config,
             export_chunks=args.export_chunks,
             collection_suffix=args.collection_suffix,
+            reset=args.reset,
         )
     )
