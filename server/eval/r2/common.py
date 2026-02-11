@@ -27,7 +27,7 @@ from eval.metrics import RetrievalMetrics
 EVAL_DIR = Path(__file__).parent
 EVALUATION_SET_PATH = EVAL_DIR / "evaluation_set.json"
 RESULTS_DIR = EVAL_DIR / "results" / "retrieval"
-DATA_PATH = EVAL_DIR.parent.parent / "data" / "r2" / "cases_structured.json"
+DATA_PATH = EVAL_DIR.parent.parent / "data" / "r2_data" / "cases_structured.json"
 
 VALID_STRATEGIES = ("structured", "hybrid", "fulltext")
 
@@ -143,11 +143,11 @@ def calculate_r2_metrics(
         retrieved_must_have = len(top_k_set & mh_set)
         must_have_recall = retrieved_must_have / len(mh_set)
 
-    # MRR
+    # MRR (top_k 범위 내에서만 계산)
     mrr = 0.0
     first_hit_rank = None
     gold_set = set(gold_ids)
-    for rank, rid in enumerate(retrieved_ids, start=1):
+    for rank, rid in enumerate(top_k, start=1):
         if rid in gold_set:
             mrr = 1.0 / rank
             first_hit_rank = rank

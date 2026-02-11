@@ -169,6 +169,11 @@ def create_documents(
                 if full_text:
                     content = full_text
 
+        # 빈 content 스킵 (임베딩 불가)
+        if not content or not content.strip():
+            print(f"  [WARN] 빈 content 스킵: {case_id} (strategy={strategy})")
+            continue
+
         service_name = common.get("service_name", "")
         citation = f"{track} - {service_name} ({company_name})"
 

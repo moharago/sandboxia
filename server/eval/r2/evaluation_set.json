@@ -427,7 +427,7 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "의료데이터 플랫폼. 실증특례_149는 FT_ONLY → data_quality 테스트.",
+      "notes": "의료데이터 플랫폼. 서울대병원 가명처리 플랫폼 2건 + 위버케어 진료정보.",
       "data_quality": "normal"
     },
     {
@@ -712,7 +712,7 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "비대면 통신가입. 스테이지파이브(FT_ONLY) → data_quality 테스트.",
+      "notes": "비대면 통신가입. 스테이지파이브·KT엠모바일·국민은행.",
       "data_quality": "normal"
     },
     {
@@ -1108,7 +1108,7 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "태양광. 대한케이불(FT_ONLY) → data_quality 테스트.",
+      "notes": "태양광 발전 모니터링. 대한케이불 임시허가 단일 사례.",
       "data_quality": "normal"
     },
     {
@@ -1231,7 +1231,7 @@
         "사례 없음"
       ],
       "notes": "화물차 임대 중개. 실증특례_119(FT_ONLY) → data_quality 테스트.",
-      "data_quality": "full_text_only"
+      "data_quality": "normal"
     },
     {
       "id": "R2-0028",

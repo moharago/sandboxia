@@ -144,7 +144,7 @@ def run_single_strategy(
     print(f"  Vector Store 준비 완료 ({build_time:.0f}ms)")
 
     # 평가 실행
-    print(f"  평가 진행 중...\n")
+    print("  평가 진행 중...\n")
     all_metrics: list[RetrievalMetrics] = []
     all_negatives: list[float] = []
     all_latencies: list[float] = []

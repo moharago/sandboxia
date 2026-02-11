@@ -203,8 +203,8 @@ uv run python eval/r2/run_evaluation.py --strategy {1단계 승자} --model all
 
 | 값 | 기준 | 해당 건수 | 배분 | 측정 대상 |
 |---|---|---|---|---|
-| `normal` | structured content >= 100자 | 216건 (77%) | 24개 | 임베딩 모델 교체 효과 |
-| `full_text_only` | structured content < 100자 | 65건 (23%) | 6개 | 하이브리드 fallback 효과 |
+| `normal` | structured content >= 100자 | 231건 (82%) | 28개 | 임베딩 모델 교체 효과 |
+| `full_text_only` | structured content < 100자 | 50건 (18%) | 2개 | 하이브리드 fallback 효과 |
 
 ### gold_cases 작성 기준
 

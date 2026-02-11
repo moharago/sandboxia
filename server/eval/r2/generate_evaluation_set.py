@@ -12,7 +12,12 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-DATA_PATH = Path(__file__).parent.parent.parent / "data" / "r2" / "cases_structured.json"
+# collect_cases.py의 _build_structured_content 재사용을 위해 server/ 루트 추가
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from scripts.collect_cases import _build_structured_content
+
+DATA_PATH = Path(__file__).parent.parent.parent / "data" / "r2_data" / "cases_structured.json"
 OUTPUT_PATH = Path(__file__).parent / "evaluation_set.json"
 
 
@@ -40,23 +45,16 @@ def get_service_name(case, lookup):
 
 
 def get_data_quality(case_id, lookup):
+    """case_id의 structured content 품질 판정.
+
+    collect_cases.py의 _build_structured_content()와 동일한 로직으로 content를 생성하여
+    hybrid 전략의 100자 fallback 임계값과 정확히 일치시킴.
+    """
     c = lookup.get(case_id)
     if not c:
         return "ERROR"
-    info = c.get("common_info", {})
-    structured = " ".join(
-        filter(
-            None,
-            [
-                info.get("service_name", ""),
-                info.get("service_description", ""),
-                info.get("special_provisions", ""),
-                info.get("pilot_scope", ""),
-                " ".join(info.get("conditions", [])),
-            ],
-        )
-    )
-    return "normal" if len(structured) >= 100 else "full_text_only"
+    content = _build_structured_content(c)
+    return "normal" if len(content) >= 100 else "full_text_only"
 
 
 def determine_item_quality(gold_cases, lookup):
@@ -271,7 +269,7 @@ EVALUATION_ITEMS = [
         ],
         "must_include": ["의료데이터", "가명"],
         "must_not_include": ["사례 없음"],
-        "notes": "의료데이터 플랫폼. 실증특례_149는 FT_ONLY → data_quality 테스트.",
+        "notes": "의료데이터 플랫폼. 서울대병원 가명처리 플랫폼 2건 + 위버케어 진료정보.",
     },
     {
         "id": "R2-0010",
@@ -405,7 +403,7 @@ EVALUATION_ITEMS = [
         ],
         "must_include": ["비대면", "이동통신", "가입"],
         "must_not_include": ["사례 없음"],
-        "notes": "비대면 통신가입. 스테이지파이브(FT_ONLY) → data_quality 테스트.",
+        "notes": "비대면 통신가입. 스테이지파이브·KT엠모바일·국민은행.",
     },
     # ===== PLATFORM (5) =====
     {
@@ -603,7 +601,7 @@ EVALUATION_ITEMS = [
         ],
         "must_include": ["태양광", "모니터링"],
         "must_not_include": ["사례 없음"],
-        "notes": "태양광. 대한케이불(FT_ONLY) → data_quality 테스트.",
+        "notes": "태양광 발전 모니터링. 대한케이불 임시허가 단일 사례.",
     },
     # ===== LOGISTICS (3) =====
     {
@@ -797,7 +795,7 @@ def main():
     for qt, cnt in sorted(query_types.items()):
         print(f"  {qt}: {cnt}개")
 
-    print(f"\ndata_quality별:")
+    print("\ndata_quality별:")
     for dq, cnt in quality_counts.items():
         print(f"  {dq}: {cnt}개")
 
