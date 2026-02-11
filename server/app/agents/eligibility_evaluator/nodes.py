@@ -5,6 +5,7 @@
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -262,152 +263,160 @@ def screen_node(state: EligibilityState) -> dict:
     return {"screening_result": screening_result}
 
 
-def search_regulations_node(state: EligibilityState) -> dict:
-    """규제제도 참조 노드 (R1)
-
-    스크리닝 키워드를 활용하여 규제샌드박스 제도/절차/요건을 검색합니다.
-    """
-    print("[Step 2/5] R1 규제제도 검색 시작...")
-    screening = state.get("screening_result")
+def _search_regulations(screening) -> list[dict]:
+    """R1 규제제도 검색 (내부 함수)"""
     keywords = screening.search_keywords if screening else []
 
-    # 쿼리 단순화: 키워드 + 제도 핵심 용어 (서비스 설명은 제외 - 임베딩 분산 방지)
     keyword_part = " ".join(keywords[:3]) if keywords else ""
     base_part = "규제샌드박스 신청 대상 요건 절차"
-
     query = f"{keyword_part} {base_part}".strip() if keyword_part else base_part
-    print(f"[Step 2/5] R1 검색 쿼리: {query}")
 
-    # R1 RAG 검색 실행
-    result = search_regulation.invoke(
-        {
-            "query": query,
-            "top_k": 5,
-        }
-    )
+    result = search_regulation.invoke({"query": query, "top_k": 5})
 
     regulations = []
     if hasattr(result, "results") and result.results:
         for reg in result.results:
-            regulations.append(
-                {
-                    "content": reg.content,
-                    "document_title": reg.document_title,
-                    "section_title": reg.section_title,
-                    "track": reg.track,
-                    "citation": reg.citation,
-                    "source_url": reg.source_url,
-                    "relevance_score": reg.relevance_score,
-                }
-            )
-        print(f"[Step 2/5] R1 규제제도 검색 완료 - {len(regulations)}건")
+            regulations.append({
+                "content": reg.content,
+                "document_title": reg.document_title,
+                "section_title": reg.section_title,
+                "track": reg.track,
+                "citation": reg.citation,
+                "source_url": reg.source_url,
+                "relevance_score": reg.relevance_score,
+            })
     else:
-        # 검색 결과 없으면 fallback 고정 템플릿 사용
-        regulations = [
-            {
-                "content": R1_SANDBOX_REQUIREMENTS,
-                "document_title": "ICT 규제샌드박스 제도 가이드",
-                "section_title": "규제샌드박스 신청 요건",
-                "track": "all",
-                "citation": "ICT 규제샌드박스 제도 가이드",
-                "relevance_score": 1.0,
-                "source_url": "https://www.sandbox.or.kr/guidance/intro.do",
-            }
-        ]
-        print("[Step 2/5] R1 검색 결과 없음, fallback 템플릿 사용")
+        regulations = [{
+            "content": R1_SANDBOX_REQUIREMENTS,
+            "document_title": "ICT 규제샌드박스 제도 가이드",
+            "section_title": "규제샌드박스 신청 요건",
+            "track": "all",
+            "citation": "ICT 규제샌드박스 제도 가이드",
+            "relevance_score": 1.0,
+            "source_url": "https://www.sandbox.or.kr/guidance/intro.do",
+        }]
 
-    return {"regulation_results": regulations}
+    return regulations
 
 
-def search_cases_node(state: EligibilityState) -> dict:
-    """승인 사례 검색 노드 (R2)
-
-    서비스 설명으로 유사 승인 사례 검색
-    """
-    print("[Step 3/5] R2 승인 사례 검색 시작...")
-    service_description = get_service_description(state["canonical"])
+def _search_cases(canonical: dict) -> list[dict]:
+    """R2 승인 사례 검색 (내부 함수)"""
+    service_description = get_service_description(canonical)
     query = (service_description or "규제 샌드박스 서비스")[:500]
 
-    # R2 검색
-    result = search_case.invoke(
-        {
-            "query": query,
-            "top_k": 5,
-            "deduplicate": True,
-        }
-    )
+    result = search_case.invoke({"query": query, "top_k": 5, "deduplicate": True})
 
     cases = []
     if hasattr(result, "results"):
         for c in result.results:
-            cases.append(
-                {
-                    "case_id": c.case_id,
-                    "company_name": c.company_name,
-                    "service_name": c.service_name,
-                    "track": c.track,
-                    "designation_date": c.designation_date,
-                    "service_description": c.service_description,
-                    "current_regulation": c.current_regulation,
-                    "special_provisions": c.special_provisions,
-                    "conditions": c.conditions,
-                    "relevance_score": c.relevance_score,
-                    "source_url": c.source_url,  # 사례 상세 URL
-                }
-            )
+            cases.append({
+                "case_id": c.case_id,
+                "company_name": c.company_name,
+                "service_name": c.service_name,
+                "track": c.track,
+                "designation_date": c.designation_date,
+                "service_description": c.service_description,
+                "current_regulation": c.current_regulation,
+                "special_provisions": c.special_provisions,
+                "conditions": c.conditions,
+                "relevance_score": c.relevance_score,
+                "source_url": c.source_url,
+            })
 
-    print(f"[Step 3/5] R2 승인 사례 검색 완료 - {len(cases)}건")
-
-    return {"case_results": cases}
+    return cases
 
 
-def search_laws_node(state: EligibilityState) -> dict:
-    """도메인별 법령 검색 노드 (R3)
-
-    스크리닝에서 탐지된 도메인으로 법령 검색
-    도메인이 없는 경우에도 최소 1회 R3 검색 수행
-    """
-    print("[Step 4/5] R3 법령 검색 시작...")
-    screening = state["screening_result"]
+def _search_laws(screening) -> list[dict]:
+    """R3 도메인별 법령 검색 (내부 함수)"""
     domains = screening.detected_domains if screening else []
     keywords = screening.search_keywords if screening else []
 
-    # 도메인이 없으면 fallback 도메인 사용 (최소 1회 R3 검색 보장)
     if not domains:
-        domains = ["data"]  # 기본 도메인 (DOMAIN_MAPPING에 정의됨)
+        domains = ["data"]
 
     laws = []
-
-    # 도메인별 검색
-    for domain in domains[:3]:  # 최대 3개 도메인
+    for domain in domains[:3]:
         query = " ".join(keywords[:3]) if keywords else domain
-        result = search_domain_law.invoke(
-            {
-                "query": query,
-                "domain": domain,
-                "top_k": 3,
-            }
-        )
+        result = search_domain_law.invoke({"query": query, "domain": domain, "top_k": 3})
 
         if hasattr(result, "results"):
             for law in result.results:
-                laws.append(
-                    {
-                        "law_name": law.law_name,
-                        "article_no": law.article_no,
-                        "article_title": law.article_title,
-                        "content": law.content,
-                        "citation": law.citation,
-                        "domain": law.domain,
-                        "domain_label": law.domain_label,
-                        "source_url": law.source_url,
-                        "relevance_score": law.relevance_score,
-                    }
-                )
+                laws.append({
+                    "law_name": law.law_name,
+                    "article_no": law.article_no,
+                    "article_title": law.article_title,
+                    "content": law.content,
+                    "citation": law.citation,
+                    "domain": law.domain,
+                    "domain_label": law.domain_label,
+                    "source_url": law.source_url,
+                    "relevance_score": law.relevance_score,
+                })
 
-    print(f"[Step 4/5] R3 법령 검색 완료 - {len(laws)}건")
+    return laws
 
-    return {"law_results": laws}
+
+def search_all_rag_node(state: EligibilityState) -> dict:
+    """RAG 검색 통합 노드 (R1 + R2 + R3 병렬 실행)
+
+    규제제도, 승인 사례, 도메인 법령을 병렬로 검색합니다.
+    """
+    print("[Step 2/4] RAG 검색 병렬 실행 시작 (R1 + R2 + R3)...")
+    screening = state.get("screening_result")
+    canonical = state["canonical"]
+
+    regulations = []
+    cases = []
+    laws = []
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_regs = executor.submit(_search_regulations, screening)
+        future_cases = executor.submit(_search_cases, canonical)
+        future_laws = executor.submit(_search_laws, screening)
+
+        try:
+            regulations = future_regs.result()
+            print(f"[Step 2/4] R1 규제제도 검색 완료 - {len(regulations)}건")
+        except Exception as e:
+            logger.warning(f"R1 검색 실패: {e}")
+
+        try:
+            cases = future_cases.result()
+            print(f"[Step 2/4] R2 승인 사례 검색 완료 - {len(cases)}건")
+        except Exception as e:
+            logger.warning(f"R2 검색 실패: {e}")
+
+        try:
+            laws = future_laws.result()
+            print(f"[Step 2/4] R3 법령 검색 완료 - {len(laws)}건")
+        except Exception as e:
+            logger.warning(f"R3 검색 실패: {e}")
+
+    print("[Step 2/4] RAG 검색 병렬 실행 완료")
+
+    return {
+        "regulation_results": regulations,
+        "case_results": cases,
+        "law_results": laws,
+    }
+
+
+# 기존 노드 함수들 (하위 호환성 유지)
+def search_regulations_node(state: EligibilityState) -> dict:
+    """규제제도 참조 노드 (R1) - deprecated, search_all_rag_node 사용 권장"""
+    screening = state.get("screening_result")
+    return {"regulation_results": _search_regulations(screening)}
+
+
+def search_cases_node(state: EligibilityState) -> dict:
+    """승인 사례 검색 노드 (R2) - deprecated, search_all_rag_node 사용 권장"""
+    return {"case_results": _search_cases(state["canonical"])}
+
+
+def search_laws_node(state: EligibilityState) -> dict:
+    """도메인별 법령 검색 노드 (R3) - deprecated, search_all_rag_node 사용 권장"""
+    screening = state["screening_result"]
+    return {"law_results": _search_laws(screening)}
 
 
 def compose_decision_node(state: EligibilityState) -> dict:
@@ -499,7 +508,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
 
     RAG 결과를 evidence_data 형식으로 변환
     R1/R2/R3 검색 결과 사용, R1 결과 없으면 fallback 템플릿 사용
-    LLM으로 사례/법령 설명 생성
+    LLM으로 사례/법령 설명 생성 (병렬 처리)
     """
     print("[Evidence] 근거 데이터 생성 시작...")
     cases = state["case_results"]
@@ -513,13 +522,63 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     # judgment_summary 생성 (R1 규제 기준 + R2 사례 + R3 법령)
     judgment_summary: list[JudgmentSummary] = []
 
-    # 규제 기준 (R1): state의 regulation_results 사용 (오른쪽 패널과 동일 데이터)
-    # LLM으로 서비스와 연결한 설명 생성
-    print(f"[Evidence 1/3] 규제제도 설명 생성 중... ({len(regulations[:3])}건)")
-    for i, reg in enumerate(regulations[:3]):
-        print(f"[Evidence 1/3] 규제제도 {i+1}/{len(regulations[:3])}")
-        reg_summary = generate_regulation_explanation(target_service, reg)
+    # 병렬 처리를 위한 작업 목록 생성
+    reg_items = regulations[:3]
+    case_items = cases[:3]
+    law_items = laws[:3]
 
+    total_tasks = len(reg_items) + len(case_items) + len(law_items)
+    print(f"[Evidence] LLM 설명 생성 병렬 처리 시작 ({total_tasks}건)...")
+
+    # 결과 저장용 딕셔너리
+    reg_summaries: dict[int, str] = {}
+    case_summaries: dict[int, str] = {}
+    law_summaries: dict[int, str] = {}
+
+    # ThreadPoolExecutor로 병렬 처리
+    with ThreadPoolExecutor(max_workers=9) as executor:
+        futures = {}
+
+        # 규제제도 설명 생성 작업 제출
+        for i, reg in enumerate(reg_items):
+            future = executor.submit(generate_regulation_explanation, target_service, reg)
+            futures[future] = ("reg", i)
+
+        # 사례 설명 생성 작업 제출
+        for i, case in enumerate(case_items):
+            future = executor.submit(generate_case_explanation, target_service, case)
+            futures[future] = ("case", i)
+
+        # 법령 설명 생성 작업 제출
+        for i, law in enumerate(law_items):
+            future = executor.submit(generate_law_explanation, target_service, law)
+            futures[future] = ("law", i)
+
+        # 완료된 작업 수집
+        for future in as_completed(futures):
+            task_type, idx = futures[future]
+            try:
+                result = future.result()
+                if task_type == "reg":
+                    reg_summaries[idx] = result
+                elif task_type == "case":
+                    case_summaries[idx] = result
+                elif task_type == "law":
+                    law_summaries[idx] = result
+            except Exception as e:
+                logger.warning(f"{task_type} 설명 생성 실패 (idx={idx}): {e}")
+                if task_type == "reg":
+                    reg_summaries[idx] = "규제제도 설명을 생성할 수 없습니다."
+                elif task_type == "case":
+                    case_summaries[idx] = "사례 설명을 생성할 수 없습니다."
+                elif task_type == "law":
+                    law_summaries[idx] = "법령 설명을 생성할 수 없습니다."
+
+    print("[Evidence] LLM 설명 생성 병렬 처리 완료")
+
+    # 규제 기준 (R1) 결과 조합
+    for i, reg in enumerate(reg_items):
+        reg_summary = reg_summaries.get(i, "")
         judgment_summary.append(
             JudgmentSummary(
                 type=JudgmentType.REGULATION,
@@ -529,22 +588,16 @@ def generate_evidence_node(state: EligibilityState) -> dict:
                 source_url=reg.get("source_url"),
             )
         )
-    print("[Evidence 1/3] 규제제도 설명 생성 완료")
 
-    # 사례 기반 근거 (LLM으로 설명 생성)
-    print(f"[Evidence 2/3] 사례 설명 생성 중... ({len(cases[:3])}건)")
-    for i, case in enumerate(cases[:3]):
-        print(f"[Evidence 2/3] 사례 {i+1}/{len(cases[:3])}")
+    # 사례 기반 근거 결과 조합
+    for i, case in enumerate(case_items):
         service_name = case.get("service_name") or case.get("case_id") or "유사 서비스"
         track = case.get("track") or ""
         company = case.get("company_name") or "기업"
         case_id = case.get("case_id") or ""
-
-        # LLM으로 사례 설명 생성 (유사점, 참고 이유 포함)
-        case_summary = generate_case_explanation(target_service, case)
-
+        case_summary = case_summaries.get(i, "")
         case_source_url = case.get("source_url")
-        print(f"[DEBUG] 사례 {i+1} source_url: {case_source_url}")
+
         judgment_summary.append(
             JudgmentSummary(
                 type=JudgmentType.CASE,
@@ -554,18 +607,13 @@ def generate_evidence_node(state: EligibilityState) -> dict:
                 source_url=case_source_url,
             )
         )
-    print("[Evidence 2/3] 사례 설명 생성 완료")
 
-    # 법령 기반 근거 (LLM으로 설명 생성)
-    print(f"[Evidence 3/3] 법령 설명 생성 중... ({len(laws[:3])}건)")
-    for i, law in enumerate(laws[:3]):
-        print(f"[Evidence 3/3] 법령 {i+1}/{len(laws[:3])}")
+    # 법령 기반 근거 결과 조합
+    for i, law in enumerate(law_items):
         law_name = law.get("law_name", "")
         article_no = law.get("article_no", "")
         citation = law.get("citation") or f"{law_name} {article_no}"
-
-        # LLM으로 법령 설명 생성 (조문 의미, 검토 필요성 포함)
-        law_summary = generate_law_explanation(target_service, law)
+        law_summary = law_summaries.get(i, "")
 
         judgment_summary.append(
             JudgmentSummary(
@@ -576,7 +624,6 @@ def generate_evidence_node(state: EligibilityState) -> dict:
                 source_url=law.get("source_url"),
             )
         )
-    print("[Evidence 3/3] 법령 설명 생성 완료")
 
     # approval_cases 생성 (Step 2,3,4 재사용)
     approval_cases: list[ApprovalCase] = []
