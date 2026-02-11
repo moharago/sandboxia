@@ -110,6 +110,7 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 | hybrid, 하이브리드                | `hybrid`     |
 | fulltext, 풀텍스트                | `fulltext`   |
 | all, 전체                         | `all`        |
+| 프리셋 ID (C0~C6, E0~E3 등)       | 그대로       |
 | 숫자 (5, 10, 15 등)               | 그대로       |
 
 **예시 변환**:
@@ -121,6 +122,8 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 | "embed small로 저장"     | `2026-02-10_embed_3-small`              |
 | "topk 10으로 저장"       | `2026-02-10_topk_10`                    |
 | "청킹 paragraph로 저장"  | `2026-02-10_chunk_paragraph`            |
+| "청킹 C1으로 저장"       | `2026-02-10_chunk_C1`                   |
+| "임베딩 E1으로 저장"     | `2026-02-10_embed_E1`                   |
 | "rerank cohere로 저장"   | `2026-02-10_rerank_cohere`              |
 | "전략 hybrid로 저장"     | `2026-02-10_strategy_hybrid`            |
 | "전략 all로 저장"        | `2026-02-10_strategy_all`               |
@@ -224,6 +227,8 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 | `/rag-eval baseline으로 저장`      | A    | R3 retrieval + 파일명 지정          | `2026-02-10_baseline`        |
 | `/rag-eval embedding large로 저장` | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_embed_3-large`   |
 | `/rag-eval topk 10으로 저장`       | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_topk_10`         |
+| `/rag-eval 청킹 C1으로 저장`       | A    | retrieval + 청킹 프리셋             | `2026-02-10_chunk_C1`        |
+| `/rag-eval R1 임베딩 E1으로 저장`  | A    | R1 retrieval + 임베딩 프리셋        | `2026-02-10_embed_E1`        |
 | `/rag-eval R2 전략 비교`           | A    | R2 retrieval + strategy all         | `2026-02-10_strategy_all`    |
 | `/rag-eval R2 structured`          | A    | R2 retrieval + strategy structured  | (타임스탬프)                 |
 | `/rag-eval R2 hybrid로 저장`       | A    | R2 retrieval + strategy hybrid      | `2026-02-10_strategy_hybrid` |
@@ -239,6 +244,7 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 - **LLM 평가 비용**: 처음 테스트 시 `--limit 3` 권장
 - **병렬 실행**: 서브에이전트는 동시에 실행되어 시간 절약
 - **컨텍스트 보호**: 대량 분석은 서브에이전트가 처리하여 메인 컨텍스트 보호
+- **실험 프리셋**: 각 RAG는 `server/eval/{r1,r2,r3}/configs/`에서 프리셋 관리 (chunking.yaml, embedding.yaml, vectordb.yaml 등)
 
 ## 에이전트 레퍼런스
 

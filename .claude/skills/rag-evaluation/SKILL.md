@@ -15,24 +15,43 @@ server/
 │   ├── __init__.py
 │   ├── metrics.py                  # Retrieval 지표 계산 함수
 │   ├── llm_metrics.py              # LLM-as-Judge 지표 (RAGAS 기반)
-│   ├── r2/
-│   │   ├── __init__.py
-│   │   ├── evaluation_set.json     # R2 평가셋 (30개 항목)
-│   │   ├── common.py               # R2 공통 유틸 (전략별 임시 VectorStore 등)
-│   │   ├── run_evaluation.py       # R2 Retrieval 평가 (--strategy 지원)
+│   ├── r1/                         # R1: 규제제도 & 절차 RAG
+│   │   ├── configs/                # 실험 설정 프리셋
+│   │   │   ├── chunking.yaml       # 청킹 전략 (C0~Cn)
+│   │   │   ├── embedding.yaml      # 임베딩 모델 (E0~En) - TODO
+│   │   │   └── vectordb.yaml       # Vector DB 설정 - TODO
+│   │   ├── datasets/
+│   │   │   └── evaluation_set.json # 평가셋
 │   │   └── results/
 │   │       └── retrieval/
-│   │           └── {날짜}_{전략}.json
-│   └── r3/
-│       ├── __init__.py
-│       ├── evaluation_set.json     # R3 평가셋 (30개 항목)
-│       ├── run_evaluation.py       # R3 Retrieval 평가 스크립트
-│       ├── run_llm_evaluation.py   # R3 LLM-as-Judge 평가 스크립트
+│   │           └── {날짜}_{변경요소}_{프리셋ID}.json
+│   ├── r2/                         # R2: 승인 사례 RAG
+│   │   ├── configs/                # 실험 설정 프리셋
+│   │   │   ├── chunking.yaml
+│   │   │   ├── embedding.yaml      # TODO
+│   │   │   └── vectordb.yaml       # TODO
+│   │   ├── datasets/
+│   │   │   └── evaluation_set.json
+│   │   ├── common.py               # 전략별 임시 VectorStore 등
+│   │   ├── run_evaluation.py       # --strategy 지원
+│   │   └── results/
+│   │       └── retrieval/
+│   │           └── {날짜}_{변경요소}_{프리셋ID}.json
+│   └── r3/                         # R3: 도메인별 법령 RAG
+│       ├── configs/                # 실험 설정 프리셋
+│       │   ├── chunking.yaml       # 청킹 전략 (C0~C6)
+│       │   ├── embedding.yaml      # TODO
+│       │   └── vectordb.yaml       # TODO
+│       ├── datasets/
+│       │   └── evaluation_set.json
+│       ├── common.py
+│       ├── run_evaluation.py
+│       ├── run_llm_evaluation.py
 │       └── results/
-│           ├── retrieval/          # Retrieval 평가 결과
-│           │   └── {날짜}_{변경요소}.json
-│           └── llm/                # LLM-as-Judge 평가 결과
-│               └── {날짜}_{변경요소}.json
+│           ├── retrieval/
+│           │   └── {날짜}_{변경요소}_{프리셋ID}.json
+│           └── llm/
+│               └── {날짜}_{변경요소}_{프리셋ID}.json
 └── data/                           # 데이터 (gitignore)
     ├── r2/
     │   └── cases_structured.json   # R2 원본 데이터 (281건)
@@ -149,14 +168,15 @@ Judge Model: gpt-4.1
 
 ### 결과 파일명 컨벤션
 
-**패턴**: `{날짜}_{변경요소}_{값}.json`
+**패턴**: `{날짜}_{변경요소}_{프리셋ID 또는 값}.json`
 
 | 실험 목적          | 파일명 예시                                                        |
 | ------------------ | ------------------------------------------------------------------ |
 | 기준선 (현재 설정) | `2024-01-15_baseline.json`                                         |
-| 임베딩 모델 비교   | `2024-01-15_embed_3-small.json`, `2024-01-15_embed_3-large.json`   |
+| 청킹 전략 비교     | `2024-01-15_chunk_C0.json`, `2024-01-15_chunk_C1.json`             |
+| 임베딩 모델 비교   | `2024-01-15_embed_E0.json`, `2024-01-15_embed_E1.json`             |
+| Vector DB 비교     | `2024-01-15_vectordb_V0.json`, `2024-01-15_vectordb_V1.json`       |
 | Top-K 비교         | `2024-01-15_topk_5.json`, `2024-01-15_topk_10.json`                |
-| 청킹 전략 비교     | `2024-01-15_chunk_paragraph.json`, `2024-01-15_chunk_article.json` |
 | 재랭커 추가        | `2024-01-15_rerank_cohere.json`, `2024-01-15_rerank_none.json`     |
 
 **실행 예시**:
@@ -428,14 +448,41 @@ uv run python scripts/collect_regulations.py --export-chunks # → data/r1_data/
 
 ## 평가 시나리오
 
+### 실험 설정 프리셋 (configs/)
+
+각 RAG 평가 폴더는 `configs/` 디렉토리에 실험 변수별 프리셋을 YAML로 관리합니다.
+
+**프리셋 위치**: `server/eval/{r1,r2,r3}/configs/`
+
+| 파일 | 프리셋 ID | 설명 |
+| ---- | --------- | ---- |
+| `chunking.yaml` | C0, C1, C2... | 청킹 전략 (chunk_unit, multi_granularity, prefix 등) |
+| `embedding.yaml` | E0, E1, E2... | 임베딩 모델 (model, dimension, batch_size 등) |
+| `vectordb.yaml` | V0, V1, V2... | Vector DB 설정 (distance_metric, index_type 등) |
+
+**프리셋 사용법**:
+
+```bash
+# 프리셋 목록 확인
+uv run python scripts/collect_laws.py --list-configs
+
+# 프리셋으로 데이터 수집
+uv run python scripts/collect_laws.py --config C1
+uv run python scripts/collect_cases.py --config C1
+uv run python scripts/collect_regulations.py --config C1
+```
+
+**결과 파일명 컨벤션**: `{날짜}_{변경요소}_{프리셋ID}.json`
+- 예: `2026-02-11_chunk_C1.json`, `2026-02-11_embed_E2.json`
+
 ### 1. 청킹 전략 비교
 
 ```bash
-# 1. 다른 청킹 전략으로 데이터 수집
-uv run python scripts/collect_laws.py --strategy semantic
+# 1. C1 청킹 전략으로 데이터 수집
+uv run python scripts/collect_laws.py --config C1
 
 # 2. 평가 실행
-uv run python eval/r3/run_evaluation.py --output semantic-chunking
+uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunk_C1
 ```
 
 ### 2. 임베딩 모델 비교
@@ -500,15 +547,13 @@ uv run python eval/r3/run_evaluation.py --top_k 10 --output k10
 | --------------------- | ----------------------------------------- | ------------------------------------------- |
 | Retrieval 지표        | `server/eval/metrics.py`                  | Recall, MRR 등 계산 함수                    |
 | LLM-as-Judge 지표     | `server/eval/llm_metrics.py`              | Faithfulness, Answer Relevancy (RAGAS 기반) |
-| R2 평가셋             | `server/eval/r2/evaluation_set.json`      | R2 RAG 평가셋 (30개)                        |
+| 실험 프리셋 (공통)    | `server/eval/{r1,r2,r3}/configs/`         | chunking.yaml, embedding.yaml, vectordb.yaml |
+| 평가셋 (공통)         | `server/eval/{r1,r2,r3}/datasets/`        | evaluation_set.json                         |
+| 평가 결과 (공통)      | `server/eval/{r1,r2,r3}/results/`         | retrieval/, llm/ 하위에 JSON 저장           |
 | R2 공통 유틸          | `server/eval/r2/common.py`                | 전략별 임시 VectorStore, 매칭, 지표 계산    |
 | R2 Retrieval 평가     | `server/eval/r2/run_evaluation.py`        | R2 Retrieval 평가 (--strategy 지원)         |
-| R2 Retrieval 결과     | `server/eval/r2/results/retrieval/`       | R2 Retrieval 평가 결과 JSON                 |
-| R3 평가셋             | `server/eval/r3/evaluation_set.json`      | R3 RAG 평가셋 (30개)                        |
 | R3 Retrieval 평가     | `server/eval/r3/run_evaluation.py`        | R3 Retrieval 평가 실행                      |
 | R3 LLM-as-Judge 평가  | `server/eval/r3/run_llm_evaluation.py`    | R3 Retrieval + Generation 평가 실행         |
-| R3 Retrieval 결과     | `server/eval/r3/results/retrieval/`       | Retrieval 평가 결과 JSON                    |
-| R3 LLM 결과           | `server/eval/r3/results/llm/`             | LLM-as-Judge 평가 결과 JSON                 |
 | 청크 데이터           | `server/data/{r1,r2,r3}_data/chunks.json` | 청킹 결과 (gitignore)                       |
 | 공통 유틸             | `server/app/db/export.py`                 | 청크 JSON 저장 함수                         |
 | R3 수집               | `server/scripts/collect_laws.py`          | 법령 수집 (--export-chunks로 청크 저장)     |
