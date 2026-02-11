@@ -21,7 +21,7 @@ from eval.metrics import RetrievalMetrics
 
 # 경로 설정
 EVAL_DIR = Path(__file__).parent
-EVALUATION_SET_PATH = EVAL_DIR / "evaluation_set.json"
+EVALUATION_SET_PATH = EVAL_DIR / "datasets" / "evaluation_set.json"
 RESULTS_DIR_RETRIEVAL = EVAL_DIR / "results" / "retrieval"
 RESULTS_DIR_LLM = EVAL_DIR / "results" / "llm"
 
