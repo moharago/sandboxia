@@ -1,0 +1,2952 @@
+{
+  "timestamp": "2026-02-11T13:02:04.242878",
+  "config": {
+    "strategy": "all",
+    "top_k": 5,
+    "embedding_model": "text-embedding-3-small",
+    "num_items": 30,
+    "num_cases": 281
+  },
+  "results": [
+    {
+      "strategy": "structured",
+      "summary": {
+        "must_have_recall_at_k": 0.9,
+        "recall_at_k": 0.85,
+        "mrr": 0.9111,
+        "negative_at_k": 0.2,
+        "items_with_negative": 9,
+        "latency_p50_ms": 112.79,
+        "latency_p95_ms": 399.79,
+        "latency_mean_ms": 161.33
+      },
+      "aggregated": {
+        "k": 5,
+        "num_queries": 30,
+        "avg_recall_at_k": 0.85,
+        "avg_must_have_recall_at_k": 0.9,
+        "avg_mrr": 0.9111,
+        "total_gold_citations": 76,
+        "total_retrieved_gold": 62,
+        "total_must_have_citations": 50,
+        "total_must_have_retrieved": 44
+      },
+      "build_time_ms": 3586.54,
+      "details": [
+        {
+          "id": "R2-0001",
+          "category": "mobility",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "자율주행 배달 로봇 서비스를 시작하려는데, 비슷한 승인 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들",
+            "실증특례_62_뉴빌리티"
+          ],
+          "must_have_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들"
+          ],
+          "negative_ids": [
+            "실증특례_25_만도",
+            "실증특례_54_모빌테크"
+          ],
+          "retrieved_ids": [
+            "실증특례_62_뉴빌리티",
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들",
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 243.7
+        },
+        {
+          "id": "R2-0002",
+          "category": "mobility",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "택시 요금을 탑승 전에 미리 결제하는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_27_스타릭스",
+            "실증특례_45_카카오모빌리티",
+            "실증특례_44_브이씨엔씨"
+          ],
+          "must_have_ids": [
+            "실증특례_27_스타릭스",
+            "실증특례_45_카카오모빌리티"
+          ],
+          "negative_ids": [
+            "실증특례_8_코나투스",
+            "실증특례_31_카카오모빌리티·KM솔루션"
+          ],
+          "retrieved_ids": [
+            "실증특례_45_카카오모빌리티",
+            "실증특례_30_KST모빌리티",
+            "실증특례_27_스타릭스",
+            "실증특례_8_코나투스",
+            "실증특례_44_브이씨엔씨"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 107.2
+        },
+        {
+          "id": "R2-0003",
+          "category": "mobility",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "수요응답형(DRT) 버스 서비스의 실증 부가조건은 어떤 것들이 있나요?",
+          "gold_ids": [
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_35_현대자동차‧KST모빌리티"
+          ],
+          "must_have_ids": [
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_64_스튜디오갈릴레이"
+          ],
+          "negative_ids": [
+            "실증특례_95_스쿨버스"
+          ],
+          "retrieved_ids": [
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_87_테브",
+            "실증특례_106_에이피에스",
+            "실증특례_198_주식회사_엘콤",
+            "실증특례_95_스쿨버스"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 1,
+          "latency_ms": 104.88
+        },
+        {
+          "id": "R2-0004",
+          "category": "mobility",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "이동약자를 위한 특화 모빌리티 서비스의 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_28_파파모빌리티",
+            "실증특례_49_힐빙케어",
+            "실증특례_60_안녕"
+          ],
+          "must_have_ids": [
+            "실증특례_28_파파모빌리티",
+            "실증특례_49_힐빙케어"
+          ],
+          "negative_ids": [
+            "실증특례_67_인커머스",
+            "실증특례_8_코나투스"
+          ],
+          "retrieved_ids": [
+            "실증특례_60_안녕",
+            "실증특례_49_힐빙케어",
+            "실증특례_67_인커머스",
+            "실증특례_28_파파모빌리티",
+            "실증특례_29_코액터스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 107.42
+        },
+        {
+          "id": "R2-0005",
+          "category": "mobility",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "자율주행 순찰 로봇으로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "must_have_ids": [
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "negative_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_165_우아한형제들"
+          ],
+          "retrieved_ids": [
+            "실증특례_62_뉴빌리티",
+            "실증특례_25_만도",
+            "실증특례_26_언맨드솔루션",
+            "실증특례_72_한라대산학협력단_컨소시엄",
+            "실증특례_54_모빌테크"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.5,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 2,
+          "latency_ms": 108.58
+        },
+        {
+          "id": "R2-0006",
+          "category": "healthcare",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "반려동물의 생체 정보를 활용해서 동물등록을 하는 서비스인데, 유사한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈",
+            "실증특례_53_블록펫",
+            "실증특례_121_펫나우"
+          ],
+          "must_have_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈"
+          ],
+          "negative_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_201_베텍코리아"
+          ],
+          "retrieved_ids": [
+            "실증특례_53_블록펫",
+            "실증특례_122_피앤에스클라우드",
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈",
+            "실증특례_121_펫나우"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 835.99
+        },
+        {
+          "id": "R2-0007",
+          "category": "healthcare",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "AI를 활용해 반려동물 건강을 비대면으로 모니터링하는 서비스인데, 비슷한 승인 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_100_에이아이포펫"
+          ],
+          "must_have_ids": [
+            "실증특례_100_에이아이포펫"
+          ],
+          "negative_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_2_휴이노"
+          ],
+          "retrieved_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_79_아이싸이랩",
+            "실증특례_53_블록펫",
+            "실증특례_88_펫스니즈",
+            "실증특례_121_펫나우"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 144.82
+        },
+        {
+          "id": "R2-0008",
+          "category": "healthcare",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "비대면으로 환자를 진료하는 서비스를 하려는데, 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_69_에이치로보틱스",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "must_have_ids": [
+            "실증특례_69_에이치로보틱스",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "negative_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "retrieved_ids": [
+            "실증특례_69_에이치로보틱스",
+            "실증특례_163_세나클소프트_컨소시엄",
+            "임시허가_36_퍼즐에이아이",
+            "실증특례_149_서울대학교병원",
+            "실증특례_67_인커머스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 144.3
+        },
+        {
+          "id": "R2-0009",
+          "category": "healthcare",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "의료 데이터를 활용한 연구 플랫폼을 만들려는데, 개인정보 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "must_have_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원"
+          ],
+          "negative_ids": [
+            "실증특례_69_에이치로보틱스"
+          ],
+          "retrieved_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_163_세나클소프트_컨소시엄",
+            "실증특례_211_서울대학교병원",
+            "실증특례_202_한국지능정보사회진흥원",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 107.01
+        },
+        {
+          "id": "R2-0010",
+          "category": "healthcare",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "손목시계형 심전도 장치로 건강관리 서비스를 하려는데, 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_2_휴이노",
+            "실증특례_20_아이티아이씨앤씨"
+          ],
+          "must_have_ids": [
+            "실증특례_2_휴이노"
+          ],
+          "negative_ids": [
+            "실증특례_69_에이치로보틱스"
+          ],
+          "retrieved_ids": [
+            "실증특례_2_휴이노",
+            "실증특례_169_혁성주식회사",
+            "실증특례_135_메이크스페이스",
+            "실증특례_170_풀소유",
+            "실증특례_144"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 138.13
+        },
+        {
+          "id": "R2-0011",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "행정기관 고지서를 모바일 앱으로 전달하는 서비스를 시작하려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_12_네이버",
+            "임시허가_14_KT",
+            "임시허가_30_엔에이치엔페이코"
+          ],
+          "must_have_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_12_네이버"
+          ],
+          "negative_ids": [
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "retrieved_ids": [
+            "임시허가_12_네이버",
+            "임시허가_1_카카오페이",
+            "임시허가_37_비바리퍼블리카",
+            "임시허가_45_국민은행_컨소시엄",
+            "임시허가_30_엔에이치엔페이코"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 110.94
+        },
+        {
+          "id": "R2-0012",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "모바일로 운전면허를 확인하는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_32_코인플러그",
+            "임시허가_27_아이콘루프"
+          ],
+          "must_have_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_18_카카오·카카오뱅크"
+          ],
+          "negative_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_8_티머니"
+          ],
+          "retrieved_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_27_아이콘루프",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_32_코인플러그",
+            "임시허가_9_SK텔레콤"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 136.34
+        },
+        {
+          "id": "R2-0013",
+          "category": "fintech",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "QR코드 기반 결제 서비스로 임시허가를 받은 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_4_인스타페이"
+          ],
+          "must_have_ids": [
+            "임시허가_4_인스타페이"
+          ],
+          "negative_ids": [
+            "실증특례_12_캐시멜로",
+            "임시허가_12_네이버"
+          ],
+          "retrieved_ids": [
+            "임시허가_4_인스타페이",
+            "임시허가_27_아이콘루프",
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_28_국민은행"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 107.32
+        },
+        {
+          "id": "R2-0014",
+          "category": "fintech",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "택시에 GPS 기반 앱 미터기를 도입하려는데, 관련 규제 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_30_KST모빌리티",
+            "임시허가_8_티머니",
+            "임시허가_23_브이씨엔씨",
+            "임시허가_31_코나아이"
+          ],
+          "must_have_ids": [
+            "실증특례_30_KST모빌리티",
+            "임시허가_8_티머니"
+          ],
+          "negative_ids": [
+            "실증특례_27_스타릭스"
+          ],
+          "retrieved_ids": [
+            "임시허가_23_브이씨엔씨",
+            "임시허가_17_KST모빌리티",
+            "임시허가_31_코나아이",
+            "임시허가_8_티머니",
+            "실증특례_30_KST모빌리티"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 137.51
+        },
+        {
+          "id": "R2-0015",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "비대면으로 이동통신에 가입할 수 있는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_33_KT엠모바일‧네이버",
+            "임시허가_28_국민은행"
+          ],
+          "must_have_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄"
+          ],
+          "negative_ids": [
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "retrieved_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_33_KT엠모바일‧네이버",
+            "실증특례_104_진캠핑",
+            "실증특례_14_이노넷",
+            "실증특례_187_데이즌"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 111.86
+        },
+        {
+          "id": "R2-0016",
+          "category": "platform",
+          "query_type": "similar_case",
+          "data_quality": "full_text_only",
+          "question": "개인 소유 캠핑카를 빌려주는 중개 플랫폼을 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_104_진캠핑",
+            "실증특례_82_디테크게엠베하",
+            "실증특례_102_웨이즈플랜"
+          ],
+          "must_have_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_104_진캠핑"
+          ],
+          "negative_ids": [
+            "실증특례_113_블루카멜",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "retrieved_ids": [
+            "실증특례_82_디테크게엠베하",
+            "실증특례_114",
+            "실증특례_127_엠제이이노베이션_주식회사",
+            "실증특례_128_밴플",
+            "실증특례_81_YONGHA"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 109.29
+        },
+        {
+          "id": "R2-0017",
+          "category": "platform",
+          "query_type": "similar_case",
+          "data_quality": "full_text_only",
+          "question": "아파트 재건축 조합 총회를 전자적으로 진행하려는데, 관련 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_101_이제이엠컴퍼니",
+            "실증특례_89_레디포스트",
+            "실증특례_133_오투웹스_주식회사",
+            "실증특례_186_넥스타우스_주"
+          ],
+          "must_have_ids": [
+            "실증특례_101_이제이엠컴퍼니",
+            "실증특례_89_레디포스트"
+          ],
+          "negative_ids": [
+            "실증특례_120",
+            "실증특례_148"
+          ],
+          "retrieved_ids": [
+            "실증특례_133_오투웹스_주식회사",
+            "실증특례_89_레디포스트",
+            "실증특례_186_넥스타우스_주",
+            "실증특례_158_엘림넷",
+            "실증특례_172_한국프롭테크"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 113.72
+        },
+        {
+          "id": "R2-0018",
+          "category": "platform",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "블록체인 기반 전자공증 서비스를 하려면 어떤 실증 조건이 있나요?",
+          "gold_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템"
+          ],
+          "must_have_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템"
+          ],
+          "negative_ids": [
+            "실증특례_89_레디포스트"
+          ],
+          "retrieved_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템",
+            "실증특례_89_레디포스트",
+            "실증특례_158_엘림넷",
+            "실증특례_208_오엠알테크"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 1,
+          "latency_ms": 137.36
+        },
+        {
+          "id": "R2-0019",
+          "category": "platform",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "장애인 전용 차량을 대여해주는 플랫폼을 만들려는데, 규제 쟁점이 있는 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_113_블루카멜"
+          ],
+          "must_have_ids": [
+            "실증특례_113_블루카멜"
+          ],
+          "negative_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_48_타운즈"
+          ],
+          "retrieved_ids": [
+            "실증특례_113_블루카멜",
+            "실증특례_29_코액터스",
+            "실증특례_48_타운즈",
+            "실증특례_127_엠제이이노베이션_주식회사",
+            "실증특례_168_피알앤디컴퍼니"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 138.04
+        },
+        {
+          "id": "R2-0020",
+          "category": "platform",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "아파트 단지 내에서 차량 공유 서비스를 실증특례로 승인받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_48_타운즈"
+          ],
+          "must_have_ids": [
+            "실증특례_48_타운즈"
+          ],
+          "negative_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "retrieved_ids": [
+            "실증특례_48_타운즈",
+            "실증특례_127_엠제이이노베이션_주식회사",
+            "실증특례_119",
+            "실증특례_8_코나투스",
+            "실증특례_113_블루카멜"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 136.27
+        },
+        {
+          "id": "R2-0021",
+          "category": "energy",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "전기차나 전기버스를 무선으로 충전하는 서비스를 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_66_현대자동차",
+            "실증특례_38_와이파워원",
+            "실증특례_84_SKC"
+          ],
+          "must_have_ids": [
+            "실증특례_66_현대자동차",
+            "실증특례_38_와이파워원"
+          ],
+          "negative_ids": [
+            "실증특례_34_워프솔루션",
+            "임시허가_2_스타코프"
+          ],
+          "retrieved_ids": [
+            "실증특례_38_와이파워원",
+            "실증특례_66_현대자동차",
+            "실증특례_84_SKC",
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 107.68
+        },
+        {
+          "id": "R2-0022",
+          "category": "energy",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "누전차단기를 원격으로 제어하는 시스템을 만들려는데, 관련 규제 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전",
+            "임시허가_35_삼현씨앤에스"
+          ],
+          "must_have_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전"
+          ],
+          "negative_ids": [
+            "임시허가_3_텔라움",
+            "실증특례_34_워프솔루션"
+          ],
+          "retrieved_ids": [
+            "임시허가_26_금성계전",
+            "실증특례_13_한결네트웍스",
+            "임시허가_35_삼현씨앤에스",
+            "실증특례_66_현대자동차",
+            "실증특례_4_조인스오토"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 106.59
+        },
+        {
+          "id": "R2-0023",
+          "category": "energy",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "전동킥보드 충전·주차 스테이션을 설치하려는데, 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "must_have_ids": [
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "negative_ids": [
+            "실증특례_66_현대자동차"
+          ],
+          "retrieved_ids": [
+            "실증특례_84_SKC",
+            "실증특례_66_현대자동차",
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크",
+            "실증특례_34_워프솔루션",
+            "실증특례_38_와이파워원"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.3333333333333333,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 3,
+          "latency_ms": 399.79
+        },
+        {
+          "id": "R2-0024",
+          "category": "energy",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "태양광 발전 모니터링 서비스 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_5_대한케이불"
+          ],
+          "must_have_ids": [
+            "임시허가_5_대한케이불"
+          ],
+          "negative_ids": [
+            "실증특례_130_서울도시가스_컨소시엄"
+          ],
+          "retrieved_ids": [
+            "임시허가_5_대한케이불",
+            "실증특례_100_에이아이포펫",
+            "실증특례_159_비즈하이브",
+            "실증특례_140",
+            "실증특례_135_메이크스페이스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 241.4
+        },
+        {
+          "id": "R2-0025",
+          "category": "logistics",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "중고차 폐차를 모바일로 간편하게 할 수 있는 서비스인데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니",
+            "실증특례_108_에이티나인랩스"
+          ],
+          "must_have_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니"
+          ],
+          "negative_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "retrieved_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니",
+            "실증특례_45_카카오모빌리티",
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_113_블루카멜"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 131.03
+        },
+        {
+          "id": "R2-0026",
+          "category": "logistics",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "택배 차량이 사고났을 때 대체 차량을 빌려주는 서비스의 실증 조건은 어떤가요?",
+          "gold_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "must_have_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "negative_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_81_YONGHA"
+          ],
+          "retrieved_ids": [
+            "실증특례_96_A모터스",
+            "실증특례_31_카카오모빌리티·KM솔루션",
+            "실증특례_61_진모빌리티",
+            "실증특례_70_유닉트",
+            "실증특례_86_애드"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 109.7
+        },
+        {
+          "id": "R2-0027",
+          "category": "logistics",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "화물자동차 운송사업자 간 차량 임대 중개 플랫폼으로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_119"
+          ],
+          "must_have_ids": [
+            "실증특례_119"
+          ],
+          "negative_ids": [
+            "실증특례_96_A모터스",
+            "실증특례_85_이노션"
+          ],
+          "retrieved_ids": [
+            "실증특례_119",
+            "실증특례_86_애드",
+            "실증특례_113_블루카멜",
+            "실증특례_57_디지티모빌리티",
+            "실증특례_52_코액터스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 109.11
+        },
+        {
+          "id": "R2-0028",
+          "category": "etc",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "도심에서 개인 물품을 보관해주는 스마트 보관함 서비스를 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_110_세컨신드롬",
+            "실증특례_135_메이크스페이스",
+            "실증특례_137_큐비즈코리아"
+          ],
+          "must_have_ids": [
+            "실증특례_110_세컨신드롬",
+            "실증특례_135_메이크스페이스"
+          ],
+          "negative_ids": [
+            "실증특례_197_주식회사_에치와이"
+          ],
+          "retrieved_ids": [
+            "실증특례_139_스토리지엠",
+            "실증특례_135_메이크스페이스",
+            "실증특례_178_시그포",
+            "실증특례_138_아이엠박스코리아",
+            "실증특례_181_아이포스트"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 0.5,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 2,
+          "latency_ms": 139.95
+        },
+        {
+          "id": "R2-0029",
+          "category": "etc",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "AI 기반 보이스피싱 탐지 서비스로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스",
+            "실증특례_210_SK_텔레콤"
+          ],
+          "must_have_ids": [
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스"
+          ],
+          "negative_ids": [
+            "실증특례_20_아이티아이씨앤씨"
+          ],
+          "retrieved_ids": [
+            "실증특례_210_SK_텔레콤",
+            "실증특례_155_한국프롭테크",
+            "실증특례_100_에이아이포펫",
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 110.24
+        },
+        {
+          "id": "R2-0030",
+          "category": "etc",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "공유주방 서비스로 실증특례를 받은 사례를 알려주세요.",
+          "gold_ids": [
+            "실증특례_33_칠링키친",
+            "실증특례_36_키친엑스",
+            "실증특례_9_심플프로젝트컴퍼니"
+          ],
+          "must_have_ids": [
+            "실증특례_33_칠링키친",
+            "실증특례_36_키친엑스"
+          ],
+          "negative_ids": [
+            "실증특례_47_에이앤드에이_엔터테인먼트"
+          ],
+          "retrieved_ids": [
+            "실증특례_51_네오푸드시스템",
+            "실증특례_42_위대한상사",
+            "실증특례_59_연제청년창업나래센터",
+            "실증특례_68_키친스탠다드",
+            "실증특례_127_엠제이이노베이션_주식회사"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": null,
+          "latency_ms": 103.77
+        }
+      ]
+    },
+    {
+      "strategy": "hybrid",
+      "summary": {
+        "must_have_recall_at_k": 0.8667,
+        "recall_at_k": 0.8278,
+        "mrr": 0.9,
+        "negative_at_k": 0.2,
+        "items_with_negative": 9,
+        "latency_p50_ms": 111.92,
+        "latency_p95_ms": 146.65,
+        "latency_mean_ms": 122.15
+      },
+      "aggregated": {
+        "k": 5,
+        "num_queries": 30,
+        "avg_recall_at_k": 0.8278,
+        "avg_must_have_recall_at_k": 0.8667,
+        "avg_mrr": 0.9,
+        "total_gold_citations": 76,
+        "total_retrieved_gold": 62,
+        "total_must_have_citations": 50,
+        "total_must_have_retrieved": 43
+      },
+      "build_time_ms": 2970.68,
+      "details": [
+        {
+          "id": "R2-0001",
+          "category": "mobility",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "자율주행 배달 로봇 서비스를 시작하려는데, 비슷한 승인 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들",
+            "실증특례_62_뉴빌리티"
+          ],
+          "must_have_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들"
+          ],
+          "negative_ids": [
+            "실증특례_25_만도",
+            "실증특례_54_모빌테크"
+          ],
+          "retrieved_ids": [
+            "실증특례_62_뉴빌리티",
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들",
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 242.38
+        },
+        {
+          "id": "R2-0002",
+          "category": "mobility",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "택시 요금을 탑승 전에 미리 결제하는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_27_스타릭스",
+            "실증특례_45_카카오모빌리티",
+            "실증특례_44_브이씨엔씨"
+          ],
+          "must_have_ids": [
+            "실증특례_27_스타릭스",
+            "실증특례_45_카카오모빌리티"
+          ],
+          "negative_ids": [
+            "실증특례_8_코나투스",
+            "실증특례_31_카카오모빌리티·KM솔루션"
+          ],
+          "retrieved_ids": [
+            "실증특례_45_카카오모빌리티",
+            "실증특례_30_KST모빌리티",
+            "실증특례_27_스타릭스",
+            "실증특례_8_코나투스",
+            "실증특례_44_브이씨엔씨"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 139.74
+        },
+        {
+          "id": "R2-0003",
+          "category": "mobility",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "수요응답형(DRT) 버스 서비스의 실증 부가조건은 어떤 것들이 있나요?",
+          "gold_ids": [
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_35_현대자동차‧KST모빌리티"
+          ],
+          "must_have_ids": [
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_64_스튜디오갈릴레이"
+          ],
+          "negative_ids": [
+            "실증특례_95_스쿨버스"
+          ],
+          "retrieved_ids": [
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_106_에이피에스",
+            "실증특례_87_테브",
+            "실증특례_198_주식회사_엘콤",
+            "실증특례_95_스쿨버스"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 1,
+          "latency_ms": 110.68
+        },
+        {
+          "id": "R2-0004",
+          "category": "mobility",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "이동약자를 위한 특화 모빌리티 서비스의 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_28_파파모빌리티",
+            "실증특례_49_힐빙케어",
+            "실증특례_60_안녕"
+          ],
+          "must_have_ids": [
+            "실증특례_28_파파모빌리티",
+            "실증특례_49_힐빙케어"
+          ],
+          "negative_ids": [
+            "실증특례_67_인커머스",
+            "실증특례_8_코나투스"
+          ],
+          "retrieved_ids": [
+            "실증특례_60_안녕",
+            "실증특례_49_힐빙케어",
+            "실증특례_67_인커머스",
+            "실증특례_28_파파모빌리티",
+            "실증특례_29_코액터스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 108.82
+        },
+        {
+          "id": "R2-0005",
+          "category": "mobility",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "자율주행 순찰 로봇으로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "must_have_ids": [
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "negative_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_165_우아한형제들"
+          ],
+          "retrieved_ids": [
+            "실증특례_62_뉴빌리티",
+            "실증특례_25_만도",
+            "실증특례_26_언맨드솔루션",
+            "실증특례_72_한라대산학협력단_컨소시엄",
+            "실증특례_54_모빌테크"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.5,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 2,
+          "latency_ms": 129.07
+        },
+        {
+          "id": "R2-0006",
+          "category": "healthcare",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "반려동물의 생체 정보를 활용해서 동물등록을 하는 서비스인데, 유사한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈",
+            "실증특례_53_블록펫",
+            "실증특례_121_펫나우"
+          ],
+          "must_have_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈"
+          ],
+          "negative_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_201_베텍코리아"
+          ],
+          "retrieved_ids": [
+            "실증특례_53_블록펫",
+            "실증특례_122_피앤에스클라우드",
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈",
+            "실증특례_121_펫나우"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 130.86
+        },
+        {
+          "id": "R2-0007",
+          "category": "healthcare",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "AI를 활용해 반려동물 건강을 비대면으로 모니터링하는 서비스인데, 비슷한 승인 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_100_에이아이포펫"
+          ],
+          "must_have_ids": [
+            "실증특례_100_에이아이포펫"
+          ],
+          "negative_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_2_휴이노"
+          ],
+          "retrieved_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_79_아이싸이랩",
+            "실증특례_53_블록펫",
+            "실증특례_88_펫스니즈",
+            "실증특례_121_펫나우"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 104.45
+        },
+        {
+          "id": "R2-0008",
+          "category": "healthcare",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "비대면으로 환자를 진료하는 서비스를 하려는데, 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_69_에이치로보틱스",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "must_have_ids": [
+            "실증특례_69_에이치로보틱스",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "negative_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "retrieved_ids": [
+            "실증특례_69_에이치로보틱스",
+            "실증특례_24_LG전자·서울대병원",
+            "실증특례_163_세나클소프트_컨소시엄",
+            "실증특례_23_LG전자·에임메드",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 145.76
+        },
+        {
+          "id": "R2-0009",
+          "category": "healthcare",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "의료 데이터를 활용한 연구 플랫폼을 만들려는데, 개인정보 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "must_have_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원"
+          ],
+          "negative_ids": [
+            "실증특례_69_에이치로보틱스"
+          ],
+          "retrieved_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_163_세나클소프트_컨소시엄",
+            "실증특례_211_서울대학교병원",
+            "실증특례_202_한국지능정보사회진흥원",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 101.04
+        },
+        {
+          "id": "R2-0010",
+          "category": "healthcare",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "손목시계형 심전도 장치로 건강관리 서비스를 하려는데, 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_2_휴이노",
+            "실증특례_20_아이티아이씨앤씨"
+          ],
+          "must_have_ids": [
+            "실증특례_2_휴이노"
+          ],
+          "negative_ids": [
+            "실증특례_69_에이치로보틱스"
+          ],
+          "retrieved_ids": [
+            "실증특례_2_휴이노",
+            "실증특례_24_LG전자·서울대병원",
+            "실증특례_23_LG전자·에임메드",
+            "실증특례_169_혁성주식회사",
+            "실증특례_135_메이크스페이스"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 103.48
+        },
+        {
+          "id": "R2-0011",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "행정기관 고지서를 모바일 앱으로 전달하는 서비스를 시작하려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_12_네이버",
+            "임시허가_14_KT",
+            "임시허가_30_엔에이치엔페이코"
+          ],
+          "must_have_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_12_네이버"
+          ],
+          "negative_ids": [
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "retrieved_ids": [
+            "임시허가_12_네이버",
+            "임시허가_1_카카오페이",
+            "임시허가_37_비바리퍼블리카",
+            "임시허가_45_국민은행_컨소시엄",
+            "임시허가_30_엔에이치엔페이코"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 102.74
+        },
+        {
+          "id": "R2-0012",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "모바일로 운전면허를 확인하는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_32_코인플러그",
+            "임시허가_27_아이콘루프"
+          ],
+          "must_have_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_18_카카오·카카오뱅크"
+          ],
+          "negative_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_8_티머니"
+          ],
+          "retrieved_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_27_아이콘루프",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_32_코인플러그",
+            "임시허가_9_SK텔레콤"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 124.95
+        },
+        {
+          "id": "R2-0013",
+          "category": "fintech",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "QR코드 기반 결제 서비스로 임시허가를 받은 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_4_인스타페이"
+          ],
+          "must_have_ids": [
+            "임시허가_4_인스타페이"
+          ],
+          "negative_ids": [
+            "실증특례_12_캐시멜로",
+            "임시허가_12_네이버"
+          ],
+          "retrieved_ids": [
+            "임시허가_4_인스타페이",
+            "임시허가_25_코웨이",
+            "임시허가_27_아이콘루프",
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_18_카카오·카카오뱅크"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 124.9
+        },
+        {
+          "id": "R2-0014",
+          "category": "fintech",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "택시에 GPS 기반 앱 미터기를 도입하려는데, 관련 규제 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_30_KST모빌리티",
+            "임시허가_8_티머니",
+            "임시허가_23_브이씨엔씨",
+            "임시허가_31_코나아이"
+          ],
+          "must_have_ids": [
+            "실증특례_30_KST모빌리티",
+            "임시허가_8_티머니"
+          ],
+          "negative_ids": [
+            "실증특례_27_스타릭스"
+          ],
+          "retrieved_ids": [
+            "임시허가_23_브이씨엔씨",
+            "임시허가_17_KST모빌리티",
+            "임시허가_31_코나아이",
+            "임시허가_8_티머니",
+            "실증특례_30_KST모빌리티"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 107.81
+        },
+        {
+          "id": "R2-0015",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "비대면으로 이동통신에 가입할 수 있는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_33_KT엠모바일‧네이버",
+            "임시허가_28_국민은행"
+          ],
+          "must_have_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄"
+          ],
+          "negative_ids": [
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "retrieved_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_33_KT엠모바일‧네이버",
+            "실증특례_23_LG전자·에임메드",
+            "실증특례_14_이노넷",
+            "실증특례_187_데이즌"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 125.31
+        },
+        {
+          "id": "R2-0016",
+          "category": "platform",
+          "query_type": "similar_case",
+          "data_quality": "full_text_only",
+          "question": "개인 소유 캠핑카를 빌려주는 중개 플랫폼을 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_104_진캠핑",
+            "실증특례_82_디테크게엠베하",
+            "실증특례_102_웨이즈플랜"
+          ],
+          "must_have_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_104_진캠핑"
+          ],
+          "negative_ids": [
+            "실증특례_113_블루카멜",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "retrieved_ids": [
+            "실증특례_82_디테크게엠베하",
+            "실증특례_114",
+            "실증특례_127_엠제이이노베이션_주식회사",
+            "실증특례_128_밴플",
+            "실증특례_81_YONGHA"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 103.28
+        },
+        {
+          "id": "R2-0017",
+          "category": "platform",
+          "query_type": "similar_case",
+          "data_quality": "full_text_only",
+          "question": "아파트 재건축 조합 총회를 전자적으로 진행하려는데, 관련 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_101_이제이엠컴퍼니",
+            "실증특례_89_레디포스트",
+            "실증특례_133_오투웹스_주식회사",
+            "실증특례_186_넥스타우스_주"
+          ],
+          "must_have_ids": [
+            "실증특례_101_이제이엠컴퍼니",
+            "실증특례_89_레디포스트"
+          ],
+          "negative_ids": [
+            "실증특례_120",
+            "실증특례_148"
+          ],
+          "retrieved_ids": [
+            "실증특례_133_오투웹스_주식회사",
+            "실증특례_89_레디포스트",
+            "실증특례_186_넥스타우스_주",
+            "실증특례_158_엘림넷",
+            "실증특례_172_한국프롭테크"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 114.42
+        },
+        {
+          "id": "R2-0018",
+          "category": "platform",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "블록체인 기반 전자공증 서비스를 하려면 어떤 실증 조건이 있나요?",
+          "gold_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템"
+          ],
+          "must_have_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템"
+          ],
+          "negative_ids": [
+            "실증특례_89_레디포스트"
+          ],
+          "retrieved_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템",
+            "실증특례_89_레디포스트",
+            "실증특례_160_에이블",
+            "실증특례_158_엘림넷"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 1,
+          "latency_ms": 146.65
+        },
+        {
+          "id": "R2-0019",
+          "category": "platform",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "장애인 전용 차량을 대여해주는 플랫폼을 만들려는데, 규제 쟁점이 있는 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_113_블루카멜"
+          ],
+          "must_have_ids": [
+            "실증특례_113_블루카멜"
+          ],
+          "negative_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_48_타운즈"
+          ],
+          "retrieved_ids": [
+            "실증특례_113_블루카멜",
+            "실증특례_29_코액터스",
+            "실증특례_48_타운즈",
+            "실증특례_127_엠제이이노베이션_주식회사",
+            "실증특례_168_피알앤디컴퍼니"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 110.77
+        },
+        {
+          "id": "R2-0020",
+          "category": "platform",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "아파트 단지 내에서 차량 공유 서비스를 실증특례로 승인받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_48_타운즈"
+          ],
+          "must_have_ids": [
+            "실증특례_48_타운즈"
+          ],
+          "negative_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "retrieved_ids": [
+            "실증특례_48_타운즈",
+            "실증특례_127_엠제이이노베이션_주식회사",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_119",
+            "실증특례_8_코나투스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 141.8
+        },
+        {
+          "id": "R2-0021",
+          "category": "energy",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "전기차나 전기버스를 무선으로 충전하는 서비스를 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_66_현대자동차",
+            "실증특례_38_와이파워원",
+            "실증특례_84_SKC"
+          ],
+          "must_have_ids": [
+            "실증특례_66_현대자동차",
+            "실증특례_38_와이파워원"
+          ],
+          "negative_ids": [
+            "실증특례_34_워프솔루션",
+            "임시허가_2_스타코프"
+          ],
+          "retrieved_ids": [
+            "실증특례_38_와이파워원",
+            "실증특례_66_현대자동차",
+            "실증특례_65_SKC",
+            "실증특례_84_SKC",
+            "실증특례_64_스튜디오갈릴레이"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 104.06
+        },
+        {
+          "id": "R2-0022",
+          "category": "energy",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "누전차단기를 원격으로 제어하는 시스템을 만들려는데, 관련 규제 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전",
+            "임시허가_35_삼현씨앤에스"
+          ],
+          "must_have_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전"
+          ],
+          "negative_ids": [
+            "임시허가_3_텔라움",
+            "실증특례_34_워프솔루션"
+          ],
+          "retrieved_ids": [
+            "임시허가_26_금성계전",
+            "실증특례_13_한결네트웍스",
+            "임시허가_35_삼현씨앤에스",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_66_현대자동차"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 108.14
+        },
+        {
+          "id": "R2-0023",
+          "category": "energy",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "전동킥보드 충전·주차 스테이션을 설치하려는데, 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "must_have_ids": [
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "negative_ids": [
+            "실증특례_66_현대자동차"
+          ],
+          "retrieved_ids": [
+            "실증특례_84_SKC",
+            "실증특례_65_SKC",
+            "실증특례_66_현대자동차",
+            "실증특례_78_LG전자",
+            "실증특례_83_포인테크_(실증특례)개인형 이동장치 및 전기자전거 충전·주차 스테이션(220916)"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": null,
+          "latency_ms": 102.98
+        },
+        {
+          "id": "R2-0024",
+          "category": "energy",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "태양광 발전 모니터링 서비스 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_5_대한케이불"
+          ],
+          "must_have_ids": [
+            "임시허가_5_대한케이불"
+          ],
+          "negative_ids": [
+            "실증특례_130_서울도시가스_컨소시엄"
+          ],
+          "retrieved_ids": [
+            "임시허가_5_대한케이불",
+            "실증특례_100_에이아이포펫",
+            "실증특례_140",
+            "실증특례_135_메이크스페이스",
+            "실증특례_210_SK_텔레콤"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 99.75
+        },
+        {
+          "id": "R2-0025",
+          "category": "logistics",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "중고차 폐차를 모바일로 간편하게 할 수 있는 서비스인데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니",
+            "실증특례_108_에이티나인랩스"
+          ],
+          "must_have_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니"
+          ],
+          "negative_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "retrieved_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_45_카카오모빌리티",
+            "실증특례_17_현대자동차‧KST모빌리티"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 113.07
+        },
+        {
+          "id": "R2-0026",
+          "category": "logistics",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "택배 차량이 사고났을 때 대체 차량을 빌려주는 서비스의 실증 조건은 어떤가요?",
+          "gold_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "must_have_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "negative_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_81_YONGHA"
+          ],
+          "retrieved_ids": [
+            "실증특례_96_A모터스",
+            "실증특례_31_카카오모빌리티·KM솔루션",
+            "실증특례_61_진모빌리티",
+            "실증특례_70_유닉트",
+            "실증특례_86_애드"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 109.31
+        },
+        {
+          "id": "R2-0027",
+          "category": "logistics",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "화물자동차 운송사업자 간 차량 임대 중개 플랫폼으로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_119"
+          ],
+          "must_have_ids": [
+            "실증특례_119"
+          ],
+          "negative_ids": [
+            "실증특례_96_A모터스",
+            "실증특례_85_이노션"
+          ],
+          "retrieved_ids": [
+            "실증특례_119",
+            "실증특례_86_애드",
+            "실증특례_113_블루카멜",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_57_디지티모빌리티"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 126.91
+        },
+        {
+          "id": "R2-0028",
+          "category": "etc",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "도심에서 개인 물품을 보관해주는 스마트 보관함 서비스를 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_110_세컨신드롬",
+            "실증특례_135_메이크스페이스",
+            "실증특례_137_큐비즈코리아"
+          ],
+          "must_have_ids": [
+            "실증특례_110_세컨신드롬",
+            "실증특례_135_메이크스페이스"
+          ],
+          "negative_ids": [
+            "실증특례_197_주식회사_에치와이"
+          ],
+          "retrieved_ids": [
+            "실증특례_139_스토리지엠",
+            "실증특례_135_메이크스페이스",
+            "실증특례_178_시그포",
+            "실증특례_138_아이엠박스코리아",
+            "실증특례_181_아이포스트"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 0.5,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 2,
+          "latency_ms": 105.25
+        },
+        {
+          "id": "R2-0029",
+          "category": "etc",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "AI 기반 보이스피싱 탐지 서비스로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스",
+            "실증특례_210_SK_텔레콤"
+          ],
+          "must_have_ids": [
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스"
+          ],
+          "negative_ids": [
+            "실증특례_20_아이티아이씨앤씨"
+          ],
+          "retrieved_ids": [
+            "실증특례_210_SK_텔레콤",
+            "실증특례_155_한국프롭테크",
+            "실증특례_100_에이아이포펫",
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 140.51
+        },
+        {
+          "id": "R2-0030",
+          "category": "etc",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "공유주방 서비스로 실증특례를 받은 사례를 알려주세요.",
+          "gold_ids": [
+            "실증특례_33_칠링키친",
+            "실증특례_36_키친엑스",
+            "실증특례_9_심플프로젝트컴퍼니"
+          ],
+          "must_have_ids": [
+            "실증특례_33_칠링키친",
+            "실증특례_36_키친엑스"
+          ],
+          "negative_ids": [
+            "실증특례_47_에이앤드에이_엔터테인먼트"
+          ],
+          "retrieved_ids": [
+            "실증특례_51_네오푸드시스템",
+            "실증특례_42_위대한상사",
+            "실증특례_59_연제청년창업나래센터",
+            "실증특례_68_키친스탠다드",
+            "실증특례_127_엠제이이노베이션_주식회사"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": null,
+          "latency_ms": 135.6
+        }
+      ]
+    },
+    {
+      "strategy": "fulltext",
+      "summary": {
+        "must_have_recall_at_k": 0.65,
+        "recall_at_k": 0.5833,
+        "mrr": 0.6556,
+        "negative_at_k": 0.35,
+        "items_with_negative": 14,
+        "latency_p50_ms": 132.61,
+        "latency_p95_ms": 317.87,
+        "latency_mean_ms": 149.76
+      },
+      "aggregated": {
+        "k": 5,
+        "num_queries": 30,
+        "avg_recall_at_k": 0.5833,
+        "avg_must_have_recall_at_k": 0.65,
+        "avg_mrr": 0.6556,
+        "total_gold_citations": 76,
+        "total_retrieved_gold": 44,
+        "total_must_have_citations": 50,
+        "total_must_have_retrieved": 32
+      },
+      "build_time_ms": 9330.24,
+      "details": [
+        {
+          "id": "R2-0001",
+          "category": "mobility",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "자율주행 배달 로봇 서비스를 시작하려는데, 비슷한 승인 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들",
+            "실증특례_62_뉴빌리티"
+          ],
+          "must_have_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_39_우아한형제들"
+          ],
+          "negative_ids": [
+            "실증특례_25_만도",
+            "실증특례_54_모빌테크"
+          ],
+          "retrieved_ids": [
+            "실증특례_62_뉴빌리티",
+            "실증특례_26_언맨드솔루션",
+            "실증특례_72_한라대산학협력단_컨소시엄",
+            "실증특례_25_만도",
+            "실증특례_39_우아한형제들"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 533.77
+        },
+        {
+          "id": "R2-0002",
+          "category": "mobility",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "택시 요금을 탑승 전에 미리 결제하는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_27_스타릭스",
+            "실증특례_45_카카오모빌리티",
+            "실증특례_44_브이씨엔씨"
+          ],
+          "must_have_ids": [
+            "실증특례_27_스타릭스",
+            "실증특례_45_카카오모빌리티"
+          ],
+          "negative_ids": [
+            "실증특례_8_코나투스",
+            "실증특례_31_카카오모빌리티·KM솔루션"
+          ],
+          "retrieved_ids": [
+            "실증특례_8_코나투스",
+            "실증특례_31_카카오모빌리티·KM솔루션",
+            "실증특례_27_스타릭스",
+            "실증특례_21_로이쿠",
+            "실증특례_61_진모빌리티"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 0.3333333333333333,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 3,
+          "latency_ms": 135.4
+        },
+        {
+          "id": "R2-0003",
+          "category": "mobility",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "수요응답형(DRT) 버스 서비스의 실증 부가조건은 어떤 것들이 있나요?",
+          "gold_ids": [
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_35_현대자동차‧KST모빌리티"
+          ],
+          "must_have_ids": [
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_64_스튜디오갈릴레이"
+          ],
+          "negative_ids": [
+            "실증특례_95_스쿨버스"
+          ],
+          "retrieved_ids": [
+            "실증특례_64_스튜디오갈릴레이",
+            "실증특례_95_스쿨버스",
+            "실증특례_106_에이피에스",
+            "실증특례_107_성흥티에스",
+            "실증특례_38_와이파워원"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 1,
+          "latency_ms": 134.35
+        },
+        {
+          "id": "R2-0004",
+          "category": "mobility",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "이동약자를 위한 특화 모빌리티 서비스의 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_28_파파모빌리티",
+            "실증특례_49_힐빙케어",
+            "실증특례_60_안녕"
+          ],
+          "must_have_ids": [
+            "실증특례_28_파파모빌리티",
+            "실증특례_49_힐빙케어"
+          ],
+          "negative_ids": [
+            "실증특례_67_인커머스",
+            "실증특례_8_코나투스"
+          ],
+          "retrieved_ids": [
+            "실증특례_60_안녕",
+            "실증특례_67_인커머스",
+            "실증특례_49_힐빙케어",
+            "실증특례_28_파파모빌리티",
+            "실증특례_194_메타솔루션"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 121.25
+        },
+        {
+          "id": "R2-0005",
+          "category": "mobility",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "자율주행 순찰 로봇으로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "must_have_ids": [
+            "실증특례_25_만도",
+            "실증특례_72_한라대산학협력단_컨소시엄"
+          ],
+          "negative_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_165_우아한형제들"
+          ],
+          "retrieved_ids": [
+            "실증특례_26_언맨드솔루션",
+            "실증특례_62_뉴빌리티",
+            "실증특례_72_한라대산학협력단_컨소시엄",
+            "실증특례_25_만도",
+            "실증특례_39_우아한형제들"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.3333333333333333,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 3,
+          "latency_ms": 116.35
+        },
+        {
+          "id": "R2-0006",
+          "category": "healthcare",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "반려동물의 생체 정보를 활용해서 동물등록을 하는 서비스인데, 유사한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈",
+            "실증특례_53_블록펫",
+            "실증특례_121_펫나우"
+          ],
+          "must_have_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_88_펫스니즈"
+          ],
+          "negative_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_201_베텍코리아"
+          ],
+          "retrieved_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_53_블록펫",
+            "실증특례_88_펫스니즈",
+            "실증특례_201_베텍코리아",
+            "실증특례_121_펫나우"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 110.68
+        },
+        {
+          "id": "R2-0007",
+          "category": "healthcare",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "AI를 활용해 반려동물 건강을 비대면으로 모니터링하는 서비스인데, 비슷한 승인 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_100_에이아이포펫"
+          ],
+          "must_have_ids": [
+            "실증특례_100_에이아이포펫"
+          ],
+          "negative_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_2_휴이노"
+          ],
+          "retrieved_ids": [
+            "실증특례_79_아이싸이랩",
+            "실증특례_100_에이아이포펫",
+            "실증특례_53_블록펫",
+            "실증특례_23_LG전자·에임메드",
+            "실증특례_24_LG전자·서울대병원"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.5,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 2,
+          "latency_ms": 143.56
+        },
+        {
+          "id": "R2-0008",
+          "category": "healthcare",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "비대면으로 환자를 진료하는 서비스를 하려는데, 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_69_에이치로보틱스",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "must_have_ids": [
+            "실증특례_69_에이치로보틱스",
+            "임시허가_36_퍼즐에이아이"
+          ],
+          "negative_ids": [
+            "실증특례_100_에이아이포펫",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "retrieved_ids": [
+            "실증특례_69_에이치로보틱스",
+            "실증특례_67_인커머스",
+            "임시허가_40_아이케어닥터",
+            "실증특례_24_LG전자·서울대병원",
+            "임시허가_56_미라벨소프트"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 213.02
+        },
+        {
+          "id": "R2-0009",
+          "category": "healthcare",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "의료 데이터를 활용한 연구 플랫폼을 만들려는데, 개인정보 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원",
+            "실증특례_162_위버케어_컨소시엄"
+          ],
+          "must_have_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원"
+          ],
+          "negative_ids": [
+            "실증특례_69_에이치로보틱스"
+          ],
+          "retrieved_ids": [
+            "실증특례_149_서울대학교병원",
+            "실증특례_211_서울대학교병원",
+            "실증특례_202_한국지능정보사회진흥원",
+            "실증특례_34_워프솔루션",
+            "실증특례_135_메이크스페이스"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 119.84
+        },
+        {
+          "id": "R2-0010",
+          "category": "healthcare",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "손목시계형 심전도 장치로 건강관리 서비스를 하려는데, 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_2_휴이노",
+            "실증특례_20_아이티아이씨앤씨"
+          ],
+          "must_have_ids": [
+            "실증특례_2_휴이노"
+          ],
+          "negative_ids": [
+            "실증특례_69_에이치로보틱스"
+          ],
+          "retrieved_ids": [
+            "실증특례_24_LG전자·서울대병원",
+            "실증특례_23_LG전자·에임메드",
+            "실증특례_2_휴이노",
+            "실증특례_65_SKC",
+            "실증특례_69_에이치로보틱스"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.3333333333333333,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 3,
+          "latency_ms": 128.5
+        },
+        {
+          "id": "R2-0011",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "행정기관 고지서를 모바일 앱으로 전달하는 서비스를 시작하려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_12_네이버",
+            "임시허가_14_KT",
+            "임시허가_30_엔에이치엔페이코"
+          ],
+          "must_have_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_12_네이버"
+          ],
+          "negative_ids": [
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "retrieved_ids": [
+            "임시허가_30_엔에이치엔페이코",
+            "임시허가_45_국민은행_컨소시엄",
+            "임시허가_14_KT",
+            "임시허가_27_아이콘루프",
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 1.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": 1,
+          "latency_ms": 150.92
+        },
+        {
+          "id": "R2-0012",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "모바일로 운전면허를 확인하는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_32_코인플러그",
+            "임시허가_27_아이콘루프"
+          ],
+          "must_have_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_18_카카오·카카오뱅크"
+          ],
+          "negative_ids": [
+            "임시허가_1_카카오페이",
+            "임시허가_8_티머니"
+          ],
+          "retrieved_ids": [
+            "임시허가_13_삼성전자·한국정보인증",
+            "임시허가_43_삼성전자",
+            "임시허가_27_아이콘루프",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_41_금융결제원"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 140.04
+        },
+        {
+          "id": "R2-0013",
+          "category": "fintech",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "QR코드 기반 결제 서비스로 임시허가를 받은 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_4_인스타페이"
+          ],
+          "must_have_ids": [
+            "임시허가_4_인스타페이"
+          ],
+          "negative_ids": [
+            "실증특례_12_캐시멜로",
+            "임시허가_12_네이버"
+          ],
+          "retrieved_ids": [
+            "임시허가_27_아이콘루프",
+            "임시허가_25_코웨이",
+            "임시허가_4_인스타페이",
+            "임시허가_18_카카오·카카오뱅크",
+            "임시허가_43_삼성전자"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.3333333333333333,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 3,
+          "latency_ms": 138.25
+        },
+        {
+          "id": "R2-0014",
+          "category": "fintech",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "택시에 GPS 기반 앱 미터기를 도입하려는데, 관련 규제 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_30_KST모빌리티",
+            "임시허가_8_티머니",
+            "임시허가_23_브이씨엔씨",
+            "임시허가_31_코나아이"
+          ],
+          "must_have_ids": [
+            "실증특례_30_KST모빌리티",
+            "임시허가_8_티머니"
+          ],
+          "negative_ids": [
+            "실증특례_27_스타릭스"
+          ],
+          "retrieved_ids": [
+            "임시허가_23_브이씨엔씨",
+            "임시허가_17_KST모빌리티",
+            "임시허가_31_코나아이",
+            "임시허가_11_우버코리아",
+            "실증특례_30_KST모빌리티"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 103.85
+        },
+        {
+          "id": "R2-0015",
+          "category": "fintech",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "비대면으로 이동통신에 가입할 수 있는 서비스를 만들려는데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "임시허가_33_KT엠모바일‧네이버",
+            "임시허가_28_국민은행"
+          ],
+          "must_have_ids": [
+            "임시허가_16_스테이지파이브_컨소시엄"
+          ],
+          "negative_ids": [
+            "임시허가_13_삼성전자·한국정보인증"
+          ],
+          "retrieved_ids": [
+            "임시허가_19_LGU+",
+            "임시허가_22_SK텔레콤",
+            "임시허가_16_스테이지파이브_컨소시엄",
+            "실증특례_23_LG전자·에임메드",
+            "실증특례_50_코인플러그"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 0.3333333333333333,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 3,
+          "latency_ms": 104.7
+        },
+        {
+          "id": "R2-0016",
+          "category": "platform",
+          "query_type": "similar_case",
+          "data_quality": "full_text_only",
+          "question": "개인 소유 캠핑카를 빌려주는 중개 플랫폼을 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_104_진캠핑",
+            "실증특례_82_디테크게엠베하",
+            "실증특례_102_웨이즈플랜"
+          ],
+          "must_have_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_104_진캠핑"
+          ],
+          "negative_ids": [
+            "실증특례_113_블루카멜",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "retrieved_ids": [
+            "실증특례_82_디테크게엠베하",
+            "실증특례_81_YONGHA",
+            "실증특례_128_밴플",
+            "실증특례_104_진캠핑",
+            "실증특례_117_한솔네트웍스_주"
+          ],
+          "recall_at_k": 0.75,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 114.48
+        },
+        {
+          "id": "R2-0017",
+          "category": "platform",
+          "query_type": "similar_case",
+          "data_quality": "full_text_only",
+          "question": "아파트 재건축 조합 총회를 전자적으로 진행하려는데, 관련 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_101_이제이엠컴퍼니",
+            "실증특례_89_레디포스트",
+            "실증특례_133_오투웹스_주식회사",
+            "실증특례_186_넥스타우스_주"
+          ],
+          "must_have_ids": [
+            "실증특례_101_이제이엠컴퍼니",
+            "실증특례_89_레디포스트"
+          ],
+          "negative_ids": [
+            "실증특례_120",
+            "실증특례_148"
+          ],
+          "retrieved_ids": [
+            "실증특례_173_한국프롭테크",
+            "실증특례_133_오투웹스_주식회사",
+            "실증특례_175_리빌드엑스",
+            "실증특례_48_타운즈",
+            "실증특례_208_오엠알테크"
+          ],
+          "recall_at_k": 0.25,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.5,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 2,
+          "latency_ms": 99.62
+        },
+        {
+          "id": "R2-0018",
+          "category": "platform",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "블록체인 기반 전자공증 서비스를 하려면 어떤 실증 조건이 있나요?",
+          "gold_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템"
+          ],
+          "must_have_ids": [
+            "실증특례_120",
+            "실증특례_183_에이투지시스템"
+          ],
+          "negative_ids": [
+            "실증특례_89_레디포스트"
+          ],
+          "retrieved_ids": [
+            "실증특례_181_아이포스트",
+            "실증특례_183_에이투지시스템",
+            "실증특례_208_오엠알테크",
+            "실증특례_160_에이블",
+            "실증특례_157_이제이엠컴퍼니"
+          ],
+          "recall_at_k": 0.5,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 0.5,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 2,
+          "latency_ms": 111.9
+        },
+        {
+          "id": "R2-0019",
+          "category": "platform",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "장애인 전용 차량을 대여해주는 플랫폼을 만들려는데, 규제 쟁점이 있는 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_113_블루카멜"
+          ],
+          "must_have_ids": [
+            "실증특례_113_블루카멜"
+          ],
+          "negative_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_48_타운즈"
+          ],
+          "retrieved_ids": [
+            "실증특례_82_디테크게엠베하",
+            "실증특례_81_YONGHA",
+            "실증특례_119",
+            "실증특례_86_애드",
+            "실증특례_48_타운즈"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": null,
+          "latency_ms": 151.54
+        },
+        {
+          "id": "R2-0020",
+          "category": "platform",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "아파트 단지 내에서 차량 공유 서비스를 실증특례로 승인받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_48_타운즈"
+          ],
+          "must_have_ids": [
+            "실증특례_48_타운즈"
+          ],
+          "negative_ids": [
+            "실증특례_81_YONGHA",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "retrieved_ids": [
+            "실증특례_48_타운즈",
+            "실증특례_119",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_17_현대자동차‧KST모빌리티",
+            "실증특례_46_레인포컴퍼니"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 149.29
+        },
+        {
+          "id": "R2-0021",
+          "category": "energy",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "전기차나 전기버스를 무선으로 충전하는 서비스를 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_66_현대자동차",
+            "실증특례_38_와이파워원",
+            "실증특례_84_SKC"
+          ],
+          "must_have_ids": [
+            "실증특례_66_현대자동차",
+            "실증특례_38_와이파워원"
+          ],
+          "negative_ids": [
+            "실증특례_34_워프솔루션",
+            "임시허가_2_스타코프"
+          ],
+          "retrieved_ids": [
+            "실증특례_38_와이파워원",
+            "실증특례_65_SKC",
+            "실증특례_66_현대자동차",
+            "임시허가_2_스타코프",
+            "실증특례_64_스튜디오갈릴레이"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.5,
+          "first_hit_rank": 1,
+          "latency_ms": 317.87
+        },
+        {
+          "id": "R2-0022",
+          "category": "energy",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "누전차단기를 원격으로 제어하는 시스템을 만들려는데, 관련 규제 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전",
+            "임시허가_35_삼현씨앤에스"
+          ],
+          "must_have_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전"
+          ],
+          "negative_ids": [
+            "임시허가_3_텔라움",
+            "실증특례_34_워프솔루션"
+          ],
+          "retrieved_ids": [
+            "실증특례_13_한결네트웍스",
+            "임시허가_26_금성계전",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_66_현대자동차",
+            "임시허가_18_카카오·카카오뱅크"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 112.07
+        },
+        {
+          "id": "R2-0023",
+          "category": "energy",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "전동킥보드 충전·주차 스테이션을 설치하려는데, 실증 조건이 어떻게 되나요?",
+          "gold_ids": [
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "must_have_ids": [
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "negative_ids": [
+            "실증특례_66_현대자동차"
+          ],
+          "retrieved_ids": [
+            "실증특례_65_SKC",
+            "실증특례_78_LG전자",
+            "실증특례_83_포인테크_(실증특례)개인형 이동장치 및 전기자전거 충전·주차 스테이션(220916)",
+            "실증특례_84_SKC",
+            "실증특례_66_현대자동차"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": null,
+          "latency_ms": 139.51
+        },
+        {
+          "id": "R2-0024",
+          "category": "energy",
+          "query_type": "regulation_issue",
+          "data_quality": "normal",
+          "question": "태양광 발전 모니터링 서비스 관련 규제 샌드박스 사례가 있나요?",
+          "gold_ids": [
+            "임시허가_5_대한케이불"
+          ],
+          "must_have_ids": [
+            "임시허가_5_대한케이불"
+          ],
+          "negative_ids": [
+            "실증특례_130_서울도시가스_컨소시엄"
+          ],
+          "retrieved_ids": [
+            "실증특례_84_SKC",
+            "실증특례_30_KST모빌리티",
+            "실증특례_74_더브이엑스",
+            "실증특례_34_워프솔루션",
+            "실증특례_99_티맵모빌리티_컨소시엄"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": null,
+          "latency_ms": 167.43
+        },
+        {
+          "id": "R2-0025",
+          "category": "logistics",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "중고차 폐차를 모바일로 간편하게 할 수 있는 서비스인데, 유사 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니",
+            "실증특례_108_에이티나인랩스"
+          ],
+          "must_have_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_168_피알앤디컴퍼니"
+          ],
+          "negative_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "retrieved_ids": [
+            "실증특례_4_조인스오토",
+            "임시허가_52_인성정보",
+            "실증특례_108_에이티나인랩스",
+            "실증특례_92_유보트",
+            "실증특례_94_우리개발"
+          ],
+          "recall_at_k": 0.6666666666666666,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 150.05
+        },
+        {
+          "id": "R2-0026",
+          "category": "logistics",
+          "query_type": "condition_pattern",
+          "data_quality": "normal",
+          "question": "택배 차량이 사고났을 때 대체 차량을 빌려주는 서비스의 실증 조건은 어떤가요?",
+          "gold_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "must_have_ids": [
+            "실증특례_96_A모터스"
+          ],
+          "negative_ids": [
+            "실증특례_4_조인스오토",
+            "실증특례_81_YONGHA"
+          ],
+          "retrieved_ids": [
+            "실증특례_96_A모터스",
+            "실증특례_119",
+            "실증특례_31_카카오모빌리티·KM솔루션",
+            "실증특례_61_진모빌리티",
+            "실증특례_108_에이티나인랩스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 108.01
+        },
+        {
+          "id": "R2-0027",
+          "category": "logistics",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "화물자동차 운송사업자 간 차량 임대 중개 플랫폼으로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_119"
+          ],
+          "must_have_ids": [
+            "실증특례_119"
+          ],
+          "negative_ids": [
+            "실증특례_96_A모터스",
+            "실증특례_85_이노션"
+          ],
+          "retrieved_ids": [
+            "실증특례_119",
+            "실증특례_86_애드",
+            "실증특례_52_코액터스",
+            "실증특례_32_KM솔루션",
+            "실증특례_108_에이티나인랩스"
+          ],
+          "recall_at_k": 1.0,
+          "must_have_recall_at_k": 1.0,
+          "mrr": 1.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 1,
+          "latency_ms": 104.85
+        },
+        {
+          "id": "R2-0028",
+          "category": "etc",
+          "query_type": "similar_case",
+          "data_quality": "normal",
+          "question": "도심에서 개인 물품을 보관해주는 스마트 보관함 서비스를 만들려는데, 비슷한 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_110_세컨신드롬",
+            "실증특례_135_메이크스페이스",
+            "실증특례_137_큐비즈코리아"
+          ],
+          "must_have_ids": [
+            "실증특례_110_세컨신드롬",
+            "실증특례_135_메이크스페이스"
+          ],
+          "negative_ids": [
+            "실증특례_197_주식회사_에치와이"
+          ],
+          "retrieved_ids": [
+            "실증특례_177_소포박스",
+            "실증특례_193_에스와이상영개발",
+            "실증특례_189_비욘드스페이스",
+            "실증특례_176_세이브박스",
+            "임시허가_20_신세계엘앤비"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 0.0,
+          "first_hit_rank": null,
+          "latency_ms": 134.82
+        },
+        {
+          "id": "R2-0029",
+          "category": "etc",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "AI 기반 보이스피싱 탐지 서비스로 실증특례를 받은 사례가 있나요?",
+          "gold_ids": [
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스",
+            "실증특례_210_SK_텔레콤"
+          ],
+          "must_have_ids": [
+            "실증특례_164_케이티·국립과학수사연구원",
+            "실증특례_206_㈜_엘지유플러스"
+          ],
+          "negative_ids": [
+            "실증특례_20_아이티아이씨앤씨"
+          ],
+          "retrieved_ids": [
+            "실증특례_20_아이티아이씨앤씨",
+            "실증특례_100_에이아이포펫",
+            "실증특례_4_조인스오토",
+            "실증특례_39_우아한형제들",
+            "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크"
+          ],
+          "recall_at_k": 0.0,
+          "must_have_recall_at_k": 0.0,
+          "mrr": 0.0,
+          "negative_at_k": 1.0,
+          "first_hit_rank": null,
+          "latency_ms": 130.87
+        },
+        {
+          "id": "R2-0030",
+          "category": "etc",
+          "query_type": "track_specific",
+          "data_quality": "normal",
+          "question": "공유주방 서비스로 실증특례를 받은 사례를 알려주세요.",
+          "gold_ids": [
+            "실증특례_33_칠링키친",
+            "실증특례_36_키친엑스",
+            "실증특례_9_심플프로젝트컴퍼니"
+          ],
+          "must_have_ids": [
+            "실증특례_33_칠링키친",
+            "실증특례_36_키친엑스"
+          ],
+          "negative_ids": [
+            "실증특례_47_에이앤드에이_엔터테인먼트"
+          ],
+          "retrieved_ids": [
+            "실증특례_51_네오푸드시스템",
+            "실증특례_33_칠링키친",
+            "실증특례_39_우아한형제들",
+            "실증특례_68_키친스탠다드",
+            "실증특례_64_스튜디오갈릴레이"
+          ],
+          "recall_at_k": 0.3333333333333333,
+          "must_have_recall_at_k": 0.5,
+          "mrr": 0.5,
+          "negative_at_k": 0.0,
+          "first_hit_rank": 2,
+          "latency_ms": 105.96
+        }
+      ]
+    }
+  ]
+}
