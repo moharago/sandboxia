@@ -6,6 +6,8 @@
 import logging
 import subprocess
 import tempfile
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import quote
 
@@ -20,11 +22,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
-# 트랙 코드 → 트랙 이름 매핑
+# 트랙 코드 → 템플릿 폴더명 매핑
 TRACK_MAP = {
     "quick_check": "fastcheck",
     "temp_permit": "temporary",
     "demo": "demonstration",
+}
+
+# 트랙 코드 → 한글명 매핑
+TRACK_NAME_KO = {
+    "quick_check": "신속확인",
+    "temp_permit": "임시허가",
+    "demo": "실증특례",
 }
 
 # 폼 ID → 파일 이름 매핑 (formData.json과 동기화)
@@ -143,3 +152,91 @@ async def download_pdf(project_id: str, form_id: str):
     except Exception as e:
         logger.error("문서 생성 실패: %s", e)
         raise HTTPException(status_code=500, detail="문서 생성에 실패했습니다.")
+
+
+@router.get("/{project_id}/zip")
+async def download_zip(project_id: str, format: str = "docx"):
+    """신청서 일괄 다운로드 (ZIP)"""
+    result = supabase.table("projects").select("*").eq("id", project_id).single().execute()
+    project = result.data
+
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    application_draft = project.get("application_draft", {})
+    if not application_draft:
+        raise HTTPException(status_code=400, detail="생성된 초안이 없습니다.")
+
+    form_values = application_draft.get("form_values", {})
+    if not form_values:
+        raise HTTPException(status_code=400, detail="생성된 초안이 없습니다.")
+
+    track = TRACK_MAP.get(project.get("track", "quick_check"), "fastcheck")
+
+    # 회사명 추출
+    company_name = ""
+    for fv in form_values.values():
+        if not isinstance(fv, dict):
+            continue
+        data = fv.get("data", fv)
+        company_name = (
+            data.get("applicant", {}).get("companyName")
+            or data.get("applicantOrganizations", [{}])[0].get("organizationName")
+            or data.get("organizationProfile", {}).get("organizationName")
+        )
+        if company_name:
+            break
+
+    try:
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                for form_id, form_data in form_values.items():
+                    form_content = form_data.get("data", form_data)
+                    form_name = FORM_NAME_MAP.get(form_id, form_id)
+
+                    docx_buffer = generate_docx(track, form_id, form_content)
+
+                    if format == "pdf":
+                        # DOCX → PDF 변환
+                        docx_path = Path(tmp_dir) / f"{form_id}.docx"
+                        pdf_path = Path(tmp_dir) / f"{form_id}.pdf"
+
+                        with open(docx_path, "wb") as f:
+                            f.write(docx_buffer.read())
+
+                        subprocess.run([
+                            "soffice", "--headless", "--convert-to", "pdf",
+                            "--outdir", tmp_dir, str(docx_path)
+                        ], check=True)
+
+                        with open(pdf_path, "rb") as f:
+                            file_content = f.read()
+
+                        filename = f"{form_name}({company_name}).pdf" if company_name else f"{form_name}.pdf"
+                    else:
+                        file_content = docx_buffer.read()
+                        filename = f"{form_name}({company_name}).docx" if company_name else f"{form_name}.docx"
+
+                    zf.writestr(filename, file_content)
+
+        zip_buffer.seek(0)
+        track_name_ko = TRACK_NAME_KO.get(project.get("track", ""), "")
+        if track_name_ko and company_name:
+            zip_filename = f"{track_name_ko}_신청서류({company_name}).zip"
+        elif track_name_ko:
+            zip_filename = f"{track_name_ko}_신청서류.zip"
+        elif company_name:
+            zip_filename = f"신청서류({company_name}).zip"
+        else:
+            zip_filename = "신청서류.zip"
+
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(zip_filename)}"},
+        )
+
+    except Exception as e:
+        logger.error("ZIP 생성 실패: %s", e)
+        raise HTTPException(status_code=500, detail="ZIP 파일 생성에 실패했습니다.")
