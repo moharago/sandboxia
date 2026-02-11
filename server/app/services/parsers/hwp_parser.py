@@ -27,8 +27,10 @@ from typing import Any
 import olefile
 
 from app.services.parsers.hwp_patterns import (
+    DEMONSTRATION_REASON_CHECKBOX_PATTERNS,
     LAW_LIST_PATTERNS,
     TECHNOLOGY_LIST_PATTERNS,
+    TEMPORARY_REASON_CHECKBOX_PATTERNS,
     DocumentCategory,
     DocumentSubtype,
     get_patterns_for_subtype,
@@ -440,8 +442,15 @@ class HWPParser:
         # 문서 타입별 패턴 가져오기
         type_patterns = get_patterns_for_subtype(self.document.document_subtype)
 
+        # submission_signatures 특별 처리 (여러 그룹 캡처, 다중 매칭)
+        self._extract_submission_signatures(cleaned_text, type_patterns)
+
         # 단일 값 필드 추출
         for field_name, patterns in type_patterns.items():
+            # submission_signatures는 위에서 별도 처리
+            if field_name == "submission_signatures":
+                continue
+
             for pattern in patterns:
                 match = re.search(
                     pattern, cleaned_text, re.IGNORECASE | re.MULTILINE | re.DOTALL
@@ -478,6 +487,11 @@ class HWPParser:
         related_laws = self._extract_law_list(cleaned_text)
         if related_laws:
             self.document.extracted_fields["related_laws"] = related_laws
+
+        # 체크박스 상태 추출 (실증특례/임시허가 신청서)
+        checkbox_states = self._extract_checkboxes(cleaned_text)
+        if checkbox_states:
+            self.document.extracted_fields["checkbox_states"] = checkbox_states
 
         # 문서 메타데이터 추가
         self.document.metadata["document_category"] = (
@@ -560,6 +574,179 @@ class HWPParser:
                     laws.append(law_name)
 
         return laws
+
+    def _extract_checkboxes(self, text: str) -> dict[str, dict[str, bool]]:
+        """체크박스 상태 추출
+
+        HWP 문서에서 체크박스의 선택 상태를 추출합니다.
+        실증특례/임시허가 신청서의 신청 사유 체크박스를 파싱합니다.
+
+        Args:
+            text: 정제된 텍스트
+
+        Returns:
+            체크박스 상태 딕셔너리
+            예: {"demonstrationReason": {"impossibleToApplyPermit": True, "unclearOrUnreasonableCriteria": False}}
+        """
+        result: dict[str, dict[str, bool]] = {}
+        subtype = self.document.document_subtype
+
+        # 실증특례 신청서 (demonstration-1)
+        if subtype == DocumentSubtype.DEMONSTRATION_APPLICATION:
+            demo_reason = self._extract_checkbox_states(
+                text, DEMONSTRATION_REASON_CHECKBOX_PATTERNS
+            )
+            if demo_reason:
+                result["demonstrationReason"] = demo_reason
+                print(f"[DEBUG HWP] demonstrationReason 체크박스 추출: {demo_reason}")
+
+        # 임시허가 신청서 (temporary-1)
+        elif subtype == DocumentSubtype.TEMPORARY_APPLICATION:
+            temp_reason = self._extract_checkbox_states(
+                text, TEMPORARY_REASON_CHECKBOX_PATTERNS
+            )
+            if temp_reason:
+                result["temporaryPermitReason"] = temp_reason
+                print(f"[DEBUG HWP] temporaryPermitReason 체크박스 추출: {temp_reason}")
+
+        return result
+
+    def _extract_checkbox_states(
+        self, text: str, patterns: dict[str, dict[str, str]]
+    ) -> dict[str, bool]:
+        """패턴을 사용하여 체크박스 상태 추출
+
+        HWP 체크박스 형식:
+        - TABLE 형식 (해당여부 컬럼): "불가능한 경우(제1호)\t\tO" (O가 있으면 체크)
+        - 텍스트 뒤에 체크박스: "불가능한 경우(제1호) [√]" 또는 "불가능한 경우(제1호) [ ]"
+        - 텍스트 앞에 체크박스: "√ 불가능한 경우" 또는 "□ 불가능한 경우"
+
+        Args:
+            text: 정제된 텍스트
+            patterns: 체크박스 패턴 딕셔너리
+
+        Returns:
+            각 체크박스의 선택 상태
+        """
+        states: dict[str, bool] = {}
+
+        for key, pattern_set in patterns.items():
+            is_checked = False
+            found = False
+
+            # 방법 0: TABLE 형식 (해당여부 컬럼에 O 표시) - 가장 먼저 시도
+            # 예: "불가능한 경우(제1호)\t\tO" 또는 "불가능한 경우(제1호)  O"
+            table_checked = re.search(
+                pattern_set.get("table_checked", "(?!x)x"),  # 없으면 매칭 안되는 패턴
+                text,
+                re.IGNORECASE | re.MULTILINE,
+            )
+            table_unchecked = re.search(
+                pattern_set.get("table_unchecked", "(?!x)x"),
+                text,
+                re.IGNORECASE | re.MULTILINE,
+            )
+
+            if table_checked:
+                is_checked = True
+                found = True
+                print(f"[DEBUG HWP] '{key}': table_checked 매칭 - {table_checked.group()[:80]}")
+            elif table_unchecked:
+                is_checked = False
+                found = True
+                print(f"[DEBUG HWP] '{key}': table_unchecked 매칭 - {table_unchecked.group()[:80]}")
+
+            # 방법 1: 텍스트 뒤에 체크박스가 있는 경우 (괄호 형식)
+            # 예: "불가능한 경우(제1호) [√]"
+            if not found:
+                after_checked = re.search(
+                    pattern_set.get("after_text_checked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+                after_unchecked = re.search(
+                    pattern_set.get("after_text_unchecked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+
+                if after_checked:
+                    is_checked = True
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': after_text_checked 매칭 - {after_checked.group()}")
+                elif after_unchecked:
+                    is_checked = False
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': after_text_unchecked 매칭 - {after_unchecked.group()}")
+
+            # 방법 2: 텍스트 앞에 체크박스가 있는 경우 (fallback)
+            # 예: "√ 불가능한 경우"
+            if not found:
+                before_checked = re.search(
+                    pattern_set.get("before_text_checked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+                before_unchecked = re.search(
+                    pattern_set.get("before_text_unchecked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+
+                if before_checked:
+                    is_checked = True
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': before_text_checked 매칭 - {before_checked.group()}")
+                elif before_unchecked:
+                    is_checked = False
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': before_text_unchecked 매칭 - {before_unchecked.group()}")
+
+            if not found:
+                print(f"[DEBUG HWP] '{key}': 체크박스 패턴 매칭 실패")
+
+            states[key] = is_checked
+            print(f"[DEBUG HWP] 체크박스 '{key}': checked={is_checked}")
+
+        return states
+
+    def _extract_submission_signatures(
+        self, text: str, type_patterns: dict[str, list[str]]
+    ) -> None:
+        """제출 서명 정보 추출 (여러 서명 지원)
+
+        HWP 형식: (기관명) OOO 주식회사 (성명)홍길동 (인)
+
+        Args:
+            text: 정제된 텍스트
+            type_patterns: 필드 패턴 딕셔너리
+        """
+        if "submission_signatures" not in type_patterns:
+            return
+
+        signatures: list[dict[str, str]] = []
+
+        for pattern in type_patterns["submission_signatures"]:
+            # finditer로 모든 매칭 찾기
+            for match in re.finditer(
+                pattern, text, re.IGNORECASE | re.MULTILINE | re.DOTALL
+            ):
+                if match.lastindex and match.lastindex >= 2:
+                    org_name = self._clean_field_value(match.group(1).strip())
+                    signer_name = self._clean_field_value(match.group(2).strip())
+
+                    if org_name and signer_name:
+                        signatures.append({
+                            "organization_name": org_name,
+                            "signer_name": signer_name,
+                        })
+                        print(
+                            f"[DEBUG HWP] submission_signatures 매칭: "
+                            f"org={org_name}, signer={signer_name}"
+                        )
+
+        if signatures:
+            self.document.extracted_fields["submission_signatures"] = signatures
 
     def _clean_hwp_text(self, text: str) -> str:
         """HWP 제어 문자 정리
@@ -680,6 +867,10 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
         "business_plan": {},
         "safety_and_protection": {},
         "justification": {},
+        "form_selections": {},  # 체크박스/라디오 선택 상태
+        "applicants": {  # 신청인/서명 정보
+            "signatures": [],
+        },
         "metadata": {
             "source_files": [],
             "document_category": None,
@@ -700,7 +891,7 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
 
         fields = doc.extracted_fields
 
-        # 회사 정보 매핑
+        # 회사 정보 매핑 (붙임 1. 신청기관 현황자료 포함)
         company_fields = [
             "company_name",
             "representative",
@@ -710,6 +901,10 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
             "email",
             "position",
             "name",
+            # 붙임 1. 신청기관 현황자료
+            "establishment_date",
+            "main_business",
+            "licenses_and_permits",
         ]
         for f in company_fields:
             if f in fields and f not in merged["company_info"]:
@@ -787,6 +982,21 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
         for f in safety_fields:
             if f in fields and f not in merged["safety_and_protection"]:
                 merged["safety_and_protection"][f] = fields[f]
+
+        # 체크박스/폼 선택 상태 매핑
+        if "checkbox_states" in fields:
+            checkbox_states = fields["checkbox_states"]
+            for selection_key, selection_value in checkbox_states.items():
+                if selection_key not in merged["form_selections"]:
+                    merged["form_selections"][selection_key] = selection_value
+                    print(f"[DEBUG merge] form_selections[{selection_key}] = {selection_value}")
+
+        # 제출 서명 매핑
+        if "submission_signatures" in fields:
+            sigs = fields["submission_signatures"]
+            if isinstance(sigs, list):
+                merged["applicants"]["signatures"].extend(sigs)
+                print(f"[DEBUG merge] applicants.signatures 추가: {sigs}")
 
     # 빈 딕셔너리 제거
     return {k: v for k, v in merged.items() if v}

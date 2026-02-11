@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.agents import router as agents_router
+from app.api.routes.documents import router as documents_router
 from app.api.routes.users import router as users_router
 from app.core.config import settings
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
 
     # 라우터 등록
     app.include_router(agents_router, prefix="/api/v1", tags=["AI Agents"])
+    app.include_router(documents_router, prefix="/api/v1", tags=["Documents"])
     app.include_router(users_router, prefix="/api", tags=["Users"])
 
     return app

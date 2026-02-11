@@ -184,7 +184,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                         />
 
                         {formType && (
-                            <DownloadModal isOpen={isDownloadModalOpen} onClose={() => setIsDownloadModalOpen(false)} formType={formType} />
+                            <DownloadModal isOpen={isDownloadModalOpen} onClose={() => setIsDownloadModalOpen(false)} formType={formType} projectId={id} />
                         )}
                     </div>
 

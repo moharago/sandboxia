@@ -3,6 +3,7 @@
 HWP Parser Tool - HWP 파일 파싱
 """
 
+import logging
 from typing import Any
 
 from langchain_core.tools import tool
@@ -13,6 +14,8 @@ from app.services.parsers.hwp_parser import (
     parse_hwp_files,
 )
 from app.services.parsers.hwp_patterns import DocumentCategory, DocumentSubtype
+
+logger = logging.getLogger(__name__)
 
 
 def _hwp_document_to_dict(doc: HWPDocument) -> dict[str, Any]:
@@ -53,7 +56,14 @@ def parse_hwp_documents(
         파싱된 문서 정보 리스트
     """
     docs = parse_hwp_files(file_paths, document_subtypes)
-    return [_hwp_document_to_dict(doc) for doc in docs]
+    results = []
+    for doc in docs:
+        result = _hwp_document_to_dict(doc)
+        # 체크박스 추출 결과 로깅
+        if "checkbox_states" in doc.extracted_fields:
+            logger.info(f"[HWP Parser] {doc.file_name} checkbox_states: {doc.extracted_fields['checkbox_states']}")
+        results.append(result)
+    return results
 
 
 @tool
@@ -110,4 +120,8 @@ def merge_hwp_documents(
 
         documents.append(doc)
 
-    return merge_parsed_documents(documents)
+    merged = merge_parsed_documents(documents)
+    # form_selections 로깅
+    if merged.get("form_selections"):
+        logger.info(f"[HWP Merge] form_selections: {merged['form_selections']}")
+    return merged

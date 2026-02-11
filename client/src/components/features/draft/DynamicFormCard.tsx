@@ -9,6 +9,35 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils/cn"
 
+/**
+ * 숫자에 천 단위 구분자(,) 추가
+ * 예: "1200" → "1,200", "10.5%" → "10.5%"
+ */
+function formatNumber(value: string): string {
+    if (!value) return ""
+    // 퍼센트(%) 포함된 경우 그대로 반환
+    if (value.includes("%")) return value
+    // 숫자만 추출
+    const numericValue = value.replace(/[^0-9.-]/g, "")
+    if (!numericValue) return value
+    // 소수점 처리
+    const parts = numericValue.split(".")
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    return parts.join(".")
+}
+
+/**
+ * 포맷팅된 숫자에서 원본 숫자 추출
+ * 예: "1,200" → "1200"
+ */
+function parseNumber(formattedValue: string): string {
+    if (!formattedValue) return ""
+    // 퍼센트(%) 포함된 경우 그대로 반환
+    if (formattedValue.includes("%")) return formattedValue
+    // 콤마 제거
+    return formattedValue.replace(/,/g, "")
+}
+
 // 새로운 스키마 타입 정의
 interface FieldOption {
     id: string
@@ -321,11 +350,20 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                                     {columns.map((col) => {
                                         const cellKey = `${section.key}.${row.key}.${col.key}`
                                         const cellValue = values[cellKey] ?? ""
+                                        const isNumber = row.dataType === "number"
+                                        // 숫자 타입이면 천 단위 구분자 표시
+                                        const displayValue = isNumber ? formatNumber(cellValue) : cellValue
                                         return (
                                             <td key={col.key} className="px-2 py-1.5 border-b border-border">
                                                 <Input
-                                                    value={cellValue}
-                                                    onChange={(e) => onValueChange(cellKey, e.target.value)}
+                                                    value={displayValue}
+                                                    onChange={(e) => {
+                                                        // 숫자 타입이면 콤마 제거 후 저장
+                                                        const newValue = isNumber
+                                                            ? parseNumber(e.target.value)
+                                                            : e.target.value
+                                                        onValueChange(cellKey, newValue)
+                                                    }}
                                                     className="h-8 text-center"
                                                 />
                                             </td>
@@ -499,7 +537,10 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                 <CardContent className="space-y-6">
                     {formSchema.sections.map(renderSection)}
 
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-end gap-3">
+                        <span className="text-xs text-muted-foreground">
+                            수정 후 저장 버튼을 클릭해야 변경사항이 반영됩니다
+                        </span>
                         <Button
                             variant="outline"
                             size="sm"

@@ -83,6 +83,13 @@ server/
 
 **공용 RAG:** R1(섹션 요구/작성 가이드), R2/R3(근거 문장)
 
+**필드별 생성 원칙:** 
+
+| 필드 유형 | canonical (입력) | draft (출력) |
+|-----------|------------------|--------------|
+| 서술형 설명 | 원본 그대로 | AI 다듬기 OK |
+| 메타데이터 (expected_agency 등) | 원본 or null | 생성 금지 |
+| 원본 없는 필드 (additional_questions 등) | null | AI 추론 + `generated_by: "ai"` |
 
 ---
 
