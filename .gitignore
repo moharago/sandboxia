@@ -105,6 +105,9 @@ chroma_db/
 # Vector DB source data
 server/data/
 
+# Evaluation results (reproducible, not source)
+server/eval/r2/results/
+
 # MCP (Model Context Protocol)
 .serena/
 

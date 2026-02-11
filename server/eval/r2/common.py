@@ -27,9 +27,12 @@ from eval.metrics import RetrievalMetrics
 EVAL_DIR = Path(__file__).parent
 EVALUATION_SET_PATH = EVAL_DIR / "evaluation_set.json"
 RESULTS_DIR = EVAL_DIR / "results" / "retrieval"
-DATA_PATH = EVAL_DIR.parent.parent / "data" / "r2_data" / "cases_structured.json"
+DATA_DIR = EVAL_DIR.parent.parent / "data" / "r2_data"
+DATA_PATH = DATA_DIR / "cases_structured.json"
+DATA_PATH_ENRICHED = DATA_DIR / "cases_structured_enriched.json"
 
 VALID_STRATEGIES = ("structured", "hybrid", "fulltext")
+VALID_DATA_VERSIONS = ("original", "enriched")
 
 
 def load_evaluation_set() -> dict:
@@ -38,9 +41,14 @@ def load_evaluation_set() -> dict:
         return json.load(f)
 
 
-def load_case_data() -> list[dict]:
-    """원본 케이스 데이터 로드"""
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
+def load_case_data(data_version: str = "original") -> list[dict]:
+    """케이스 데이터 로드
+
+    Args:
+        data_version: "original" (원본) 또는 "enriched" (보강본)
+    """
+    path = DATA_PATH_ENRICHED if data_version == "enriched" else DATA_PATH
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 

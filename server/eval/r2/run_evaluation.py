@@ -1,6 +1,6 @@
 """R2 승인 사례 RAG 평가 스크립트
 
-전략별 Retrieval 성능을 비교합니다.
+전략별 Retrieval 성능을 비교합니다. 1파일 = 1실험 원칙.
 
 평가 지표:
 - Must-Have Recall@K: 핵심 사례(must_have=true) 검색률
@@ -12,13 +12,18 @@
 실행:
     cd server
     uv run python eval/r2/run_evaluation.py                    # structured만
-    uv run python eval/r2/run_evaluation.py --strategy all     # 3개 전략 비교
+    uv run python eval/r2/run_evaluation.py --strategy all     # 3개 전략 비교 (각각 파일 저장)
     uv run python eval/r2/run_evaluation.py --strategy hybrid  # hybrid만
 
 옵션:
     --strategy structured|hybrid|fulltext|all  (기본: structured)
     --top_k 10                                 (기본: 5)
-    --output result                            (결과 파일명, 기본: 타임스탬프)
+    --output result                            (결과 파일명, 기본: 자동 생성)
+    --change-factor strategy                   (이번 실험에서 바꾼 변수)
+    --change-value structured                  (해당 변수의 값)
+    --data-version original                    (original | enriched)
+    --tags baseline                            (쉼표 구분 태그)
+    --description "1단계: 데이터 전략 비교"    (실험 설명)
 """
 
 import json
@@ -260,17 +265,113 @@ def print_comparison_table(results: list[dict], top_k: int):
     print("\n  * = 해당 지표 최고 성능")
 
 
+def build_experiment_json(
+    result: dict,
+    *,
+    num_cases: int,
+    num_eval_items: int,
+    top_k: int,
+    change_factor: str,
+    change_value: str,
+    data_version: str,
+    tags: list[str],
+    description: str,
+) -> dict:
+    """단일 실험 결과를 새 JSON 포맷으로 구성
+
+    Args:
+        result: run_single_strategy()의 리턴값
+        num_cases: 전체 케이스 수
+        num_eval_items: 평가 항목 수
+        top_k: Top-K 값
+        change_factor: 이번 실험에서 바꾼 변수
+        change_value: 해당 변수의 값
+        data_version: 데이터 버전 (original / enriched)
+        tags: 그룹핑용 태그
+        description: 실험 설명
+
+    Returns:
+        새 포맷 JSON dict
+    """
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    experiment_id = f"{date_str}_{change_factor}_{change_value}"
+
+    summary = dict(result["summary"])
+    summary["build_time_ms"] = result["build_time_ms"]
+
+    return {
+        "experiment": {
+            "id": experiment_id,
+            "date": date_str,
+            "timestamp": now.isoformat(timespec="seconds"),
+            "description": description,
+            "change_factor": change_factor,
+            "change_value": change_value,
+            "tags": tags,
+        },
+        "config": {
+            "strategy": result["strategy"],
+            "embedding_model": settings.LLM_EMBEDDING_MODEL,
+            "top_k": top_k,
+            "num_cases": num_cases,
+            "num_eval_items": num_eval_items,
+            "data_version": data_version,
+            "chunking": "none",
+            "vector_db": "chroma_ephemeral",
+        },
+        "summary": summary,
+        "aggregated": result["aggregated"],
+        "details": result["details"],
+    }
+
+
+def save_experiment(experiment_data: dict, output_name: str | None = None) -> Path:
+    """실험 결과를 파일로 저장
+
+    Args:
+        experiment_data: build_experiment_json()의 리턴값
+        output_name: 수동 파일명 (없으면 experiment.id 사용)
+
+    Returns:
+        저장된 파일 경로
+    """
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    if output_name:
+        filename = f"{output_name}.json"
+    else:
+        filename = f"{experiment_data['experiment']['id']}.json"
+
+    result_path = RESULTS_DIR / filename
+
+    with open(result_path, "w", encoding="utf-8") as f:
+        json.dump(experiment_data, f, ensure_ascii=False, indent=2)
+
+    return result_path
+
+
 def run_evaluation(
     strategy: str = "structured",
     top_k: int = 5,
     output_name: str | None = None,
+    change_factor: str | None = None,
+    change_value: str | None = None,
+    data_version: str = "original",
+    tags: list[str] | None = None,
+    description: str = "",
 ):
     """전체 평가 실행
 
     Args:
         strategy: 데이터 전략 (structured / hybrid / fulltext / all)
         top_k: Top-K 값
-        output_name: 결과 파일명 (없으면 타임스탬프 사용)
+        output_name: 결과 파일명 (없으면 자동 생성)
+        change_factor: 이번 실험에서 바꾼 변수
+        change_value: 해당 변수의 값
+        data_version: 데이터 버전 (original / enriched)
+        tags: 그룹핑용 태그
+        description: 실험 설명
     """
     print("=" * 60)
     print("R2 승인 사례 RAG 평가 시작")
@@ -283,17 +384,26 @@ def run_evaluation(
     print(f"Top-K: {top_k}")
     print(f"임베딩 모델: {settings.LLM_EMBEDDING_MODEL}")
 
-    # 원본 데이터 로드
-    print("원본 데이터 로드 중...")
-    case_data = load_case_data()
+    # 데이터 로드
+    print(f"데이터 로드 중... (version: {data_version})")
+    case_data = load_case_data(data_version)
     print(f"케이스 수: {len(case_data)}개")
 
     # 전략 목록
-    if strategy == "all":
+    is_all = strategy == "all"
+    if is_all:
         strategies = list(VALID_STRATEGIES)
         print(f"\n전략 비교 모드: {', '.join(strategies)}")
     else:
         strategies = [strategy]
+
+    # change_factor/change_value 기본값 설정
+    if change_factor is None:
+        change_factor = "strategy"
+    if change_value is None:
+        change_value = strategy
+    if tags is None:
+        tags = []
 
     # 전략별 평가 실행
     all_results = []
@@ -305,43 +415,33 @@ def run_evaluation(
     if len(all_results) > 1:
         print_comparison_table(all_results, top_k)
 
-    # 결과 저장
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    # 결과 저장 (1파일 = 1실험)
+    saved_paths = []
+    for result in all_results:
+        # all 모드: 전략별로 change_value를 각각 설정
+        cv = result["strategy"] if is_all else change_value
+        desc = description or f"전략: {result['strategy']}"
 
-    if output_name:
-        result_filename = f"{output_name}.json"
-    else:
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        strat_label = strategy if strategy != "all" else "all"
-        result_filename = f"{timestamp}_{strat_label}.json"
+        experiment_data = build_experiment_json(
+            result,
+            num_cases=len(case_data),
+            num_eval_items=len(items),
+            top_k=top_k,
+            change_factor=change_factor,
+            change_value=cv,
+            data_version=data_version,
+            tags=tags,
+            description=desc,
+        )
 
-    result_path = RESULTS_DIR / result_filename
+        # output_name은 단일 전략일 때만 적용
+        out = output_name if len(all_results) == 1 else None
+        path = save_experiment(experiment_data, out)
+        saved_paths.append(path)
 
-    result_data = {
-        "timestamp": datetime.now().isoformat(),
-        "config": {
-            "strategy": strategy,
-            "top_k": top_k,
-            "embedding_model": settings.LLM_EMBEDDING_MODEL,
-            "num_items": len(items),
-            "num_cases": len(case_data),
-        },
-        "results": [
-            {
-                "strategy": r["strategy"],
-                "summary": r["summary"],
-                "aggregated": r["aggregated"],
-                "build_time_ms": r["build_time_ms"],
-                "details": r["details"],
-            }
-            for r in all_results
-        ],
-    }
-
-    with open(result_path, "w", encoding="utf-8") as f:
-        json.dump(result_data, f, ensure_ascii=False, indent=2)
-
-    print(f"\n결과 저장: {result_path}")
+    print(f"\n결과 저장 ({len(saved_paths)}개 파일):")
+    for p in saved_paths:
+        print(f"  {p}")
 
 
 def main():
@@ -360,14 +460,52 @@ def main():
         "--top_k", type=int, default=5, help="Top-K 값 (기본: 5)"
     )
     parser.add_argument(
-        "--output", type=str, default=None, help="결과 파일명"
+        "--output", type=str, default=None, help="결과 파일명 (단일 전략만)"
+    )
+    parser.add_argument(
+        "--change-factor",
+        type=str,
+        default=None,
+        help="이번 실험에서 바꾼 변수 (기본: strategy)",
+    )
+    parser.add_argument(
+        "--change-value",
+        type=str,
+        default=None,
+        help="해당 변수의 값 (기본: --strategy 값)",
+    )
+    parser.add_argument(
+        "--data-version",
+        type=str,
+        default="original",
+        choices=["original", "enriched"],
+        help="데이터 버전 (기본: original)",
+    )
+    parser.add_argument(
+        "--tags",
+        type=str,
+        default="",
+        help="쉼표 구분 태그 (예: baseline,v1)",
+    )
+    parser.add_argument(
+        "--description",
+        type=str,
+        default="",
+        help="실험 설명",
     )
 
     args = parser.parse_args()
+    tags = [t.strip() for t in args.tags.split(",") if t.strip()]
+
     run_evaluation(
         strategy=args.strategy,
         top_k=args.top_k,
         output_name=args.output,
+        change_factor=args.change_factor,
+        change_value=args.change_value,
+        data_version=args.data_version,
+        tags=tags,
+        description=args.description,
     )
 
 
