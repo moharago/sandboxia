@@ -28,16 +28,11 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
     const applications = formMeta?.application || []
 
     const handleDownload = async (formId: string, formName: string) => {
-        if (fileFormat === "pdf") {
-            alert("PDF 다운로드는 준비 중입니다.")
-            return
-        }
-
         setDownloading(formId)
 
         try {
             const response = await fetch(
-                `${API_BASE_URL}/api/v1/documents/${projectId}/${formId}/docx`
+                `${API_BASE_URL}/api/v1/documents/${projectId}/${formId}/${fileFormat}`
             )
 
             if (!response.ok) {
@@ -50,7 +45,7 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
 
             // 파일명 추출 (Content-Disposition 헤더에서)
             const contentDisposition = response.headers.get("Content-Disposition")
-            let filename = `${formName}.docx`
+            let filename = `${formName}.${fileFormat}`
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
                 if (filenameMatch) {
@@ -108,7 +103,7 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
                                 />
                                 <span className="text-sm">DOCX</span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer opacity-50">
+                            <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="radio"
                                     name="fileFormat"
@@ -116,9 +111,8 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
                                     checked={fileFormat === "pdf"}
                                     onChange={() => setFileFormat("pdf")}
                                     className="h-4 w-4 text-primary accent-primary"
-                                    disabled
                                 />
-                                <span className="text-sm">PDF (준비중)</span>
+                                <span className="text-sm">PDF</span>
                             </label>
                         </div>
                     </div>

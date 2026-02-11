@@ -467,15 +467,30 @@ def _build_context(draft_data: dict) -> dict:
         context["organizationProfile"]["keyPersonnel"] = context.get("keyPersonnel", [])
 
     # financialStatus → organizationProfile.financialStatus 연결 (템플릿 호환)
-    # yearM1 → year1, yearM2 → year2 키 변환
+    # yearM1 → year1, yearM2 → year2 키 변환 + 천 단위 콤마 추가
+    def format_number(value):
+        """숫자에 천 단위 콤마 추가 (% 값은 제외)"""
+        if not value or value == "":
+            return ""
+        str_val = str(value)
+        if "%" in str_val:
+            return str_val
+        try:
+            num = float(str_val.replace(",", ""))
+            if num == int(num):
+                return f"{int(num):,}"
+            return f"{num:,.1f}"
+        except ValueError:
+            return str_val
+
     if "financialStatus" in context and isinstance(context["financialStatus"], dict):
         converted_financial = {}
         for field_name, field_data in context["financialStatus"].items():
             if isinstance(field_data, dict):
                 converted_financial[field_name] = {
-                    "year1": field_data.get("yearM1", field_data.get("year1", "")),
-                    "year2": field_data.get("yearM2", field_data.get("year2", "")),
-                    "average": field_data.get("average", ""),
+                    "year1": format_number(field_data.get("yearM1", field_data.get("year1", ""))),
+                    "year2": format_number(field_data.get("yearM2", field_data.get("year2", ""))),
+                    "average": format_number(field_data.get("average", "")),
                 }
             else:
                 converted_financial[field_name] = field_data
