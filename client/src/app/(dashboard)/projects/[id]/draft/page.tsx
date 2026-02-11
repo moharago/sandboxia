@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, Download, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useState } from "react"
+import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 
 /** Track 타입 가드: TRACK_TO_FORM_ID에 존재하는 유효한 Track인지 확인 */
 const isTrack = (value: string | null | undefined): value is Track =>
@@ -33,6 +34,10 @@ export default function DraftPage({ params }: DraftPageProps) {
     const { markStepComplete, setCurrentStep } = useWizardStore()
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
+
+    // RAG 결과 state (mutation 성공 시 바로 표시용)
+    const [ragSimilarCases, setRagSimilarCases] = useState<ApprovalCase[]>([])
+    const [ragRegulations, setRagRegulations] = useState<Regulation[]>([])
 
     // 프로젝트에서 track 정보 조회
     const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
@@ -54,7 +59,10 @@ export default function DraftPage({ params }: DraftPageProps) {
     // AI 초안 생성 핸들러
     const handleGenerateDraft = async () => {
         try {
-            await draftMutation.mutateAsync({ project_id: id })
+            const result = await draftMutation.mutateAsync({ project_id: id })
+            // RAG 결과를 state에 저장 (바로 표시)
+            setRagSimilarCases(result.similar_cases ?? [])
+            setRagRegulations(result.domain_laws ?? [])
             // 성공 시 draft query invalidate하여 새 데이터 로드
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
         } catch (error) {
@@ -62,6 +70,14 @@ export default function DraftPage({ params }: DraftPageProps) {
             alert(`AI 초안 생성에 실패했습니다: ${message}`)
         }
     }
+
+    // RAG 결과: state 우선, 없으면 DB에서 읽기
+    const similarCases = ragSimilarCases.length > 0
+        ? ragSimilarCases
+        : (draftData?.similar_cases as ApprovalCase[]) ?? []
+    const regulations = ragRegulations.length > 0
+        ? ragRegulations
+        : (draftData?.domain_laws as Regulation[]) ?? []
 
     const handleBack = () => {
         setCurrentStep(3)
@@ -191,7 +207,14 @@ export default function DraftPage({ params }: DraftPageProps) {
                     {/* 오른쪽: 참고 패널 */}
                     <div className={isReferencePanelOpen ? "flex-1" : ""}>
                         <div className="sticky top-16">
-                            <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} />
+                            <ReferencePanel
+                                isOpen={isReferencePanelOpen}
+                                onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
+                                approvalCases={similarCases}
+                                regulations={regulations}
+                                useDummyData={false}
+                                track={project?.track}
+                            />
                         </div>
                     </div>
                 </div>
