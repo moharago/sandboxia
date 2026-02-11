@@ -17,8 +17,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel, Field
 
 from app.agents.eligibility_evaluator.schemas import (
+    ApprovalCase,
     EligibilityRequest,
     EligibilityResponse,
+    Regulation,
 )
 from app.agents.track_recommender import run_track_recommender
 from app.api.deps import AuthUser, get_auth_user
@@ -345,6 +347,8 @@ class DraftGenerateResponse(BaseModel):
     track: str
     application_draft: dict
     model_name: str
+    similar_cases: list[ApprovalCase] = Field(default_factory=list)
+    domain_laws: list[Regulation] = Field(default_factory=list)
 
 
 @router.post(
@@ -391,12 +395,6 @@ async def generate_draft(
             detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
         )
 
-    # DEBUG: canonical 데이터 확인
-    logger.info("[DEBUG Draft API] canonical keys: %s", list(canonical.keys()))
-    logger.info("[DEBUG Draft API] canonical.project_plan: %s", canonical.get("project_plan"))
-    logger.info("[DEBUG Draft API] canonical.applicants: %s", canonical.get("applicants"))
-    logger.info("[DEBUG Draft API] canonical.financial: %s", canonical.get("financial"))
-
     track = project.get("track")
     if not track:
         raise HTTPException(
@@ -421,11 +419,43 @@ async def generate_draft(
     application_draft = result.get("application_draft", {})
     model_name = result.get("model_name", "")
 
+    # 4. RAG 결과를 ReferencePanel 형식으로 변환
+    similar_cases: list[ApprovalCase] = []
+    for case in result.get("similar_cases", []):
+        # title: service_name 우선, 없으면 company_name 사용
+        title = case.get("service_name", "") or case.get("company_name", "") or "승인 사례"
+        similar_cases.append(ApprovalCase(
+            track=case.get("track", ""),
+            date=case.get("designation_date", ""),
+            similarity=0,
+            title=title,
+            company=case.get("company_name", ""),
+            summary=case.get("service_description", "") or case.get("content", "")[:200],
+            source_url=case.get("source_url"),
+        ))
+
+    domain_laws: list[Regulation] = []
+    for law in result.get("domain_laws", []):
+        metadata = law.get("metadata", {})
+        # citation 우선 (예: "의료법 제34조 제1항"), 없으면 law_name
+        title = metadata.get("citation", "") or metadata.get("law_name", "") or "관련 법령"
+        # source_url 직접 사용
+        source_url = metadata.get("source_url")
+        domain_laws.append(Regulation(
+            category=metadata.get("domain_label", "법령"),
+            title=title,
+            summary=law.get("content", "")[:300],
+            source_url=source_url,
+        ))
+
+    # 5. 결과 저장 (RAG 결과 포함) - Pydantic 모델을 dict로 변환
     try:
         save_draft_result(
             project_id=project_id,
             application_draft=application_draft,
             model_name=model_name,
+            similar_cases=[c.model_dump() for c in similar_cases],
+            domain_laws=[l.model_dump() for l in domain_laws],
         )
     except Exception as e:
         logger.warning("application_draft 저장 실패: %s", str(e))
@@ -435,6 +465,8 @@ async def generate_draft(
         track=track,
         application_draft=application_draft,
         model_name=model_name,
+        similar_cases=similar_cases,
+        domain_laws=domain_laws,
     )
 
 

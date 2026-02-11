@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     GOOGLE_DRIVE_URL: str = "https://drive.google.com/drive/folders/"
     R1_DATA_ID: str | None = None
     R2_DATA_ID: str | None = None
+    DRAFT_TEMPLATE_FASTCHECK_ID: str | None = None
+    DRAFT_TEMPLATE_TEMPORARY_ID: str | None = None
+    DRAFT_TEMPLATE_DEMONSTRATION_ID: str | None = None
 
     # Supabase 설정 (pydantic 필드로 변경)
     SUPABASE_URL: str

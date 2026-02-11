@@ -265,24 +265,18 @@ def screen_node(state: EligibilityState) -> dict:
 def search_regulations_node(state: EligibilityState) -> dict:
     """규제제도 참조 노드 (R1)
 
-    서비스 설명 + 스크리닝 키워드를 활용하여 서비스별 맞춤 규제제도를 검색합니다.
+    스크리닝 키워드를 활용하여 규제샌드박스 제도/절차/요건을 검색합니다.
     """
     print("[Step 2/5] R1 규제제도 검색 시작...")
-    canonical = state["canonical"]
     screening = state.get("screening_result")
-
-    # 서비스 설명에서 핵심 내용 추출 (최대 200자)
-    service_desc = get_service_description(canonical) or ""
-    service_name = get_service_name(canonical) or ""
     keywords = screening.search_keywords if screening else []
 
-    # 동적 쿼리: 서비스 정보 + 제도 키워드 조합
-    service_part = f"{service_name} {service_desc}"[:200].strip()
+    # 쿼리 단순화: 키워드 + 제도 핵심 용어 (서비스 설명은 제외 - 임베딩 분산 방지)
     keyword_part = " ".join(keywords[:3]) if keywords else ""
-    base_part = "규제샌드박스 신청 대상 요건 실증특례 임시허가 신속확인"
+    base_part = "규제샌드박스 신청 대상 요건 절차"
 
-    query = f"{service_part} {keyword_part} {base_part}".strip()
-    print(f"[Step 2/5] R1 검색 쿼리: {query[:100]}...")
+    query = f"{keyword_part} {base_part}".strip() if keyword_part else base_part
+    print(f"[Step 2/5] R1 검색 쿼리: {query}")
 
     # R1 RAG 검색 실행
     result = search_regulation.invoke(
@@ -317,6 +311,7 @@ def search_regulations_node(state: EligibilityState) -> dict:
                 "track": "all",
                 "citation": "ICT 규제샌드박스 제도 가이드",
                 "relevance_score": 1.0,
+                "source_url": "https://www.sandbox.or.kr/guidance/intro.do",
             }
         ]
         print("[Step 2/5] R1 검색 결과 없음, fallback 템플릿 사용")

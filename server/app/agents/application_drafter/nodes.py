@@ -557,6 +557,8 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
                     pilot_scope = getattr(c, "pilot_scope", "")
                     expected_effect = getattr(c, "expected_effect", "")
                     review_result = getattr(c, "review_result", "")
+                    designation_date = getattr(c, "designation_date", "")
+                    source_url = getattr(c, "source_url", None)
 
                     # format_rag_results 호환용 content 문자열 생성
                     conditions_str = ", ".join(conditions) if conditions else ""
@@ -585,6 +587,8 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
                         "pilot_scope": pilot_scope,
                         "expected_effect": expected_effect,
                         "review_result": review_result,
+                        "designation_date": designation_date,
+                        "source_url": source_url,
                     }
                 # dict인 경우
                 elif isinstance(c, dict):
@@ -623,7 +627,9 @@ async def retrieve_context_node(state: ApplicationDrafterState) -> dict:
                         "content": r.content if hasattr(r, "content") else str(r),
                         "metadata": {
                             "law_name": getattr(r, "law_name", ""),
-                            "article": getattr(r, "article", ""),
+                            "citation": getattr(r, "citation", ""),
+                            "domain_label": getattr(r, "domain_label", ""),
+                            "source_url": getattr(r, "source_url", None),
                         }
                     })
             elif isinstance(law_result, dict):

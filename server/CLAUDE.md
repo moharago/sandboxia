@@ -177,6 +177,32 @@ GET  /api/v1/agents/status/{task_id}  # 비동기 작업 상태 확인
 └────────────┘ └────────┘ └────────┘ └────────┘ └────────┘
 ```
 
+## 문서 생성 (Step 4)
+
+### 파일명 매핑
+- `FORM_NAME_MAP` (documents.py)은 `client/src/data/formData.json`과 동기화 필요
+- 회사명은 form_values 전체에서 검색 (특정 폼에만 있을 수 있음)
+
+### 템플릿 렌더링 (document_generator.py)
+- `docxtpl` + Jinja2 문법
+- `_build_context()`: 날짜 형식 변환, 체크박스(√), SafeDict로 undefined 방지
+- 배열 행 확장: `{{ org0.field }}`, `{{ person0.field }}` 마커 → 행 복제 후 치환
+
+## 시스템 의존성
+
+PDF 변환을 위해 LibreOffice가 필요합니다.
+
+```bash
+# macOS
+brew install --cask libreoffice
+
+# Ubuntu/Debian
+apt-get install libreoffice
+
+# Docker (Dockerfile에 추가)
+RUN apt-get update && apt-get install -y libreoffice
+```
+
 ## 환경 변수
 
 ```bash

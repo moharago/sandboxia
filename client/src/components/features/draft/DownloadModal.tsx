@@ -19,6 +19,25 @@ interface DownloadModalProps {
 
 type FileFormat = "docx" | "pdf"
 
+async function downloadFile(url: string, fallbackFilename: string) {
+    const response = await fetch(url)
+    if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || "다운로드에 실패했습니다.")
+    }
+
+    const blob = await response.blob()
+    const contentDisposition = response.headers.get("Content-Disposition")
+    const filenameMatch = contentDisposition?.match(/filename\*=UTF-8''(.+)/)
+    const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : fallbackFilename
+
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(a.href)
+}
+
 export function DownloadModal({ isOpen, onClose, formType, projectId }: DownloadModalProps) {
     const [fileFormat, setFileFormat] = useState<FileFormat>("docx")
     const [downloading, setDownloading] = useState<string | null>(null)
@@ -28,45 +47,12 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
     const applications = formMeta?.application || []
 
     const handleDownload = async (formId: string, formName: string) => {
-        if (fileFormat === "pdf") {
-            alert("PDF 다운로드는 준비 중입니다.")
-            return
-        }
-
         setDownloading(formId)
-
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/documents/${projectId}/${formId}/docx`
+            await downloadFile(
+                `${API_BASE_URL}/api/v1/documents/${projectId}/${formId}/${fileFormat}`,
+                `${formName}.${fileFormat}`
             )
-
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.detail || "다운로드에 실패했습니다.")
-            }
-
-            // Blob으로 변환
-            const blob = await response.blob()
-
-            // 파일명 추출 (Content-Disposition 헤더에서)
-            const contentDisposition = response.headers.get("Content-Disposition")
-            let filename = `${formName}.docx`
-            if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/)
-                if (filenameMatch) {
-                    filename = decodeURIComponent(filenameMatch[1])
-                }
-            }
-
-            // 다운로드 트리거
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement("a")
-            a.href = url
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            window.URL.revokeObjectURL(url)
-            document.body.removeChild(a)
         } catch (error) {
             console.error("다운로드 오류:", error)
             alert(error instanceof Error ? error.message : "다운로드에 실패했습니다.")
@@ -78,9 +64,13 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
     const handleDownloadAll = async () => {
         setIsBulkDownloading(true)
         try {
-            for (const app of applications) {
-                await handleDownload(app.id, app.name)
-            }
+            await downloadFile(
+                `${API_BASE_URL}/api/v1/documents/${projectId}/zip?format=${fileFormat}`,
+                "신청서류.zip"
+            )
+        } catch (error) {
+            console.error("일괄 다운로드 오류:", error)
+            alert(error instanceof Error ? error.message : "다운로드에 실패했습니다.")
         } finally {
             setIsBulkDownloading(false)
         }
@@ -108,7 +98,7 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
                                 />
                                 <span className="text-sm">DOCX</span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer opacity-50">
+                            <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="radio"
                                     name="fileFormat"
@@ -116,9 +106,8 @@ export function DownloadModal({ isOpen, onClose, formType, projectId }: Download
                                     checked={fileFormat === "pdf"}
                                     onChange={() => setFileFormat("pdf")}
                                     className="h-4 w-4 text-primary accent-primary"
-                                    disabled
                                 />
-                                <span className="text-sm">PDF (준비중)</span>
+                                <span className="text-sm">PDF</span>
                             </label>
                         </div>
                     </div>

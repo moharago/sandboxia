@@ -33,6 +33,7 @@ dependencies = [
   "ragas>=0.2.0",
   "docxtpl>=0.20.2",
   "python-docx>=1.1.0",
+  "gdown>=5.2.1",
 ]
 
 [tool.uv]
