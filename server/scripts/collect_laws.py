@@ -41,7 +41,7 @@ import yaml
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -114,6 +114,17 @@ class ChunkingConfig(BaseModel):
         default=0,
         description="인접 chunk 간 겹치는 토큰 수",
     )
+
+    @model_validator(mode="after")
+    def validate_overlap(self) -> "ChunkingConfig":
+        """overlap이 max_tokens보다 작은지 검증"""
+        if self.overlap < 0:
+            raise ValueError(f"overlap은 0 이상이어야 합니다: {self.overlap}")
+        if self.max_tokens is not None and self.overlap >= self.max_tokens:
+            raise ValueError(
+                f"overlap({self.overlap})은 max_tokens({self.max_tokens})보다 작아야 합니다"
+            )
+        return self
 
 
 # 설정 파일 경로
@@ -247,7 +258,21 @@ def build_citation(
 
 
 def split_by_tokens(text: str, max_tokens: int, overlap: int = 0) -> list[str]:
-    """텍스트를 토큰 기준으로 분할"""
+    """텍스트를 토큰 기준으로 분할
+
+    Args:
+        text: 분할할 텍스트
+        max_tokens: 청크당 최대 토큰 수
+        overlap: 인접 청크 간 겹치는 토큰 수
+
+    Raises:
+        ValueError: overlap >= max_tokens이거나 음수인 경우
+    """
+    if overlap < 0:
+        raise ValueError(f"overlap은 0 이상이어야 합니다: {overlap}")
+    if overlap >= max_tokens:
+        raise ValueError(f"overlap({overlap})은 max_tokens({max_tokens})보다 작아야 합니다")
+
     tokens = _encoder.encode(text)
     if len(tokens) <= max_tokens:
         return [text]
