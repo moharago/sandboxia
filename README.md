@@ -2,26 +2,117 @@
 
 # SandboxIA
 
+규제 샌드박스 신청 컨설팅을 지원하는 AI 멀티에이전트 시스템
+
 ## Overview
 
-- 서비스 소개
-- 주요 기능
-- 전체 아키텍처 (Client / Server)
-- 기술 스택 요약
+SandboxIA는 규제 샌드박스 신청 과정을 자동화하는 AI 기반 컨설팅 지원 시스템입니다.
+
+**핵심 기능:**
+
+- 서비스 구조화 및 대상성 판단
+- 트랙 추천 (신속확인/실증특례/임시허가)
+- 신청서 초안 자동 생성
+- 전략 추천 및 리스크 체크
+
+**기술 스택:**
+
+- Frontend: Next.js 16, React 19, TailwindCSS 4, TanStack Query
+- Backend: FastAPI, LangGraph (Multi-Agent)
+- AI/ML: OpenAI GPT-4o, RAG (ChromaDB), RAGAS
+- Infra: Supabase, Vercel
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Client (Next.js)                         │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │ REST API
+┌─────────────────────────────▼───────────────────────────────────┐
+│                     Server (FastAPI + LangGraph)                │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                    Supervisor Agent                        │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │ │
+│  │  │Structurer│ │Eligibility│ │  Track   │ │  Draft   │ ...  │ │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘      │ │
+│  └───────┼────────────┼────────────┼────────────┼─────────────┘ │
+│          └────────────┴─────┬──────┴────────────┘               │
+│                             │                                    │
+│  ┌──────────────────────────▼───────────────────────────────┐   │
+│  │                    Shared RAG Tools                       │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │   │
+│  │  │ R1: 규제제도 │  │ R2: 승인사례 │  │ R3: 도메인법령│       │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## RAG Evaluation System
+
+RAG 시스템의 품질을 정량적으로 측정하고 개선하기 위한 평가 파이프라인을 구축했습니다.
+
+### 평가 지표
+
+| 카테고리       | 지표               | 설명                                  |
+| -------------- | ------------------ | ------------------------------------- |
+| **Retrieval**  | Must-Have Recall@K | 핵심 조항 검색률                      |
+|                | Recall@K           | 전체 정답 검색률                      |
+|                | MRR                | 첫 번째 정답의 역순위                 |
+| **Generation** | Faithfulness       | 응답의 컨텍스트 기반 여부 (환각 방지) |
+|                | Answer Relevancy   | 질문-응답 적합도                      |
+
+### 평가 실행
+
+```bash
+cd server
+
+# Retrieval 평가 (빠름, 비용 없음)
+uv run python eval/r3/run_evaluation.py --top_k 5
+
+# LLM-as-Judge 평가 (RAGAS 기반)
+uv run python eval/r3/run_llm_evaluation.py --limit 5
+```
+
+### A/B 테스트 자동화
+
+Claude Code의 서브에이전트를 활용한 병렬 평가 시스템:
+
+```bash
+# 단일 평가
+/rag-eval R3 top-k 10
+
+# 병렬 A/B 테스트 (서브에이전트)
+/rag-eval top-k 5, 10, 15 비교해줘
+
+# 변경요소별 비교 분석
+/rag-eval embed끼리 비교해줘
+```
+
+**서브에이전트 활용:**
+
+- 병렬 A/B 테스트: 여러 설정을 동시에 평가하여 시간 절약
+- 결과 분석: 대량의 평가 결과를 분석하여 요약 리포트 생성
+- 컨텍스트 보호: 분석 작업을 서브에이전트에 위임하여 메인 컨텍스트 유지
 
 ## Repository Structure
 
 ```
 .
-├── client/                # Next.js 프론트엔드
-│   ├── ...
+├── client/                 # Next.js 프론트엔드
 │   └── README.md
-├── server/                # FastAPI 백엔드
-│   ├──  ...
+├── server/                 # FastAPI 백엔드
+│   ├── app/
+│   │   ├── agents/         # LangGraph 멀티에이전트
+│   │   └── tools/shared/   # 공용 RAG Tools (R1, R2, R3)
+│   ├── eval/               # RAG 평가 시스템
+│   │   ├── metrics.py      # Retrieval 지표
+│   │   ├── llm_metrics.py  # RAGAS 기반 LLM 지표
+│   │   └── r3/             # R3 RAG 평가셋 & 스크립트
 │   └── README.md
-├── doc/                   # 프로젝트 문서
+├── doc/                    # 프로젝트 문서
 ├── README.md
-└── CLAUDE.md              # Claude Code 지침 문서
+└── CLAUDE.md               # Claude Code 지침
 ```
 
 ## Getting Started
@@ -48,10 +139,10 @@
 
 **PR 방향:**
 
-| From | To | 설명 |
-|------|----|------|
-| `feature/*`, `fix/*` 등 | `dev` | 기능 개발 완료 시 |
-| `dev` | `main` | 배포 시 |
+| From                    | To     | 설명              |
+| ----------------------- | ------ | ----------------- |
+| `feature/*`, `fix/*` 등 | `dev`  | 기능 개발 완료 시 |
+| `dev`                   | `main` | 배포 시           |
 
 **올바른 PR 생성 방법:**
 
@@ -77,6 +168,7 @@ git push origin feature/my-feature
 이 프로젝트는 [CodeRabbit](https://coderabbit.ai)을 사용하여 자동 코드 리뷰를 수행합니다.
 
 **동작 방식:**
+
 1. `dev` 또는 `main` 브랜치로 PR 생성
 2. CodeRabbit이 자동으로 코드 분석 및 리뷰 코멘트 작성
 3. 리뷰 내용 확인 후 필요시 코드 수정
@@ -92,13 +184,14 @@ git push origin feature/my-feature
 
 **권장 MCP 서버:**
 
-| 서버 | 용도 | 활용 예시 |
-|------|------|----------|
-| [context7](https://github.com/upstash/context7) | 라이브러리 최신 문서 검색 | Next.js, LangGraph API 확인 |
-| [supabase](https://github.com/supabase-community/supabase-mcp) | DB 스키마 관리 & 쿼리 | 마이그레이션, 타입 생성 |
-| [serena](https://github.com/oraios/serena) | 시맨틱 코드 탐색 | 심볼 검색, 리팩토링 |
+| 서버                                                           | 용도                      | 활용 예시                   |
+| -------------------------------------------------------------- | ------------------------- | --------------------------- |
+| [context7](https://github.com/upstash/context7)                | 라이브러리 최신 문서 검색 | Next.js, LangGraph API 확인 |
+| [supabase](https://github.com/supabase-community/supabase-mcp) | DB 스키마 관리 & 쿼리     | 마이그레이션, 타입 생성     |
+| [serena](https://github.com/oraios/serena)                     | 시맨틱 코드 탐색          | 심볼 검색, 리팩토링         |
 
 **설정 방법:**
+
 1. Claude Code 설치 후 `.mcp.json` 파일 생성
 2. 각 MCP 서버의 공식 문서를 참고하여 설정
 3. 프로젝트별 지침은 `CLAUDE.md` 참고
