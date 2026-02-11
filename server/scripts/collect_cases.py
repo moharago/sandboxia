@@ -166,11 +166,12 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
     return documents, doc_ids
 
 
-def collect_and_store_cases(reset: bool = True):
+def collect_and_store_cases(reset: bool = True, export_chunks: bool = False):
     """승인 사례 데이터 수집 및 Vector DB 저장
 
     Args:
         reset: True면 기존 컬렉션 삭제 후 새로 생성
+        export_chunks: True면 청크 JSON도 함께 저장 (평가셋 작성용)
     """
     print("=" * 60)
     print("승인 사례 데이터 수집 시작 (R2 RAG Tool)")
@@ -234,10 +235,11 @@ def collect_and_store_cases(reset: bool = True):
 
     print("[OK] Vector DB 저장 완료!")
 
-    # 청크 JSON 저장 (평가용)
-    chunks_json_path = Path(__file__).parent.parent / "data" / "r2_data" / "chunks.json"
-    saved_count = save_chunks_json(documents, document_ids, chunks_json_path)
-    print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
+    # 청크 JSON 저장 (평가용, 플래그가 True일 때만)
+    if export_chunks:
+        chunks_json_path = Path(__file__).parent.parent / "data" / "r2_data" / "chunks.json"
+        saved_count = save_chunks_json(documents, document_ids, chunks_json_path)
+        print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
     # 수집 결과 저장
     result_file = persist_dir / "r2_collection_info.json"
@@ -264,4 +266,14 @@ def collect_and_store_cases(reset: bool = True):
 
 
 if __name__ == "__main__":
-    collect_and_store_cases(reset=True)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="승인 사례 데이터 수집 및 Vector DB 저장")
+    parser.add_argument(
+        "--export-chunks",
+        action="store_true",
+        help="청크 JSON도 함께 저장 (평가셋 작성용)",
+    )
+    args = parser.parse_args()
+
+    collect_and_store_cases(reset=True, export_chunks=args.export_chunks)

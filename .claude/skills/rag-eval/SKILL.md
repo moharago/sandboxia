@@ -79,35 +79,35 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 
 **변경요소 매핑**:
 
-| 자연어 | 변경요소 |
-|--------|----------|
-| embedding, embed, 임베딩 | `embed` |
-| topk, top-k, top_k, k값 | `topk` |
-| chunk, chunking, 청킹, 청크 | `chunk` |
+| 자연어                           | 변경요소 |
+| -------------------------------- | -------- |
+| embedding, embed, 임베딩         | `embed`  |
+| topk, top-k, top_k, k값          | `topk`   |
+| chunk, chunking, 청킹, 청크      | `chunk`  |
 | rerank, reranker, 재랭커, 재랭킹 | `rerank` |
 
 **변경값 매핑**:
 
-| 자연어 | 변경값 |
-|--------|--------|
-| large, 3-large | `3-large` |
-| small, 3-small | `3-small` |
-| ada, ada-002 | `ada-002` |
-| paragraph, 문단 | `paragraph` |
-| article, 조문 | `article` |
-| 숫자 (5, 10, 15 등) | 그대로 |
+| 자연어              | 변경값      |
+| ------------------- | ----------- |
+| large, 3-large      | `3-large`   |
+| small, 3-small      | `3-small`   |
+| ada, ada-002        | `ada-002`   |
+| paragraph, 문단     | `paragraph` |
+| article, 조문       | `article`   |
+| 숫자 (5, 10, 15 등) | 그대로      |
 
 **예시 변환**:
 
-| 자연어 입력 | 생성되는 파일명 (오늘 날짜: 2026-02-10) |
-|-------------|----------------------------------------|
-| "baseline으로 저장" | `2026-02-10_baseline` |
-| "embedding large로 저장" | `2026-02-10_embed_3-large` |
-| "embed small로 저장" | `2026-02-10_embed_3-small` |
-| "topk 10으로 저장" | `2026-02-10_topk_10` |
-| "청킹 paragraph로 저장" | `2026-02-10_chunk_paragraph` |
-| "rerank cohere로 저장" | `2026-02-10_rerank_cohere` |
-| "v2로 저장" | `2026-02-10_v2` |
+| 자연어 입력              | 생성되는 파일명 (오늘 날짜: 2026-02-10) |
+| ------------------------ | --------------------------------------- |
+| "baseline으로 저장"      | `2026-02-10_baseline`                   |
+| "embedding large로 저장" | `2026-02-10_embed_3-large`              |
+| "embed small로 저장"     | `2026-02-10_embed_3-small`              |
+| "topk 10으로 저장"       | `2026-02-10_topk_10`                    |
+| "청킹 paragraph로 저장"  | `2026-02-10_chunk_paragraph`            |
+| "rerank cohere로 저장"   | `2026-02-10_rerank_cohere`              |
+| "v2로 저장"              | `2026-02-10_v2`                         |
 
 **구현**: 오늘 날짜는 `date +%Y-%m-%d` 명령어로 얻거나 현재 날짜 사용
 
@@ -199,17 +199,17 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 
 ## 사용 예시
 
-| 명령어                           | 모드 | 동작                                | 저장 파일명 예시 |
-| -------------------------------- | ---- | ----------------------------------- | ---------------- |
-| `/rag-eval`                      | A    | R3 retrieval 직접 실행              | (타임스탬프) |
-| `/rag-eval baseline으로 저장`    | A    | R3 retrieval + 파일명 지정          | `2026-02-10_baseline` |
-| `/rag-eval embedding large로 저장` | A  | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_embed_3-large` |
-| `/rag-eval topk 10으로 저장`     | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_topk_10` |
-| `/rag-eval --llm R3 5개만`       | A    | R3 LLM 평가 직접 실행               | (타임스탬프) |
-| `/rag-eval top-k 5, 10 비교`     | B    | 서브에이전트 2개 병렬 → 비교표      | - |
-| `/rag-eval R1, R2, R3 전체`      | C    | 서브에이전트 3개 병렬 → 종합 리포트 | - |
-| `/rag-eval 결과 분석`            | D    | 서브에이전트가 결과 파일 분석       | - |
-| `/rag-eval embed끼리 비교`       | D    | 서브에이전트가 embed 변경요소 비교  | - |
+| 명령어                             | 모드 | 동작                                | 저장 파일명 예시           |
+| ---------------------------------- | ---- | ----------------------------------- | -------------------------- |
+| `/rag-eval`                        | A    | R3 retrieval 직접 실행              | (타임스탬프)               |
+| `/rag-eval baseline으로 저장`      | A    | R3 retrieval + 파일명 지정          | `2026-02-10_baseline`      |
+| `/rag-eval embedding large로 저장` | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_embed_3-large` |
+| `/rag-eval topk 10으로 저장`       | A    | R3 retrieval + 변경요소/값 파싱     | `2026-02-10_topk_10`       |
+| `/rag-eval --llm R3 5개만`         | A    | R3 LLM 평가 직접 실행               | (타임스탬프)               |
+| `/rag-eval top-k 5, 10 비교`       | B    | 서브에이전트 2개 병렬 → 비교표      | -                          |
+| `/rag-eval R1, R2, R3 전체`        | C    | 서브에이전트 3개 병렬 → 종합 리포트 | -                          |
+| `/rag-eval 결과 분석`              | D    | 서브에이전트가 결과 파일 분석       | -                          |
+| `/rag-eval embed끼리 비교`         | D    | 서브에이전트가 embed 변경요소 비교  | -                          |
 
 ## 주의사항
 
