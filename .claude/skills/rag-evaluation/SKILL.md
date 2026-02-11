@@ -170,13 +170,13 @@ Judge Model: gpt-4.1
 
 **패턴**: `{날짜}_{변경요소}_{프리셋ID 또는 값}.json`
 
-| 실험 목적          | 파일명 예시                                                        |
-| ------------------ | ------------------------------------------------------------------ |
-| 기준선 (현재 설정) | `2024-01-15_baseline.json`                                         |
-| 청킹 전략 비교     | `2024-01-15_chunk_C0.json`, `2024-01-15_chunk_C1.json`             |
-| 임베딩 모델 비교   | `2024-01-15_embed_E0.json`, `2024-01-15_embed_E1.json`             |
-| Vector DB 비교     | `2024-01-15_vectordb_V0.json`, `2024-01-15_vectordb_V1.json`       |
-| Top-K 비교         | `2024-01-15_topk_5.json`, `2024-01-15_topk_10.json`                |
+| 실험 목적          | 파일명 예시                                                              |
+| ------------------ | ------------------------------------------------------------------------ |
+| 기준선 (현재 설정) | `2024-01-15_baseline.json`                                               |
+| 청킹 전략 비교     | `2024-01-15_chunking_C0.json`, `2024-01-15_chunking_C1.json`             |
+| 임베딩 모델 비교   | `2024-01-15_embedding_E0.json`, `2024-01-15_embedding_E1.json`           |
+| Vector DB 비교     | `2024-01-15_vectordb_V0.json`, `2024-01-15_vectordb_V1.json`             |
+| Top-K 비교         | `2024-01-15_topk_5.json`, `2024-01-15_topk_10.json`                      |
 | 재랭커 추가        | `2024-01-15_rerank_cohere.json`, `2024-01-15_rerank_none.json`     |
 
 **실행 예시**:
@@ -473,7 +473,8 @@ uv run python scripts/collect_regulations.py --config C1
 ```
 
 **결과 파일명 컨벤션**: `{날짜}_{변경요소}_{프리셋ID}.json`
-- 예: `2026-02-11_chunk_C1.json`, `2026-02-11_embed_E2.json`
+- 변경요소 = yaml 파일명 (확장자 제외)
+- 예: `2026-02-11_chunking_C1.json`, `2026-02-11_embedding_E2.json`
 
 ### 1. 청킹 전략 비교
 
@@ -482,7 +483,7 @@ uv run python scripts/collect_regulations.py --config C1
 uv run python scripts/collect_laws.py --config C1
 
 # 2. 평가 실행
-uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunk_C1
+uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunking_C1
 ```
 
 ### 2. 임베딩 모델 비교
