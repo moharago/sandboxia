@@ -13,13 +13,18 @@ RAG(Retrieval-Augmented Generation) 시스템의 평가셋 작성 및 평가 수
 server/
 ├── eval/                           # 평가 관련 (git 추적)
 │   ├── __init__.py
-│   ├── metrics.py                  # 공통 지표 계산 함수
+│   ├── metrics.py                  # Retrieval 지표 계산 함수
+│   ├── llm_metrics.py              # LLM-as-Judge 지표 (RAGAS 기반)
 │   └── r3/
 │       ├── __init__.py
 │       ├── evaluation_set.json     # R3 평가셋 (30개 항목)
-│       ├── run_evaluation.py       # R3 평가 스크립트
-│       └── results/                # 평가 결과 저장
-│           └── {날짜}_{변경요소}_{값}.json
+│       ├── run_evaluation.py       # R3 Retrieval 평가 스크립트
+│       ├── run_llm_evaluation.py   # R3 LLM-as-Judge 평가 스크립트
+│       └── results/
+│           ├── retrieval/          # Retrieval 평가 결과
+│           │   └── {날짜}_{변경요소}.json
+│           └── llm/                # LLM-as-Judge 평가 결과
+│               └── {날짜}_{변경요소}.json
 └── data/                           # 데이터 (gitignore)
     └── r3_data/
         └── chunks.json             # 청킹 결과 (평가 시 참조)
@@ -27,7 +32,7 @@ server/
 
 ## 평가 실행
 
-### 기본 실행
+### Retrieval 평가 (기본)
 
 ```bash
 cd server
@@ -40,6 +45,66 @@ uv run python eval/r3/run_evaluation.py --top_k 10
 
 # 결과 파일명 지정
 uv run python eval/r3/run_evaluation.py --output 2024-01-15_embed_3-large
+```
+
+### LLM-as-Judge 평가 (Retrieval + Generation)
+
+Judge 모델: **gpt-4.1** (고정)
+
+```bash
+cd server
+
+# 기본 평가 (K=5)
+uv run python eval/r3/run_llm_evaluation.py
+
+# Top-K 변경
+uv run python eval/r3/run_llm_evaluation.py --top_k 10
+
+# 테스트용 (항목 수 제한)
+uv run python eval/r3/run_llm_evaluation.py --limit 5
+
+# LangSmith 추적 활성화 (토큰/비용 확인)
+uv run python eval/r3/run_llm_evaluation.py --trace --limit 5
+
+# 결과 파일명 지정
+uv run python eval/r3/run_llm_evaluation.py --output 2024-01-15_baseline
+```
+
+**출력 예시 (LLM-as-Judge)**:
+
+```text
+======================================================================
+R3 법령 RAG 평가 (Retrieval + LLM-as-Judge)
+======================================================================
+
+평가셋: 30개 항목
+Top-K: 5
+Judge Model: gpt-4.1
+
+평가 진행 중...
+
+  [ 1/30] R3-0001 | Recall: 0.50 | Faith: 0.75 | Rel: 0.29 | Gen: 2340ms
+  [ 2/30] R3-0002 | Recall: 1.00 | Faith: 1.00 | Rel: 0.85 | Gen: 1890ms
+  ...
+
+======================================================================
+평가 결과 요약
+======================================================================
+
+📊 Retrieval 지표 (K=5):
+  - Must-Have Recall@5: 0.4333
+  - Recall@5:           0.3389
+  - MRR:                0.4861
+
+🤖 LLM-as-Judge 지표 (gpt-4.1):
+  - Faithfulness:       0.7500
+  - Answer Relevancy:   0.6234
+
+⏱️  Latency:
+  - Retrieval P50: 128.1ms | P95: 359.5ms
+  - Generation P50: 2100.0ms | P95: 3500.0ms
+
+💾 결과 저장: eval/r3/results/llm/2024-01-15_183826.json
 ```
 
 ### 결과 파일명 컨벤션
@@ -98,12 +163,12 @@ Top-K: 5
   - P50: 128.1ms
   - P95: 359.5ms
 
-💾 결과 저장: eval/r3/results/2024-01-15_183826.json
+💾 결과 저장: eval/r3/results/retrieval/2024-01-15_183826.json
 ```
 
 ## 평가 지표
 
-### 현재 구현된 지표 (1단계)
+### Retrieval 지표
 
 | 지표                   | 설명                             | 중요도 |
 | ---------------------- | -------------------------------- | ------ |
@@ -112,14 +177,20 @@ Top-K: 5
 | **MRR**                | 첫 번째 정답의 역순위            | ⭐⭐   |
 | **Latency P50**        | 검색 응답 시간 중앙값            | ⭐⭐   |
 
-### 향후 확장 예정 (2단계)
+### LLM-as-Judge 지표 (RAGAS 기반)
 
-| 지표               | 설명                     | 구현 복잡도     |
-| ------------------ | ------------------------ | --------------- |
-| Negative Exclusion | 오답 조항 배제 능력      | 쉬움            |
-| nDCG               | 그레이디드 랭킹 품질     | 중간            |
-| Groundedness       | 답변이 컨텍스트 기반인지 | 복잡 (LLM 필요) |
-| Faithfulness       | 환각 방지 정도           | 복잡 (LLM 필요) |
+| 지표                 | 설명                                 | 중요도 |
+| -------------------- | ------------------------------------ | ------ |
+| **Faithfulness**     | 응답이 컨텍스트에 기반하는지 (환각 방지) | ⭐⭐⭐ |
+| **Answer Relevancy** | 응답이 질문에 적절히 답변하는지         | ⭐⭐⭐ |
+
+### 향후 확장 예정
+
+| 지표               | 설명                     | 구현 복잡도 |
+| ------------------ | ------------------------ | ----------- |
+| Negative Exclusion | 오답 조항 배제 능력      | 쉬움        |
+| nDCG               | 그레이디드 랭킹 품질     | 중간        |
+| Factual Correctness | 예상 답변과 일치도      | 중간        |
 
 ## 평가셋 구조
 
@@ -385,14 +456,82 @@ uv run python eval/r3/run_evaluation.py --top_k 10 --output k10
 
 ## 관련 파일
 
-| 파일             | 경로                                      | 설명                                        |
-| ---------------- | ----------------------------------------- | ------------------------------------------- |
-| 공통 지표        | `server/eval/metrics.py`                  | Recall, MRR 등 계산 함수                    |
-| R3 평가셋        | `server/eval/r3/evaluation_set.json`      | R3 RAG 평가셋 (30개)                        |
-| R3 평가 스크립트 | `server/eval/r3/run_evaluation.py`        | R3 평가 실행                                |
-| R3 평가 결과     | `server/eval/r3/results/`                 | 평가 결과 JSON                              |
-| 청크 데이터      | `server/data/{r1,r2,r3}_data/chunks.json` | 청킹 결과 (gitignore)                       |
-| 공통 유틸        | `server/app/db/export.py`                 | 청크 JSON 저장 함수                         |
-| R3 수집          | `server/scripts/collect_laws.py`          | 법령 수집 (--export-chunks로 청크 저장)     |
-| R2 수집          | `server/scripts/collect_cases.py`         | 승인사례 수집 (--export-chunks로 청크 저장) |
-| R1 수집          | `server/scripts/collect_regulations.py`   | 규제제도 수집 (--export-chunks로 청크 저장) |
+| 파일                  | 경로                                      | 설명                                        |
+| --------------------- | ----------------------------------------- | ------------------------------------------- |
+| Retrieval 지표        | `server/eval/metrics.py`                  | Recall, MRR 등 계산 함수                    |
+| LLM-as-Judge 지표     | `server/eval/llm_metrics.py`              | Faithfulness, Answer Relevancy (RAGAS 기반) |
+| R3 평가셋             | `server/eval/r3/evaluation_set.json`      | R3 RAG 평가셋 (30개)                        |
+| R3 Retrieval 평가     | `server/eval/r3/run_evaluation.py`        | R3 Retrieval 평가 실행                      |
+| R3 LLM-as-Judge 평가  | `server/eval/r3/run_llm_evaluation.py`    | R3 Retrieval + Generation 평가 실행         |
+| R3 Retrieval 결과     | `server/eval/r3/results/retrieval/`       | Retrieval 평가 결과 JSON                    |
+| R3 LLM 결과           | `server/eval/r3/results/llm/`             | LLM-as-Judge 평가 결과 JSON                 |
+| 청크 데이터           | `server/data/{r1,r2,r3}_data/chunks.json` | 청킹 결과 (gitignore)                       |
+| 공통 유틸             | `server/app/db/export.py`                 | 청크 JSON 저장 함수                         |
+| R3 수집               | `server/scripts/collect_laws.py`          | 법령 수집 (--export-chunks로 청크 저장)     |
+| R2 수집               | `server/scripts/collect_cases.py`         | 승인사례 수집 (--export-chunks로 청크 저장) |
+| R1 수집               | `server/scripts/collect_regulations.py`   | 규제제도 수집 (--export-chunks로 청크 저장) |
+
+## LangSmith 연동 (Token/Cost 추적)
+
+`--trace` 플래그를 사용하면 평가 스크립트에서만 LangSmith 추적이 활성화됩니다.
+(서비스 전체가 아닌 평가 시에만 토큰/비용 추적)
+
+### 설정 방법
+
+1. [LangSmith](https://smith.langchain.com/)에서 계정 생성 (무료)
+2. API 키 발급
+3. `.env`에 추가:
+
+```bash
+LANGCHAIN_API_KEY=lsv2_pt_...
+```
+
+### 사용법
+
+```bash
+# --trace 플래그로 LangSmith 활성화
+uv run python eval/r3/run_llm_evaluation.py --trace --limit 5
+```
+
+### 확인 가능한 지표
+
+- **Token Usage**: 프롬프트/완성 토큰 수
+- **Cost**: 요청당 예상 비용
+- **Latency**: LLM 응답 시간
+- **Trace**: 전체 실행 흐름
+
+https://smith.langchain.com 에서 대시보드 확인
+
+## LLM-as-Judge 사용법
+
+### RAGASEvaluator 클래스
+
+```python
+from eval.llm_metrics import RAGASEvaluator, LLMMetricsResult
+
+# 평가기 초기화
+evaluator = RAGASEvaluator(
+    model="gpt-4.1",               # Judge LLM 모델 (고정)
+    embedding_model="text-embedding-3-small",  # 임베딩 모델 (Answer Relevancy용)
+)
+
+# 비동기 평가
+result = await evaluator.evaluate(
+    question="간편결제 서비스에서 부정결제 사고가 발생하면 책임은 누가 지나요?",
+    response="원칙적으로 금융회사가 책임을 부담합니다.",
+    contexts=["전자금융거래법 제9조 ① 금융회사는..."]
+)
+
+print(f"Faithfulness: {result.faithfulness}")      # 0.0 ~ 1.0
+print(f"Answer Relevancy: {result.answer_relevancy}")  # 0.0 ~ 1.0
+```
+
+### 지표 설명
+
+- **Faithfulness**: 응답의 모든 주장이 컨텍스트에서 추론 가능한지 확인 (환각 방지)
+  - 1.0: 모든 주장이 컨텍스트에 근거함
+  - 0.0: 컨텍스트와 무관한 주장만 있음
+
+- **Answer Relevancy**: 응답이 질문에 적절히 답변하는지 확인
+  - 1.0: 질문에 완벽하게 답변
+  - 0.0: 질문과 무관한 답변
