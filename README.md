@@ -134,6 +134,7 @@ Claude Code의 서브에이전트를 활용한 병렬 평가 시스템:
 - `feature/func-{기능명}`: 기능 개발
 - `feature/uiux`: client 화면 개발
 - `feature/db-{name}`: Database schema & API development
+- `eval/rag-{domain}`: RAG 평가 실험 (예: `eval/rag-domain-law`)
 
 ### PR 워크플로우
 

@@ -7,13 +7,18 @@ R2. 승인 사례 RAG Tool용 데이터 수집
 실행:
     cd server
     uv run python scripts/collect_cases.py
+    uv run python scripts/collect_cases.py --strategy hybrid
+    uv run python scripts/collect_cases.py --strategy fulltext
 """
 
+import argparse
 import json
 import shutil
 import sys
 import tempfile
 from pathlib import Path
+
+VALID_STRATEGIES = ("structured", "hybrid", "fulltext")
 
 import gdown
 
@@ -93,11 +98,44 @@ def load_json_data() -> tuple[list[dict], str]:
             pass
 
 
-def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
+def _build_structured_content(case: dict) -> str:
+    """structured 전략: 유효 필드만 조합 (baseline)"""
+    track = case.get("track", "")
+    common = case.get("common_info", {})
+    companies = case.get("companies", [])
+
+    service_name = common.get("service_name", "")
+    service_description = common.get("service_description", "")
+    special_provisions = common.get("special_provisions", "")
+    pilot_scope = common.get("pilot_scope", "")
+    conditions = common.get("conditions", [])
+
+    company_names = [c.get("company_name", "") for c in companies if c.get("company_name")]
+
+    # conditions 리스트 → 텍스트
+    conditions_text = ""
+    if conditions:
+        conditions_text = "조건: " + " / ".join(conditions)
+
+    content_parts = [
+        f"[{track}] {service_name}",
+        f"기업: {', '.join(company_names)}" if company_names else "",
+        f"서비스 설명: {service_description}" if service_description else "",
+        f"특례 내용: {special_provisions}" if special_provisions else "",
+        f"실증 범위: {pilot_scope}" if pilot_scope else "",
+        conditions_text,
+    ]
+    return "\n".join([p for p in content_parts if p])
+
+
+def create_documents(
+    data: list[dict], strategy: str = "structured"
+) -> tuple[list[Document], list[str]]:
     """JSON 데이터를 Document 리스트로 변환
 
-    각 케이스를 하나의 Document로 변환합니다.
-    검색에 사용될 텍스트는 서비스명, 설명, 특례내용 등을 포함합니다.
+    Args:
+        data: 케이스 데이터 리스트
+        strategy: 데이터 전략 (structured / hybrid / fulltext)
 
     Returns:
         (documents, ids): 문서 리스트와 ID 리스트 튜플
@@ -111,15 +149,6 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
         common = case.get("common_info", {})
         companies = case.get("companies", [])
 
-        # 검색용 텍스트 구성
-        service_name = common.get("service_name", "")
-        service_description = common.get("service_description", "")
-        special_provisions = common.get("special_provisions", "")
-        current_regulation = common.get("current_regulation", "")
-        expected_effect = common.get("expected_effect", "")
-        pilot_scope = common.get("pilot_scope", "")
-
-        # 기업 정보
         company_names = [c.get("company_name", "") for c in companies if c.get("company_name")]
         company_name = company_names[0] if company_names else ""
 
@@ -130,19 +159,22 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
                 designation_number = c.get("designation_number")
                 break
 
-        # 검색 콘텐츠 구성
-        content_parts = [
-            f"[{track}] {service_name}",
-            f"기업: {', '.join(company_names)}" if company_names else "",
-            f"서비스 설명: {service_description}" if service_description else "",
-            f"특례 내용: {special_provisions}" if special_provisions else "",
-            f"현행 규제: {current_regulation}" if current_regulation else "",
-            f"기대 효과: {expected_effect}" if expected_effect else "",
-            f"실증 범위: {pilot_scope}" if pilot_scope else "",
-        ]
-        content = "\n".join([p for p in content_parts if p])
+        # 전략별 content 구성
+        if strategy == "fulltext":
+            content = case.get("full_text", "")
+        else:
+            content = _build_structured_content(case)
+            if strategy == "hybrid" and len(content) < 100:
+                full_text = case.get("full_text", "")
+                if full_text:
+                    content = full_text
 
-        # 인용 형식
+        # 빈 content 스킵 (임베딩 불가)
+        if not content or not content.strip():
+            print(f"  [WARN] 빈 content 스킵: {case_id} (strategy={strategy})")
+            continue
+
+        service_name = common.get("service_name", "")
         citation = f"{track} - {service_name} ({company_name})"
 
         doc = Document(
@@ -156,9 +188,9 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
                 "designation_number": designation_number,
                 "source_url": case.get("source_url", ""),
                 "citation": citation,
+                "strategy": strategy,
             },
         )
-        # ID 생성: case_{case_id}
         doc_id = f"case_{case_id}" if case_id else f"case_{len(documents)}"
         documents.append(doc)
         doc_ids.append(doc_id)
@@ -166,15 +198,18 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
     return documents, doc_ids
 
 
-def collect_and_store_cases(reset: bool = True, export_chunks: bool = False):
+def collect_and_store_cases(
+    reset: bool = True, strategy: str = "structured", export_chunks: bool = False
+):
     """승인 사례 데이터 수집 및 Vector DB 저장
 
     Args:
         reset: True면 기존 컬렉션 삭제 후 새로 생성
+        strategy: 데이터 전략 (structured / hybrid / fulltext)
         export_chunks: True면 청크 JSON도 함께 저장 (평가셋 작성용)
     """
     print("=" * 60)
-    print("승인 사례 데이터 수집 시작 (R2 RAG Tool)")
+    print(f"승인 사례 데이터 수집 시작 (R2 RAG Tool) [전략: {strategy}]")
     print("=" * 60)
 
     # JSON 데이터 로드 (URL 또는 로컬 파일)
@@ -225,7 +260,7 @@ def collect_and_store_cases(reset: bool = True, export_chunks: bool = False):
     )
 
     # Document 생성
-    documents, document_ids = create_documents(data)
+    documents, document_ids = create_documents(data, strategy=strategy)
     print(f"\n{'=' * 60}")
     print(f"총 {len(documents)}개 문서 생성 완료")
     print("Vector DB에 저장 중...")
@@ -248,6 +283,7 @@ def collect_and_store_cases(reset: bool = True, export_chunks: bool = False):
             {
                 "total_documents": len(documents),
                 "source": source_path,
+                "strategy": strategy,
                 "tracks": tracks,
             },
             f,
@@ -259,6 +295,7 @@ def collect_and_store_cases(reset: bool = True, export_chunks: bool = False):
     print("\n" + "=" * 60)
     print("수집 완료 요약:")
     print("=" * 60)
+    print(f"  - 전략: {strategy}")
     print(f"  - 소스: {source_path}")
     print(f"  - 총 케이스 수: {len(documents)}개")
     print(f"  - 저장 위치: {persist_dir}")
@@ -266,14 +303,19 @@ def collect_and_store_cases(reset: bool = True, export_chunks: bool = False):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="승인 사례 데이터 수집 및 Vector DB 저장")
+    parser = argparse.ArgumentParser(description="R2 승인 사례 수집 및 Vector DB 저장")
+    parser.add_argument(
+        "--strategy",
+        choices=VALID_STRATEGIES,
+        default="structured",
+        help="데이터 전략: structured(기본) / hybrid / fulltext",
+    )
     parser.add_argument(
         "--export-chunks",
         action="store_true",
         help="청크 JSON도 함께 저장 (평가셋 작성용)",
     )
     args = parser.parse_args()
-
-    collect_and_store_cases(reset=True, export_chunks=args.export_chunks)
+    collect_and_store_cases(
+        reset=True, strategy=args.strategy, export_chunks=args.export_chunks
+    )

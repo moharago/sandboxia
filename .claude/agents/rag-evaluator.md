@@ -42,8 +42,10 @@ RAG 시스템(R1, R2, R3)의 Retrieval 및 Generation 품질을 평가합니다.
 3. **명령어 실행**:
 
    ```bash
-   cd /Users/aistudy/Documents/ai-agent-kdt/2nd-pj-Sandbox/server && uv run python eval/{rag_type}/run_{type}.py [옵션]
+   cd server && uv run python eval/{rag_type}/run_{type}.py [옵션]
    ```
+
+   > 프로젝트 루트에서 실행. 절대 경로 하드코딩 금지.
 
 4. **결과 요약 보고**
 
@@ -257,27 +259,42 @@ uv run python eval/r1/run_llm_evaluation.py [옵션]
 
 ---
 
-### R2: 승인 사례 RAG (미구현)
+### R2: 승인 사례 RAG (구현됨)
 
-**데이터**: 승인/반려 사례, 조건, 실증 범위
+**데이터**: 승인/반려 사례, 조건, 실증 범위 (281건, 1건=1문서)
 
 #### Retrieval 평가
 
 ```bash
-uv run python eval/r2/run_evaluation.py [옵션]
+cd server && uv run python eval/r2/run_evaluation.py [옵션]
 ```
 
-| 옵션            | 설명            | 기본값     |
-| --------------- | --------------- | ---------- |
-| `--top_k N`     | Top-K 검색 개수 | 5          |
-| `--output NAME` | 결과 파일명     | 타임스탬프 |
+| 옵션                | 설명                                        | 기본값     |
+| ------------------- | ------------------------------------------- | ---------- |
+| `--strategy MODE`   | 데이터 전략: structured/hybrid/fulltext/all  | structured |
+| `--top_k N`         | Top-K 검색 개수                             | 5          |
+| `--output NAME`     | 결과 파일명                                 | 타임스탬프 |
 
-<!-- TODO: R2 스크립트 구현 시 옵션 추가 -->
+**R2 전용 기능: `--strategy`**
+
+| 전략         | 설명                                                    |
+| ------------ | ------------------------------------------------------- |
+| `structured` | 유효 필드만 사용 (baseline). 65건이 100자 미만           |
+| `hybrid`     | structured < 100자인 65건은 full_text로 대체             |
+| `fulltext`   | 281건 모두 full_text 원문 사용                           |
+| `all`        | 위 3개 전략을 순차 실행 후 비교표 출력                   |
+
+**전략 비교 실행**:
+```bash
+cd server && uv run python eval/r2/run_evaluation.py --strategy all
+```
+
+**평가 지표**: Must-Have Recall@K, Recall@K, MRR, Negative@K, Latency(P50/P95)
 
 #### LLM-as-Judge 평가
 
 ```bash
-uv run python eval/r2/run_llm_evaluation.py [옵션]
+cd server && uv run python eval/r2/run_llm_evaluation.py [옵션]
 ```
 
 | 옵션            | 설명              | 기본값     |
@@ -286,7 +303,7 @@ uv run python eval/r2/run_llm_evaluation.py [옵션]
 | `--output NAME` | 결과 파일명       | 타임스탬프 |
 | `--limit N`     | 평가 항목 수 제한 | 전체       |
 
-<!-- TODO: R2 스크립트 구현 시 옵션 추가 -->
+<!-- TODO: R2 LLM 평가 스크립트 구현 시 옵션 추가 -->
 
 **결과 위치**:
 
