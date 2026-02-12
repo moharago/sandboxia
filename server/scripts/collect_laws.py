@@ -752,7 +752,13 @@ async def collect_and_store_laws(
     print(f"총 {len(documents)}개 문서 생성 완료")
     print("Vector DB에 저장 중...")
 
-    vectorstore.add_documents(documents, ids=unique_ids)
+    # 배치 크기 제한 (ChromaDB max batch size: 5461)
+    batch_size = 5000
+    for i in range(0, len(documents), batch_size):
+        batch_docs = documents[i : i + batch_size]
+        batch_ids = unique_ids[i : i + batch_size]
+        vectorstore.add_documents(batch_docs, ids=batch_ids)
+        print(f"  - 배치 {i // batch_size + 1}: {len(batch_docs)}개 저장 완료")
 
     print("[OK] Vector DB 저장 완료!")
     print(f"  - 컬렉션: {collection_name}")
