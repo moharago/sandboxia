@@ -152,6 +152,22 @@ export const projectsApi = {
     },
 
     /**
+     * 프로젝트 파일 다운로드 URL 생성 (서버 API 사용)
+     */
+    getFileDownloadUrl: async (file: ProjectFile): Promise<string> => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+        const response = await fetch(`${apiUrl}/api/v1/files/download/${file.id}`)
+
+        if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.detail || "다운로드 URL 생성 실패")
+        }
+
+        const data = await response.json()
+        return data.download_url
+    },
+
+    /**
      * 프로젝트 트랙 업데이트 (사용자 최종 선택)
      */
     updateProjectTrack: async (
