@@ -206,12 +206,13 @@ def get_chunk_statistics(vector_store: Chroma) -> dict:
             "avg_chunk_length": float,
         }
     """
-    # ChromaDB 컬렉션에서 모든 문서 조회
-    collection = vector_store._collection
-    result = collection.get(include=["documents"])
+    # ChromaDB 공용 API를 사용하여 모든 문서 조회
+    result = vector_store.get(include=["documents"])
 
     documents = result.get("documents", [])
-    total_chunks = len(documents)
+    # None/empty 문서 필터링
+    filtered_documents = [doc for doc in documents if doc]
+    total_chunks = len(filtered_documents)
 
     if total_chunks == 0:
         return {
@@ -220,7 +221,7 @@ def get_chunk_statistics(vector_store: Chroma) -> dict:
         }
 
     # 평균 청크 길이 계산 (문자 수 기준)
-    total_length = sum(len(doc) for doc in documents if doc)
+    total_length = sum(len(doc) for doc in filtered_documents)
     avg_length = total_length / total_chunks
 
     return {

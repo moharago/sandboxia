@@ -4,6 +4,7 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from langchain_core.documents import Document
 
@@ -17,7 +18,7 @@ class BaseChunker(ABC):
         self.config = config
 
     @abstractmethod
-    def create_chunks(self, source: any, **kwargs) -> tuple[list[Document], list[str]]:
+    def create_chunks(self, source: Any, **kwargs) -> tuple[list[Document], list[str]]:
         """소스 데이터를 청크로 분할
 
         Args:

@@ -52,7 +52,15 @@ def split_by_tokens(text: str, max_tokens: int, overlap: int = 0) -> list[str]:
         end = min(start + max_tokens, len(tokens))
         chunk_tokens = tokens[start:end]
         chunks.append(_encoder.decode(chunk_tokens))
-        start = end - overlap if overlap > 0 else end
+
+        # Detect terminal case to avoid infinite loop when overlap > 0
+        if end == len(tokens):
+            break
+
+        next_start = end - overlap if overlap > 0 else end
+        if next_start <= start:
+            break
+        start = next_start
     return chunks
 
 
