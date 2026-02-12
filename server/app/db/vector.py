@@ -305,10 +305,16 @@ def create_embeddings(config: EmbeddingConfig) -> Embeddings:
         )
 
     elif provider == "local":
-        # 디바이스 자동 감지: CUDA > MPS (Apple Silicon) > CPU
-        import torch
-        from langchain_huggingface import HuggingFaceEmbeddings
+        try:
+            import torch
+            from langchain_huggingface import HuggingFaceEmbeddings
+        except ImportError as e:
+            raise RuntimeError(
+                "로컬 임베딩 모델을 사용하려면 추가 의존성이 필요합니다.\n"
+                "설치: uv sync --group local-embeddings"
+            ) from e
 
+        # 디바이스 자동 감지: CUDA > MPS (Apple Silicon) > CPU
         if torch.cuda.is_available():
             device = "cuda"
         elif torch.backends.mps.is_available():

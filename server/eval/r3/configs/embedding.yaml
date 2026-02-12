@@ -33,7 +33,7 @@ E2:
 
 E3:
   name: E3
-  description: "한국어 오픈소스 - BGE-m3-ko"
+  description: "한국어 오픈소스 - BGE-m3-korean"
   model: upskyy/bge-m3-korean
   provider: local
   dimension: 1024
