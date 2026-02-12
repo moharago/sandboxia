@@ -15,7 +15,7 @@ from app.core.constants import COLLECTION_REGULATIONS
 from app.db.vector import SearchResult, get_vector_store
 
 # 관련도 임계값: 이 값 미만의 결과는 반환하지 않음
-RELEVANCE_THRESHOLD = 0.32
+RELEVANCE_THRESHOLD = 0.25
 
 
 class RegulationResult(BaseModel):
