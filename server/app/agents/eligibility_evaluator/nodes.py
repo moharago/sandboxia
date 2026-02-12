@@ -677,7 +677,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
 
     # approval_cases 생성 (Step 2,3,4 재사용)
     approval_cases: list[ApprovalCase] = []
-    for case in cases[:3]:
+    for case in cases[:5]:
         # ChromaDB distance → similarity 변환 (distance가 낮을수록 유사도 높음)
         distance = case.get("relevance_score", 1.0)
         # 변환 공식: similarity = 1 / (1 + distance) * 100
