@@ -3,6 +3,8 @@
 노드들을 연결하여 대상성 판단 파이프라인 구성
 """
 
+import time
+
 from langgraph.graph import END, StateGraph
 
 from app.core.config import settings
@@ -80,6 +82,9 @@ async def run_eligibility_evaluation(
     Returns:
         EligibilityResult: 판단 결과
     """
+    total_start = time.time()
+    print(f"\n[Step2] ========== 대상성 판단 시작 ==========")
+
     # 초기 상태 (TypedDict - 기본값 직접 제공)
     initial_state: EligibilityState = {
         "project_id": project_id,
@@ -104,6 +109,9 @@ async def run_eligibility_evaluation(
         initial_state,
         config={"recursion_limit": 15},
     )
+
+    total_elapsed = time.time() - total_start
+    print(f"[Step2] ========== 대상성 판단 완료 ({total_elapsed:.2f}초) ==========\n")
 
     # EligibilityResult로 변환 (result는 dict)
     return EligibilityResult(

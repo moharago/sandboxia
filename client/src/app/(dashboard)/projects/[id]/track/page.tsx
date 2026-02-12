@@ -12,11 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { tracks } from "@/data"
-import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
+import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { cn } from "@/lib/utils/cn"
 import type { Regulation } from "@/types/api/eligibility"
 import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse, DomainConstraints } from "@/types/api/track"
@@ -175,11 +175,13 @@ export default function TrackPage({ params }: TrackPageProps) {
     const queryClient = useQueryClient()
 
     const { setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
-    const { devIsAnalyzed, devHasChanges } = useUIStore()
 
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isRunningDraftAgent, setIsRunningDraftAgent] = useState(false)
+
+    // Supabase에서 프로젝트 정보 조회 (application_draft 존재 여부 확인용)
+    const { data: project } = useProjectQuery(id)
 
     // Supabase에서 트랙 추천 결과 조회
     const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
@@ -202,6 +204,20 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
     const effectiveSelectedTrackId = selectedTrackId ?? defaultTrackId
+
+    // 기존 초안 존재 여부 확인
+    const hasExistingDraft = Boolean(
+        project?.application_draft &&
+        Object.keys(project.application_draft).length > 0
+    )
+
+    // 초안 재생성 확인 (기존 초안이 있으면 confirm, 없으면 바로 true)
+    const confirmDraftRegeneration = useCallback((): boolean => {
+        if (!hasExistingDraft) return true
+        return window.confirm(
+            "이미 생성된 신청서 초안이 있습니다.\n다시 생성하시겠습니까?\n\n기존 초안의 수정 내용은 새로운 초안으로 대체됩니다."
+        )
+    }, [hasExistingDraft])
 
     // API Mutations
     const recommendMutation = useTrackRecommendMutation({
@@ -242,6 +258,9 @@ export default function TrackPage({ params }: TrackPageProps) {
             setTrackSelection(track)
         }
 
+        // 기존 초안이 있으면 재생성 여부 확인
+        const shouldRegenerateDraft = confirmDraftRegeneration()
+
         // 1. 트랙 선택 저장 (projects.track 업데이트)
         selectMutation.mutate(
             { projectId: id, track: apiTrackId },
@@ -250,15 +269,17 @@ export default function TrackPage({ params }: TrackPageProps) {
                     // 프로젝트 캐시 invalidate (track 변경 반영)
                     await queryClient.invalidateQueries({ queryKey: ["projects"] })
 
-                    // 2. Draft Agent 실행
-                    setIsRunningDraftAgent(true)
-                    try {
-                        await draftMutation.mutateAsync({ project_id: id })
-                    } catch (error) {
-                        console.error("신청서 초안 생성 실패:", error)
-                        // 초안 생성 실패해도 다음 단계로 이동
-                    } finally {
-                        setIsRunningDraftAgent(false)
+                    // 2. Draft Agent 실행 (재생성 선택한 경우에만)
+                    if (shouldRegenerateDraft) {
+                        setIsRunningDraftAgent(true)
+                        try {
+                            await draftMutation.mutateAsync({ project_id: id })
+                        } catch (error) {
+                            console.error("신청서 초안 생성 실패:", error)
+                            // 초안 생성 실패해도 다음 단계로 이동
+                        } finally {
+                            setIsRunningDraftAgent(false)
+                        }
                     }
 
                     // 3. 다음 단계로 이동
@@ -268,7 +289,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                 },
             },
         )
-    }, [effectiveSelectedTrackId, id, selectMutation, draftMutation, setTrackSelection, markStepComplete, setCurrentStep, router, queryClient])
+    }, [effectiveSelectedTrackId, id, selectMutation, draftMutation, setTrackSelection, markStepComplete, setCurrentStep, router, queryClient, confirmDraftRegeneration])
 
     const getReasonIcon = (type: string) => {
         switch (type) {

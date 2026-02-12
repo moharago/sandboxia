@@ -463,8 +463,24 @@ class HWPParser:
                         # 그룹이 없는 경우 (체크박스 패턴 등)
                         value = "checked"
 
-                    # 값 정제
-                    value = self._clean_field_value(value)
+                    # 섹션 텍스트 필드는 안내 텍스트 제거 적용
+                    section_text_fields = {
+                        "detailed_description", "market_status", "regulation_details",
+                        "necessity_and_request", "objectives_and_scope", "business_content",
+                        "execution_method", "schedule", "operation_plan",
+                        "expected_quantitative", "expected_qualitative", "expansion_plan",
+                        "restoration_plan", "organization_structure", "budget",
+                        "safety_verification", "user_protection_plan", "risk_and_response",
+                        "stakeholder_conflict", "justification",
+                    }
+
+                    if field_name in section_text_fields:
+                        # 섹션 텍스트: 안내 텍스트 제거 후 정제
+                        value = self._clean_section_text(value)
+                    else:
+                        # 일반 필드: 기존 정제
+                        value = self._clean_field_value(value)
+
                     if value and len(value) > 1:
                         self.document.extracted_fields[field_name] = value
                         # DEBUG: service_type 파싱 로그
@@ -769,6 +785,76 @@ class HWPParser:
         text = re.sub(r"\n{3,}", "\n\n", text)
 
         return text.strip()
+
+    def _clean_section_text(self, text: str) -> str:
+        """섹션 텍스트에서 안내 텍스트 제거
+
+        HWP 양식의 "작성 방법", "<...>", "ㅇ ..." 안내 텍스트를 제거하고
+        실제 내용만 추출합니다.
+
+        Args:
+            text: 원본 섹션 텍스트
+
+        Returns:
+            안내 텍스트가 제거된 실제 내용
+        """
+        if not text:
+            return ""
+
+        lines = text.split("\n")
+        result_lines = []
+        skip_mode = False  # 안내 텍스트 블록 스킵 모드
+
+        for line in lines:
+            stripped = line.strip()
+
+            # 빈 줄은 스킵 모드 해제하지 않고 그냥 넘어감
+            if not stripped:
+                # 이미 실제 내용이 시작됐으면 빈 줄도 유지
+                if result_lines:
+                    result_lines.append("")
+                continue
+
+            # 안내 텍스트 패턴 감지
+            is_guide_text = (
+                stripped == "작성 방법" or
+                stripped.startswith("<") and stripped.endswith(">") or
+                stripped.startswith("ㅇ ") or
+                stripped.startswith("- ") and len(stripped) < 100 and "작성" in stripped or
+                "구체적으로 작성" in stripped or
+                "제시" in stripped and len(stripped) < 80 or
+                "포함하여 작성" in stripped
+            )
+
+            if is_guide_text:
+                skip_mode = True
+                continue
+
+            # 실제 내용으로 판단되면 스킵 모드 해제하고 추가
+            # 실제 내용: 길이가 길거나, 특정 키워드로 시작하거나
+            if skip_mode:
+                # 실제 내용 시작 패턴 감지
+                is_real_content = (
+                    len(stripped) > 50 or  # 긴 문장
+                    re.match(r'^[가-힣]+[·\s]*[가-힣]+\s*(제목|내용|현황|계획|방안|효과)', stripped) or  # 소제목
+                    re.match(r'^본\s', stripped) or  # "본 서비스는...", "본 사업은..."
+                    re.match(r'^[①②③④⑤⑥⑦⑧⑨⑩]', stripped) or  # 번호 목록
+                    re.match(r'^[0-9]+[.)]', stripped) or  # 숫자 목록
+                    re.match(r'^[가-힣]+:', stripped)  # "사업명:", "기간:" 등
+                )
+                if is_real_content:
+                    skip_mode = False
+
+            if not skip_mode:
+                result_lines.append(line)
+
+        result = "\n".join(result_lines).strip()
+
+        # 결과가 너무 짧으면 (안내 텍스트만 있었던 경우) 빈 문자열 반환
+        if len(result) < 10:
+            return ""
+
+        return result
 
     def _clean_field_value(self, value: str) -> str:
         """필드 값 정리

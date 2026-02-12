@@ -5,6 +5,7 @@
 
 import json
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -234,7 +235,8 @@ def screen_node(state: EligibilityState) -> dict:
 
     canonical에서 서비스 정보를 추출하여 Rule Screener 실행
     """
-    print("[Step 1/5] 규제 스크리닝 시작...")
+    start_time = time.time()
+    print("[Step2-1/4] 규제 스크리닝 시작...")
     canonical = state["canonical"]
 
     # canonical에서 서비스 정보 추출 (헬퍼 함수 사용)
@@ -249,7 +251,8 @@ def screen_node(state: EligibilityState) -> dict:
         }
     )
 
-    print(f"[Step 1/5] 규제 스크리닝 완료 - 리스크: {result.has_regulation_risk}, 도메인: {result.detected_domains}")
+    elapsed = time.time() - start_time
+    print(f"[Step2-1/4] 규제 스크리닝 완료 ({elapsed:.2f}초) - 리스크: {result.has_regulation_risk}, 도메인: {result.detected_domains}")
 
     # ScreeningResult로 변환
     screening_result = ScreeningResult(
@@ -361,7 +364,8 @@ def search_all_rag_node(state: EligibilityState) -> dict:
 
     규제제도, 승인 사례, 도메인 법령을 병렬로 검색합니다.
     """
-    print("[Step 2/4] RAG 검색 병렬 실행 시작 (R1 + R2 + R3)...")
+    start_time = time.time()
+    print("[Step2-2/4] RAG 검색 병렬 실행 시작 (R1 + R2 + R3)...")
     screening = state.get("screening_result")
     canonical = state["canonical"]
 
@@ -376,23 +380,24 @@ def search_all_rag_node(state: EligibilityState) -> dict:
 
         try:
             regulations = future_regs.result()
-            print(f"[Step 2/4] R1 규제제도 검색 완료 - {len(regulations)}건")
+            print(f"[Step2-2/4] R1 규제제도 검색 완료 - {len(regulations)}건")
         except Exception as e:
             logger.warning(f"R1 검색 실패: {e}")
 
         try:
             cases = future_cases.result()
-            print(f"[Step 2/4] R2 승인 사례 검색 완료 - {len(cases)}건")
+            print(f"[Step2-2/4] R2 승인 사례 검색 완료 - {len(cases)}건")
         except Exception as e:
             logger.warning(f"R2 검색 실패: {e}")
 
         try:
             laws = future_laws.result()
-            print(f"[Step 2/4] R3 법령 검색 완료 - {len(laws)}건")
+            print(f"[Step2-2/4] R3 법령 검색 완료 - {len(laws)}건")
         except Exception as e:
             logger.warning(f"R3 검색 실패: {e}")
 
-    print("[Step 2/4] RAG 검색 병렬 실행 완료")
+    elapsed = time.time() - start_time
+    print(f"[Step2-2/4] RAG 검색 병렬 실행 완료 ({elapsed:.2f}초)")
 
     return {
         "regulation_results": regulations,
@@ -424,7 +429,8 @@ def compose_decision_node(state: EligibilityState) -> dict:
 
     수집된 모든 정보를 종합하여 최종 판정
     """
-    print("[Step 5/5] LLM 판정 통합 시작...")
+    start_time = time.time()
+    print("[Step2-3/4] LLM 판정 통합 시작...")
     screening = state["screening_result"]
     regulations = state["regulation_results"]
     cases = state["case_results"]
@@ -447,9 +453,11 @@ def compose_decision_node(state: EligibilityState) -> dict:
         HumanMessage(content=prompt),
     ]
 
-    print("[Step 5/5] LLM 호출 중...")
+    llm_start = time.time()
+    print("[Step2-3/4] LLM 호출 중...")
     response = llm.invoke(messages)
-    print("[Step 5/5] LLM 응답 수신 완료")
+    llm_elapsed = time.time() - llm_start
+    print(f"[Step2-3/4] LLM 응답 수신 완료 ({llm_elapsed:.2f}초)")
 
     # 응답 파싱 시도
     direct_launch_risks: list[DirectLaunchRisk] = []
@@ -495,6 +503,9 @@ def compose_decision_node(state: EligibilityState) -> dict:
     eligibility_label = label_map.get(llm_label, EligibilityLabel.UNCLEAR)
     confidence_score = llm_result.get("confidence_score", 0.5)
 
+    elapsed = time.time() - start_time
+    print(f"[Step2-3/4] LLM 판정 통합 완료 ({elapsed:.2f}초)")
+
     return {
         "eligibility_label": eligibility_label,
         "confidence_score": confidence_score,
@@ -510,7 +521,8 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     R1/R2/R3 검색 결과 사용, R1 결과 없으면 fallback 템플릿 사용
     LLM으로 사례/법령 설명 생성 (병렬 처리)
     """
-    print("[Evidence] 근거 데이터 생성 시작...")
+    start_time = time.time()
+    print("[Step2-4/4] 근거 데이터 생성 시작...")
     cases = state["case_results"]
     laws = state["law_results"]
     regulations = state["regulation_results"]
@@ -528,7 +540,7 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     law_items = laws[:3]
 
     total_tasks = len(reg_items) + len(case_items) + len(law_items)
-    print(f"[Evidence] LLM 설명 생성 병렬 처리 시작 ({total_tasks}건)...")
+    print(f"[Step2-4/4] LLM 설명 생성 병렬 처리 시작 ({total_tasks}건)...")
 
     # 결과 저장용 딕셔너리
     reg_summaries: dict[int, str] = {}
@@ -574,7 +586,8 @@ def generate_evidence_node(state: EligibilityState) -> dict:
                 elif task_type == "law":
                     law_summaries[idx] = "법령 설명을 생성할 수 없습니다."
 
-    print("[Evidence] LLM 설명 생성 병렬 처리 완료")
+    llm_elapsed = time.time() - start_time
+    print(f"[Step2-4/4] LLM 설명 생성 병렬 처리 완료 ({llm_elapsed:.2f}초)")
 
     # 규제 기준 (R1) 결과 조합
     for i, reg in enumerate(reg_items):
@@ -677,7 +690,8 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     # direct_launch_risks는 compose_decision_node에서 LLM이 생성하여 state에 저장됨
     # 여기서는 생성하지 않음
 
-    print("[Evidence] 근거 데이터 생성 완료")
+    elapsed = time.time() - start_time
+    print(f"[Step2-4/4] 근거 데이터 생성 완료 ({elapsed:.2f}초)")
     return {
         "judgment_summary": judgment_summary,
         "approval_cases": approval_cases,
