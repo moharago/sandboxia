@@ -34,6 +34,7 @@ from eval.r3.common import (
     calculate_retrieval_metrics,
     extract_chunk_id_from_doc,
     format_chunk_ids,
+    get_chunk_statistics,
     get_vector_store,
     load_evaluation_set,
 )
@@ -142,12 +143,15 @@ def run_evaluation(top_k: int = 5, output_name: str | None = None):
     # 집계
     aggregated = aggregate_metrics(all_metrics)
 
+    # 청크 통계 추가
+    chunk_stats = get_chunk_statistics(vector_store)
+    aggregated["total_chunks"] = chunk_stats["total_chunks"]
+    aggregated["avg_chunk_length"] = chunk_stats["avg_chunk_length"]
+
     # Latency 통계
     latency_p50 = statistics.median(all_latencies)
     latency_p95 = (
-        sorted(all_latencies)[int(len(all_latencies) * 0.95)]
-        if len(all_latencies) >= 20
-        else max(all_latencies)
+        sorted(all_latencies)[int(len(all_latencies) * 0.95)] if len(all_latencies) >= 20 else max(all_latencies)
     )
     latency_mean = statistics.mean(all_latencies)
 
@@ -160,16 +164,20 @@ def run_evaluation(top_k: int = 5, output_name: str | None = None):
     print(f"  - Recall@{top_k}:           {aggregated['avg_recall_at_k']:.4f}")
     print(f"  - MRR:                      {aggregated['avg_mrr']:.4f}")
 
-    print(f"\n⏱️  Latency:")
+    print("\n⏱️  Latency:")
     print(f"  - P50: {latency_p50:.1f}ms")
     print(f"  - P95: {latency_p95:.1f}ms")
     print(f"  - Mean: {latency_mean:.1f}ms")
 
-    print(f"\n📈 세부 통계:")
+    print("\n📈 세부 통계:")
     print(f"  - 총 gold_citations: {aggregated['total_gold_citations']}")
     print(f"  - 검색된 gold: {aggregated['total_retrieved_gold']}")
     print(f"  - 총 must_have: {aggregated['total_must_have_citations']}")
     print(f"  - 검색된 must_have: {aggregated['total_must_have_retrieved']}")
+
+    print("\n📦 청크 통계:")
+    print(f"  - 총 청크 수: {aggregated['total_chunks']:,}")
+    print(f"  - 평균 청크 길이: {aggregated['avg_chunk_length']:.1f}자")
 
     # 결과 저장
     RESULTS_DIR_RETRIEVAL.mkdir(parents=True, exist_ok=True)
