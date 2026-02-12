@@ -1,4 +1,4 @@
-"""법령 데이터 수집 및 Vector DB 저장 스크립트 (설정 기반 청킹)
+"""법령 데이터 수집 및 Vector DB 저장 스크립트 (설정 기반 청킹 & 임베딩)
 
 대상 법령:
 - 의료법
@@ -16,14 +16,17 @@
 실행:
     cd server
 
-    # 기본 실행 (C0 설정 사용)
+    # 기본 실행 (C0 청킹, .env 임베딩 모델)
     uv run python scripts/collect_laws.py
 
-    # 특정 설정으로 실행
-    uv run python scripts/collect_laws.py --config C1
+    # 청킹 설정 변경 (C*)
+    uv run python scripts/collect_laws.py --config C3 --reset
 
-    # 기존 컬렉션 삭제 후 새로 생성 (프리셋 변경 시 권장)
-    uv run python scripts/collect_laws.py --config C1 --reset
+    # 임베딩 설정 변경 (E*) - 청킹은 C0 기본값 사용
+    uv run python scripts/collect_laws.py --config E1 --reset
+
+    # 청킹 + 임베딩 조합 (C* E*)
+    uv run python scripts/collect_laws.py --config C3 E1 --reset
 
     # 사용 가능한 설정 목록 확인
     uv run python scripts/collect_laws.py --list-configs
@@ -53,6 +56,23 @@ from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from app.db.export import save_chunks_json
 from app.services.law_api import law_api_client
+
+# =============================================================================
+# 임베딩 설정 스키마
+# =============================================================================
+
+
+class EmbeddingConfig(BaseModel):
+    """임베딩 모델 설정"""
+
+    name: str = Field(description="설정 이름 (예: E0, E1)")
+    description: str = Field(default="", description="설정 설명")
+    model: str = Field(description="임베딩 모델 이름")
+    provider: str = Field(default="openai", description="제공자 (openai, upstage, local)")
+    dimension: int = Field(description="임베딩 벡터 차원")
+    max_tokens: int = Field(default=8192, description="최대 입력 토큰 수")
+    cost_per_1m_tokens: float = Field(default=0.0, description="100만 토큰당 비용 (USD)")
+
 
 # =============================================================================
 # 청킹 설정 스키마
@@ -129,30 +149,59 @@ class ChunkingConfig(BaseModel):
 
 
 # 설정 파일 경로
-PRESETS_FILE = Path(__file__).parent.parent / "eval" / "r3" / "configs" / "chunking.yaml"
+CHUNKING_PRESETS_FILE = Path(__file__).parent.parent / "eval" / "r3" / "configs" / "chunking.yaml"
+EMBEDDING_PRESETS_FILE = Path(__file__).parent.parent / "eval" / "r3" / "configs" / "embedding.yaml"
 
 
-def _load_all_presets() -> dict:
-    """presets.yaml에서 모든 설정 로드"""
-    if not PRESETS_FILE.exists():
+def _load_chunking_presets() -> dict:
+    """chunking.yaml에서 모든 청킹 설정 로드"""
+    if not CHUNKING_PRESETS_FILE.exists():
         return {}
-    with open(PRESETS_FILE, encoding="utf-8") as f:
+    with open(CHUNKING_PRESETS_FILE, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
-def load_config(config_name: str) -> ChunkingConfig:
-    """설정 로드"""
-    presets = _load_all_presets()
+def _load_embedding_presets() -> dict:
+    """embedding.yaml에서 모든 임베딩 설정 로드"""
+    if not EMBEDDING_PRESETS_FILE.exists():
+        return {}
+    with open(EMBEDDING_PRESETS_FILE, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def load_chunking_config(config_name: str) -> ChunkingConfig:
+    """청킹 설정 로드"""
+    presets = _load_chunking_presets()
     if config_name not in presets:
         available = list(presets.keys())
-        raise FileNotFoundError(f"설정 '{config_name}'을 찾을 수 없습니다. 사용 가능: {available}")
+        raise FileNotFoundError(f"청킹 설정 '{config_name}'을 찾을 수 없습니다. 사용 가능: {available}")
     return ChunkingConfig(**presets[config_name])
 
 
-def list_configs() -> list[str]:
+def load_embedding_config(config_name: str) -> EmbeddingConfig:
+    """임베딩 설정 로드"""
+    presets = _load_embedding_presets()
+    if config_name not in presets:
+        available = list(presets.keys())
+        raise FileNotFoundError(f"임베딩 설정 '{config_name}'을 찾을 수 없습니다. 사용 가능: {available}")
+    return EmbeddingConfig(**presets[config_name])
+
+
+def load_config(config_name: str) -> ChunkingConfig | EmbeddingConfig:
+    """설정 이름에 따라 청킹(C*) 또는 임베딩(E*) 설정 로드"""
+    if config_name.startswith("E"):
+        return load_embedding_config(config_name)
+    return load_chunking_config(config_name)
+
+
+def list_configs() -> dict[str, list[str]]:
     """사용 가능한 설정 목록 반환"""
-    presets = _load_all_presets()
-    return sorted(presets.keys())
+    chunking_presets = _load_chunking_presets()
+    embedding_presets = _load_embedding_presets()
+    return {
+        "chunking": sorted(chunking_presets.keys()),
+        "embedding": sorted(embedding_presets.keys()),
+    }
 
 
 # =============================================================================
@@ -620,6 +669,7 @@ async def collect_and_store_laws(
     export_chunks: bool = False,
     collection_suffix: str = "",
     reset: bool = False,
+    embedding_config: EmbeddingConfig | None = None,
 ):
     """법령 데이터 수집 및 Vector DB 저장 (설정 기반 청킹)
 
@@ -628,11 +678,12 @@ async def collect_and_store_laws(
         export_chunks: 청크 JSON 내보내기 여부
         collection_suffix: 컬렉션 이름에 붙일 접미사
         reset: 기존 컬렉션 삭제 후 새로 생성 여부
+        embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
     """
 
     print("=" * 60)
     print("법령 데이터 수집 시작")
-    print(f"설정: {config.name} - {config.description}")
+    print(f"청킹 설정: {config.name} - {config.description}")
     print("=" * 60)
 
     print("\n[청킹 설정]")
@@ -645,10 +696,25 @@ async def collect_and_store_laws(
     print(f"  - overlap: {config.overlap}")
     print(f"  - top_k: {config.top_k}")
 
+    # 임베딩 모델 결정
+    if embedding_config:
+        embedding_model = embedding_config.model
+        print(f"\n[임베딩 설정] {embedding_config.name} - {embedding_config.description}")
+        print(f"  - 모델: {embedding_config.model}")
+        print(f"  - 제공자: {embedding_config.provider}")
+        print(f"  - 차원: {embedding_config.dimension}")
+
+        if embedding_config.provider == "local":
+            print("  ⚠️  로컬 모델은 아직 지원되지 않습니다. OpenAI API를 사용합니다.")
+            embedding_model = settings.LLM_EMBEDDING_MODEL
+    else:
+        embedding_model = settings.LLM_EMBEDDING_MODEL
+        print(f"\n[임베딩 설정] .env 기본값 사용: {embedding_model}")
+
     chunker = LawChunker(config)
 
     embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
+        model=embedding_model,
         api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
     )
 
@@ -812,12 +878,33 @@ async def collect_and_store_laws(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="법령 데이터 수집 및 Vector DB 저장")
+    parser = argparse.ArgumentParser(
+        description="법령 데이터 수집 및 Vector DB 저장",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+예제:
+  # 기본 실행 (C0 청킹, .env 임베딩 모델)
+  uv run python scripts/collect_laws.py
+
+  # 청킹 설정 변경
+  uv run python scripts/collect_laws.py --config C3 --reset
+
+  # 임베딩 설정 변경 (청킹은 C0 기본값 사용)
+  uv run python scripts/collect_laws.py --config E1 --reset
+
+  # 청킹 + 임베딩 조합
+  uv run python scripts/collect_laws.py --config C3 E1 --reset
+
+  # 사용 가능한 설정 목록 확인
+  uv run python scripts/collect_laws.py --list-configs
+        """,
+    )
     parser.add_argument(
         "--config",
         type=str,
-        default="C0",
-        help="청킹 설정 이름 (예: C0, C1, C2, ...)",
+        nargs="+",
+        default=["C0"],
+        help="설정 이름. C*: 청킹, E*: 임베딩. 조합 가능 (예: C3 E1)",
     )
     parser.add_argument(
         "--list-configs",
@@ -843,28 +930,60 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.list_configs:
-        configs = list_configs()
-        print("사용 가능한 설정:")
-        for config_name in configs:
+        all_configs = list_configs()
+        print("사용 가능한 청킹 설정 (C*):")
+        for config_name in all_configs["chunking"]:
             try:
-                cfg = load_config(config_name)
+                cfg = load_chunking_config(config_name)
                 print(f"  - {config_name}: {cfg.description}")
+            except Exception as e:
+                print(f"  - {config_name}: (로드 실패: {e})")
+
+        print("\n사용 가능한 임베딩 설정 (E*):")
+        for config_name in all_configs["embedding"]:
+            try:
+                cfg = load_embedding_config(config_name)
+                print(f"  - {config_name}: {cfg.description} ({cfg.model})")
             except Exception as e:
                 print(f"  - {config_name}: (로드 실패: {e})")
         sys.exit(0)
 
-    try:
-        config = load_config(args.config)
-    except FileNotFoundError as e:
-        print(f"오류: {e}")
-        print(f"사용 가능한 설정: {list_configs()}")
-        sys.exit(1)
+    # 설정 파싱: C*는 청킹, E*는 임베딩
+    chunking_config = None
+    embedding_config = None
+
+    for cfg_name in args.config:
+        cfg_name = cfg_name.upper()  # 대소문자 무시
+        if cfg_name.startswith("E"):
+            try:
+                embedding_config = load_embedding_config(cfg_name)
+            except FileNotFoundError as e:
+                print(f"오류: {e}")
+                all_configs = list_configs()
+                print(f"사용 가능한 임베딩 설정: {all_configs['embedding']}")
+                sys.exit(1)
+        elif cfg_name.startswith("C"):
+            try:
+                chunking_config = load_chunking_config(cfg_name)
+            except FileNotFoundError as e:
+                print(f"오류: {e}")
+                all_configs = list_configs()
+                print(f"사용 가능한 청킹 설정: {all_configs['chunking']}")
+                sys.exit(1)
+        else:
+            print(f"오류: 알 수 없는 설정 '{cfg_name}'. C* 또는 E*로 시작해야 합니다.")
+            sys.exit(1)
+
+    # 청킹 설정 기본값
+    if chunking_config is None:
+        chunking_config = load_chunking_config("C0")
 
     asyncio.run(
         collect_and_store_laws(
-            config=config,
+            config=chunking_config,
             export_chunks=args.export_chunks,
             collection_suffix=args.collection_suffix,
             reset=args.reset,
+            embedding_config=embedding_config,
         )
     )

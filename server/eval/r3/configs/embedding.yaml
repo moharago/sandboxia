@@ -1,0 +1,59 @@
+# R3 RAG 임베딩 모델 프리셋
+# 사용: .env 파일의 LLM_EMBEDDING_MODEL 값을 변경 후 collect_laws.py --reset 실행
+#
+# 주의: 임베딩 모델 변경 시 기존 Vector DB와 호환되지 않으므로
+#       반드시 --reset 옵션으로 컬렉션을 재생성해야 함
+
+E0:
+  name: E0
+  description: "현재 기준점 - OpenAI 3-small"
+  model: text-embedding-3-small
+  provider: openai
+  dimension: 1536
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.02
+
+E1:
+  name: E1
+  description: "고정밀 검색 - OpenAI 3-large"
+  model: text-embedding-3-large
+  provider: openai
+  dimension: 3072
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.13
+
+E2:
+  name: E2
+  description: "한국어 특화 - Upstage Solar"
+  model: solar-embedding-1-large
+  provider: upstage
+  dimension: 4096
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.20
+
+E3:
+  name: E3
+  description: "한국어 오픈소스 - BGE-m3-ko"
+  model: BAAI/bge-m3-ko
+  provider: local
+  dimension: 1024
+  max_tokens: 8192
+  cost_per_1m_tokens: 0  # GPU 비용 별도
+
+E4:
+  name: E4
+  description: "다국어 오픈소스 - BGE-M3"
+  model: BAAI/bge-m3
+  provider: local
+  dimension: 1024
+  max_tokens: 8192
+  cost_per_1m_tokens: 0  # GPU 비용 별도
+
+E5:
+  name: E5
+  description: "한국어 이해 특화 - KURE-v1"
+  model: nlpai-lab/KURE-v1
+  provider: local
+  dimension: 1024
+  max_tokens: 512
+  cost_per_1m_tokens: 0  # GPU 비용 별도
