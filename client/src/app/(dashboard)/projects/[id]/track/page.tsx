@@ -215,7 +215,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     const confirmDraftRegeneration = useCallback((): boolean => {
         if (isLoadingProject || !hasExistingDraft) return true
         return window.confirm(
-            "이미 생성된 신청서 초안이 있습니다.\n다시 생성하시겠습니까?\n\n기존 초안의 수정 내용은 새로운 초안으로 대체됩니다."
+            "이미 생성된 신청서 초안이 있습니다.\n다시 생성하시겠습니까?\n\n기존 초안의 수정 내용은 새로운 초안으로 대체될 수 있습니다."
         )
     }, [isLoadingProject, hasExistingDraft])
 

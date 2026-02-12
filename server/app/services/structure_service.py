@@ -142,10 +142,8 @@ class StructureService:
                 file=file_content,
                 file_options={"content-type": "application/octet-stream"},
             )
-            logger.info(f"파일 업로드 성공: {storage_path} (원본: {filename})")
             return storage_path
         except Exception as e:
-            logger.error(f"파일 업로드 실패: {e}")
             raise StructureServiceError(f"파일 업로드 실패: {str(e)}", status_code=500)
 
     @staticmethod

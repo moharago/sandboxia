@@ -465,6 +465,7 @@ class HWPParser:
 
                     # 섹션 텍스트 필드는 안내 텍스트 제거 적용
                     section_text_fields = {
+                        # 임시허가/실증특례 공통
                         "detailed_description", "market_status", "regulation_details",
                         "necessity_and_request", "objectives_and_scope", "business_content",
                         "execution_method", "schedule", "operation_plan",
@@ -472,6 +473,9 @@ class HWPParser:
                         "restoration_plan", "organization_structure", "budget",
                         "safety_verification", "user_protection_plan", "risk_and_response",
                         "stakeholder_conflict", "justification",
+                        # 신속확인 전용
+                        "technology_service_details", "legal_issues", "additional_questions",
+                        "regulatory_issues",
                     }
 
                     if field_name in section_text_fields:

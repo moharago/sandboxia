@@ -1,5 +1,7 @@
 """Agent API 스키마"""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -109,7 +111,7 @@ class CanonicalStructure(BaseModel):
     regulatory: RegulatoryInfo = Field(default_factory=RegulatoryInfo)
     metadata: CanonicalMetadata = Field(default_factory=CanonicalMetadata)
     section_texts: dict[str, str] = Field(default_factory=dict)
-    form_selections: dict[str, bool] = Field(default_factory=dict)
+    form_selections: dict[str, Any] = Field(default_factory=dict)  # bool 또는 중첩 dict
     applicants: Applicants = Field(default_factory=Applicants)
 
 
