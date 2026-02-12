@@ -5,6 +5,7 @@ LangGraph 노드로 사용되는 함수들입니다.
 
 import json
 import logging
+import re
 import time
 from datetime import datetime
 from typing import Any
@@ -443,8 +444,6 @@ def _extract_financial_hr_sections(hwp_parse_results: list[dict[str, Any]]) -> s
     Returns:
         추출된 섹션 텍스트 (없으면 빈 문자열)
     """
-    import re
-
     sections = []
 
     # 문서별 raw_text 수집
@@ -458,7 +457,10 @@ def _extract_financial_hr_sections(hwp_parse_results: list[dict[str, Any]]) -> s
 
     # 1. 신청서(temporary-1, demonstration-1)에서 "주요내용" 추출
     application_subtypes = ["temporary-1", "demonstration-1"]
+    found_main_content = False
     for subtype in application_subtypes:
+        if found_main_content:
+            break
         if subtype in doc_texts:
             raw = doc_texts[subtype]
             # "주요내용" 또는 "신규 기술·서비스" 섹션 추출
@@ -475,8 +477,8 @@ def _extract_financial_hr_sections(hwp_parse_results: list[dict[str, Any]]) -> s
                             content = content[:2000]
                         sections.append(f"[주요내용 - 신청서]\n{content}")
                         print(f"[Step1] 주요내용 섹션 추출: {len(content):,}자")
+                        found_main_content = True
                         break
-            break
 
     # 2. 사업계획서(temporary-2, demonstration-2)에서 재무/인력 추출
     plan_subtypes = ["temporary-2", "demonstration-2"]

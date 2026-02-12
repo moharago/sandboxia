@@ -87,6 +87,19 @@ class CanonicalMetadata(BaseModel):
     consultant_memo: str | None = None
 
 
+class Signature(BaseModel):
+    """서명 정보"""
+
+    organization_name: str | None = None
+    signer_name: str | None = None
+
+
+class Applicants(BaseModel):
+    """신청인 정보"""
+
+    signatures: list[Signature] = Field(default_factory=list)
+
+
 class CanonicalStructure(BaseModel):
     """Canonical Structure - 서비스 구조화 결과"""
 
@@ -95,6 +108,9 @@ class CanonicalStructure(BaseModel):
     technology: TechnologyInfo = Field(default_factory=TechnologyInfo)
     regulatory: RegulatoryInfo = Field(default_factory=RegulatoryInfo)
     metadata: CanonicalMetadata = Field(default_factory=CanonicalMetadata)
+    section_texts: dict[str, str] = Field(default_factory=dict)
+    form_selections: dict[str, bool] = Field(default_factory=dict)
+    applicants: Applicants = Field(default_factory=Applicants)
 
 
 # ============================================================

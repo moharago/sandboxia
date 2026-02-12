@@ -804,14 +804,18 @@ class HWPParser:
         lines = text.split("\n")
         result_lines = []
         skip_mode = False  # 안내 텍스트 블록 스킵 모드
+        pending_blank = False  # 빈 줄 후 내용이 오면 skip_mode 해제
 
         for line in lines:
             stripped = line.strip()
 
-            # 빈 줄은 스킵 모드 해제하지 않고 그냥 넘어감
+            # 빈 줄 처리
             if not stripped:
-                # 이미 실제 내용이 시작됐으면 빈 줄도 유지
-                if result_lines:
+                if skip_mode:
+                    # 스킵 모드에서 빈 줄은 경계로 인식
+                    pending_blank = True
+                elif result_lines:
+                    # 이미 실제 내용이 시작됐으면 빈 줄도 유지
                     result_lines.append("")
                 continue
 
@@ -840,9 +844,14 @@ class HWPParser:
                     re.match(r'^본\s', stripped) or  # "본 서비스는...", "본 사업은..."
                     re.match(r'^[①②③④⑤⑥⑦⑧⑨⑩]', stripped) or  # 번호 목록
                     re.match(r'^[0-9]+[.)]', stripped) or  # 숫자 목록
-                    re.match(r'^[가-힣]+:', stripped)  # "사업명:", "기간:" 등
+                    re.match(r'^[\w가-힣\s]+:\s*\S+', stripped)  # "사업 기간: 12개월" 등 key:value
                 )
-                if is_real_content:
+
+                # 빈 줄 후 내용이 오면 skip_mode 해제
+                if pending_blank:
+                    skip_mode = False
+                    pending_blank = False
+                elif is_real_content:
                     skip_mode = False
 
             if not skip_mode:
