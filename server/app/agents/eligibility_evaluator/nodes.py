@@ -501,7 +501,44 @@ def compose_decision_node(state: EligibilityState) -> dict:
     # LLM이 반환한 eligibility_label 사용 (오버라이드 없음)
     llm_label = llm_result.get("eligibility_label", "unclear")
     eligibility_label = label_map.get(llm_label, EligibilityLabel.UNCLEAR)
-    confidence_score = llm_result.get("confidence_score", 0.5)
+
+    # ==============================
+    # 규칙 기반 confidence_score 계산
+    # LLM 신뢰도 대신 측정 가능한 지표 사용
+    # ==============================
+    regulation_count = len(regulations)
+    case_count = len(cases)
+    law_count = len(laws)
+    evidence_count = regulation_count + case_count + law_count
+    has_risk = screening.has_regulation_risk if screening else False
+
+    # 판정 유형별 기본 신뢰도
+    if llm_label == "required" and regulation_count > 0:
+        base_confidence = 0.85  # 규제 저촉 + 근거 있음
+    elif llm_label == "not_required" and case_count > 0 and not has_risk:
+        base_confidence = 0.80  # 유사 승인 사례 O, 리스크 X
+    elif llm_label == "required" and has_risk:
+        base_confidence = 0.75  # 리스크 감지됨
+    elif llm_label == "unclear" and evidence_count == 0:
+        base_confidence = 0.50  # 정보 부족
+    else:
+        base_confidence = 0.60  # 기타
+
+    # 정보량에 따른 보정 (규제+사례: 0.02, 법령: 0.01, 최대 +0.1)
+    info_bonus = min(
+        (regulation_count + case_count) * 0.02 + law_count * 0.01,
+        0.1
+    )
+    confidence_score = min(base_confidence + info_bonus, 0.95)
+
+    # 상한 cap: 근거 부족하거나 불명확하면 제한
+    if evidence_count < 2:
+        confidence_score = min(confidence_score, 0.7)
+    if llm_label == "unclear":
+        confidence_score = min(confidence_score, 0.65)
+
+    print(f"[Step2-3/4] 신뢰도 계산: base={base_confidence}, bonus={info_bonus:.2f}, "
+          f"evidence={evidence_count}, final={confidence_score:.2f}")
 
     elapsed = time.time() - start_time
     print(f"[Step2-3/4] LLM 판정 통합 완료 ({elapsed:.2f}초)")

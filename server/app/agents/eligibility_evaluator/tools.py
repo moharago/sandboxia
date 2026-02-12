@@ -1,26 +1,11 @@
 """Eligibility Evaluator 전용 Tools
 
 Rule Screener: 규제 저촉 키워드/조건 탐지
-Decision Composer: 최종 판정 통합
 """
 
-import json
-
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
 
 from .state import ScreeningResult
-
-
-# ================================
-# Tool 출력 스키마
-# ================================
-class DecisionOutput(BaseModel):
-    """판정 통합 결과"""
-
-    eligibility_label: str = Field(description="판정 결과")
-    confidence_score: float = Field(description="신뢰도")
-    reasoning: str = Field(description="판정 근거 요약")
 
 
 # ================================
@@ -111,78 +96,4 @@ def rule_screener(service_description: str, service_name: str = "") -> Screening
         detected_domains=detected_domains,
         search_keywords=search_keywords[:10],  # 최대 10개
         confidence=round(confidence, 2),
-    )
-
-
-@tool
-def decision_composer(
-    screening_result: str,
-    regulation_count: int,
-    case_count: int,
-    has_similar_approved_case: bool,
-    has_regulation_conflict: bool,
-) -> DecisionOutput:
-    """최종 판정 통합
-
-    스크리닝 결과와 RAG 검색 결과를 종합하여 최종 판정을 도출합니다.
-
-    Args:
-        screening_result: rule_screener 결과 (JSON 문자열)
-        regulation_count: 관련 규제 검색 결과 수
-        case_count: 유사 승인 사례 수
-        has_similar_approved_case: 유사 승인 사례 존재 여부
-        has_regulation_conflict: 규제 저촉 여부
-
-    Returns:
-        DecisionOutput: 판정 결과 (label, score, reasoning)
-
-    Example:
-        >>> decision_composer(screening_json, 5, 3, True, False)
-        DecisionOutput(eligibility_label="not_required", confidence_score=0.85, ...)
-    """
-    # 스크리닝 결과 파싱
-    try:
-        screening = json.loads(screening_result)
-    except json.JSONDecodeError:
-        screening = {"has_regulation_risk": False, "risk_signals": []}
-
-    # 판정 로직
-    if has_regulation_conflict:
-        # 규제 저촉 → 샌드박스 필요
-        label = "required"
-        reasoning = "현행 규제에 저촉되는 사항이 확인되어 규제 샌드박스 신청이 필요합니다."
-        base_confidence = 0.85
-
-    elif has_similar_approved_case and not screening.get("has_regulation_risk", False):
-        # 유사 승인 사례 있고, 리스크 신호 없음 → 출시 가능
-        label = "not_required"
-        reasoning = "유사한 서비스가 이미 승인된 사례가 있으며, 규제 저촉 사항이 없습니다."
-        base_confidence = 0.80
-
-    elif screening.get("has_regulation_risk", False) and regulation_count > 0:
-        # 리스크 신호 있고 관련 규제 있음 → 샌드박스 필요
-        label = "required"
-        reasoning = "규제 저촉 가능성이 탐지되었으며, 관련 규제가 존재합니다."
-        base_confidence = 0.75
-
-    elif case_count == 0 and regulation_count == 0:
-        # 정보 부족 → 불명확
-        label = "unclear"
-        reasoning = "관련 사례와 규제 정보가 충분하지 않아 추가 검토가 필요합니다."
-        base_confidence = 0.50
-
-    else:
-        # 기타 → 불명확
-        label = "unclear"
-        reasoning = "명확한 판정이 어려워 추가 검토가 필요합니다."
-        base_confidence = 0.60
-
-    # 신뢰도 조정 (정보량에 따라)
-    info_bonus = min((regulation_count + case_count) * 0.02, 0.1)
-    confidence_score = min(base_confidence + info_bonus, 0.95)
-
-    return DecisionOutput(
-        eligibility_label=label,
-        confidence_score=round(confidence_score, 2),
-        reasoning=reasoning,
     )
