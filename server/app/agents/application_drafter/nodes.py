@@ -1681,7 +1681,7 @@ def _convert_temp_demo_reason(draft: dict, canonical: dict, target_track: str) -
     source_type = metadata.get("source_type", "")
 
     # DEBUG: 트랙 변환 조건 확인
-    print(f"\n[DEBUG _convert_temp_demo_reason]")
+    print("\n[DEBUG _convert_temp_demo_reason]")
     print(f"  source_type: '{source_type}'")
     print(f"  target_track: '{target_track}'")
 
@@ -1724,7 +1724,7 @@ def _convert_temp_demo_reason(draft: dict, canonical: dict, target_track: str) -
             form_data_2 = _get_form_data(draft, "demonstration-2")
             if form_data_2 is not None:
                 # DEBUG: 변경 전 데이터 확인
-                print(f"  [DEBUG] demonstration-2 변경 전:")
+                print("  [DEBUG] demonstration-2 변경 전:")
                 print(f"    regulatoryExemption: {form_data_2.get('regulatoryExemption', 'N/A')}")
 
                 # 모든 서술형 필드를 빈 상태로 + needs_check (LLM이 실증특례 용어로 재작성)
@@ -1740,7 +1740,7 @@ def _convert_temp_demo_reason(draft: dict, canonical: dict, target_track: str) -
                 }
 
                 # DEBUG: 변경 후 데이터 확인
-                print(f"  [DEBUG] demonstration-2 변경 후:")
+                print("  [DEBUG] demonstration-2 변경 후:")
                 print(f"    regulatoryExemption: {form_data_2.get('regulatoryExemption', 'N/A')}")
                 form_data_2["testPlan"] = {
                     "objectivesAndScope": "",

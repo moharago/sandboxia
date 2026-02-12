@@ -470,6 +470,7 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
 
         // 체크박스만 있는 섹션인지 확인 (법적 책임 항목 등)
         const isCheckboxOnlySection = section.fields.every((f) => f.formType === "checkbox")
+        const hasRequiredCheckbox = section.fields.some((f) => f.formType === "checkbox" && f.required)
         const hasAnyCheckboxSelected = isCheckboxOnlySection && section.fields.some((field) => {
             const fieldKey = `${section.key}.${field.key}`
             const value = values[fieldKey]
@@ -487,7 +488,7 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                         {section.label}
                         {hasRequiredFieldWithoutLabel && <span className="text-destructive ml-1">*</span>}
                     </h4>
-                    {isCheckboxOnlySection && !hasAnyCheckboxSelected && (
+                    {isCheckboxOnlySection && hasRequiredCheckbox && !hasAnyCheckboxSelected && (
                         <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
                             체크 필요
                         </span>

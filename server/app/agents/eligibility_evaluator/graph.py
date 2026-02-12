@@ -83,7 +83,7 @@ async def run_eligibility_evaluation(
         EligibilityResult: 판단 결과
     """
     total_start = time.time()
-    print(f"\n[Step2] ========== 대상성 판단 시작 ==========")
+    print("\n[Step2] ========== 대상성 판단 시작 ==========")
 
     # 초기 상태 (TypedDict - 기본값 직접 제공)
     initial_state: EligibilityState = {

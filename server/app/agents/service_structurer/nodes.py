@@ -37,7 +37,7 @@ async def parse_hwp_node(state: ServiceStructurerState) -> dict[str, Any]:
         hwp_parse_results 업데이트
     """
     start_time = time.time()
-    print(f"\n[Step1] ========== HWP 파싱 시작 ==========")
+    print("\n[Step1] ========== HWP 파싱 시작 ==========")
 
     file_paths = state.get("file_paths", [])
     file_subtypes = state.get("file_subtypes", [])
@@ -99,7 +99,7 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
         canonical_structure 업데이트
     """
     total_start = time.time()
-    print(f"\n[Step1] ========== Canonical 구조 생성 시작 ==========")
+    print("\n[Step1] ========== Canonical 구조 생성 시작 ==========")
 
     hwp_parse_results = state.get("hwp_parse_results", [])
     consultant_input = state.get("consultant_input", {})

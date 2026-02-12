@@ -420,7 +420,7 @@ def search_cases_node(state: EligibilityState) -> dict:
 
 def search_laws_node(state: EligibilityState) -> dict:
     """도메인별 법령 검색 노드 (R3) - deprecated, search_all_rag_node 사용 권장"""
-    screening = state["screening_result"]
+    screening = state.get("screening_result")
     return {"law_results": _search_laws(screening)}
 
 

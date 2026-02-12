@@ -815,15 +815,15 @@ class HWPParser:
                     result_lines.append("")
                 continue
 
-            # 안내 텍스트 패턴 감지
+            # 안내 텍스트 패턴 감지 (false positive 방지를 위해 길이 제한 적용)
             is_guide_text = (
                 stripped == "작성 방법" or
                 stripped.startswith("<") and stripped.endswith(">") or
                 stripped.startswith("ㅇ ") or
                 stripped.startswith("- ") and len(stripped) < 100 and "작성" in stripped or
-                "구체적으로 작성" in stripped or
-                "제시" in stripped and len(stripped) < 80 or
-                "포함하여 작성" in stripped
+                "구체적으로 작성" in stripped and len(stripped) < 80 or
+                "제시" in stripped and len(stripped) < 40 or
+                "포함하여 작성" in stripped and len(stripped) < 80
             )
 
             if is_guide_text:

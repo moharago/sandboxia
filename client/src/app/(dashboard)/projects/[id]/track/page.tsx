@@ -181,7 +181,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     const [isRunningDraftAgent, setIsRunningDraftAgent] = useState(false)
 
     // Supabase에서 프로젝트 정보 조회 (application_draft 존재 여부 확인용)
-    const { data: project } = useProjectQuery(id)
+    const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
 
     // Supabase에서 트랙 추천 결과 조회
     const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
@@ -205,19 +205,19 @@ export default function TrackPage({ params }: TrackPageProps) {
     // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
     const effectiveSelectedTrackId = selectedTrackId ?? defaultTrackId
 
-    // 기존 초안 존재 여부 확인
-    const hasExistingDraft = Boolean(
+    // 기존 초안 존재 여부 확인 (로딩 중이면 false로 처리)
+    const hasExistingDraft = !isLoadingProject && Boolean(
         project?.application_draft &&
         Object.keys(project.application_draft).length > 0
     )
 
-    // 초안 재생성 확인 (기존 초안이 있으면 confirm, 없으면 바로 true)
+    // 초안 재생성 확인 (기존 초안이 있으면 confirm, 없거나 로딩 중이면 바로 true)
     const confirmDraftRegeneration = useCallback((): boolean => {
-        if (!hasExistingDraft) return true
+        if (isLoadingProject || !hasExistingDraft) return true
         return window.confirm(
             "이미 생성된 신청서 초안이 있습니다.\n다시 생성하시겠습니까?\n\n기존 초안의 수정 내용은 새로운 초안으로 대체됩니다."
         )
-    }, [hasExistingDraft])
+    }, [isLoadingProject, hasExistingDraft])
 
     // API Mutations
     const recommendMutation = useTrackRecommendMutation({

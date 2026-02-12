@@ -56,7 +56,7 @@ async def run_application_drafter(
         application_draft 딕셔너리
     """
     total_start = time.time()
-    print(f"\n[Step4] ========== 신청서 초안 생성 시작 ==========")
+    print("\n[Step4] ========== 신청서 초안 생성 시작 ==========")
 
     initial_state: ApplicationDrafterState = {
         "project_id": project_id,
