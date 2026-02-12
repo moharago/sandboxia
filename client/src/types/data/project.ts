@@ -53,6 +53,7 @@ export interface Project {
     track: Track | null
     created_at: string
     updated_at: string
+    application_draft: Record<string, unknown> | null // 에이전트 결과 데이터
 }
 
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {

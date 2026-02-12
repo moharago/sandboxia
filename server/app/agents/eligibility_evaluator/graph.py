@@ -3,6 +3,8 @@
 노드들을 연결하여 대상성 판단 파이프라인 구성
 """
 
+import time
+
 from langgraph.graph import END, StateGraph
 
 from app.core.config import settings
@@ -11,9 +13,7 @@ from .nodes import (
     compose_decision_node,
     generate_evidence_node,
     screen_node,
-    search_cases_node,
-    search_laws_node,
-    search_regulations_node,
+    search_all_rag_node,
 )
 from .schemas import EligibilityResult, EvidenceData
 from .state import EligibilityState
@@ -24,11 +24,9 @@ def create_eligibility_graph() -> StateGraph:
 
     워크플로우:
     1. screen: 규제 스크리닝 (키워드/도메인 탐지)
-    2. search_regulations: R1 규제제도 검색
-    3. search_cases: R2 승인 사례 검색
-    4. search_laws: R3 도메인별 법령 검색
-    5. compose_decision: 최종 판정 통합
-    6. generate_evidence: 근거 데이터 생성
+    2. search_all_rag: R1+R2+R3 병렬 검색
+    3. compose_decision: 최종 판정 통합
+    4. generate_evidence: 근거 데이터 생성 (LLM 병렬)
 
     Returns:
         컴파일된 StateGraph
@@ -38,9 +36,7 @@ def create_eligibility_graph() -> StateGraph:
 
     # 노드 추가
     graph.add_node("screen", screen_node)
-    graph.add_node("search_regulations", search_regulations_node)
-    graph.add_node("search_cases", search_cases_node)
-    graph.add_node("search_laws", search_laws_node)
+    graph.add_node("search_all_rag", search_all_rag_node)
     graph.add_node("compose_decision", compose_decision_node)
     graph.add_node("generate_evidence", generate_evidence_node)
 
@@ -48,13 +44,11 @@ def create_eligibility_graph() -> StateGraph:
     # 1. 시작 → 스크리닝
     graph.set_entry_point("screen")
 
-    # 2. 스크리닝 → 병렬 검색 (순차 실행으로 단순화)
-    graph.add_edge("screen", "search_regulations")
-    graph.add_edge("search_regulations", "search_cases")
-    graph.add_edge("search_cases", "search_laws")
+    # 2. 스크리닝 → RAG 병렬 검색
+    graph.add_edge("screen", "search_all_rag")
 
     # 3. 검색 완료 → 판정 통합
-    graph.add_edge("search_laws", "compose_decision")
+    graph.add_edge("search_all_rag", "compose_decision")
 
     # 4. 판정 → 근거 생성
     graph.add_edge("compose_decision", "generate_evidence")
@@ -88,6 +82,9 @@ async def run_eligibility_evaluation(
     Returns:
         EligibilityResult: 판단 결과
     """
+    total_start = time.time()
+    print("\n[Step2] ========== 대상성 판단 시작 ==========")
+
     # 초기 상태 (TypedDict - 기본값 직접 제공)
     initial_state: EligibilityState = {
         "project_id": project_id,
@@ -112,6 +109,9 @@ async def run_eligibility_evaluation(
         initial_state,
         config={"recursion_limit": 15},
     )
+
+    total_elapsed = time.time() - total_start
+    print(f"[Step2] ========== 대상성 판단 완료 ({total_elapsed:.2f}초) ==========\n")
 
     # EligibilityResult로 변환 (result는 dict)
     return EligibilityResult(

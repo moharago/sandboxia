@@ -357,6 +357,12 @@
           "must_have": true,
           "track": "임시허가",
           "service_name": "재외국민 대상 비대면 진료 서비스"
+        },
+        {
+          "case_id": "임시허가_46_케이더봄",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "재외국민 대상 비대면 진료서비스"
         }
       ],
       "negatives": [
@@ -447,6 +453,18 @@
           "must_have": false,
           "track": "실증특례",
           "service_name": "생체신호를 이용한 위험감지 서비스"
+        },
+        {
+          "case_id": "실증특례_24_LG전자·서울대병원",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "손목형 심전도 측정기 활용 부정맥 상태 확인 및 내원안내 서비스"
+        },
+        {
+          "case_id": "실증특례_23_LG전자·에임메드",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "홈케어 건강관리서비스"
         }
       ],
       "negatives": [
@@ -731,7 +749,7 @@
           "case_id": "실증특례_104_진캠핑",
           "must_have": true,
           "track": "실증특례",
-          "service_name": "(Ba) 유휴 캠핑카 대여사업 중개 플랫폼"
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
         },
         {
           "case_id": "실증특례_82_디테크게엠베하",
@@ -744,6 +762,36 @@
           "must_have": false,
           "track": "실증특례",
           "service_name": "등록된 개인 소유의 캠핑카를 웹기반 플랫폼(모행)을 통해 중개해 주는 서비스 기술ㆍ서비스"
+        },
+        {
+          "case_id": "실증특례_103_어썸플랜",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_114",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_117_한솔네트웍스_주",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_127_엠제이이노베이션_주식회사",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "캠핑카 공유 중개 서비스"
+        },
+        {
+          "case_id": "실증특례_105_지에스렌트카",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "캠핑카 대여 중개 플랫폼"
         }
       ],
       "negatives": [
@@ -768,8 +816,8 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "캠핑카 중개 클러스터. 실증특례_104(진캠핑)은 FT_ONLY.",
-      "data_quality": "full_text_only"
+      "notes": "캠핑카 중개 클러스터 (9건). 보강 후 5건 추가.",
+      "data_quality": "normal"
     },
     {
       "id": "R2-0017",
@@ -781,7 +829,7 @@
           "case_id": "실증특례_101_이제이엠컴퍼니",
           "must_have": true,
           "track": "실증특례",
-          "service_name": "FAM] 총회 전자적 의결 서비스 (우리가)"
+          "service_name": "총회 전자적 의결 서비스"
         },
         {
           "case_id": "실증특례_89_레디포스트",
@@ -800,6 +848,24 @@
           "must_have": false,
           "track": "실증특례",
           "service_name": "주거정비 총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_150_주식회사_이보팅",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "주거정비 총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_174_리빌드엑스",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도시정비사업 총회 전자적 개최 서비스"
+        },
+        {
+          "case_id": "실증특례_157_이제이엠컴퍼니",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도시정비 총회 전자적 개최 서비스"
         }
       ],
       "negatives": [
@@ -824,8 +890,8 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "총회 전자의결 클러스터. 실증특례_101(이제이엠컴퍼니)은 FT_ONLY.",
-      "data_quality": "full_text_only"
+      "notes": "총회 전자의결 클러스터 (7건). 보강 후 3건 추가.",
+      "data_quality": "normal"
     },
     {
       "id": "R2-0018",
@@ -1055,6 +1121,24 @@
           "must_have": true,
           "track": "실증특례",
           "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션"
+        },
+        {
+          "case_id": "실증특례_83_포인테크_(실증특례)개인형 이동장치 및 전기자전거 충전·주차 스테이션(220916)",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션 (ID variant)"
+        },
+        {
+          "case_id": "실증특례_78_LG전자",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션"
+        },
+        {
+          "case_id": "실증특례_65_SKC",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "전동킥보드 무선충전 서비스"
         }
       ],
       "negatives": [
@@ -1075,7 +1159,7 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "PM 충전·주차 스테이션. 포인테크.",
+      "notes": "PM 충전·주차 스테이션. 포인테크 case_id 중복(2건). 보강 후 LG전자, SKC 추가.",
       "data_quality": "normal"
     },
     {
@@ -1133,7 +1217,7 @@
           "case_id": "실증특례_108_에이티나인랩스",
           "must_have": false,
           "track": "실증특례",
-          "service_name": "지정 대상 (BB) 모바일 폐차 중개 플랫폼"
+          "service_name": "모바일 폐차 중개 플랫폼"
         }
       ],
       "negatives": [
@@ -1256,6 +1340,42 @@
           "must_have": false,
           "track": "실증특례",
           "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_159_비즈하이브",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_190_형동",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_194_메타솔루션",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_152_슈가맨",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 셀프 스토리지 서비스"
+        },
+        {
+          "case_id": "실증특례_160_에이블",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_161_미니창고가방",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
         }
       ],
       "negatives": [
@@ -1276,7 +1396,7 @@
       "must_not_include": [
         "사례 없음"
       ],
-      "notes": "스마트 보관 서비스. 가장 많은 사례 클러스터 (35건).",
+      "notes": "스마트 보관 서비스 클러스터 (9건). 보강 후 6건 추가.",
       "data_quality": "normal"
     },
     {
