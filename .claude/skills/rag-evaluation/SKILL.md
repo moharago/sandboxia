@@ -59,6 +59,76 @@ server/
         └── chunks.json             # 청킹 결과 (평가 시 참조)
 ```
 
+## 코드 구조 (app/rag/)
+
+RAG 파이프라인 로직은 `app/rag/` 모듈에서 관리됩니다.
+
+### 디렉토리 구조
+
+```
+app/
+├── db/                              # 저장 계층 (공통)
+│   ├── vector.py                    # VectorStore 추상화
+│   └── export.py                    # 청크 JSON 내보내기
+│
+├── rag/                             # RAG 파이프라인
+│   ├── __init__.py                  # 공개 API
+│   ├── config.py                    # 설정 스키마 + 로더 (공통)
+│   ├── chunkers/
+│   │   ├── base.py                  # BaseChunker 추상 클래스 (공통)
+│   │   ├── utils.py                 # 토큰 계산 등 유틸리티 (공통)
+│   │   ├── r1_regulation.py         # R1 전용 chunker (향후)
+│   │   ├── r2_case.py               # R2 전용 chunker (향후)
+│   │   └── r3_law.py                # R3 전용: LawChunker
+│   └── collectors/
+│       ├── r1_regulation.py         # R1 전용 collector (향후)
+│       ├── r2_case.py               # R2 전용 collector (향후)
+│       └── r3_law.py                # R3 전용: collect_and_store_laws
+
+scripts/
+├── collect_regulations.py           # R1 CLI (향후)
+├── collect_cases.py                 # R2 CLI (향후)
+└── collect_laws.py                  # R3 CLI (~150줄, thin wrapper)
+```
+
+### 파일 역할 분류
+
+| 파일                   | 적용 범위     | 용도                                  |
+| ---------------------- | ------------- | ------------------------------------- |
+| `config.py`            | **공통**      | ChunkingConfig, EmbeddingConfig, 로더 |
+| `chunkers/base.py`     | **공통**      | BaseChunker 추상 클래스               |
+| `chunkers/utils.py`    | **공통**      | count_tokens, split_by_tokens 등      |
+| `chunkers/r{n}_*.py`   | **R{n} 전용** | 도메인별 Chunker 클래스               |
+| `collectors/r{n}_*.py` | **R{n} 전용** | 도메인별 수집 함수                    |
+
+### 파일 네이밍 규칙
+
+- **공통 파일**: `config.py`, `base.py`, `utils.py`
+- **RAG별 전용 파일**: `r{n}_{domain}.py` (예: `r3_law.py`, `r2_case.py`)
+
+### 새 RAG 타입 추가 시
+
+1. `app/rag/chunkers/r{n}_{domain}.py` - Chunker 클래스 구현
+2. `app/rag/collectors/r{n}_{domain}.py` - 수집 함수 구현
+3. `scripts/collect_{domain}.py` - CLI wrapper 작성
+4. `eval/r{n}/configs/` - chunking.yaml, embedding.yaml 추가
+
+### 코드 사용 예시
+
+```python
+# 앱에서 직접 import
+from app.rag import load_chunking_config, load_embedding_config, list_configs
+from app.rag.chunkers import LawChunker
+from app.rag.collectors import collect_and_store_laws
+
+# 설정 로드
+config = load_chunking_config("C3", rag_type="r3")
+embedding = load_embedding_config("E1", rag_type="r3")
+
+# Chunker 사용
+chunker = LawChunker(config)
+```
+
 ## 평가 실행
 
 ### Retrieval 평가 (기본)
@@ -98,11 +168,11 @@ uv run python eval/r2/run_evaluation.py --strategy all --output 2026-02-11_strat
 
 **R2 전용 옵션:**
 
-| 옵션              | 설명                                       | 기본값     |
-| ----------------- | ------------------------------------------ | ---------- |
-| `--strategy MODE` | structured / hybrid / fulltext / all       | structured |
-| `--top_k N`       | Top-K 검색 개수                            | 5          |
-| `--output NAME`   | 결과 파일명                                | 타임스탬프 |
+| 옵션              | 설명                                 | 기본값     |
+| ----------------- | ------------------------------------ | ---------- |
+| `--strategy MODE` | structured / hybrid / fulltext / all | structured |
+| `--top_k N`       | Top-K 검색 개수                      | 5          |
+| `--output NAME`   | 결과 파일명                          | 타임스탬프 |
 
 **R2 평가 지표:** Must-Have Recall@K, Recall@K, MRR, **Negative@K** (낮을수록 좋음), Latency
 
@@ -170,13 +240,13 @@ Judge Model: gpt-4.1
 
 **패턴**: `{날짜}_{변경요소}_{프리셋ID 또는 값}.json`
 
-| 실험 목적          | 파일명 예시                                                              |
-| ------------------ | ------------------------------------------------------------------------ |
-| 기준선 (현재 설정) | `2024-01-15_baseline.json`                                               |
-| 청킹 전략 비교     | `2024-01-15_chunking_C0.json`, `2024-01-15_chunking_C1.json`             |
-| 임베딩 모델 비교   | `2024-01-15_embedding_E0.json`, `2024-01-15_embedding_E1.json`           |
-| Vector DB 비교     | `2024-01-15_vectordb_V0.json`, `2024-01-15_vectordb_V1.json`             |
-| Top-K 비교         | `2024-01-15_topk_5.json`, `2024-01-15_topk_10.json`                      |
+| 실험 목적          | 파일명 예시                                                        |
+| ------------------ | ------------------------------------------------------------------ |
+| 기준선 (현재 설정) | `2024-01-15_baseline.json`                                         |
+| 청킹 전략 비교     | `2024-01-15_chunking_C0.json`, `2024-01-15_chunking_C1.json`       |
+| 임베딩 모델 비교   | `2024-01-15_embedding_E0.json`, `2024-01-15_embedding_E1.json`     |
+| Vector DB 비교     | `2024-01-15_vectordb_V0.json`, `2024-01-15_vectordb_V1.json`       |
+| Top-K 비교         | `2024-01-15_topk_5.json`, `2024-01-15_topk_10.json`                |
 | 재랭커 추가        | `2024-01-15_reranker_cohere.json`, `2024-01-15_reranker_none.json` |
 
 **실행 예시**:
@@ -239,18 +309,18 @@ Top-K: 5
 
 ### LLM-as-Judge 지표 (RAGAS 기반)
 
-| 지표                 | 설명                                 | 중요도 |
-| -------------------- | ------------------------------------ | ------ |
+| 지표                 | 설명                                     | 중요도 |
+| -------------------- | ---------------------------------------- | ------ |
 | **Faithfulness**     | 응답이 컨텍스트에 기반하는지 (환각 방지) | ⭐⭐⭐ |
-| **Answer Relevancy** | 응답이 질문에 적절히 답변하는지         | ⭐⭐⭐ |
+| **Answer Relevancy** | 응답이 질문에 적절히 답변하는지          | ⭐⭐⭐ |
 
 ### 향후 확장 예정
 
-| 지표               | 설명                     | 구현 복잡도 |
-| ------------------ | ------------------------ | ----------- |
-| Negative Exclusion | 오답 조항 배제 능력      | 쉬움        |
-| nDCG               | 그레이디드 랭킹 품질     | 중간        |
-| Factual Correctness | 예상 답변과 일치도      | 중간        |
+| 지표                | 설명                 | 구현 복잡도 |
+| ------------------- | -------------------- | ----------- |
+| Negative Exclusion  | 오답 조항 배제 능력  | 쉬움        |
+| nDCG                | 그레이디드 랭킹 품질 | 중간        |
+| Factual Correctness | 예상 답변과 일치도   | 중간        |
 
 ## 평가셋 구조
 
@@ -454,11 +524,11 @@ uv run python scripts/collect_regulations.py --export-chunks # → data/r1_data/
 
 **프리셋 위치**: `server/eval/{r1,r2,r3}/configs/`
 
-| 파일 | 프리셋 ID | 설명 |
-| ---- | --------- | ---- |
-| `chunking.yaml` | C0, C1, C2... | 청킹 전략 (chunk_unit, multi_granularity, prefix 등) |
-| `embedding.yaml` | E0, E1, E2... | 임베딩 모델 (model, dimension, batch_size 등) |
-| `vectordb.yaml` | V0, V1, V2... | Vector DB 설정 (distance_metric, index_type 등) |
+| 파일             | 프리셋 ID     | 설명                                                 |
+| ---------------- | ------------- | ---------------------------------------------------- |
+| `chunking.yaml`  | C0, C1, C2... | 청킹 전략 (chunk_unit, multi_granularity, prefix 등) |
+| `embedding.yaml` | E0, E1, E2... | 임베딩 모델 (model, dimension, batch_size 등)        |
+| `vectordb.yaml`  | V0, V1, V2... | Vector DB 설정 (distance_metric, index_type 등)      |
 
 **프리셋 사용법**:
 
@@ -473,8 +543,75 @@ uv run python scripts/collect_regulations.py --config C1
 ```
 
 **결과 파일명 컨벤션**: `{날짜}_{변경요소}_{프리셋ID}.json`
+
 - 변경요소 = yaml 파일명 (확장자 제외)
 - 예: `2026-02-11_chunking_C1.json`, `2026-02-11_embedding_E2.json`
+
+### 설정 파일 구조
+
+**chunking.yaml 예시**:
+
+```yaml
+C0:
+  name: C0
+  description: "현재 기준점 - 항 단위 청킹"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0
+
+C1:
+  name: C1
+  description: "구조 신호 강화형"
+  chunk_unit: paragraph
+  multi_granularity: [paragraph]
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 120
+  max_tokens: 800
+  overlap: 0
+```
+
+**embedding.yaml 예시**:
+
+```yaml
+E0:
+  name: E0
+  description: "현재 기준점 - OpenAI 3-small"
+  model: text-embedding-3-small
+  provider: openai
+  dimension: 1536
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.02
+
+E1:
+  name: E1
+  description: "고정밀 검색 - OpenAI 3-large"
+  model: text-embedding-3-large
+  provider: openai
+  dimension: 3072
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.13
+```
+
+**--config 플래그 사용법**:
+
+```bash
+# 단일 설정
+--config C3              # 청킹만 변경
+--config E1              # 임베딩만 변경 (청킹은 C0 기본값)
+
+# 조합 설정 (여러 개 지정 가능)
+--config C3 E1           # 청킹 C3 + 임베딩 E1
+
+# 대소문자 무관
+--config c3 e1           # 동일하게 동작
+```
 
 ### 1. 청킹 전략 비교
 
@@ -544,22 +681,22 @@ uv run python eval/r3/run_evaluation.py --top_k 10 --output k10
 
 ## 관련 파일
 
-| 파일                  | 경로                                      | 설명                                        |
-| --------------------- | ----------------------------------------- | ------------------------------------------- |
-| Retrieval 지표        | `server/eval/metrics.py`                  | Recall, MRR 등 계산 함수                    |
-| LLM-as-Judge 지표     | `server/eval/llm_metrics.py`              | Faithfulness, Answer Relevancy (RAGAS 기반) |
-| 실험 프리셋 (공통)    | `server/eval/{r1,r2,r3}/configs/`         | chunking.yaml, embedding.yaml, vectordb.yaml |
-| 평가셋 (공통)         | `server/eval/{r1,r2,r3}/datasets/`        | evaluation_set.json                         |
-| 평가 결과 (공통)      | `server/eval/{r1,r2,r3}/results/`         | retrieval/, llm/ 하위에 JSON 저장           |
-| R2 공통 유틸          | `server/eval/r2/common.py`                | 전략별 임시 VectorStore, 매칭, 지표 계산    |
-| R2 Retrieval 평가     | `server/eval/r2/run_evaluation.py`        | R2 Retrieval 평가 (--strategy 지원)         |
-| R3 Retrieval 평가     | `server/eval/r3/run_evaluation.py`        | R3 Retrieval 평가 실행                      |
-| R3 LLM-as-Judge 평가  | `server/eval/r3/run_llm_evaluation.py`    | R3 Retrieval + Generation 평가 실행         |
-| 청크 데이터           | `server/data/{r1,r2,r3}_data/chunks.json` | 청킹 결과 (gitignore)                       |
-| 공통 유틸             | `server/app/db/export.py`                 | 청크 JSON 저장 함수                         |
-| R3 수집               | `server/scripts/collect_laws.py`          | 법령 수집 (--export-chunks로 청크 저장)     |
-| R2 수집               | `server/scripts/collect_cases.py`         | 승인사례 수집 (--strategy 지원)             |
-| R1 수집               | `server/scripts/collect_regulations.py`   | 규제제도 수집 (--export-chunks로 청크 저장) |
+| 파일                 | 경로                                      | 설명                                         |
+| -------------------- | ----------------------------------------- | -------------------------------------------- |
+| Retrieval 지표       | `server/eval/metrics.py`                  | Recall, MRR 등 계산 함수                     |
+| LLM-as-Judge 지표    | `server/eval/llm_metrics.py`              | Faithfulness, Answer Relevancy (RAGAS 기반)  |
+| 실험 프리셋 (공통)   | `server/eval/{r1,r2,r3}/configs/`         | chunking.yaml, embedding.yaml, vectordb.yaml |
+| 평가셋 (공통)        | `server/eval/{r1,r2,r3}/datasets/`        | evaluation_set.json                          |
+| 평가 결과 (공통)     | `server/eval/{r1,r2,r3}/results/`         | retrieval/, llm/ 하위에 JSON 저장            |
+| R2 공통 유틸         | `server/eval/r2/common.py`                | 전략별 임시 VectorStore, 매칭, 지표 계산     |
+| R2 Retrieval 평가    | `server/eval/r2/run_evaluation.py`        | R2 Retrieval 평가 (--strategy 지원)          |
+| R3 Retrieval 평가    | `server/eval/r3/run_evaluation.py`        | R3 Retrieval 평가 실행                       |
+| R3 LLM-as-Judge 평가 | `server/eval/r3/run_llm_evaluation.py`    | R3 Retrieval + Generation 평가 실행          |
+| 청크 데이터          | `server/data/{r1,r2,r3}_data/chunks.json` | 청킹 결과 (gitignore)                        |
+| 공통 유틸            | `server/app/db/export.py`                 | 청크 JSON 저장 함수                          |
+| R3 수집              | `server/scripts/collect_laws.py`          | 법령 수집 (--export-chunks로 청크 저장)      |
+| R2 수집              | `server/scripts/collect_cases.py`         | 승인사례 수집 (--strategy 지원)              |
+| R1 수집              | `server/scripts/collect_regulations.py`   | 규제제도 수집 (--export-chunks로 청크 저장)  |
 
 ## LangSmith 연동 (Token/Cost 추적)
 
