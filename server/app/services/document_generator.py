@@ -8,11 +8,13 @@ import logging
 from io import BytesIO
 from pathlib import Path
 
+import gdown
 from docx import Document
 from docx.table import Table
 from docxtpl import DocxTemplate
 from jinja2 import Environment, Undefined
 
+from app.core.config import settings   
 from app.services.utils import is_flat_structure, unflatten
 
 
@@ -216,7 +218,18 @@ def generate_docx(
 
     template_path = TEMPLATES_DIR / template_name
     if not template_path.exists():
-        raise FileNotFoundError(f"템플릿 파일이 없습니다: {template_path}")
+        _download_templates_from_drive()  # 없으면 다운로드                    
+        if not template_path.exists():            
+            raise FileNotFoundError(f"템플릿 파일이 없습니다: {template_path}")
+        
+    def _download_templates_from_drive():                                      
+      """Google Drive에서 템플릿 폴더 다운로드"""                            
+      if not settings.TEMPLATE_FOLDER_ID:                                    
+          return                                                             
+      folder_url =f"{settings.GOOGLE_DRIVE_URL}{settings.TEMPLATE_FOLDER_ID}"                
+      TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)                       
+      gdown.download_folder(folder_url, output=str(TEMPLATES_DIR),           
+  quiet=False)         
 
     # 템플릿 로드
     doc = DocxTemplate(template_path)
@@ -454,15 +467,30 @@ def _build_context(draft_data: dict) -> dict:
         context["organizationProfile"]["keyPersonnel"] = context.get("keyPersonnel", [])
 
     # financialStatus → organizationProfile.financialStatus 연결 (템플릿 호환)
-    # yearM1 → year1, yearM2 → year2 키 변환
+    # yearM1 → year1, yearM2 → year2 키 변환 + 천 단위 콤마 추가
+    def format_number(value):
+        """숫자에 천 단위 콤마 추가 (% 값은 제외)"""
+        if not value or value == "":
+            return ""
+        str_val = str(value)
+        if "%" in str_val:
+            return str_val
+        try:
+            num = float(str_val.replace(",", ""))
+            if num == int(num):
+                return f"{int(num):,}"
+            return f"{num:,.1f}"
+        except ValueError:
+            return str_val
+
     if "financialStatus" in context and isinstance(context["financialStatus"], dict):
         converted_financial = {}
         for field_name, field_data in context["financialStatus"].items():
             if isinstance(field_data, dict):
                 converted_financial[field_name] = {
-                    "year1": field_data.get("yearM1", field_data.get("year1", "")),
-                    "year2": field_data.get("yearM2", field_data.get("year2", "")),
-                    "average": field_data.get("average", ""),
+                    "year1": format_number(field_data.get("yearM1", field_data.get("year1", ""))),
+                    "year2": format_number(field_data.get("yearM2", field_data.get("year2", ""))),
+                    "average": format_number(field_data.get("average", "")),
                 }
             else:
                 converted_financial[field_name] = field_data

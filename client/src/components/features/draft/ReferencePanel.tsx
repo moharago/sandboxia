@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils/cn"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { formatDateIso } from "@/lib/utils/date"
 
-// 더미 승인사례 데이터 (props 없을 때 사용)
+// 더미 승인사례 데이터 (step3 등에서 데이터 없을 때 사용)
 const dummyApprovedCases: ApprovalCase[] = [
     {
         track: "실증특례",
@@ -40,7 +40,7 @@ const dummyApprovedCases: ApprovalCase[] = [
     },
 ]
 
-// 더미 법령/제도 데이터 (props 없을 때 사용)
+// 더미 법령/제도 데이터 (step3 등에서 데이터 없을 때 사용)
 const dummyRegulations: Regulation[] = [
     {
         category: "실증특례",
@@ -58,13 +58,13 @@ const dummyRegulations: Regulation[] = [
         category: "절차",
         title: "규제샌드박스 운영지침",
         summary: "규제샌드박스 신청 절차 및 심사 기준 안내",
-        source_url: "https://www.sandbox.or.kr/intro/sandbox_intro.do",
+        source_url: "https://www.sandbox.or.kr/guidance/intro.do",
     },
     {
         category: "참고",
         title: "ICT 규제샌드박스 FAQ",
         summary: "자주 묻는 질문과 답변 모음",
-        source_url: "https://www.sandbox.or.kr/board/faq.do",
+        source_url: "https://www.sandbox.or.kr/board/FAQ.do",
     },
 ]
 
@@ -186,9 +186,11 @@ interface ReferencePanelProps {
     approvalCases?: ApprovalCase[]
     regulations?: Regulation[]
     cases?: CaseData[]  // track 페이지 호환용
+    useDummyData?: boolean  // false면 더미 데이터 사용 안 함 (step4용)
+    track?: string  // 트랙 정보 (신속확인 메시지용)
 }
 
-export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, cases }: ReferencePanelProps) {
+export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, cases, useDummyData = true, track }: ReferencePanelProps) {
     // cases (CaseData[])를 ApprovalCase[]로 변환
     const convertedCases: ApprovalCase[] | undefined = cases?.map(c => ({
         track: c.track,
@@ -200,9 +202,9 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
         source_url: c.link || null,
     }))
 
-    // props가 없으면 더미 데이터 사용
-    const displayCases = approvalCases ?? convertedCases ?? dummyApprovedCases
-    const regs = regulations ?? dummyRegulations
+    // useDummyData=false면 더미 데이터 사용 안 함 (step4)
+    const displayCases = approvalCases ?? convertedCases ?? (useDummyData ? dummyApprovedCases : [])
+    const regs = regulations ?? (useDummyData ? dummyRegulations : [])
 
     // 닫힌 상태: 토글 버튼만 표시
     if (!isOpen) {
@@ -219,9 +221,12 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
         )
     }
 
+    // 신속확인은 법령/제도 탭을 기본으로
+    const defaultTab = track === "quick_check" ? "regulations" : "cases"
+
     return (
         <div className="space-y-4">
-            <Tabs defaultValue="cases" className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full">
                 <div className="flex items-center gap-3">
                     <TabsList className="h-8 flex-1 grid grid-cols-2 py-0 px-0.5 bg-gray-100">
                         <TabsTrigger value="cases" className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black">
@@ -248,15 +253,32 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                 </div>
 
                 <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
-                    {displayCases.map((caseData, index) => (
-                        <CaseItem key={index} caseData={caseData} index={index} />
-                    ))}
+                    {displayCases.length > 0 ? (
+                        displayCases.map((caseData, index) => (
+                            <CaseItem key={index} caseData={caseData} index={index} />
+                        ))
+                    ) : track === "quick_check" ? (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                            신속확인은 트랙 판단을 위한 절차로,<br />
+                            참고할 유사 승인사례가 없습니다.
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                            AI 초안을 생성하면 유사 승인사례가 표시됩니다.
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
-                    {regs.map((regulation, index) => (
-                        <RegulationItem key={index} regulation={regulation} index={index} />
-                    ))}
+                    {regs.length > 0 ? (
+                        regs.map((regulation, index) => (
+                            <RegulationItem key={index} regulation={regulation} index={index} />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                            AI 초안을 생성하면 관련 법령이 표시됩니다.
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
         </div>

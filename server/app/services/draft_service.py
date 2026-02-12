@@ -47,6 +47,8 @@ def save_draft_result(
     project_id: str,
     application_draft: dict,
     model_name: str = "gpt-4o-mini",
+    similar_cases: list | None = None,
+    domain_laws: list | None = None,
 ) -> dict | None:
     """초안 결과를 projects.application_draft에 저장
 
@@ -54,6 +56,8 @@ def save_draft_result(
         project_id: 프로젝트 UUID
         application_draft: AI가 개선한 폼 데이터 (application_input과 동일 구조)
         model_name: 사용된 LLM 모델명
+        similar_cases: RAG 검색된 유사 승인 사례
+        domain_laws: RAG 검색된 관련 법령
 
     Returns:
         업데이트된 projects 레코드 또는 None
@@ -64,6 +68,8 @@ def save_draft_result(
         "form_values": application_draft,
         "model_name": model_name,
         "generated_at": datetime.now().isoformat(),
+        "similar_cases": similar_cases or [],
+        "domain_laws": domain_laws or [],
     }
 
     try:
