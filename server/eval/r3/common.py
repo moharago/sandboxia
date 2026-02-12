@@ -195,3 +195,35 @@ def format_chunk_id(chunk_id: dict) -> str:
 def format_chunk_ids(chunk_ids: list[dict]) -> list[str]:
     """chunk_id 목록을 읽기 쉬운 문자열 목록으로 변환"""
     return [format_chunk_id(cid) for cid in chunk_ids]
+
+
+def get_chunk_statistics(vector_store: Chroma) -> dict:
+    """Vector Store에서 청크 통계 조회
+
+    Returns:
+        {
+            "total_chunks": int,
+            "avg_chunk_length": float,
+        }
+    """
+    # ChromaDB 컬렉션에서 모든 문서 조회
+    collection = vector_store._collection
+    result = collection.get(include=["documents"])
+
+    documents = result.get("documents", [])
+    total_chunks = len(documents)
+
+    if total_chunks == 0:
+        return {
+            "total_chunks": 0,
+            "avg_chunk_length": 0.0,
+        }
+
+    # 평균 청크 길이 계산 (문자 수 기준)
+    total_length = sum(len(doc) for doc in documents if doc)
+    avg_length = total_length / total_chunks
+
+    return {
+        "total_chunks": total_chunks,
+        "avg_chunk_length": round(avg_length, 1),
+    }

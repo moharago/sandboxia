@@ -764,7 +764,7 @@ async def collect_and_store_laws(
         saved_count = save_chunks_json(documents, unique_ids, chunks_json_path)
         print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
-    result_file = persist_dir / f"r3_collection_info_{config.name}.json"
+    result_file = persist_dir / "r3_collection_info.json"
     with open(result_file, "w", encoding="utf-8") as f:
         json.dump(
             {
