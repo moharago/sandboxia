@@ -333,21 +333,21 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 
 ## 사용 예시
 
-| 명령어                           | 모드 | 동작                                    | 저장 파일명 예시                |
-| -------------------------------- | ---- | --------------------------------------- | ------------------------------- |
-| `/rag-eval`                      | A    | R3 retrieval 직접 실행                  | (타임스탬프)                    |
-| `/rag-eval baseline으로 저장`    | A    | R3 retrieval + 파일명 지정              | `2026-02-10_baseline`           |
-| `/rag-eval topk 10으로 저장`     | A    | R3 retrieval + 변경요소/값 파싱         | `2026-02-10_topk_10`            |
-| `/rag-eval --llm R3 5개만`       | A    | R3 LLM 평가 직접 실행                   | (타임스탬프)                    |
-| `/rag-eval R3 C1 적용해줘`       | A+   | **수집 + VectorDB + 평가** (청킹 C1)    | `2026-02-10_chunking_C1`        |
-| `/rag-eval R3 E1 평가`           | A+   | 수집 + VectorDB + 평가 (임베딩 E1)      | `2026-02-10_embedding_E1`       |
-| `/rag-eval R3 C3 E1 평가`        | A+   | **청킹 C3 + 임베딩 E1 조합** 평가       | `2026-02-10_C3_E1`              |
-| `/rag-eval R2 전략 비교`         | A    | R2 retrieval + strategy all             | `2026-02-10_strategy_all`       |
-| `/rag-eval R2 hybrid로 저장`     | A    | R2 retrieval + strategy hybrid          | `2026-02-10_strategy_hybrid`    |
-| `/rag-eval top-k 5, 10 비교`     | B    | 서브에이전트 2개 병렬 → 비교표          | -                               |
-| `/rag-eval R1, R2, R3 전체`      | C    | 서브에이전트 3개 병렬 → 종합 리포트     | -                               |
-| `/rag-eval 결과 분석`            | D    | 서브에이전트가 결과 파일 분석           | -                               |
-| `/rag-eval embedding끼리 비교`   | D    | 서브에이전트가 embedding 변경요소 비교  | -                               |
+| 명령어                         | 모드 | 동작                                   | 저장 파일명 예시             |
+| ------------------------------ | ---- | -------------------------------------- | ---------------------------- |
+| `/rag-eval`                    | A    | R3 retrieval 직접 실행                 | (타임스탬프)                 |
+| `/rag-eval baseline으로 저장`  | A    | R3 retrieval + 파일명 지정             | `2026-02-10_baseline`        |
+| `/rag-eval topk 10으로 저장`   | A    | R3 retrieval + 변경요소/값 파싱        | `2026-02-10_topk_10`         |
+| `/rag-eval --llm R3 5개만`     | A    | R3 LLM 평가 직접 실행                  | (타임스탬프)                 |
+| `/rag-eval R3 C1 적용해줘`     | A+   | **수집 + VectorDB + 평가** (청킹 C1)   | `2026-02-10_chunking_C1`     |
+| `/rag-eval R3 E1 평가`         | A+   | 수집 + VectorDB + 평가 (임베딩 E1)     | `2026-02-10_embedding_E1`    |
+| `/rag-eval R3 C3 E1 평가`      | A+   | **청킹 C3 + 임베딩 E1 조합** 평가      | `2026-02-10_C3_E1`           |
+| `/rag-eval R2 전략 비교`       | A    | R2 retrieval + strategy all            | `2026-02-10_strategy_all`    |
+| `/rag-eval R2 hybrid로 저장`   | A    | R2 retrieval + strategy hybrid         | `2026-02-10_strategy_hybrid` |
+| `/rag-eval top-k 5, 10 비교`   | B    | 서브에이전트 2개 병렬 → 비교표         | -                            |
+| `/rag-eval R1, R2, R3 전체`    | C    | 서브에이전트 3개 병렬 → 종합 리포트    | -                            |
+| `/rag-eval 결과 분석`          | D    | 서브에이전트가 결과 파일 분석          | -                            |
+| `/rag-eval embedding끼리 비교` | D    | 서브에이전트가 embedding 변경요소 비교 | -                            |
 
 ## 주의사항
 
@@ -357,6 +357,8 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 - **컨텍스트 보호**: 대량 분석은 서브에이전트가 처리하여 메인 컨텍스트 보호
 - **실험 프리셋**: 각 RAG는 `server/eval/{r1,r2,r3}/configs/`에서 프리셋 관리 (chunking.yaml, embedding.yaml, vectordb.yaml 등)
 - **모드 A+ 소요 시간**: 데이터 수집 + Vector DB 생성에 시간이 걸릴 수 있음 (법령 수집 시 수 분 소요)
+
+---
 
 ## 에이전트 레퍼런스
 
