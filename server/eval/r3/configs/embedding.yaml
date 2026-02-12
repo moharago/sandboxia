@@ -34,11 +34,11 @@ E2:
 E3:
   name: E3
   description: "한국어 오픈소스 - BGE-m3-ko"
-  model: BAAI/bge-m3-ko
+  model: upskyy/bge-m3-korean
   provider: local
   dimension: 1024
   max_tokens: 8192
-  cost_per_1m_tokens: 0  # GPU 비용 별도
+  cost_per_1m_tokens: 0 # GPU 비용 별도
 
 E4:
   name: E4
@@ -47,7 +47,7 @@ E4:
   provider: local
   dimension: 1024
   max_tokens: 8192
-  cost_per_1m_tokens: 0  # GPU 비용 별도
+  cost_per_1m_tokens: 0 # GPU 비용 별도
 
 E5:
   name: E5
@@ -56,4 +56,4 @@ E5:
   provider: local
   dimension: 1024
   max_tokens: 512
-  cost_per_1m_tokens: 0  # GPU 비용 별도
+  cost_per_1m_tokens: 0 # GPU 비용 별도

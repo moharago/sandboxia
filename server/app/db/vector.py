@@ -305,8 +305,33 @@ def create_embeddings(config: EmbeddingConfig) -> Embeddings:
         )
 
     elif provider == "local":
-        raise NotImplementedError(
-            f"로컬 모델 '{config.model}'은 아직 지원되지 않습니다. " "OpenAI 또는 Upstage를 사용해주세요."
+        # 디바이스 자동 감지: CUDA > MPS (Apple Silicon) > CPU
+        import torch
+        from langchain_huggingface import HuggingFaceEmbeddings
+
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+
+        logger.info(f"로컬 임베딩 모델 '{config.model}' 사용 (device: {device})")
+
+        model_kwargs = {
+            "device": device,
+            "trust_remote_code": True,  # KURE 등 일부 모델 필요
+        }
+        encode_kwargs = {
+            "normalize_embeddings": True,  # 코사인 유사도용 정규화
+            "batch_size": 32,
+            "show_progress_bar": False,
+        }
+
+        return HuggingFaceEmbeddings(
+            model_name=config.model,
+            model_kwargs=model_kwargs,
+            encode_kwargs=encode_kwargs,
         )
 
     else:
