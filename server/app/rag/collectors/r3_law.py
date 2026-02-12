@@ -7,11 +7,11 @@ import json
 from pathlib import Path
 
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from app.db.export import save_chunks_json
+from app.db.vector import create_embeddings
 from app.rag.chunkers.r3_law import LawChunker
 from app.rag.config import ChunkingConfig, EmbeddingConfig
 from app.services.law_api import law_api_client
@@ -83,25 +83,23 @@ async def collect_and_store_laws(
 
     # 임베딩 모델 결정
     if embedding_config:
-        embedding_model = embedding_config.model
+        # E* 프리셋 지정 시: 프리셋 설정 사용 (평가용)
         print(f"\n[임베딩 설정] {embedding_config.name} - {embedding_config.description}")
         print(f"  - 모델: {embedding_config.model}")
         print(f"  - 제공자: {embedding_config.provider}")
         print(f"  - 차원: {embedding_config.dimension}")
-
-        if embedding_config.provider == "local":
-            print("  ⚠️  로컬 모델은 아직 지원되지 않습니다. OpenAI API를 사용합니다.")
-            embedding_model = settings.LLM_EMBEDDING_MODEL
+        embeddings = create_embeddings(embedding_config)
     else:
-        embedding_model = settings.LLM_EMBEDDING_MODEL
-        print(f"\n[임베딩 설정] .env 기본값 사용: {embedding_model}")
+        # 기본값: .env의 LLM_EMBEDDING_MODEL 사용 (운영용)
+        from langchain_openai import OpenAIEmbeddings
+
+        print(f"\n[임베딩 설정] .env 기본값: {settings.LLM_EMBEDDING_MODEL}")
+        embeddings = OpenAIEmbeddings(
+            model=settings.LLM_EMBEDDING_MODEL,
+            openai_api_key=settings.OPENAI_API_KEY,
+        )
 
     chunker = LawChunker(config)
-
-    embeddings = OpenAIEmbeddings(
-        model=embedding_model,
-        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
 
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
     persist_dir.mkdir(parents=True, exist_ok=True)

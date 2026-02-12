@@ -17,6 +17,8 @@ from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
+from app.db.vector import create_embeddings
+from app.rag.config import EmbeddingConfig
 from eval.metrics import RetrievalMetrics
 
 # 경로 설정
@@ -32,19 +34,36 @@ def load_evaluation_set() -> dict:
         return json.load(f)
 
 
-def get_vector_store() -> Chroma:
+def get_vector_store(
+    embedding_config: EmbeddingConfig | None = None,
+    collection_suffix: str = "",
+) -> Chroma:
     """Vector Store 연결
 
     기존 Vector Store에 연결하여 검색 수행.
     쿼리 임베딩을 위해 embedding_function이 필요함.
+
+    Args:
+        embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
+        collection_suffix: 컬렉션 이름에 붙일 접미사
+
+    Returns:
+        Chroma Vector Store
     """
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
+    if embedding_config is None:
+        # 프리셋 없으면 .env의 LLM_EMBEDDING_MODEL 사용
+        embeddings = OpenAIEmbeddings(
+            model=settings.LLM_EMBEDDING_MODEL,
+            openai_api_key=settings.OPENAI_API_KEY,
+        )
+    else:
+        # 프리셋 있으면 프리셋 사용
+        embeddings = create_embeddings(embedding_config)
+
+    collection_name = COLLECTION_LAWS + collection_suffix
 
     return Chroma(
-        collection_name=COLLECTION_LAWS,
+        collection_name=collection_name,
         embedding_function=embeddings,
         persist_directory=str(settings.CHROMA_PERSIST_DIR),
     )

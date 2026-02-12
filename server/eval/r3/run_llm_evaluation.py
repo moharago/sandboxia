@@ -15,6 +15,8 @@ RAGAS 라이브러리를 사용하여 Generation 품질을 평가합니다.
     --output result   # 결과 파일명 (기본: 타임스탬프)
     --limit 5         # 평가 항목 수 제한 (테스트용)
     --trace           # LangSmith 추적 활성화 (토큰/비용 확인)
+    --config E2       # 임베딩 설정 (없으면 .env 사용)
+    --collection_suffix _E2  # 컬렉션 접미사
 
 Judge 모델: gpt-4.1 (고정)
 """
@@ -59,6 +61,7 @@ from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
+from app.rag.config import EmbeddingConfig, load_embedding_config
 from eval.llm_metrics import LLMMetricsResult, RAGASEvaluator, aggregate_llm_metrics
 from eval.metrics import RetrievalMetrics, aggregate_metrics
 from eval.r3.common import (
@@ -184,6 +187,8 @@ async def run_evaluation_async(
     top_k: int = 5,
     output_name: str | None = None,
     limit: int | None = None,
+    embedding_config: EmbeddingConfig | None = None,
+    collection_suffix: str = "",
 ):
     """전체 평가 실행 (비동기)"""
     print("=" * 70)
@@ -200,11 +205,16 @@ async def run_evaluation_async(
 
     print(f"\n평가셋: {len(items)}개 항목")
     print(f"Top-K: {top_k}")
+    if embedding_config:
+        print(f"임베딩: {embedding_config.name} ({embedding_config.model})")
+    else:
+        print(f"임베딩: .env 기본값 ({settings.LLM_EMBEDDING_MODEL})")
+    print(f"컬렉션: {COLLECTION_LAWS}{collection_suffix}")
     print(f"Judge Model: {JUDGE_MODEL}")
 
     # 초기화
     print("\n초기화 중...")
-    vector_store = get_vector_store()
+    vector_store = get_vector_store(embedding_config, collection_suffix)
     llm = get_llm()
     evaluator = RAGASEvaluator(model=JUDGE_MODEL)
 
@@ -305,10 +315,12 @@ async def run_evaluation_async(
         "timestamp": datetime.now().isoformat(),
         "config": {
             "top_k": top_k,
-            "embedding_model": settings.LLM_EMBEDDING_MODEL,
+            "embedding_config": embedding_config.name if embedding_config else ".env",
+            "embedding_model": embedding_config.model if embedding_config else settings.LLM_EMBEDDING_MODEL,
+            "embedding_provider": embedding_config.provider if embedding_config else "openai",
             "judge_model": JUDGE_MODEL,
             "generation_model": GENERATION_MODEL,
-            "collection": COLLECTION_LAWS,
+            "collection": COLLECTION_LAWS + collection_suffix,
             "num_items": len(items),
         },
         "summary": {
@@ -340,6 +352,8 @@ def run_evaluation(
     top_k: int = 5,
     output_name: str | None = None,
     limit: int | None = None,
+    embedding_config: EmbeddingConfig | None = None,
+    collection_suffix: str = "",
 ):
     """전체 평가 실행 (동기 래퍼)"""
     asyncio.run(
@@ -347,6 +361,8 @@ def run_evaluation(
             top_k=top_k,
             output_name=output_name,
             limit=limit,
+            embedding_config=embedding_config,
+            collection_suffix=collection_suffix,
         )
     )
 
@@ -371,6 +387,8 @@ def main():
         action="store_true",
         help="LangSmith 추적 활성화 (토큰/비용 확인)",
     )
+    parser.add_argument("--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)")
+    parser.add_argument("--collection_suffix", type=str, default="", help="컬렉션 접미사")
 
     args = parser.parse_args()
 
@@ -379,10 +397,17 @@ def main():
         if enable_langsmith_tracing("rag-eval"):
             print("📊 LangSmith 추적 활성화됨 (https://smith.langchain.com)")
 
+    # 임베딩 설정 로드 (프리셋 지정 시에만)
+    embedding_config = None
+    if args.config:
+        embedding_config = load_embedding_config(args.config)
+
     run_evaluation(
         top_k=args.top_k,
         output_name=args.output,
         limit=args.limit,
+        embedding_config=embedding_config,
+        collection_suffix=args.collection_suffix,
     )
 
 
