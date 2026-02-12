@@ -320,6 +320,12 @@ def _build_section_texts_from_hwp(
         # regulatory_info 그룹
         "regulation_details": "regulationDetails",
         "necessity_and_request": "necessityAndRequest",
+        "legal_issues": "legalIssues",  # 신속확인용
+        "related_laws": "relatedLaws",  # 신속확인용
+        "regulatory_issues": "regulatoryIssues",  # 신속확인용
+        # service_info 그룹 (신속확인용)
+        "technology_service_details": "technologyServiceDetails",
+        "additional_questions": "additionalQuestions",
         # business_plan 그룹
         "objectives_and_scope": "objectivesAndScope",
         "business_content": "businessContent",
@@ -354,6 +360,7 @@ def _build_section_texts_from_hwp(
         "safety_and_protection",
         "justification",
         "company_info",
+        "service_info",  # 신속확인용
     ]
 
     for group in groups:
