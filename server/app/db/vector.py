@@ -19,9 +19,11 @@ from typing import Any
 
 import chromadb
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.rag.config import EmbeddingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,7 @@ class ChromaMode(str, Enum):
     PERSISTENT = "persistent"  # 로컬 파일 기반
     HTTP = "http"  # HTTP 클라이언트 (서버 연결)
     EPHEMERAL = "ephemeral"  # 인메모리 (테스트용)
+
 
 # =============================================================================
 # 검색 결과 타입
@@ -143,10 +146,7 @@ def _create_chroma_client() -> chromadb.ClientAPI:
         return _create_http_client_with_retry()
 
     else:
-        raise ValueError(
-            f"알 수 없는 CHROMA_MODE: {mode}. "
-            f"사용 가능: persistent, http, ephemeral"
-        )
+        raise ValueError(f"알 수 없는 CHROMA_MODE: {mode}. " f"사용 가능: persistent, http, ephemeral")
 
 
 def _create_http_client_with_retry(
@@ -177,23 +177,19 @@ def _create_http_client_with_retry(
             )
             # 연결 테스트
             client.heartbeat()
-            logger.info(
-                f"ChromaDB HTTP 모드 연결 성공: {settings.CHROMA_HOST}:{settings.CHROMA_PORT}"
-            )
+            logger.info(f"ChromaDB HTTP 모드 연결 성공: {settings.CHROMA_HOST}:{settings.CHROMA_PORT}")
             return client
         except Exception as e:
             if attempt < max_retries - 1:
                 logger.warning(
-                    f"ChromaDB 연결 실패 (시도 {attempt + 1}/{max_retries}): {e}. "
-                    f"{delay:.1f}초 후 재시도..."
+                    f"ChromaDB 연결 실패 (시도 {attempt + 1}/{max_retries}): {e}. " f"{delay:.1f}초 후 재시도..."
                 )
                 time.sleep(delay)
                 delay = min(delay * 2, max_delay)  # 지수 백오프
             else:
                 logger.error(f"ChromaDB 연결 실패: 모든 재시도 소진. 마지막 오류: {e}")
                 raise ConnectionError(
-                    f"ChromaDB 서버에 연결할 수 없습니다 "
-                    f"({settings.CHROMA_HOST}:{settings.CHROMA_PORT}): {e}"
+                    f"ChromaDB 서버에 연결할 수 없습니다 " f"({settings.CHROMA_HOST}:{settings.CHROMA_PORT}): {e}"
                 ) from e
 
 
@@ -232,9 +228,7 @@ class ChromaVectorStore(BaseVectorStore):
             **search_kwargs,
         )
 
-        return [
-            SearchResult(document=doc, score=score) for doc, score in docs_with_scores
-        ]
+        return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
 
     def similarity_search_with_distance(
         self,
@@ -256,9 +250,7 @@ class ChromaVectorStore(BaseVectorStore):
             **search_kwargs,
         )
 
-        return [
-            SearchResult(document=doc, score=score) for doc, score in docs_with_scores
-        ]
+        return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
 
     def add_documents(
         self,
@@ -274,13 +266,87 @@ class ChromaVectorStore(BaseVectorStore):
 
 
 # =============================================================================
-# 팩토리 함수
+# 임베딩 팩토리 함수
 # =============================================================================
+
+
+def create_embeddings(config: EmbeddingConfig) -> Embeddings:
+    """EmbeddingConfig에 따라 적절한 임베딩 모델 반환
+
+    Args:
+        config: 임베딩 설정 (provider, model 등)
+
+    Returns:
+        Embeddings 인스턴스
+
+    Raises:
+        ValueError: 지원하지 않는 provider
+        RuntimeError: API 키 미설정
+    """
+    provider = config.provider.lower()
+
+    if provider == "openai":
+        return OpenAIEmbeddings(
+            model=config.model,
+            openai_api_key=settings.OPENAI_API_KEY,
+        )
+
+    elif provider == "upstage":
+        if not settings.UPSTAGE_API_KEY:
+            raise RuntimeError(
+                "Upstage 임베딩을 사용하려면 .env에 UPSTAGE_API_KEY를 설정하세요.\n"
+                "API 키는 https://console.upstage.ai 에서 발급받을 수 있습니다."
+            )
+        from langchain_upstage import UpstageEmbeddings
+
+        return UpstageEmbeddings(
+            model=config.model,
+            api_key=settings.UPSTAGE_API_KEY,
+        )
+
+    elif provider == "local":
+        try:
+            import torch
+            from langchain_huggingface import HuggingFaceEmbeddings
+        except ImportError as e:
+            raise RuntimeError(
+                "로컬 임베딩 모델을 사용하려면 추가 의존성이 필요합니다.\n"
+                "설치: uv sync --group local-embeddings"
+            ) from e
+
+        # 디바이스 자동 감지: CUDA > MPS (Apple Silicon) > CPU
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+
+        logger.info(f"로컬 임베딩 모델 '{config.model}' 사용 (device: {device})")
+
+        model_kwargs = {
+            "device": device,
+            "trust_remote_code": True,  # KURE 등 일부 모델 필요
+        }
+        encode_kwargs = {
+            "normalize_embeddings": True,  # 코사인 유사도용 정규화
+            "batch_size": 32,
+            "show_progress_bar": False,
+        }
+
+        return HuggingFaceEmbeddings(
+            model_name=config.model,
+            model_kwargs=model_kwargs,
+            encode_kwargs=encode_kwargs,
+        )
+
+    else:
+        raise ValueError(f"알 수 없는 임베딩 provider: '{provider}'. " "지원: openai, upstage, local")
 
 
 @lru_cache
 def get_embeddings() -> OpenAIEmbeddings:
-    """임베딩 모델 인스턴스 반환"""
+    """임베딩 모델 인스턴스 반환 (기본값: .env의 LLM_EMBEDDING_MODEL)"""
     return OpenAIEmbeddings(
         model=settings.LLM_EMBEDDING_MODEL,
         openai_api_key=settings.OPENAI_API_KEY,

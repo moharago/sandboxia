@@ -8,6 +8,7 @@ from supabase import create_client
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
     TAVILY_API_KEY: str
+    UPSTAGE_API_KEY: str | None = None  # Upstage Solar Embedding용
     CORS_ORIGINS: str = ""
     CORS_ORIGIN_REGEX: str | None = None  # Preview 도메인용 정규식 패턴
 
@@ -21,10 +22,7 @@ class Settings(BaseSettings):
             re.compile(v)
             return v
         except re.error as e:
-            raise ValueError(
-                f"CORS_ORIGIN_REGEX가 유효한 정규식이 아닙니다: '{v}'. "
-                f"오류: {e.msg}"
-            ) from e
+            raise ValueError(f"CORS_ORIGIN_REGEX가 유효한 정규식이 아닙니다: '{v}'. " f"오류: {e.msg}") from e
 
     # 디버그 설정
     ENABLE_DEBUG_PII_LOGS: bool = True

@@ -22,6 +22,9 @@ dependencies = [
   # Vector DB
   "chromadb>=0.5.0",
   "langchain-chroma>=0.2.0",
+  # Embedding Providers (API)
+  "langchain-upstage>=0.3.0",
+  # 로컬 임베딩은 [dependency-groups] local-embeddings 참조
   # Supabase & File Upload
   "supabase>=2.0.0",
   "python-multipart>=0.0.9",
@@ -81,4 +84,10 @@ dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "ruff>=0.14.14",
+]
+local-embeddings = [
+    # 로컬 임베딩 모델 (E3~E5) 사용 시 필요
+    # 설치: uv sync --group local-embeddings
+    "langchain-huggingface>=0.1.0",
+    "sentence-transformers>=2.6.0,<4.0.0",
 ]

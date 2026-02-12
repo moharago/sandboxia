@@ -13,6 +13,8 @@
 옵션:
     --top_k 10        # Top-K 값 변경 (기본: 5)
     --output result   # 결과 파일명 (기본: 타임스탬프)
+    --config E2       # 임베딩 설정 (없으면 .env 사용)
+    --collection_suffix _E2  # 컬렉션 접미사
 """
 
 import json
@@ -27,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
+from app.rag.config import EmbeddingConfig, load_embedding_config
 from eval.metrics import RetrievalMetrics, aggregate_metrics
 from eval.r3.common import (
     RESULTS_DIR_RETRIEVAL,
@@ -97,12 +100,19 @@ def evaluate_single_item(
     return metrics, latency_ms, detail
 
 
-def run_evaluation(top_k: int = 5, output_name: str | None = None):
+def run_evaluation(
+    top_k: int = 5,
+    output_name: str | None = None,
+    embedding_config: EmbeddingConfig | None = None,
+    collection_suffix: str = "",
+):
     """전체 평가 실행
 
     Args:
         top_k: Top-K 값
         output_name: 결과 파일명 (없으면 타임스탬프 사용)
+        embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
+        collection_suffix: 컬렉션 이름에 붙일 접미사
     """
     print("=" * 60)
     print("R3 법령 RAG 평가 시작")
@@ -113,10 +123,15 @@ def run_evaluation(top_k: int = 5, output_name: str | None = None):
     items = eval_set.get("evaluation_items", [])
     print(f"\n평가셋: {len(items)}개 항목")
     print(f"Top-K: {top_k}")
+    if embedding_config:
+        print(f"임베딩: {embedding_config.name} ({embedding_config.model})")
+    else:
+        print(f"임베딩: .env 기본값 ({settings.LLM_EMBEDDING_MODEL})")
+    print(f"컬렉션: {COLLECTION_LAWS}{collection_suffix}")
 
     # Vector Store 초기화
     print("\nVector Store 초기화 중...")
-    vector_store = get_vector_store()
+    vector_store = get_vector_store(embedding_config, collection_suffix)
 
     # 평가 실행
     print("\n평가 진행 중...\n")
@@ -194,8 +209,10 @@ def run_evaluation(top_k: int = 5, output_name: str | None = None):
         "timestamp": datetime.now().isoformat(),
         "config": {
             "top_k": top_k,
-            "embedding_model": settings.LLM_EMBEDDING_MODEL,
-            "collection": COLLECTION_LAWS,
+            "embedding_config": embedding_config.name if embedding_config else ".env",
+            "embedding_model": embedding_config.model if embedding_config else settings.LLM_EMBEDDING_MODEL,
+            "embedding_provider": embedding_config.provider if embedding_config else "openai",
+            "collection": COLLECTION_LAWS + collection_suffix,
             "num_items": len(items),
         },
         "summary": {
@@ -223,10 +240,22 @@ def main():
     parser = argparse.ArgumentParser(description="R3 법령 RAG 평가")
     parser.add_argument("--top_k", type=int, default=5, help="Top-K 값 (기본: 5)")
     parser.add_argument("--output", type=str, default=None, help="결과 파일명")
+    parser.add_argument("--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)")
+    parser.add_argument("--collection_suffix", type=str, default="", help="컬렉션 접미사")
 
     args = parser.parse_args()
 
-    run_evaluation(top_k=args.top_k, output_name=args.output)
+    # 임베딩 설정 로드 (프리셋 지정 시에만)
+    embedding_config = None
+    if args.config:
+        embedding_config = load_embedding_config(args.config)
+
+    run_evaluation(
+        top_k=args.top_k,
+        output_name=args.output,
+        embedding_config=embedding_config,
+        collection_suffix=args.collection_suffix,
+    )
 
 
 if __name__ == "__main__":
