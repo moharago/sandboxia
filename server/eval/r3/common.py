@@ -5,7 +5,7 @@ run_evaluation.py와 run_llm_evaluation.py에서 공유하는 함수들.
 주요 기능:
 - 평가셋 로드
 - Vector Store 연결
-- Gold chunk ID 생성 및 매칭
+- Gold chunk ID 생성 및 매칭 (조 단위 - 청킹 전략 무관)
 - Retrieval 지표 계산
 """
 
@@ -74,8 +74,8 @@ def build_gold_chunk_ids(
 ) -> tuple[list[dict], list[dict]]:
     """gold_citations에서 매칭용 ID 생성
 
-    매칭 키: (law_name, article_no, paragraph_no)
-    - article_title은 같은 조에 여러 조항이 있는 경우에만 구분용으로 사용
+    매칭 키: (law_name, article_no) - 조 단위 매칭 (청킹 전략 무관)
+    - article_title은 같은 조번호에 여러 조문이 있는 경우에만 구분용으로 사용
 
     Returns:
         (all_gold_ids, must_have_ids)
@@ -84,10 +84,10 @@ def build_gold_chunk_ids(
     must_have_ids = []
 
     for citation in gold_citations:
-        # 기본 매칭 키: law_name, article_no, paragraph_no
-        base_id = f"{citation.get('law_name', '')}|{citation.get('article_no', '')}|{citation.get('paragraph_no', '')}"
+        # 기본 매칭 키: law_name, article_no (조 단위)
+        base_id = f"{citation.get('law_name', '')}|{citation.get('article_no', '')}"
 
-        # article_title이 있으면 추가 (같은 조에 여러 조항이 있는 경우 구분)
+        # article_title이 있으면 추가 (같은 조번호에 여러 조문이 있는 경우 구분)
         article_title = citation.get("article_title", "")
 
         gold_id = {
@@ -104,9 +104,10 @@ def build_gold_chunk_ids(
 
 
 def extract_chunk_id_from_doc(doc) -> dict:
-    """Document에서 매칭용 chunk_id 추출"""
+    """Document에서 매칭용 chunk_id 추출 (조 단위)"""
     meta = doc.metadata
-    base_id = f"{meta.get('law_name', '')}|{meta.get('article_no', '')}|{meta.get('paragraph_no', '')}"
+    # 조 단위 매칭 - paragraph_no 무시
+    base_id = f"{meta.get('law_name', '')}|{meta.get('article_no', '')}"
     article_title = meta.get("article_title", "")
 
     return {
@@ -116,10 +117,10 @@ def extract_chunk_id_from_doc(doc) -> dict:
 
 
 def match_ids(retrieved_id: dict, gold_id: dict) -> bool:
-    """두 ID가 매칭되는지 확인
+    """두 ID가 매칭되는지 확인 (조 단위)
 
     매칭 규칙:
-    1. base_id (law_name, article_no, paragraph_no) 필수 일치
+    1. base_id (law_name, article_no) 필수 일치 - 청킹 전략 무관
     2. gold_id에 article_title이 있으면 추가로 일치해야 함
     """
     if retrieved_id["base_id"] != gold_id["base_id"]:
