@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-12T11:14:20.028796",
+  "timestamp": "2026-02-12T14:55:13.829270",
   "config": {
     "top_k": 5,
     "embedding_model": "text-embedding-3-small",
@@ -9,17 +9,17 @@
   "summary": {
     "must_have_recall_at_k": 0.4333,
     "recall_at_k": 0.3389,
-    "mrr": 0.4889,
-    "latency_p50_ms": 128.39,
-    "latency_p95_ms": 296.69,
-    "latency_mean_ms": 142.21
+    "mrr": 0.4861,
+    "latency_p50_ms": 125.39,
+    "latency_p95_ms": 156.25,
+    "latency_mean_ms": 127.05
   },
   "aggregated": {
     "k": 5,
     "num_queries": 30,
     "avg_recall_at_k": 0.3389,
     "avg_must_have_recall_at_k": 0.4333,
-    "avg_mrr": 0.4889,
+    "avg_mrr": 0.4861,
     "total_gold_citations": 92,
     "total_retrieved_gold": 31,
     "total_must_have_citations": 55,
@@ -53,7 +53,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 296.69
+      "latency_ms": 304.39
     },
     {
       "id": "R3-0002",
@@ -79,7 +79,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 221.17
+      "latency_ms": 107.89
     },
     {
       "id": "R3-0003",
@@ -105,7 +105,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 117.72
+      "latency_ms": 115.0
     },
     {
       "id": "R3-0004",
@@ -131,7 +131,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 145.26
+      "latency_ms": 129.91
     },
     {
       "id": "R3-0005",
@@ -157,7 +157,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 105.57
+      "latency_ms": 127.06
     },
     {
       "id": "R3-0006",
@@ -183,7 +183,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 135.9
+      "latency_ms": 145.92
     },
     {
       "id": "R3-0007",
@@ -209,7 +209,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 112.19
+      "latency_ms": 105.52
     },
     {
       "id": "R3-0008",
@@ -236,7 +236,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 114.08
+      "latency_ms": 106.32
     },
     {
       "id": "R3-0009",
@@ -262,7 +262,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 133.93
+      "latency_ms": 111.49
     },
     {
       "id": "R3-0010",
@@ -288,7 +288,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 112.12
+      "latency_ms": 131.75
     },
     {
       "id": "R3-0011",
@@ -314,7 +314,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 162.28
+      "latency_ms": 156.25
     },
     {
       "id": "R3-0012",
@@ -340,7 +340,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 371.57
+      "latency_ms": 131.33
     },
     {
       "id": "R3-0013",
@@ -366,7 +366,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 111.86
+      "latency_ms": 126.5
     },
     {
       "id": "R3-0014",
@@ -392,7 +392,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 130.73
+      "latency_ms": 101.08
     },
     {
       "id": "R3-0015",
@@ -417,7 +417,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 148.03
+      "latency_ms": 108.82
     },
     {
       "id": "R3-0016",
@@ -443,7 +443,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 0.3333333333333333,
       "first_hit_rank": 3,
-      "latency_ms": 109.52
+      "latency_ms": 131.21
     },
     {
       "id": "R3-0017",
@@ -469,7 +469,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 111.26
+      "latency_ms": 109.98
     },
     {
       "id": "R3-0018",
@@ -494,7 +494,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 125.96
+      "latency_ms": 105.55
     },
     {
       "id": "R3-0019",
@@ -519,7 +519,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 106.52
+      "latency_ms": 109.55
     },
     {
       "id": "R3-0020",
@@ -545,7 +545,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 135.29
+      "latency_ms": 126.74
     },
     {
       "id": "R3-0021",
@@ -570,7 +570,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 138.44
+      "latency_ms": 104.56
     },
     {
       "id": "R3-0022",
@@ -596,7 +596,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 111.92
+      "latency_ms": 127.12
     },
     {
       "id": "R3-0023",
@@ -622,7 +622,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 137.52
+      "latency_ms": 130.9
     },
     {
       "id": "R3-0024",
@@ -648,7 +648,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 102.7
+      "latency_ms": 128.8
     },
     {
       "id": "R3-0025",
@@ -674,7 +674,7 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 126.06
+      "latency_ms": 104.98
     },
     {
       "id": "R3-0026",
@@ -700,7 +700,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 142.8
+      "latency_ms": 109.06
     },
     {
       "id": "R3-0027",
@@ -726,7 +726,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 133.1
+      "latency_ms": 124.29
     },
     {
       "id": "R3-0028",
@@ -744,15 +744,15 @@
       "retrieved_ids": [
         "행정규제기본법|19|①|기존규제의 존속기한 및 재검토기한 명시",
         "행정규제기본법|8|②|규제의 존속기한 및 재검토기한 명시",
-        "행정규제기본법|8|①|규제의 존속기한 및 재검토기한 명시",
         "행정규제기본법|8|⑤|규제의 존속기한 및 재검토기한 명시",
+        "행정규제기본법|8|①|규제의 존속기한 및 재검토기한 명시",
         "행정규제기본법|8|③|규제의 존속기한 및 재검토기한 명시"
       ],
       "recall_at_k": 0.3333333333333333,
       "must_have_recall_at_k": 0.5,
-      "mrr": 0.3333333333333333,
-      "first_hit_rank": 3,
-      "latency_ms": 137.69
+      "mrr": 0.25,
+      "first_hit_rank": 4,
+      "latency_ms": 129.73
     },
     {
       "id": "R3-0029",
@@ -778,7 +778,7 @@
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 112.83
+      "latency_ms": 116.55
     },
     {
       "id": "R3-0030",
@@ -803,7 +803,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 115.46
+      "latency_ms": 143.12
     }
   ]
 }
