@@ -1,7 +1,6 @@
 """파일 다운로드 API"""
 
 from fastapi import APIRouter, Depends, HTTPException
-from postgrest.exceptions import APIError
 
 from app.api.deps import AuthUser, get_auth_user
 from app.core.config import supabase
@@ -12,22 +11,19 @@ STORAGE_BUCKET = "uploads"
 
 
 @router.get("/download/{file_id}")
-async def get_download_url(file_id: str, user: AuthUser = Depends(get_auth_user)):
+def get_download_url(file_id: str, user: AuthUser = Depends(get_auth_user)):
     """파일 다운로드 URL 생성 (signed URL)
 
     인증된 사용자만 자신의 프로젝트 파일을 다운로드할 수 있습니다.
     """
     # project_files 테이블에서 파일 정보 및 project_id 조회
-    try:
-        file_result = (
-            supabase.table("project_files")
-            .select("storage_path, file_name, project_id")
-            .eq("id", file_id)
-            .single()
-            .execute()
-        )
-    except APIError:
-        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
+    file_result = (
+        supabase.table("project_files")
+        .select("storage_path, file_name, project_id")
+        .eq("id", file_id)
+        .maybe_single()
+        .execute()
+    )
 
     if not file_result.data:
         raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
@@ -35,16 +31,13 @@ async def get_download_url(file_id: str, user: AuthUser = Depends(get_auth_user)
     project_id = file_result.data["project_id"]
 
     # 프로젝트 소유자 확인
-    try:
-        project_result = (
-            supabase.table("projects")
-            .select("user_id")
-            .eq("id", project_id)
-            .single()
-            .execute()
-        )
-    except APIError:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+    project_result = (
+        supabase.table("projects")
+        .select("user_id")
+        .eq("id", project_id)
+        .maybe_single()
+        .execute()
+    )
 
     if not project_result.data:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
