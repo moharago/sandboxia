@@ -5,8 +5,17 @@
  */
 
 import { createClient } from "@/lib/supabase/client"
+import { useAuthStore } from "@/stores/auth-store"
 import type { CreateProjectRequest, ProjectResponse } from "@/types/api/project"
 import type { RecommendableTrack } from "@/types/api/track"
+
+// 프로덕션: 비워두면 상대경로로 요청 → Vercel rewrites가 EC2로 프록시
+// 개발: http://localhost:8000 설정
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
+
+async function getAuthToken(): Promise<string | null> {
+    return useAuthStore.getState().getAccessToken()
+}
 
 export interface ProjectFile {
     id: string
@@ -155,12 +164,22 @@ export const projectsApi = {
      * 프로젝트 파일 다운로드 URL 생성 (서버 API 사용)
      */
     getFileDownloadUrl: async (file: ProjectFile): Promise<string> => {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
-        const response = await fetch(`${apiUrl}/api/v1/files/download/${file.id}`)
+        const token = await getAuthToken()
+
+        if (!token) {
+            throw new Error("로그인이 필요합니다.")
+        }
+
+        const response = await fetch(`${API_BASE}/api/v1/files/download/${file.id}`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
 
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.detail || "다운로드 URL 생성 실패")
+            const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+            throw new Error(errorData.detail || `다운로드 URL 생성 실패: ${response.statusText}`)
         }
 
         const data = await response.json()
