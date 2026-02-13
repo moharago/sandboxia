@@ -205,7 +205,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                     </div>
 
                     {/* 오른쪽: 참고 패널 */}
-                    <div className={isReferencePanelOpen ? "flex-1" : ""}>
+                    <div className={isReferencePanelOpen ? "flex-1 min-w-0" : ""}>
                         <div className="sticky top-16">
                             <ReferencePanel
                                 isOpen={isReferencePanelOpen}

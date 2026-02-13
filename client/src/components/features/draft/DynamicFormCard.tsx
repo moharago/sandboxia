@@ -269,11 +269,6 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                                     {field.label}
                                     {field.required && <span className="text-destructive ml-1">*</span>}
                                 </Label>
-                                {!hasSelection && field.required && (
-                                    <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
-                                        선택 필요
-                                    </span>
-                                )}
                             </div>
                             <div className="space-y-1.5">
                                 {field.options.map((option) => {

@@ -160,7 +160,7 @@ function RegulationItem({ regulation, index }: RegulationItemProps) {
                 aria-controls={`reg-content-${index}`}
             >
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm">{regulation.title}</h4>
+                    <h4 className="font-medium text-sm truncate">{regulation.title}</h4>
                 </div>
                 <div className="flex items-center">
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -225,7 +225,7 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
     const defaultTab = track === "quick_check" ? "regulations" : "cases"
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
             <Tabs defaultValue={defaultTab} className="w-full">
                 <div className="flex items-center gap-3">
                     <TabsList className="h-8 flex-1 grid grid-cols-2 py-0 px-0.5 bg-gray-100">
