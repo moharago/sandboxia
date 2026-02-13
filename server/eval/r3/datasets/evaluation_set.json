@@ -23,11 +23,13 @@
       "negatives": [
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
-          "article_no": "32"
+          "article_no": "32",
+          "article_title": ""
         },
         {
           "law_name": "전자금융거래법",
-          "article_no": "21"
+          "article_no": "21",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -53,11 +55,13 @@
       "negatives": [
         {
           "law_name": "전자금융거래법",
-          "article_no": "24"
+          "article_no": "24",
+          "article_title": ""
         },
         {
           "law_name": "전자금융거래법",
-          "article_no": "9"
+          "article_no": "9",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -83,11 +87,13 @@
       "negatives": [
         {
           "law_name": "의료법",
-          "article_no": "33"
+          "article_no": "33",
+          "article_title": ""
         },
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -113,11 +119,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "18"
+          "article_no": "18",
+          "article_title": ""
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
-          "article_no": "32"
+          "article_no": "32",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -143,11 +151,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         },
         {
           "law_name": "개인정보 보호법",
-          "article_no": "22"
+          "article_no": "22",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -173,11 +183,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
-          "article_no": "37"
+          "article_no": "37",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -311,11 +323,13 @@
       "negatives": [
         {
           "law_name": "금융혁신지원 특별법",
-          "article_no": "4"
+          "article_no": "4",
+          "article_title": ""
         },
         {
           "law_name": "금융혁신지원 특별법",
-          "article_no": "8"
+          "article_no": "8",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -341,11 +355,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
-          "article_no": "18"
+          "article_no": "18",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -371,11 +387,13 @@
       "negatives": [
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
-          "article_no": "10"
+          "article_no": "10",
+          "article_title": ""
         },
         {
           "law_name": "개인정보 보호법",
-          "article_no": "18"
+          "article_no": "18",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -406,11 +424,13 @@
       "negatives": [
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
-          "article_no": "20"
+          "article_no": "20",
+          "article_title": ""
         },
         {
           "law_name": "전자금융거래법",
-          "article_no": "27"
+          "article_no": "27",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -436,11 +456,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "35"
+          "article_no": "35",
+          "article_title": ""
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
-          "article_no": "10"
+          "article_no": "10",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -471,11 +493,13 @@
       "negatives": [
         {
           "law_name": "전기통신사업법",
-          "article_no": "22"
+          "article_no": "22",
+          "article_title": ""
         },
         {
           "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
-          "article_no": "36"
+          "article_no": "36",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -501,11 +525,13 @@
       "negatives": [
         {
           "law_name": "전기통신사업법",
-          "article_no": "6"
+          "article_no": "6",
+          "article_title": ""
         },
         {
           "law_name": "전기통신사업법",
-          "article_no": "26"
+          "article_no": "26",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -573,11 +599,13 @@
       "negatives": [
         {
           "law_name": "전기통신사업법",
-          "article_no": "22"
+          "article_no": "22",
+          "article_title": ""
         },
         {
           "law_name": "전자금융거래법",
-          "article_no": "9"
+          "article_no": "9",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -603,11 +631,13 @@
       "negatives": [
         {
           "law_name": "의료법",
-          "article_no": "34"
+          "article_no": "34",
+          "article_title": ""
         },
         {
           "law_name": "의료법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -633,11 +663,13 @@
       "negatives": [
         {
           "law_name": "의료법",
-          "article_no": "15"
+          "article_no": "15",
+          "article_title": ""
         },
         {
           "law_name": "의료법",
-          "article_no": "34"
+          "article_no": "34",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -668,11 +700,13 @@
       "negatives": [
         {
           "law_name": "의료법",
-          "article_no": "15"
+          "article_no": "15",
+          "article_title": ""
         },
         {
           "law_name": "의료법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -703,11 +737,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
-          "article_no": "15"
+          "article_no": "15",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -734,11 +770,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "36"
+          "article_no": "36",
+          "article_title": ""
         },
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -769,11 +807,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "35"
+          "article_no": "35",
+          "article_title": ""
         },
         {
           "law_name": "개인정보 보호법",
-          "article_no": "18"
+          "article_no": "18",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -800,11 +840,13 @@
       "negatives": [
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
-          "article_no": "32"
+          "article_no": "32",
+          "article_title": ""
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
-          "article_no": "10"
+          "article_no": "10",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -831,11 +873,13 @@
       "negatives": [
         {
           "law_name": "개인정보 보호법",
-          "article_no": "17"
+          "article_no": "17",
+          "article_title": ""
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
-          "article_no": "32"
+          "article_no": "32",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -894,11 +938,13 @@
       "negatives": [
         {
           "law_name": "행정규제기본법",
-          "article_no": "5"
+          "article_no": "5",
+          "article_title": ""
         },
         {
           "law_name": "행정규제기본법",
-          "article_no": "12"
+          "article_no": "12",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
@@ -961,11 +1007,13 @@
       "negatives": [
         {
           "law_name": "행정규제기본법",
-          "article_no": "7"
+          "article_no": "7",
+          "article_title": ""
         },
         {
           "law_name": "행정규제기본법",
-          "article_no": "8"
+          "article_no": "8",
+          "article_title": ""
         }
       ],
       "expected_answer_bullets": [
