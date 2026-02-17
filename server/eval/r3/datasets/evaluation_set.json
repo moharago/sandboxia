@@ -1,6 +1,7 @@
 {
-  "version": "3.0",
-  "description": "R3 도메인별 규제/법령 RAG 평가셋",
+  "version": "4.0",
+  "description": "R3 도메인별 규제/법령 RAG 평가셋 (청킹 전략 무관 - 조 단위 매칭)",
+  "matching_level": "article",
   "total_count": 30,
   "evaluation_items": [
     {
@@ -8,14 +9,28 @@
       "domain": "finance",
       "question": "간편결제 서비스에서 부정결제 사고가 발생하면 책임은 누가 지나요?",
       "gold_citations": [
-        {"law_name": "전자금융거래법", "article_no": "9", "paragraph_no": "①", "must_have": true},
-        {"law_name": "전자금융거래법", "article_no": "9", "paragraph_no": "②", "must_have": true},
-        {"law_name": "전자금융거래법", "article_no": "9", "paragraph_no": "③", "must_have": false},
-        {"law_name": "전자금융거래법", "article_no": "10", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "9",
+          "must_have": true
+        },
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "10",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "①"},
-        {"law_name": "전자금융거래법", "article_no": "21", "article_title": "정보보호최고책임자 지정", "paragraph_no": "①"}
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "32",
+          "article_title": ""
+        },
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "21",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "원칙적으로 금융회사 또는 전자금융업자가 책임을 부담",
@@ -31,13 +46,23 @@
       "domain": "finance",
       "question": "전자금융거래 관련 분쟁이 발생하면 어떻게 해결하나요?",
       "gold_citations": [
-        {"law_name": "전자금융거래법", "article_no": "27", "paragraph_no": "①", "must_have": true},
-        {"law_name": "전자금융거래법", "article_no": "27", "paragraph_no": "②", "must_have": true},
-        {"law_name": "전자금융거래법", "article_no": "27", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "27",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "전자금융거래법", "article_no": "24", "paragraph_no": "①"},
-        {"law_name": "전자금융거래법", "article_no": "9", "paragraph_no": "①"}
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "24",
+          "article_title": ""
+        },
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "9",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "금융회사는 분쟁처리 절차를 마련해야 함",
@@ -53,13 +78,23 @@
       "domain": "healthcare",
       "question": "원격의료는 어떤 경우에 허용되나요? 의사와 환자 간 원격진료가 가능한가요?",
       "gold_citations": [
-        {"law_name": "의료법", "article_no": "34", "paragraph_no": "①", "must_have": true},
-        {"law_name": "의료법", "article_no": "34", "paragraph_no": "②", "must_have": true},
-        {"law_name": "의료법", "article_no": "34", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "의료법",
+          "article_no": "34",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "의료법", "article_no": "33", "paragraph_no": "①"},
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"}
+        {
+          "law_name": "의료법",
+          "article_no": "33",
+          "article_title": ""
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "원격의료는 의료인 간에 행하는 것이 원칙",
@@ -75,13 +110,23 @@
       "domain": "privacy",
       "question": "개인정보를 제3자에게 제공하려면 어떤 요건을 갖춰야 하나요?",
       "gold_citations": [
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "②", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "18", "paragraph_no": "①"},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "18",
+          "article_title": ""
+        },
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "32",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "정보주체의 동의를 받아야 함",
@@ -97,13 +142,23 @@
       "domain": "privacy",
       "question": "수집 목적 외로 개인정보를 이용하거나 제공할 수 있는 경우는?",
       "gold_citations": [
-        {"law_name": "개인정보 보호법", "article_no": "18", "paragraph_no": "①", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "18", "paragraph_no": "②", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "18", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "18",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"},
-        {"law_name": "개인정보 보호법", "article_no": "22", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "22",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "정보주체의 별도 동의가 있는 경우",
@@ -119,13 +174,23 @@
       "domain": "finance",
       "question": "개인신용정보를 제3자에게 제공할 때 동의를 어떻게 받아야 하나요?",
       "gold_citations": [
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "①", "must_have": true},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "②", "must_have": true},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "32",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "37", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        },
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "37",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "서면 등의 방법으로 동의를 받아야 함",
@@ -141,13 +206,24 @@
       "domain": "regulation",
       "question": "규제 신속확인 제도가 무엇이고 어떻게 신청하나요?",
       "gold_citations": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "규제 신속확인", "paragraph_no": "①", "must_have": true},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "규제 신속확인", "paragraph_no": "②", "must_have": true},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "규제 신속확인", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "규제 신속확인",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "①"},
-        {"law_name": "금융혁신지원 특별법", "article_no": "4", "paragraph_no": "①"}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "실증을 위한 규제특례"
+        },
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "4",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "신규 융합제품/서비스의 허가/신고/등록 필요 여부 확인",
@@ -163,14 +239,24 @@
       "domain": "regulation",
       "question": "실증특례(규제 샌드박스) 신청 요건과 절차는 어떻게 되나요?",
       "gold_citations": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "①", "must_have": true},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "②", "must_have": true},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "③", "must_have": false},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "④", "must_have": false}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "실증을 위한 규제특례",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "규제 신속확인", "paragraph_no": "①"},
-        {"law_name": "금융혁신지원 특별법", "article_no": "5", "paragraph_no": "①"}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "규제 신속확인"
+        },
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "5",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "신기술을 활용한 신제품/서비스 실증 목적",
@@ -186,13 +272,28 @@
       "domain": "regulation",
       "question": "혁신금융서비스 지정을 받으려면 어떤 요건을 갖춰야 하나요?",
       "gold_citations": [
-        {"law_name": "금융혁신지원 특별법", "article_no": "4", "paragraph_no": "①", "must_have": true},
-        {"law_name": "금융혁신지원 특별법", "article_no": "4", "paragraph_no": "②", "must_have": true},
-        {"law_name": "금융혁신지원 특별법", "article_no": "5", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "4",
+          "must_have": true
+        },
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "5",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "①"},
-        {"law_name": "금융혁신지원 특별법", "article_no": "7", "paragraph_no": "①"}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "실증을 위한 규제특례"
+        },
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "7",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "금융업에 관한 혁신성이 인정되는 서비스",
@@ -208,13 +309,28 @@
       "domain": "regulation",
       "question": "혁신금융서비스 지정이 취소되는 경우는 어떤 경우인가요?",
       "gold_citations": [
-        {"law_name": "금융혁신지원 특별법", "article_no": "7", "paragraph_no": "①", "must_have": true},
-        {"law_name": "금융혁신지원 특별법", "article_no": "7", "paragraph_no": "②", "must_have": true},
-        {"law_name": "금융혁신지원 특별법", "article_no": "11", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "7",
+          "must_have": true
+        },
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "11",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "금융혁신지원 특별법", "article_no": "4", "paragraph_no": "①"},
-        {"law_name": "금융혁신지원 특별법", "article_no": "8", "paragraph_no": "①"}
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "4",
+          "article_title": ""
+        },
+        {
+          "law_name": "금융혁신지원 특별법",
+          "article_no": "8",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "거짓이나 부정한 방법으로 지정받은 경우",
@@ -230,13 +346,23 @@
       "domain": "data",
       "question": "데이터 결합이란 무엇이고, 정부는 이를 어떻게 지원하나요?",
       "gold_citations": [
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "10", "paragraph_no": "①", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "10", "paragraph_no": "②", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "10", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "10",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "18", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        },
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "18",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "데이터 간 결합을 통해 새로운 데이터 생산 촉진",
@@ -252,13 +378,23 @@
       "domain": "data",
       "question": "데이터안심구역이란 무엇이고, 어떻게 지정되나요?",
       "gold_citations": [
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "11", "paragraph_no": "①", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "11", "paragraph_no": "②", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "11", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "11",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "10", "paragraph_no": "①"},
-        {"law_name": "개인정보 보호법", "article_no": "18", "paragraph_no": "①"}
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "10",
+          "article_title": ""
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "18",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "안전한 데이터 활용 환경을 제공하는 공간",
@@ -274,13 +410,28 @@
       "domain": "data",
       "question": "데이터 분쟁이 발생하면 어떻게 조정받을 수 있나요?",
       "gold_citations": [
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "34", "paragraph_no": "①", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "35", "paragraph_no": "①", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "35", "paragraph_no": "②", "must_have": false}
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "34",
+          "must_have": true
+        },
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "35",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "20", "paragraph_no": "①"},
-        {"law_name": "전자금융거래법", "article_no": "27", "paragraph_no": "①"}
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "20",
+          "article_title": ""
+        },
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "27",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "데이터분쟁조정위원회 설치",
@@ -296,13 +447,23 @@
       "domain": "data",
       "question": "마이데이터(데이터 이동권)란 무엇이고, 어떻게 촉진하나요?",
       "gold_citations": [
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "15", "paragraph_no": "①", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "15", "paragraph_no": "②", "must_have": true},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "15", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "15",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "35", "article_title": "개인정보의 전송 요구", "paragraph_no": "①"},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "10", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "35",
+          "article_title": ""
+        },
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "10",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "개인이 자신의 데이터를 다른 곳으로 이동시킬 수 있는 권리",
@@ -318,13 +479,28 @@
       "domain": "telecom",
       "question": "기간통신사업을 하려면 어떤 허가가 필요한가요?",
       "gold_citations": [
-        {"law_name": "전기통신사업법", "article_no": "6", "paragraph_no": "①", "must_have": true},
-        {"law_name": "전기통신사업법", "article_no": "6", "paragraph_no": "②", "must_have": false},
-        {"law_name": "전기통신사업법", "article_no": "7", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "6",
+          "must_have": true
+        },
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "7",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "전기통신사업법", "article_no": "22", "paragraph_no": "①"},
-        {"law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법", "article_no": "36", "paragraph_no": "①"}
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "22",
+          "article_title": ""
+        },
+        {
+          "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
+          "article_no": "36",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "과학기술정보통신부장관의 허가 필요",
@@ -340,13 +516,23 @@
       "domain": "telecom",
       "question": "부가통신사업을 시작하려면 어떤 절차가 필요한가요?",
       "gold_citations": [
-        {"law_name": "전기통신사업법", "article_no": "22", "paragraph_no": "①", "must_have": true},
-        {"law_name": "전기통신사업법", "article_no": "22", "paragraph_no": "②", "must_have": true},
-        {"law_name": "전기통신사업법", "article_no": "22", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "22",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "전기통신사업법", "article_no": "6", "paragraph_no": "①"},
-        {"law_name": "전기통신사업법", "article_no": "26", "paragraph_no": "①"}
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "6",
+          "article_title": ""
+        },
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "26",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "과학기술정보통신부장관에게 신고",
@@ -362,13 +548,28 @@
       "domain": "telecom",
       "question": "ICT 신기술 서비스가 기존 규제와 충돌하면 어떻게 해결하나요?",
       "gold_citations": [
-        {"law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법", "article_no": "36", "paragraph_no": "①", "must_have": true},
-        {"law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법", "article_no": "36", "paragraph_no": "②", "must_have": true},
-        {"law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법", "article_no": "37", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
+          "article_no": "36",
+          "must_have": true
+        },
+        {
+          "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
+          "article_no": "37",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "①"},
-        {"law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법", "article_no": "10", "paragraph_no": "①"}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "실증을 위한 규제특례"
+        },
+        {
+          "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
+          "article_no": "10",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "신속처리를 위한 임시허가 제도",
@@ -384,13 +585,28 @@
       "domain": "telecom",
       "question": "통신사업자는 이용자 보호를 위해 어떤 의무를 지나요?",
       "gold_citations": [
-        {"law_name": "전기통신사업법", "article_no": "28", "paragraph_no": "①", "must_have": true},
-        {"law_name": "전기통신사업법", "article_no": "28", "paragraph_no": "②", "must_have": false},
-        {"law_name": "전기통신사업법", "article_no": "32", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "28",
+          "must_have": true
+        },
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "32",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "전기통신사업법", "article_no": "22", "paragraph_no": "①"},
-        {"law_name": "전자금융거래법", "article_no": "9", "paragraph_no": "①"}
+        {
+          "law_name": "전기통신사업법",
+          "article_no": "22",
+          "article_title": ""
+        },
+        {
+          "law_name": "전자금융거래법",
+          "article_no": "9",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "이용약관 신고 및 공개 의무",
@@ -406,13 +622,23 @@
       "domain": "healthcare",
       "question": "의사가 환자의 진료를 거부할 수 있나요?",
       "gold_citations": [
-        {"law_name": "의료법", "article_no": "15", "paragraph_no": "①", "must_have": true},
-        {"law_name": "의료법", "article_no": "15", "paragraph_no": "②", "must_have": false},
-        {"law_name": "의료법", "article_no": "15", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "의료법",
+          "article_no": "15",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "의료법", "article_no": "34", "paragraph_no": "①"},
-        {"law_name": "의료법", "article_no": "17", "paragraph_no": "①"}
+        {
+          "law_name": "의료법",
+          "article_no": "34",
+          "article_title": ""
+        },
+        {
+          "law_name": "의료법",
+          "article_no": "17",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "정당한 사유 없이 진료 거부 불가",
@@ -428,13 +654,23 @@
       "domain": "healthcare",
       "question": "진단서나 처방전은 어떻게 발급해야 하나요?",
       "gold_citations": [
-        {"law_name": "의료법", "article_no": "17", "article_title": "진단서 등", "paragraph_no": "①", "must_have": true},
-        {"law_name": "의료법", "article_no": "17", "article_title": "진단서 등", "paragraph_no": "②", "must_have": true},
-        {"law_name": "의료법", "article_no": "17", "article_title": "처방전", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "의료법",
+          "article_no": "17",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "의료법", "article_no": "15", "paragraph_no": "①"},
-        {"law_name": "의료법", "article_no": "34", "paragraph_no": "①"}
+        {
+          "law_name": "의료법",
+          "article_no": "15",
+          "article_title": ""
+        },
+        {
+          "law_name": "의료법",
+          "article_no": "34",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "직접 진찰한 의료인만 발급 가능",
@@ -450,13 +686,28 @@
       "domain": "healthcare",
       "question": "의료기술이나 의료기기는 어떻게 보호받나요?",
       "gold_citations": [
-        {"law_name": "의료법", "article_no": "12", "paragraph_no": "①", "must_have": true},
-        {"law_name": "의료법", "article_no": "12", "paragraph_no": "②", "must_have": false},
-        {"law_name": "의료법", "article_no": "13", "paragraph_no": "", "must_have": false}
+        {
+          "law_name": "의료법",
+          "article_no": "12",
+          "must_have": true
+        },
+        {
+          "law_name": "의료법",
+          "article_no": "13",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "의료법", "article_no": "15", "paragraph_no": "①"},
-        {"law_name": "의료법", "article_no": "17", "article_title": "진단서 등", "paragraph_no": "①"}
+        {
+          "law_name": "의료법",
+          "article_no": "15",
+          "article_title": ""
+        },
+        {
+          "law_name": "의료법",
+          "article_no": "17",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "의료기술 등에 대한 보호 규정",
@@ -472,13 +723,28 @@
       "domain": "privacy",
       "question": "개인정보를 수집할 때 어떤 원칙을 지켜야 하나요?",
       "gold_citations": [
-        {"law_name": "개인정보 보호법", "article_no": "15", "paragraph_no": "①", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "16", "paragraph_no": "①", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "16", "paragraph_no": "②", "must_have": false}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "15",
+          "must_have": true
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "16",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "15", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        },
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "15",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "수집 목적에 필요한 최소한의 정보만 수집",
@@ -494,13 +760,24 @@
       "domain": "privacy",
       "question": "정보주체는 자신의 개인정보를 열람할 수 있나요?",
       "gold_citations": [
-        {"law_name": "개인정보 보호법", "article_no": "35", "article_title": "개인정보의 열람", "paragraph_no": "①", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "35", "article_title": "개인정보의 열람", "paragraph_no": "②", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "35", "article_title": "개인정보의 열람", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "35",
+          "article_title": "개인정보의 열람",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "36", "paragraph_no": "①"},
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "36",
+          "article_title": ""
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "정보주체는 자신의 개인정보 열람 요구 가능",
@@ -516,13 +793,28 @@
       "domain": "privacy",
       "question": "개인정보 처리를 중지해달라고 요청할 수 있나요?",
       "gold_citations": [
-        {"law_name": "개인정보 보호법", "article_no": "37", "article_title": "개인정보의 처리정지 등", "paragraph_no": "①", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "37", "article_title": "개인정보의 처리정지 등", "paragraph_no": "②", "must_have": true},
-        {"law_name": "개인정보 보호법", "article_no": "36", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "37",
+          "must_have": true
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "36",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "35", "article_title": "개인정보의 열람", "paragraph_no": "①"},
-        {"law_name": "개인정보 보호법", "article_no": "18", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "35",
+          "article_title": ""
+        },
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "18",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "정보주체는 처리정지 요구 가능",
@@ -538,13 +830,24 @@
       "domain": "finance",
       "question": "서로 다른 회사의 신용정보를 결합하려면 어떻게 해야 하나요?",
       "gold_citations": [
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "17", "article_title": "정보집합물의 결합 등", "paragraph_no": "①", "must_have": true},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "17", "article_title": "정보집합물의 결합 등", "paragraph_no": "②", "must_have": true},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "17", "article_title": "정보집합물의 결합 등", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "17",
+          "article_title": "정보집합물의 결합 등",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "①"},
-        {"law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법", "article_no": "10", "paragraph_no": "①"}
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "32",
+          "article_title": ""
+        },
+        {
+          "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
+          "article_no": "10",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "데이터전문기관을 통한 결합",
@@ -560,13 +863,24 @@
       "domain": "finance",
       "question": "신용정보 처리를 위탁하려면 어떤 규정을 따라야 하나요?",
       "gold_citations": [
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "17", "article_title": "처리의 위탁", "paragraph_no": "①", "must_have": true},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "17", "article_title": "처리의 위탁", "paragraph_no": "②", "must_have": true},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "17", "article_title": "처리의 위탁", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "17",
+          "article_title": "처리의 위탁",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "개인정보 보호법", "article_no": "17", "paragraph_no": "①"},
-        {"law_name": "신용정보의 이용 및 보호에 관한 법률", "article_no": "32", "paragraph_no": "①"}
+        {
+          "law_name": "개인정보 보호법",
+          "article_no": "17",
+          "article_title": ""
+        },
+        {
+          "law_name": "신용정보의 이용 및 보호에 관한 법률",
+          "article_no": "32",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "수탁자에 대한 관리·감독 의무",
@@ -582,13 +896,24 @@
       "domain": "regulation",
       "question": "임시허가란 무엇이고, 실증특례와 어떻게 다른가요?",
       "gold_citations": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "임시허가", "paragraph_no": "①", "must_have": true},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "임시허가", "paragraph_no": "②", "must_have": true},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "임시허가", "paragraph_no": "③", "must_have": false}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "임시허가",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "①"},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "규제 신속확인", "paragraph_no": "①"}
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "실증을 위한 규제특례"
+        },
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "5",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "안전성 입증 시 시장 출시를 위한 임시허가",
@@ -604,13 +929,23 @@
       "domain": "regulation",
       "question": "규제에는 존속기한이나 재검토 기한이 있나요?",
       "gold_citations": [
-        {"law_name": "행정규제기본법", "article_no": "8", "article_title": "규제의 존속기한 및 재검토기한 명시", "paragraph_no": "①", "must_have": true},
-        {"law_name": "행정규제기본법", "article_no": "8", "article_title": "규제의 재검토", "paragraph_no": "①", "must_have": true},
-        {"law_name": "행정규제기본법", "article_no": "8", "article_title": "규제의 재검토", "paragraph_no": "②", "must_have": false}
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "8",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "행정규제기본법", "article_no": "5", "paragraph_no": "①"},
-        {"law_name": "행정규제기본법", "article_no": "12", "paragraph_no": "①"}
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "5",
+          "article_title": ""
+        },
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "12",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "규제의 존속기한 또는 재검토기한 설정 원칙",
@@ -626,13 +961,28 @@
       "domain": "regulation",
       "question": "새로운 규제를 만들 때 어떤 절차를 거쳐야 하나요?",
       "gold_citations": [
-        {"law_name": "행정규제기본법", "article_no": "7", "paragraph_no": "①", "must_have": true},
-        {"law_name": "행정규제기본법", "article_no": "7", "paragraph_no": "②", "must_have": true},
-        {"law_name": "행정규제기본법", "article_no": "10", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "7",
+          "must_have": true
+        },
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "10",
+          "must_have": false
+        }
       ],
       "negatives": [
-        {"law_name": "행정규제기본법", "article_no": "8", "article_title": "규제의 존속기한 및 재검토기한 명시", "paragraph_no": "①"},
-        {"law_name": "산업융합 촉진법", "article_no": "10", "article_title": "실증을 위한 규제특례", "paragraph_no": "①"}
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "8",
+          "article_title": ""
+        },
+        {
+          "law_name": "산업융합 촉진법",
+          "article_no": "10",
+          "article_title": "실증을 위한 규제특례"
+        }
       ],
       "expected_answer_bullets": [
         "규제영향분석 실시 필요",
@@ -648,13 +998,23 @@
       "domain": "regulation",
       "question": "우선허용·사후규제 원칙이란 무엇인가요?",
       "gold_citations": [
-        {"law_name": "행정규제기본법", "article_no": "5", "article_title": "우선허용ㆍ사후규제 원칙", "paragraph_no": "①", "must_have": true},
-        {"law_name": "행정규제기본법", "article_no": "5", "article_title": "우선허용ㆍ사후규제 원칙", "paragraph_no": "②", "must_have": false},
-        {"law_name": "행정규제기본법", "article_no": "5", "article_title": "규제의 원칙", "paragraph_no": "①", "must_have": false}
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "5",
+          "must_have": true
+        }
       ],
       "negatives": [
-        {"law_name": "행정규제기본법", "article_no": "7", "paragraph_no": "①"},
-        {"law_name": "행정규제기본법", "article_no": "8", "article_title": "규제의 존속기한 및 재검토기한 명시", "paragraph_no": "①"}
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "7",
+          "article_title": ""
+        },
+        {
+          "law_name": "행정규제기본법",
+          "article_no": "8",
+          "article_title": ""
+        }
       ],
       "expected_answer_bullets": [
         "새로운 기술/서비스는 일단 허용하고 사후에 규제",
