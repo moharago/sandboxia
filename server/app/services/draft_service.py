@@ -46,6 +46,7 @@ def get_project_data_for_draft(project_id: str) -> dict | None:
 def save_draft_result(
     project_id: str,
     application_draft: dict,
+    track: str,
     model_name: str = "gpt-4o-mini",
     similar_cases: list | None = None,
     domain_laws: list | None = None,
@@ -55,6 +56,7 @@ def save_draft_result(
     Args:
         project_id: 프로젝트 UUID
         application_draft: AI가 개선한 폼 데이터 (application_input과 동일 구조)
+        track: 초안 생성에 사용된 트랙 ("demo" | "temp_permit" | "quick_check")
         model_name: 사용된 LLM 모델명
         similar_cases: RAG 검색된 유사 승인 사례
         domain_laws: RAG 검색된 관련 법령
@@ -64,8 +66,10 @@ def save_draft_result(
     """
     # LLM 출력이 이미 {form_id: {data: {...}, formId: ...}} 구조이므로
     # 추가 래핑 없이 그대로 저장
+    # track 필드를 추가하여 클라이언트에서 트랙 불일치 감지 가능
     draft_data = {
         "form_values": application_draft,
+        "track": track,
         "model_name": model_name,
         "generated_at": datetime.now().isoformat(),
         "similar_cases": similar_cases or [],
