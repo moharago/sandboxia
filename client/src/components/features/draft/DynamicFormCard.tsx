@@ -5,82 +5,21 @@ import { ChevronDown, ChevronUp, Save, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { TiptapEditor } from "@/components/ui/tiptap-editor"
+import { FastcheckApplicationForm } from "./FastcheckApplicationForm"
+import { FastcheckDescriptionForm } from "./FastcheckDescriptionForm"
+import { TemporaryPermitApplicationForm } from "./TemporaryPermitApplicationForm"
+import { TemporaryBusinessPlanForm } from "./TemporaryBusinessPlanForm"
+import { TemporaryPermitReasonForm } from "./TemporaryPermitReasonForm"
+import { TemporarySafetyProtectionForm } from "./TemporarySafetyProtectionForm"
+import { DemonstrationApplicationForm } from "./DemonstrationApplicationForm"
+import { DemonstrationPlanForm } from "./DemonstrationPlanForm"
+import { DemonstrationReasonForm } from "./DemonstrationReasonForm"
+import { DemonstrationProtectionForm } from "./DemonstrationProtectionForm"
 import { cn } from "@/lib/utils/cn"
-
-/**
- * 숫자에 천 단위 구분자(,) 추가
- * 예: "1200" → "1,200", "10.5%" → "10.5%"
- */
-function formatNumber(value: string): string {
-    if (!value) return ""
-    // 퍼센트(%) 포함된 경우 그대로 반환
-    if (value.includes("%")) return value
-    // 숫자만 추출
-    const numericValue = value.replace(/[^0-9.-]/g, "")
-    if (!numericValue) return value
-    // 소수점 처리
-    const parts = numericValue.split(".")
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-    return parts.join(".")
-}
-
-/**
- * 포맷팅된 숫자에서 원본 숫자 추출
- * 예: "1,200" → "1200"
- */
-function parseNumber(formattedValue: string): string {
-    if (!formattedValue) return ""
-    // 퍼센트(%) 포함된 경우 그대로 반환
-    if (formattedValue.includes("%")) return formattedValue
-    // 콤마 제거
-    return formattedValue.replace(/,/g, "")
-}
-
-// 새로운 스키마 타입 정의
-interface FieldOption {
-    id: string
-    label: string
-    value: string
-}
-
-interface FormField {
-    key: string
-    label: string
-    formType: string
-    dataType: string
-    required: boolean
-    options?: FieldOption[]
-}
-
-interface TableColumn {
-    key: string
-    label: string
-}
-
-interface TableRow {
-    key: string
-    label: string
-    dataType: string
-}
-
-interface FormSection {
-    key: string
-    label: string
-    fields?: FormField[]
-    isArray?: boolean
-    isTable?: boolean
-    columns?: TableColumn[]
-    rows?: TableRow[]
-}
-
-interface FormSchema {
-    formId: string
-    formName: string
-    version: string
-    sections: FormSection[]
-}
+import { formatNumber, parseNumber } from "@/lib/utils/form"
+import type { FormSchema, FormField, FormSection } from "@/types/draft"
 
 interface DynamicFormCardProps {
     cardKey: string
@@ -202,12 +141,10 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                                 {field.required && <span className="text-destructive ml-1">*</span>}
                             </Label>
                         )}
-                        <Textarea
-                            id={fieldKey}
-                            value={value}
-                            onChange={(e) => onValueChange(fieldKey, e.target.value)}
-                            rows={4}
-                            className="resize-none"
+                        <TiptapEditor
+                            content={value}
+                            onChange={(newContent) => onValueChange(fieldKey, newContent)}
+                            placeholder={field.label ? `${field.label}을(를) 입력하세요...` : "내용을 입력하세요..."}
                         />
                     </div>
                 )
@@ -260,7 +197,6 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                 if (field.options && field.options.length > 0) {
                     // 체크박스 그룹
                     const checkedValues = value ? value.split(",").filter(Boolean) : []
-                    const hasSelection = checkedValues.length > 0
 
                     return (
                         <div key={fieldKey} className="space-y-2">
@@ -269,11 +205,6 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                                     {field.label}
                                     {field.required && <span className="text-destructive ml-1">*</span>}
                                 </Label>
-                                {!hasSelection && field.required && (
-                                    <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
-                                        선택 필요
-                                    </span>
-                                )}
                             </div>
                             <div className="space-y-1.5">
                                 {field.options.map((option) => {
@@ -541,7 +472,60 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
 
             <div className={cn("overflow-hidden transition-all duration-300", isOpen ? "opacity-100" : "max-h-0 opacity-0")}>
                 <CardContent className="space-y-6">
-                    {formSchema.sections.map(renderSection)}
+                    {/* 커스텀 양식 폼 컴포넌트 */}
+                    {cardKey === "fastcheck-1" ? (
+                        <FastcheckApplicationForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "fastcheck-2" ? (
+                        <FastcheckDescriptionForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-1" ? (
+                        <TemporaryPermitApplicationForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-2" ? (
+                        <TemporaryBusinessPlanForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-3" ? (
+                        <TemporaryPermitReasonForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-4" ? (
+                        <TemporarySafetyProtectionForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-1" ? (
+                        <DemonstrationApplicationForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-2" ? (
+                        <DemonstrationPlanForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-3" ? (
+                        <DemonstrationReasonForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-4" ? (
+                        <DemonstrationProtectionForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : (
+                        formSchema.sections.map(renderSection)
+                    )}
 
                     <div className="flex items-center justify-end gap-3">
                         <span className="text-xs text-muted-foreground">

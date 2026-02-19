@@ -100,6 +100,9 @@ COMMON_FIELD_PATTERNS: dict[str, list[str]] = {
         r"유\s*형[:\s]*(.+?)(?:\n|주요|$)",
     ],
     "service_description": [
+        # 신청서의 "주요내용" 필드 - 여러 줄 캡처 (실증/임시허가 신청 사유 섹션 전까지)
+        r"주요\s*내용\s*([\s\S]+?)(?=실증을\s*위한|임시허가를\s*위한|신청\s*사유|\Z)",
+        # 기존 패턴
         r"기술\s*서비스\s*내용[:\s]*(.+?)(?:\n기술|2\.|$)",
         r"주요\s*내용[:\s]*(.+?)(?:\n\n|소관|$)",
         r"서비스\s*설명[:\s]*(.+?)(?:\n\n|소관|$)",
@@ -147,8 +150,13 @@ FASTCHECK_APPLICATION_PATTERNS: dict[str, list[str]] = {
         r"예상되는\s*허가등[:\s]*(.+?)(?:\n|$)",
     ],
     "application_date": [
+        # 1. "신청일자" 레이블이 있는 경우
         r"신청일자[:\s]*(\d{4}\s*년?\s*\d{1,2}\s*월?\s*\d{1,2}\s*일?)",
         r"신청일자[:\s]*(.+?)(?:\n|신청인|$)",
+        # 2. 레이블 없이 날짜가 "신청인" 앞에 있는 경우 (XXXX년 X월 X일\n신청인)
+        r"(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)\s*\n\s*신청인",
+        # 3. 레이블 없이 날짜가 문서 하단에 있는 경우 (점 형식: XXXX. XX. XX.)
+        r"(\d{4}\s*\.\s*\d{1,2}\s*\.\s*\d{1,2}\s*\.?)\s*\n\s*신청인",
     ],
     "applicant_signature": [
         r"신청인\s*성명[^:]*[:\s]*(.+?)(?:\n|$)",
@@ -206,8 +214,13 @@ APPLICATION_COMMON_PATTERNS: dict[str, list[str]] = {
         r"예상되는\s*허가[:\s]*(.+?)(?:\n|$)",
     ],
     "application_date": [
+        # 1. "신청일자" 레이블이 있는 경우
         r"신청일자[:\s]*(\d{4}\s*년?\s*\d{1,2}\s*월?\s*\d{1,2}\s*일?)",
         r"신청일자[:\s]*(.+?)(?:\n|신청인|$)",
+        # 2. 레이블 없이 날짜가 "신청인" 앞에 있는 경우 (XXXX년 X월 X일\n신청인)
+        r"(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)\s*\n\s*신청인",
+        # 3. 레이블 없이 날짜가 문서 하단에 있는 경우 (점 형식: XXXX. XX. XX.)
+        r"(\d{4}\s*\.\s*\d{1,2}\s*\.\s*\d{1,2}\s*\.?)\s*\n\s*신청인",
     ],
     "applicant_signature": [
         r"신청인\s*성명[^:]*[:\s]*(.+?)(?:\n|$)",
@@ -258,7 +271,8 @@ PLAN_COMMON_PATTERNS: dict[str, list[str]] = {
         r"가\.\s*규제\s*내용([\s\S]+?)(?=나\.\s*임시허가|나\.\s*규제특례|\Z)",
     ],
     "necessity_and_request": [
-        r"나\.\s*(?:임시허가|규제특례)(?:의)?\s*필요성\s*및\s*내용([\s\S]+?)(?=3\.\s*사업|3\.\s*실증|\Z)",
+        # "3. 세부 실증 계획" 등 다양한 형태 지원
+        r"나\.\s*(?:임시허가|규제특례)(?:의)?\s*필요성\s*및\s*내용([\s\S]+?)(?=3\.\s*(?:사업|실증|세부)|\Z)",
     ],
     "objectives_and_scope": [
         r"가\.\s*(?:사업|실증)\s*목표\s*및\s*범위([\s\S]+?)(?=나\.\s*사업|나\.\s*단계별|\Z)",
@@ -295,16 +309,16 @@ PLAN_COMMON_PATTERNS: dict[str, list[str]] = {
     ],
     # 붙임 1. 신청기관 현황자료
     "establishment_date": [
-        r"설립일[:\s]*(.+?)(?:\n|대표자|$)",
+        r"설\s*립\s*일[\s:]*\n*(.+?)(?:\n대\s*표\s*자|\n|$)",
     ],
     "main_business": [
-        r"주요\s*사업[:\s]*(.+?)(?:\n\n|주요\s*인허가|$)",
+        r"주요\s*사업[:\s]*([\s\S]+?)(?=\n주요\s*인허가|\n\n|\Z)",
     ],
     "licenses_and_permits": [
-        r"주요\s*인허가\s*사항[:\s]*(.+?)(?:\n\n|보유기술|$)",
+        r"주요\s*인허가\s*사항[:\s]*([\s\S]+?)(?=\n보유기술|\n\n|\Z)",
     ],
     "technologies_and_patents": [
-        r"보유기술\s*및\s*특허[:\s]*(.+?)(?:\n\n|재무|$)",
+        r"보유기술\s*및\s*특허[:\s]*([\s\S]+?)(?=\n\n재무|\n재\s*무|\n\n|\Z)",
     ],
     # 제출 서명 (신청기관의 장)
     "submission_signatures": [
@@ -381,6 +395,9 @@ DEMONSTRATION_APPLICATION_PATTERNS: dict[str, list[str]] = {}
 DEMONSTRATION_REASON_CHECKBOX_PATTERNS: dict[str, dict[str, str]] = {
     # reason1: 허가 등을 신청하는 것이 불가능한 경우 (제1호)
     "impossibleToApplyPermit": {
+        # 꺾쇠 괄호 형식: <불가능한 경우><O> 또는 <불가능한 경우><>
+        "angle_bracket_checked": r"<[^>]*불가능한[^>]*경우[^>]*><\s*[OoㅇⓞО○●■☑✓✔√]\s*>",
+        "angle_bracket_unchecked": r"<[^>]*불가능한[^>]*경우[^>]*><\s*>",
         # TABLE 형식: 텍스트 뒤에 O 또는 ○ 또는 ● 마크 (해당여부 컬럼)
         "table_checked": r"(?:제38조의2제1항제1호|제1호\)|불가능한\s*경우)[^\n]*?[\t\s]{2,}[OoㅇⓞО○●■☑✓✔√](?:\s|$|\n|[\t])",
         "table_unchecked": r"(?:제38조의2제1항제1호|제1호\)|불가능한\s*경우)[^\n]*?[\t\s]{2,}(?:$|\n)",
@@ -394,6 +411,9 @@ DEMONSTRATION_REASON_CHECKBOX_PATTERNS: dict[str, dict[str, str]] = {
     },
     # reason2: 기준·규격·요건 등을 적용하는 것이 불명확하거나 불합리한 경우 (제2호)
     "unclearOrUnreasonableCriteria": {
+        # 꺾쇠 괄호 형식: <불합리한 경우><O> 또는 <불합리한 경우><>
+        "angle_bracket_checked": r"<[^>]*(?:불합리한|불명확)[^>]*경우[^>]*><\s*[OoㅇⓞО○●■☑✓✔√]\s*>",
+        "angle_bracket_unchecked": r"<[^>]*(?:불합리한|불명확)[^>]*경우[^>]*><\s*>",
         # TABLE 형식: 텍스트 뒤에 O 또는 ○ 또는 ● 마크
         "table_checked": r"(?:제38조의2제1항제2호|제2호\)|불합리한\s*경우)[^\n]*?[\t\s]{2,}[OoㅇⓞО○●■☑✓✔√](?:\s|$|\n|[\t])",
         "table_unchecked": r"(?:제38조의2제1항제2호|제2호\)|불합리한\s*경우)[^\n]*?[\t\s]{2,}(?:$|\n)",
