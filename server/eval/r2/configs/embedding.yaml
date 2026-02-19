@@ -1,0 +1,40 @@
+# R2 RAG 임베딩 모델 프리셋
+# 사용: uv run python eval/r2/run_evaluation.py --embedding E0
+#
+# 주의: 평가 시 EphemeralClient를 사용하므로 기존 Vector DB에 영향 없음
+
+E0:
+  name: E0
+  description: "현재 기준점 - OpenAI 3-small"
+  model: text-embedding-3-small
+  provider: openai
+  dimension: 1536
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.02
+
+E1:
+  name: E1
+  description: "고정밀 검색 - OpenAI 3-large"
+  model: text-embedding-3-large
+  provider: openai
+  dimension: 3072
+  max_tokens: 8192
+  cost_per_1m_tokens: 0.13
+
+E4:
+  name: E4
+  description: "다국어 오픈소스 - BGE-M3"
+  model: BAAI/bge-m3
+  provider: local
+  dimension: 1024
+  max_tokens: 8192
+  cost_per_1m_tokens: 0
+
+E5:
+  name: E5
+  description: "한국어 이해 특화 - KURE-v1"
+  model: nlpai-lab/KURE-v1
+  provider: local
+  dimension: 1024
+  max_tokens: 512
+  cost_per_1m_tokens: 0

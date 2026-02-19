@@ -203,8 +203,8 @@ uv run python eval/r2/run_evaluation.py --strategy {1단계 승자} --model all
 
 | 값 | 기준 | 해당 건수 | 배분 | 측정 대상 |
 |---|---|---|---|---|
-| `normal` | structured content >= 100자 | 231건 (82%) | 28개 | 임베딩 모델 교체 효과 |
-| `full_text_only` | structured content < 100자 | 50건 (18%) | 2개 | 하이브리드 fallback 효과 |
+| `normal` | structured content >= 100자 | 216건 (77%) | 28개 | 임베딩 모델 교체 효과 |
+| `full_text_only` | structured content < 100자 | 65건 (23%, FT_ONLY 50 + short 15) | 2개 | 하이브리드 fallback 효과 |
 
 ### gold_cases 작성 기준
 
@@ -332,10 +332,10 @@ server/
 
 ### 2단계: 임베딩 모델
 
-- [ ] KURE-v1 / BGE-M3 로컬 실행 환경 구성
-- [ ] run_evaluation.py에 --model all 구현
-- [ ] `uv run python eval/r2/run_evaluation.py --strategy {승자} --model all` 실행
-- [ ] 1등 임베딩 모델 확정
+- [x] KURE-v1 / BGE-M3 로컬 실행 환경 구성
+- [x] run_evaluation.py에 --embedding 옵션 구현 (E0/E1/E4/E5/all)
+- [x] `uv run python eval/r2/run_evaluation.py --data-version enriched --embedding all --tags stage2` 실행
+- [x] 1등 임베딩 모델 확정 → **E0 (text-embedding-3-small) 채택**
 
 ### 3단계: 생성 지표 테스트
 

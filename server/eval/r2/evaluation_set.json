@@ -1124,9 +1124,10 @@
         },
         {
           "case_id": "실증특례_83_포인테크_(실증특례)개인형 이동장치 및 전기자전거 충전·주차 스테이션(220916)",
-          "must_have": true,
+          "must_have": false,
           "track": "실증특례",
-          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션 (ID variant)"
+          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션",
+          "note": "ID variant of 실증특례_83_포인테크 canonical entry. must_have=false to avoid double-counting."
         },
         {
           "case_id": "실증특례_78_LG전자",
