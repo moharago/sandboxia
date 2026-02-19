@@ -49,6 +49,40 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
         if (computedPersonnelCount > 0) setPersonnelRowCount(computedPersonnelCount)
     }, [computedPersonnelCount])
 
+    // 신청기관 행 삭제 (데이터 shift + 마지막 행 초기화)
+    const removeOrganization = (index: number) => {
+        if (orgRowCount <= 1) return
+        const fields = ["organizationName", "organizationType", "responsiblePersonName", "position", "phoneNumber", "email"]
+        // 삭제된 행 이후 데이터를 한 칸씩 앞으로 이동
+        for (let i = index; i < orgRowCount - 1; i++) {
+            for (const field of fields) {
+                onValueChange(`applicantOrganizations.${i}.${field}`, getValue(`applicantOrganizations.${i + 1}.${field}`))
+            }
+        }
+        // 마지막 행 초기화
+        for (const field of fields) {
+            onValueChange(`applicantOrganizations.${orgRowCount - 1}.${field}`, "")
+        }
+        setOrgRowCount((c) => c - 1)
+    }
+
+    // 핵심인력 행 삭제 (데이터 shift + 마지막 행 초기화)
+    const removePersonnel = (index: number) => {
+        if (personnelRowCount <= 1) return
+        const fields = ["name", "department", "position", "responsibilities", "qualificationsOrSkills", "experienceYears"]
+        // 삭제된 행 이후 데이터를 한 칸씩 앞으로 이동
+        for (let i = index; i < personnelRowCount - 1; i++) {
+            for (const field of fields) {
+                onValueChange(`keyPersonnel.${i}.${field}`, getValue(`keyPersonnel.${i + 1}.${field}`))
+            }
+        }
+        // 마지막 행 초기화
+        for (const field of fields) {
+            onValueChange(`keyPersonnel.${personnelRowCount - 1}.${field}`, "")
+        }
+        setPersonnelRowCount((c) => c - 1)
+    }
+
     return (
         <div className="bg-white text-sm space-y-8">
             {/* 임시허가를 위한 사업계획서 */}
@@ -156,7 +190,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                        onClick={() => setOrgRowCount(prev => Math.max(1, prev - 1))}
+                                        onClick={() => removeOrganization(idx)}
                                         disabled={orgRowCount <= 1}
                                     >
                                         <Trash2 className="h-3 w-3" />
@@ -624,7 +658,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                            onClick={() => setPersonnelRowCount(prev => Math.max(1, prev - 1))}
+                                            onClick={() => removePersonnel(idx)}
                                             disabled={personnelRowCount <= 1}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />

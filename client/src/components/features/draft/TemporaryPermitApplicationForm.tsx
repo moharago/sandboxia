@@ -15,11 +15,16 @@ export function TemporaryPermitApplicationForm({ values, onValueChange }: DraftF
 
     // 개별 boolean 키로 저장된 경우도 체크 (서버 AI 초안 대응)
     const isReasonChecked = (reason: string): boolean => {
+        const masterValue = values["temporaryPermitReason.temporaryPermitReason"]
+
+        // master key가 빈 문자열이면 사용자가 직접 해제한 것 → fallback 안 함
+        if (masterValue === "") return false
+
         // 1. 콤마 구분 문자열에서 확인
-        const reasons = parseCheckboxArray(values["temporaryPermitReason.temporaryPermitReason"])
+        const reasons = parseCheckboxArray(masterValue)
         if (reasons.includes(reason)) return true
 
-        // 2. 개별 boolean 키로 저장된 경우
+        // 2. 개별 boolean 키로 저장된 경우 (master key가 undefined일 때만)
         return isCheckedValue(values[`temporaryPermitReason.${reason}`])
     }
 
