@@ -18,7 +18,7 @@ export function DemonstrationApplicationForm({ values, onValueChange }: Demonstr
 
     // 체크박스 boolean 값 처리 (서버에서 보내는 필드명 사용)
     const isChecked = (key: string): boolean => {
-        return values[key] === "true" || values[key] === true
+        return values[key] === "true"
     }
 
     const handleBooleanChange = (key: string, checked: boolean) => {

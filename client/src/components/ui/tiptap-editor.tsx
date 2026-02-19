@@ -62,7 +62,7 @@ export function TiptapEditor({
     useEffect(() => {
         if (editor && content !== editor.getText()) {
             isExternalUpdate.current = true
-            editor.commands.setContent(content || "", false)
+            editor.commands.setContent(content || "", { emitUpdate: false })
             // 외부 업데이트 후에는 undo/redo 비활성화
             setCanUndo(false)
             setCanRedo(false)
