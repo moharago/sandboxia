@@ -12,9 +12,10 @@ import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutati
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
 import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectFilesQuery } from "@/hooks/queries/use-projects-query"
+import { projectsApi, type ProjectFile } from "@/lib/api/projects"
 import { useUIStore } from "@/stores/ui-store"
 import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
-import { FileText } from "lucide-react"
+import { Download, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -97,6 +98,20 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             ...prev,
             uploadedFiles: { ...prev.uploadedFiles, [appId]: file },
         }))
+    }
+
+    const handleFileDownload = async (file: ProjectFile) => {
+        try {
+            const url = await projectsApi.getFileDownloadUrl(file)
+            const link = document.createElement("a")
+            link.href = url
+            link.download = file.file_name
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+        } catch (error) {
+            alert(`파일 다운로드에 실패했습니다.\n${error instanceof Error ? error.message : ""}`)
+        }
     }
 
     const isFormValid = (() => {
@@ -241,11 +256,19 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
                                 <Label className="text-muted-foreground">저장된 파일</Label>
                                 <div className="space-y-2">
                                     {uploadedFileList.map((file) => (
-                                        <div key={file.id} className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                                        <button
+                                            key={file.id}
+                                            type="button"
+                                            onClick={() => handleFileDownload(file)}
+                                            className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 w-full hover:bg-muted transition-colors cursor-pointer text-left"
+                                        >
                                             <FileText className="h-4 w-4 text-muted-foreground" />
                                             <span className="text-sm">{file.file_name}</span>
-                                            <span className="text-xs text-muted-foreground ml-auto">{file.file_type?.toUpperCase()}</span>
-                                        </div>
+                                            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-2">
+                                                {file.file_type?.toUpperCase()}
+                                                <Download className="h-3 w-3" />
+                                            </span>
+                                        </button>
                                     ))}
                                 </div>
                             </div>
