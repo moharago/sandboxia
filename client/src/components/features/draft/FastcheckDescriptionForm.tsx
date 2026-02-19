@@ -1,16 +1,12 @@
 "use client"
 
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-
-interface FastcheckDescriptionFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 신규 정보통신융합 등 기술·서비스에 대한 설명서 (fastcheck-2)
  */
-export function FastcheckDescriptionForm({ values, onValueChange }: FastcheckDescriptionFormProps) {
+export function FastcheckDescriptionForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
 
     return (

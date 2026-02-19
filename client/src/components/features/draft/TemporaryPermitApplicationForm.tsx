@@ -2,48 +2,29 @@
 
 import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-import { convertToISODate } from "@/lib/utils/form"
-
-interface TemporaryPermitApplicationFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { formatDateIso } from "@/lib/utils/date"
+import { isCheckedValue, parseCheckboxArray, updateCheckboxArray } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 임시허가 신청서 (temporary-1) - 실제 양식 디자인
  */
-export function TemporaryPermitApplicationForm({ values, onValueChange }: TemporaryPermitApplicationFormProps) {
+export function TemporaryPermitApplicationForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getDateValue = (key: string) => convertToISODate(values[key] ?? "")
-
-    // 체크박스 값 처리 (콤마 구분 문자열 또는 개별 boolean 키)
-    const getCheckboxValues = (key: string): string[] => {
-        const value = values[key]
-        if (value) {
-            return value.split(",").filter(Boolean)
-        }
-        return []
-    }
+    const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
 
     // 개별 boolean 키로 저장된 경우도 체크 (서버 AI 초안 대응)
     const isReasonChecked = (reason: string): boolean => {
         // 1. 콤마 구분 문자열에서 확인
-        const reasons = getCheckboxValues("temporaryPermitReason.temporaryPermitReason")
+        const reasons = parseCheckboxArray(values["temporaryPermitReason.temporaryPermitReason"])
         if (reasons.includes(reason)) return true
 
         // 2. 개별 boolean 키로 저장된 경우
-        const boolKey = `temporaryPermitReason.${reason}`
-        if (values[boolKey] === "true") return true
-
-        return false
+        return isCheckedValue(values[`temporaryPermitReason.${reason}`])
     }
 
     const handleCheckboxChange = (key: string, optionValue: string, checked: boolean) => {
-        const currentValues = getCheckboxValues(key)
-        const newValues = checked
-            ? [...currentValues, optionValue]
-            : currentValues.filter((v) => v !== optionValue)
-        onValueChange(key, newValues.join(","))
+        onValueChange(key, updateCheckboxArray(values[key], optionValue, checked))
     }
 
     return (

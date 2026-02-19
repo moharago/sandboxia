@@ -2,19 +2,15 @@
 
 import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-import { convertToISODate } from "@/lib/utils/form"
-
-interface FastcheckApplicationFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { formatDateIso } from "@/lib/utils/date"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 신속처리 신청서 (fastcheck-1) - 실제 양식 디자인
  */
-export function FastcheckApplicationForm({ values, onValueChange }: FastcheckApplicationFormProps) {
+export function FastcheckApplicationForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getDateValue = (key: string) => convertToISODate(values[key] ?? "")
+    const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
 
     return (
         <div className="bg-white text-sm">

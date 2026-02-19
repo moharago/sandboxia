@@ -4,20 +4,17 @@ import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
-import { useState, useEffect } from "react"
-import { convertToISODate, formatNumber, parseNumber } from "@/lib/utils/form"
-
-interface TemporaryBusinessPlanFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { useState, useEffect, useMemo } from "react"
+import { formatDateIso } from "@/lib/utils/date"
+import { formatNumber, parseNumber, getArrayCount } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 임시허가를 위한 사업계획서 (temporary-2)
  */
-export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBusinessPlanFormProps) {
+export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getDateValue = (key: string) => convertToISODate(values[key] ?? "")
+    const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
 
     // 설립일은 여러 키 패턴으로 저장될 수 있음
     const getEstablishmentDate = () => {
@@ -26,7 +23,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBu
             || values["establishmentDate"]
             || values["organizationProfile.establishmentDate"]
             || ""
-        return convertToISODate(rawDate)
+        return formatDateIso(rawDate)
     }
 
     // 동적 배열 행 수 관리
@@ -34,23 +31,23 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBu
     const [submissionRowCount, setSubmissionRowCount] = useState(1)
     const [personnelRowCount, setPersonnelRowCount] = useState(1)
 
-    // values에서 배열 행 수 계산
+    // values에서 실제 행 수 계산
+    const computedOrgCount = useMemo(() => getArrayCount(values, "applicantOrganizations"), [values])
+    const computedSubmissionCount = useMemo(() => getArrayCount(values, "submission"), [values])
+    const computedPersonnelCount = useMemo(() => getArrayCount(values, "keyPersonnel"), [values])
+
+    // 서버 데이터 로드 시 행 수 동기화
     useEffect(() => {
-        const countRows = (prefix: string) => {
-            let maxIndex = 0
-            Object.keys(values).forEach((key) => {
-                const match = key.match(new RegExp(`^${prefix}\\.(\\d+)\\.`))
-                if (match) {
-                    const index = parseInt(match[1], 10)
-                    if (index >= maxIndex) maxIndex = index + 1
-                }
-            })
-            return Math.max(maxIndex, 1)
-        }
-        setOrgRowCount(countRows("applicantOrganizations"))
-        setSubmissionRowCount(countRows("submission"))
-        setPersonnelRowCount(countRows("keyPersonnel"))
-    }, [values])
+        if (computedOrgCount > 0) setOrgRowCount(computedOrgCount)
+    }, [computedOrgCount])
+
+    useEffect(() => {
+        if (computedSubmissionCount > 0) setSubmissionRowCount(computedSubmissionCount)
+    }, [computedSubmissionCount])
+
+    useEffect(() => {
+        if (computedPersonnelCount > 0) setPersonnelRowCount(computedPersonnelCount)
+    }, [computedPersonnelCount])
 
     return (
         <div className="bg-white text-sm space-y-8">

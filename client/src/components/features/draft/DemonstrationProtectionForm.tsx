@@ -1,16 +1,12 @@
 "use client"
 
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-
-interface DemonstrationProtectionFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 기술·서비스의 이용자 보호방안 (demonstration-4)
  */
-export function DemonstrationProtectionForm({ values, onValueChange }: DemonstrationProtectionFormProps) {
+export function DemonstrationProtectionForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
 
     return (

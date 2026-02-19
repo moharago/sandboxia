@@ -2,34 +2,68 @@
  * Step 4 (신청서 초안) 폼 관련 유틸리티 함수
  */
 
+// ============================================
+// 체크박스 관련 유틸리티
+// ============================================
+
 /**
- * 다양한 날짜 형식을 ISO 형식(YYYY-MM-DD)으로 변환
- * - 한국어 형식: "2026년 2월 2일", "2026년 2 월 2일"
- * - 점 형식: "2026. 02. 13.", "2026.02.13"
- * - ISO 형식: 그대로 반환
+ * 값이 "체크됨" 상태인지 확인
+ * - "true", "V", "√" → true
+ * - 그 외 → false
  */
-export function convertToISODate(value: string): string {
-    if (!value) return ""
-
-    // 이미 ISO 형식이면 그대로
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
-
-    // 한국어 형식 (2026년 2월 2일 또는 2026년 2 월 2일)
-    const koreanMatch = value.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일?/)
-    if (koreanMatch) {
-        const [, year, month, day] = koreanMatch
-        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
-    }
-
-    // 점 형식 (2026. 02. 13. 또는 2026.02.13)
-    const dotMatch = value.replace(/\s/g, "").match(/(\d{4})\.(\d{1,2})\.(\d{1,2})\.?/)
-    if (dotMatch) {
-        const [, year, month, day] = dotMatch
-        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
-    }
-
-    return value
+export function isCheckedValue(value: string | undefined): boolean {
+    if (!value) return false
+    return value === "true" || value === "V" || value === "√"
 }
+
+/**
+ * boolean을 폼 저장용 문자열로 변환
+ * @param checked 체크 상태
+ * @param useFalseString true면 "false" 반환, false면 "" 반환 (기본)
+ */
+export function toBooleanString(checked: boolean, useFalseString = false): string {
+    if (checked) return "true"
+    return useFalseString ? "false" : ""
+}
+
+/**
+ * 콤마 구분 문자열을 배열로 파싱
+ * - "a,b,c" → ["a", "b", "c"]
+ * - "" 또는 undefined → []
+ */
+export function parseCheckboxArray(value: string | undefined): string[] {
+    if (!value) return []
+    return value.split(",").filter(Boolean)
+}
+
+/**
+ * 체크박스 배열 업데이트 후 콤마 구분 문자열 반환
+ * @param currentValue 현재 값 (콤마 구분 문자열)
+ * @param optionValue 토글할 옵션 값
+ * @param checked 체크 여부
+ */
+export function updateCheckboxArray(
+    currentValue: string | undefined,
+    optionValue: string,
+    checked: boolean
+): string {
+    const current = parseCheckboxArray(currentValue)
+    if (checked) {
+        if (!current.includes(optionValue)) {
+            current.push(optionValue)
+        }
+    } else {
+        const index = current.indexOf(optionValue)
+        if (index > -1) {
+            current.splice(index, 1)
+        }
+    }
+    return current.join(",")
+}
+
+// ============================================
+// 숫자 포맷 관련 유틸리티
+// ============================================
 
 /**
  * 숫자에 천 단위 구분자(,) 추가

@@ -2,27 +2,19 @@
 
 import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-import { convertToISODate } from "@/lib/utils/form"
-
-interface DemonstrationApplicationFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { formatDateIso } from "@/lib/utils/date"
+import { isCheckedValue, toBooleanString } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 실증을 위한 규제특례 신청서 (demonstration-1) - 실제 양식 디자인
  */
-export function DemonstrationApplicationForm({ values, onValueChange }: DemonstrationApplicationFormProps) {
+export function DemonstrationApplicationForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getDateValue = (key: string) => convertToISODate(values[key] ?? "")
-
-    // 체크박스 boolean 값 처리 (서버에서 보내는 필드명 사용)
-    const isChecked = (key: string): boolean => {
-        return values[key] === "true"
-    }
-
+    const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
+    const isChecked = (key: string) => isCheckedValue(values[key])
     const handleBooleanChange = (key: string, checked: boolean) => {
-        onValueChange(key, checked ? "true" : "")
+        onValueChange(key, toBooleanString(checked))
     }
 
     return (

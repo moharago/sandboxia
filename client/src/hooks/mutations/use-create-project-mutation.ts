@@ -6,12 +6,8 @@
 
 import { projectsApi } from "@/lib/api/projects"
 import type { CreateProjectRequest, ProjectResponse } from "@/types/api/project"
+import type { MutationOptions } from "@/types/hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-interface UseCreateProjectMutationOptions {
-    onSuccess?: (data: ProjectResponse) => void
-    onError?: (error: Error) => void
-}
 
 /**
  * 프로젝트 생성 mutation 훅
@@ -37,7 +33,7 @@ interface UseCreateProjectMutationOptions {
  * })
  * ```
  */
-export function useCreateProjectMutation(options?: UseCreateProjectMutationOptions) {
+export function useCreateProjectMutation(options?: MutationOptions<ProjectResponse>) {
     const queryClient = useQueryClient()
 
     return useMutation<ProjectResponse, Error, CreateProjectRequest>({

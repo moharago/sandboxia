@@ -5,19 +5,16 @@ import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useMemo } from "react"
-import { convertToISODate, formatNumber, parseNumber, getArrayCount } from "@/lib/utils/form"
-
-interface DemonstrationPlanFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { formatDateIso } from "@/lib/utils/date"
+import { formatNumber, parseNumber, getArrayCount } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 실증을 위한 규제특례 실증계획서 (demonstration-2)
  */
-export function DemonstrationPlanForm({ values, onValueChange }: DemonstrationPlanFormProps) {
+export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getDateValue = (key: string) => convertToISODate(values[key] ?? "")
+    const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
 
     // 배열 행 수 관리 (서버 데이터 기반 + 사용자 추가)
     const [orgCount, setOrgCount] = useState(1)
