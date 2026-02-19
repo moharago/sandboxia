@@ -16,7 +16,7 @@ export function DemonstrationReasonForm({ values, onValueChange }: Demonstration
     // 체크박스 boolean 값 처리
     const isChecked = (key: string): boolean => {
         const value = values[key]
-        return value === "true" || value === true || value === "V" || value === "√"
+        return value === "true" || value === "V" || value === "√"
     }
 
     const handleCheckboxChange = (key: string, checked: boolean) => {

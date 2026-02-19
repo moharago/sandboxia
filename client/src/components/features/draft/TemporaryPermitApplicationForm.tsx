@@ -33,7 +33,7 @@ export function TemporaryPermitApplicationForm({ values, onValueChange }: Tempor
 
         // 2. 개별 boolean 키로 저장된 경우
         const boolKey = `temporaryPermitReason.${reason}`
-        if (values[boolKey] === "true" || values[boolKey] === true) return true
+        if (values[boolKey] === "true") return true
 
         return false
     }
