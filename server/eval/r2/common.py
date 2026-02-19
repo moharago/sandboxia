@@ -9,6 +9,8 @@ run_evaluation.py에서 사용하는 공유 함수들.
 - Retrieval 지표 계산
 """
 
+from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path
@@ -21,6 +23,8 @@ from langchain_openai import OpenAIEmbeddings
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.config import settings
+from app.db.vector import create_embeddings
+from app.rag.config import EmbeddingConfig, load_embedding_config
 from eval.metrics import RetrievalMetrics
 
 # 경로 설정
@@ -52,10 +56,16 @@ def load_case_data(data_version: str = "original") -> list[dict]:
         return json.load(f)
 
 
+def load_r2_embedding_config(config_name: str) -> EmbeddingConfig:
+    """R2용 임베딩 설정 로드 (eval/r2/configs/embedding.yaml)"""
+    return load_embedding_config(config_name, rag_type="r2")
+
+
 def create_temp_vector_store(
     data: list[dict],
     strategy: str,
     collection_name: str = "r2_eval_temp",
+    embedding_config: EmbeddingConfig | None = None,
 ) -> tuple[Chroma, chromadb.ClientAPI]:
     """전략별 임시 Vector Store 생성 (EphemeralClient)
 
@@ -63,6 +73,7 @@ def create_temp_vector_store(
         data: 원본 케이스 데이터
         strategy: 데이터 전략 (structured / hybrid / fulltext)
         collection_name: 임시 컬렉션명
+        embedding_config: 임베딩 설정 (None이면 기본 모델 사용)
 
     Returns:
         (vectorstore, chroma_client) - 평가 후 client로 컬렉션 삭제 가능
@@ -74,10 +85,13 @@ def create_temp_vector_store(
 
     # EphemeralClient로 임시 컬렉션 생성
     client = chromadb.EphemeralClient()
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
+    if embedding_config:
+        embeddings = create_embeddings(embedding_config)
+    else:
+        embeddings = OpenAIEmbeddings(
+            model=settings.LLM_EMBEDDING_MODEL,
+            api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
+        )
 
     vectorstore = Chroma(
         client=client,

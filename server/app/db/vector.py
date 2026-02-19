@@ -331,13 +331,13 @@ def create_embeddings(config: EmbeddingConfig) -> Embeddings:
         encode_kwargs = {
             "normalize_embeddings": True,  # 코사인 유사도용 정규화
             "batch_size": 32,
-            "show_progress_bar": False,
         }
 
         return HuggingFaceEmbeddings(
             model_name=config.model,
             model_kwargs=model_kwargs,
             encode_kwargs=encode_kwargs,
+            show_progress=False,
         )
 
     else:
