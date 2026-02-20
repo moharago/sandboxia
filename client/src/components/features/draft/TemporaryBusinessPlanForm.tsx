@@ -4,20 +4,17 @@ import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
-import { useState, useEffect } from "react"
-import { convertToISODate, formatNumber, parseNumber } from "@/lib/utils/form"
-
-interface TemporaryBusinessPlanFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { useState, useEffect, useMemo } from "react"
+import { formatDateIso } from "@/lib/utils/date"
+import { formatNumber, parseNumber, getArrayCount } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 임시허가를 위한 사업계획서 (temporary-2)
  */
-export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBusinessPlanFormProps) {
+export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getDateValue = (key: string) => convertToISODate(values[key] ?? "")
+    const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
 
     // 설립일은 여러 키 패턴으로 저장될 수 있음
     const getEstablishmentDate = () => {
@@ -26,7 +23,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBu
             || values["establishmentDate"]
             || values["organizationProfile.establishmentDate"]
             || ""
-        return convertToISODate(rawDate)
+        return formatDateIso(rawDate)
     }
 
     // 동적 배열 행 수 관리
@@ -34,23 +31,57 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBu
     const [submissionRowCount, setSubmissionRowCount] = useState(1)
     const [personnelRowCount, setPersonnelRowCount] = useState(1)
 
-    // values에서 배열 행 수 계산
+    // values에서 실제 행 수 계산
+    const computedOrgCount = useMemo(() => getArrayCount(values, "applicantOrganizations"), [values])
+    const computedSubmissionCount = useMemo(() => getArrayCount(values, "submission"), [values])
+    const computedPersonnelCount = useMemo(() => getArrayCount(values, "keyPersonnel"), [values])
+
+    // 서버 데이터 로드 시 행 수 동기화
     useEffect(() => {
-        const countRows = (prefix: string) => {
-            let maxIndex = 0
-            Object.keys(values).forEach((key) => {
-                const match = key.match(new RegExp(`^${prefix}\\.(\\d+)\\.`))
-                if (match) {
-                    const index = parseInt(match[1], 10)
-                    if (index >= maxIndex) maxIndex = index + 1
-                }
-            })
-            return Math.max(maxIndex, 1)
+        if (computedOrgCount > 0) setOrgRowCount(computedOrgCount)
+    }, [computedOrgCount])
+
+    useEffect(() => {
+        if (computedSubmissionCount > 0) setSubmissionRowCount(computedSubmissionCount)
+    }, [computedSubmissionCount])
+
+    useEffect(() => {
+        if (computedPersonnelCount > 0) setPersonnelRowCount(computedPersonnelCount)
+    }, [computedPersonnelCount])
+
+    // 신청기관 행 삭제 (데이터 shift + 마지막 행 초기화)
+    const removeOrganization = (index: number) => {
+        if (orgRowCount <= 1) return
+        const fields = ["organizationName", "organizationType", "responsiblePersonName", "position", "phoneNumber", "email"]
+        // 삭제된 행 이후 데이터를 한 칸씩 앞으로 이동
+        for (let i = index; i < orgRowCount - 1; i++) {
+            for (const field of fields) {
+                onValueChange(`applicantOrganizations.${i}.${field}`, getValue(`applicantOrganizations.${i + 1}.${field}`))
+            }
         }
-        setOrgRowCount(countRows("applicantOrganizations"))
-        setSubmissionRowCount(countRows("submission"))
-        setPersonnelRowCount(countRows("keyPersonnel"))
-    }, [values])
+        // 마지막 행 초기화
+        for (const field of fields) {
+            onValueChange(`applicantOrganizations.${orgRowCount - 1}.${field}`, "")
+        }
+        setOrgRowCount((c) => c - 1)
+    }
+
+    // 핵심인력 행 삭제 (데이터 shift + 마지막 행 초기화)
+    const removePersonnel = (index: number) => {
+        if (personnelRowCount <= 1) return
+        const fields = ["name", "department", "position", "responsibilities", "qualificationsOrSkills", "experienceYears"]
+        // 삭제된 행 이후 데이터를 한 칸씩 앞으로 이동
+        for (let i = index; i < personnelRowCount - 1; i++) {
+            for (const field of fields) {
+                onValueChange(`keyPersonnel.${i}.${field}`, getValue(`keyPersonnel.${i + 1}.${field}`))
+            }
+        }
+        // 마지막 행 초기화
+        for (const field of fields) {
+            onValueChange(`keyPersonnel.${personnelRowCount - 1}.${field}`, "")
+        }
+        setPersonnelRowCount((c) => c - 1)
+    }
 
     return (
         <div className="bg-white text-sm space-y-8">
@@ -159,7 +190,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBu
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                        onClick={() => setOrgRowCount(prev => Math.max(1, prev - 1))}
+                                        onClick={() => removeOrganization(idx)}
                                         disabled={orgRowCount <= 1}
                                     >
                                         <Trash2 className="h-3 w-3" />
@@ -627,7 +658,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: TemporaryBu
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                            onClick={() => setPersonnelRowCount(prev => Math.max(1, prev - 1))}
+                                            onClick={() => removePersonnel(idx)}
                                             disabled={personnelRowCount <= 1}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />

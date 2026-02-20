@@ -1,16 +1,12 @@
 "use client"
 
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-
-interface TemporarySafetyProtectionFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 안전성 검증 자료 및 이용자 보호방안 (temporary-4)
  */
-export function TemporarySafetyProtectionForm({ values, onValueChange }: TemporarySafetyProtectionFormProps) {
+export function TemporarySafetyProtectionForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
 
     return (

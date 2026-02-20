@@ -1,21 +1,17 @@
 "use client"
 
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-
-interface TemporaryPermitReasonFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { isCheckedValue, toBooleanString } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 임시허가 신청 사유 해당여부 소명서 (temporary-3)
  */
-export function TemporaryPermitReasonForm({ values, onValueChange }: TemporaryPermitReasonFormProps) {
+export function TemporaryPermitReasonForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-    const getBooleanValue = (key: string) => values[key] === "true"
-
+    const isChecked = (key: string) => isCheckedValue(values[key])
     const handleCheckboxChange = (key: string, checked: boolean) => {
-        onValueChange(key, checked ? "true" : "false")
+        onValueChange(key, toBooleanString(checked, true))
     }
 
     return (
@@ -48,7 +44,7 @@ export function TemporaryPermitReasonForm({ values, onValueChange }: TemporaryPe
                             <td className="border border-gray-400 px-3 py-3 text-center">
                                 <input
                                     type="checkbox"
-                                    checked={getBooleanValue("eligibility.noApplicableStandards")}
+                                    checked={isChecked("eligibility.noApplicableStandards")}
                                     onChange={(e) => handleCheckboxChange("eligibility.noApplicableStandards", e.target.checked)}
                                     className="h-5 w-5 accent-primary cursor-pointer"
                                 />
@@ -61,7 +57,7 @@ export function TemporaryPermitReasonForm({ values, onValueChange }: TemporaryPe
                             <td className="border border-gray-400 px-3 py-3 text-center">
                                 <input
                                     type="checkbox"
-                                    checked={getBooleanValue("eligibility.unclearOrUnreasonableStandards")}
+                                    checked={isChecked("eligibility.unclearOrUnreasonableStandards")}
                                     onChange={(e) => handleCheckboxChange("eligibility.unclearOrUnreasonableStandards", e.target.checked)}
                                     className="h-5 w-5 accent-primary cursor-pointer"
                                 />

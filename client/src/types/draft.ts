@@ -2,6 +2,14 @@
  * Step 4 (신청서 초안) 폼 스키마 타입 정의
  */
 
+/**
+ * 모든 Draft 폼 컴포넌트의 공통 Props
+ */
+export interface DraftFormProps {
+    values: Record<string, string>
+    onValueChange: (key: string, value: string) => void
+}
+
 export interface FieldOption {
     id: string
     label: string

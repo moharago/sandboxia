@@ -1,26 +1,17 @@
 "use client"
 
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
-
-interface DemonstrationReasonFormProps {
-    values: Record<string, string>
-    onValueChange: (key: string, value: string) => void
-}
+import { isCheckedValue, toBooleanString } from "@/lib/utils/form"
+import type { DraftFormProps } from "@/types/draft"
 
 /**
  * 실증을 위한 규제특례 신청 사유 (demonstration-3)
  */
-export function DemonstrationReasonForm({ values, onValueChange }: DemonstrationReasonFormProps) {
+export function DemonstrationReasonForm({ values, onValueChange }: DraftFormProps) {
     const getValue = (key: string) => values[key] ?? ""
-
-    // 체크박스 boolean 값 처리
-    const isChecked = (key: string): boolean => {
-        const value = values[key]
-        return value === "true" || value === "V" || value === "√"
-    }
-
+    const isChecked = (key: string) => isCheckedValue(values[key])
     const handleCheckboxChange = (key: string, checked: boolean) => {
-        onValueChange(key, checked ? "true" : "")
+        onValueChange(key, toBooleanString(checked))
     }
 
     return (

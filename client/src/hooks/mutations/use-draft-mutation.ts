@@ -11,6 +11,7 @@ import type {
     DraftCardUpdateRequest,
     DraftCardUpdateResponse,
 } from "@/types/api/draft"
+import type { MutationOptions } from "@/types/hooks"
 
 /**
  * AI 초안 생성 뮤테이션
@@ -21,17 +22,12 @@ export function useDraftGenerateMutation() {
     })
 }
 
-interface UseDraftCardUpdateMutationOptions {
-    onSuccess?: (data: DraftCardUpdateResponse) => void
-    onError?: (error: Error) => void
-}
-
 /**
  * 카드별 부분 저장 뮤테이션
  *
  * 특정 카드만 서버에 저장하고 나머지 카드 데이터는 유지합니다.
  */
-export function useDraftCardUpdateMutation(options?: UseDraftCardUpdateMutationOptions) {
+export function useDraftCardUpdateMutation(options?: MutationOptions<DraftCardUpdateResponse>) {
     const queryClient = useQueryClient()
 
     return useMutation<DraftCardUpdateResponse, Error, DraftCardUpdateRequest>({

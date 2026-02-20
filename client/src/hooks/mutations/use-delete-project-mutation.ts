@@ -5,12 +5,8 @@
  */
 
 import { projectsApi } from "@/lib/api/projects"
+import type { MutationOptions } from "@/types/hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-interface UseDeleteProjectMutationOptions {
-    onSuccess?: () => void
-    onError?: (error: Error) => void
-}
 
 /**
  * 프로젝트 삭제 mutation 훅
@@ -30,7 +26,7 @@ interface UseDeleteProjectMutationOptions {
  * mutate("project-id")
  * ```
  */
-export function useDeleteProjectMutation(options?: UseDeleteProjectMutationOptions) {
+export function useDeleteProjectMutation(options?: MutationOptions) {
     const queryClient = useQueryClient()
 
     return useMutation<void, Error, string>({
