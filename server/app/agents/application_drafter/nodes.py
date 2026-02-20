@@ -1440,11 +1440,7 @@ async def _generate_additional_questions(
 
     # LLM 호출
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            temperature=0.3,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        llm = get_llm(temperature=0.3)
 
         prompt = ADDITIONAL_QUESTIONS_PROMPT.format(
             service_info=service_info,
@@ -1509,11 +1505,7 @@ async def _generate_regulatory_exemption_reason(
         regulatory_info = "- 규제 이슈 정보 없음"
 
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            temperature=0.3,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        llm = get_llm(temperature=0.3)
 
         prompt = REGULATORY_EXEMPTION_REASON_PROMPT.format(
             service_info=service_info,
@@ -1613,11 +1605,7 @@ async def _generate_temporary_permit_reason(
         regulatory_info = "- 규제 이슈 정보 없음"
 
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            temperature=0.3,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        llm = get_llm(temperature=0.3)
 
         prompt = TEMPORARY_PERMIT_REASON_PROMPT.format(
             service_info=service_info,

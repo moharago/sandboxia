@@ -729,10 +729,10 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
     approval_cases: list[ApprovalCase] = []
     for track_key, cases in similar_cases.items():
         for case in cases:
-            # distance → similarity 변환 (distance가 낮을수록 유사도 높음)
+            # relevance_score는 이미 0-1 범위의 유사도
             relevance_score = case.get("relevance_score")
             if relevance_score is not None:
-                similarity = int(100 / (1 + relevance_score))
+                similarity = int(relevance_score * 100)
             else:
                 similarity = 0
 

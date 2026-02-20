@@ -213,9 +213,6 @@ class TrackRecommendResponse(BaseModel):
     track_comparison: dict
     similar_cases: dict = Field(default_factory=dict)  # {track_key: [case_dict, ...]}
     domain_constraints: dict = Field(default_factory=dict)  # R3 도메인 법령 RAG 결과
-    # ReferencePanel 데이터 (Eligibility Evaluator와 동일 형식)
-    approval_cases: list[ApprovalCase] = Field(default_factory=list)
-    regulations: list[Regulation] = Field(default_factory=list)
 
 
 @router.get(
@@ -245,8 +242,6 @@ async def get_track_recommendation(
         track_comparison=result["track_comparison"],
         similar_cases=result.get("similar_cases", {}),
         domain_constraints=result.get("domain_constraints", {}),
-        approval_cases=result.get("approval_cases", []),
-        regulations=result.get("regulations", []),
     )
 
 
@@ -309,8 +304,6 @@ async def recommend_track(
     # 3. 결과 저장
     similar_cases = result.get("similar_cases", {})
     domain_constraints = result.get("domain_constraints", {})
-    approval_cases = result.get("approval_cases", [])
-    regulations = result.get("regulations", [])
     try:
         save_track_result(
             project_id=project_id,
@@ -320,8 +313,6 @@ async def recommend_track(
             track_comparison=result["track_comparison"],
             similar_cases=similar_cases,
             domain_constraints=domain_constraints,
-            approval_cases=[c.model_dump() for c in approval_cases],
-            regulations=[r.model_dump() for r in regulations],
         )
     except Exception as e:
         logger.warning("track_results 저장 실패: %s", str(e))
@@ -335,8 +326,6 @@ async def recommend_track(
         track_comparison=result["track_comparison"],
         similar_cases=similar_cases,
         domain_constraints=domain_constraints,
-        approval_cases=approval_cases,
-        regulations=regulations,
     )
 
 

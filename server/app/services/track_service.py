@@ -58,8 +58,6 @@ def save_track_result(
     track_comparison: dict,
     similar_cases: dict | None = None,
     domain_constraints: dict | None = None,
-    approval_cases: list | None = None,
-    regulations: list | None = None,
     model_name: str = "gpt-4o-mini",
 ) -> dict | None:
     """트랙 추천 결과 저장
@@ -72,8 +70,6 @@ def save_track_result(
         track_comparison: 트랙별 비교 데이터 (JSONB)
         similar_cases: 트랙별 유사 승인 사례 (JSONB)
         domain_constraints: R3 도메인 법령 RAG 검색 결과 (JSONB)
-        approval_cases: ReferencePanel용 승인사례 목록 (JSONB)
-        regulations: ReferencePanel용 법령·제도 목록 (JSONB)
         model_name: 사용된 LLM 모델명
 
     Returns:
@@ -88,8 +84,6 @@ def save_track_result(
             "track_comparison": track_comparison,
             "similar_cases": similar_cases or {},
             "domain_constraints": domain_constraints or {},
-            "approval_cases": approval_cases or [],
-            "regulations": regulations or [],
             "model_name": model_name,
         },
         on_conflict="project_id",
