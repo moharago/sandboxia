@@ -783,7 +783,7 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
         "confidence_score": confidence_score,
         "result_summary": recommendation_data.get("result_summary", ""),
         "track_comparison": track_comparison,
-        "similar_cases": similar_cases,  # 상태에서 읽어온 값을 명시적으로 전달
-        "approval_cases": approval_cases,
-        "regulations": regulation_list,
+        # 오른쪽 패널용 데이터 (ApprovalCase, Regulation 스키마)
+        "similar_cases": [c.model_dump() for c in approval_cases],
+        "domain_constraints": [r.model_dump() for r in regulation_list],
     }

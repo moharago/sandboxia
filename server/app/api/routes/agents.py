@@ -211,8 +211,8 @@ class TrackRecommendResponse(BaseModel):
     confidence_score: float
     result_summary: str
     track_comparison: dict
-    similar_cases: dict = Field(default_factory=dict)  # {track_key: [case_dict, ...]}
-    domain_constraints: dict = Field(default_factory=dict)  # R3 도메인 법령 RAG 결과
+    similar_cases: list[ApprovalCase] = Field(default_factory=list)  # 유사 승인 사례
+    domain_constraints: list[Regulation] = Field(default_factory=list)  # 관련 법령
 
 
 @router.get(
@@ -240,8 +240,8 @@ async def get_track_recommendation(
         confidence_score=result["confidence_score"],
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
-        similar_cases=result.get("similar_cases", {}),
-        domain_constraints=result.get("domain_constraints", {}),
+        similar_cases=result.get("similar_cases", []),
+        domain_constraints=result.get("domain_constraints", []),
     )
 
 
@@ -302,8 +302,8 @@ async def recommend_track(
         )
 
     # 3. 결과 저장
-    similar_cases = result.get("similar_cases", {})
-    domain_constraints = result.get("domain_constraints", {})
+    similar_cases = result.get("similar_cases", [])
+    domain_constraints = result.get("domain_constraints", [])
     try:
         save_track_result(
             project_id=project_id,
