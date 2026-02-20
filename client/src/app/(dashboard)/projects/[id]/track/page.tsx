@@ -1,25 +1,25 @@
 "use client"
 
-import { use, useState, useMemo, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react"
-import { WizardNavigation } from "@/components/features/wizard"
-import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
-import { Card, CardHeader, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
+import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
+import { WizardNavigation } from "@/components/features/wizard"
+import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { tracks } from "@/data"
-import { useWizardStore } from "@/stores/wizard-store"
-import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
-import { useTrackQuery } from "@/hooks/queries/use-track-query"
+import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { cn } from "@/lib/utils/cn"
+import { useWizardStore } from "@/stores/wizard-store"
 import type { Regulation } from "@/types/api/eligibility"
-import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse, DomainConstraints } from "@/types/api/track"
+import type { DomainConstraints, RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
+import { useQueryClient } from "@tanstack/react-query"
+import { AlertCircle, CheckCircle2, ExternalLink, Info, XCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { use, useCallback, useMemo, useState } from "react"
 
 interface TrackPageProps {
     params: Promise<{ id: string }>
@@ -60,7 +60,7 @@ function transformApiResponse(response: TrackRecommendResponse) {
         rank: number
         score: number
         verdict: string
-        reasons: Array<{ type: "positive" | "negative" | "neutral"; text: string; source: string; description: string }>
+        reasons: Array<{ type: "positive" | "negative" | "neutral"; text: string; source: string; sourceUrl?: string; description: string }>
     }> = []
 
     // 3개 트랙을 순회하며 UI 형식으로 변환
@@ -79,6 +79,7 @@ function transformApiResponse(response: TrackRecommendResponse) {
                 type: r.type,
                 text: r.text,
                 source: evidence ? evidence.source : "",
+                sourceUrl: evidence?.source_url || undefined,
                 description: evidence?.description ?? "",
             }
         })
@@ -123,7 +124,7 @@ function extractCasesFromEvidence(response: TrackRecommendResponse): CaseData[] 
             if (ev.source) {
                 const parts = ev.source.split("_")
                 if (parts.length >= 3) {
-                    caseName = parts.slice(2).join("_")  // 3번째 이후 부분을 사례명으로 사용
+                    caseName = parts.slice(2).join("_") // 3번째 이후 부분을 사례명으로 사용
                 }
             }
 
@@ -206,10 +207,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     const effectiveSelectedTrackId = selectedTrackId ?? defaultTrackId
 
     // 기존 초안 존재 여부 확인 (로딩 중이면 false로 처리)
-    const hasExistingDraft = !isLoadingProject && Boolean(
-        project?.application_draft &&
-        Object.keys(project.application_draft).length > 0
-    )
+    const hasExistingDraft = !isLoadingProject && Boolean(project?.application_draft && Object.keys(project.application_draft).length > 0)
 
     // 초안 재생성 확인 (기존 초안이 있으면 confirm, 없거나 로딩 중이면 바로 true)
     const confirmDraftRegeneration = useCallback((): boolean => {
@@ -287,9 +285,20 @@ export default function TrackPage({ params }: TrackPageProps) {
                     setCurrentStep(4)
                     router.push(`/projects/${id}/draft`)
                 },
-            },
+            }
         )
-    }, [effectiveSelectedTrackId, id, selectMutation, draftMutation, setTrackSelection, markStepComplete, setCurrentStep, router, queryClient, confirmDraftRegeneration])
+    }, [
+        effectiveSelectedTrackId,
+        id,
+        selectMutation,
+        draftMutation,
+        setTrackSelection,
+        markStepComplete,
+        setCurrentStep,
+        router,
+        queryClient,
+        confirmDraftRegeneration,
+    ])
 
     const getReasonIcon = (type: string) => {
         switch (type) {
@@ -396,7 +405,10 @@ export default function TrackPage({ params }: TrackPageProps) {
                                     return (
                                         <Card
                                             key={track.id}
-                                            className={cn("relative overflow-hidden transition-all cursor-pointer", isSelected && "ring-2 ring-primary")}
+                                            className={cn(
+                                                "relative overflow-hidden transition-all cursor-pointer",
+                                                isSelected && "ring-2 ring-primary"
+                                            )}
                                             onClick={() => handleSelectTrack(track.id)}
                                         >
                                             <CardHeader className="pb-3">
@@ -427,7 +439,8 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                                     <div className="space-y-2">
                                                                         <p>{track.description}</p>
                                                                         <p className="text-muted-foreground">
-                                                                            <span className="font-medium text-foreground">소요 기간:</span> {track.duration}
+                                                                            <span className="font-medium text-foreground">소요 기간:</span>{" "}
+                                                                            {track.duration}
                                                                         </p>
                                                                         <div>
                                                                             <span className="font-medium">주요 요건:</span>
@@ -459,7 +472,25 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                                 {getReasonIcon(reason.type)}
                                                                 <div className="flex-1">
                                                                     <p className="text-foreground">{reason.text}</p>
-                                                                    {reason.source && <p className="text-muted-foreground/70 mt-1">근거: {reason.source}{reason.description ? ` - ${reason.description}` : ""}</p>}
+                                                                    {reason.source && (
+                                                                        <p className="text-muted-foreground/70 mt-1">
+                                                                            근거:{" "}
+                                                                            {reason.sourceUrl ? (
+                                                                                <a
+                                                                                    href={reason.sourceUrl}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-primary hover:underline inline-flex items-center gap-1"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    {reason.source} <ExternalLink className="h-3 w-3" />
+                                                                                </a>
+                                                                            ) : (
+                                                                                reason.source
+                                                                            )}
+                                                                            {reason.description ? ` - ${reason.description}` : ""}
+                                                                        </p>
+                                                                    )}
                                                                 </div>
                                                             </li>
                                                         ))}
@@ -484,7 +515,12 @@ export default function TrackPage({ params }: TrackPageProps) {
                         {/* 오른쪽: 참고 패널 */}
                         <div className={isReferencePanelOpen ? "flex-1" : ""}>
                             <div className="sticky top-16">
-                                <ReferencePanel isOpen={isReferencePanelOpen} onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)} cases={evidenceCases.length > 0 ? evidenceCases : undefined} regulations={evidenceRegulations.length > 0 ? evidenceRegulations : undefined} />
+                                <ReferencePanel
+                                    isOpen={isReferencePanelOpen}
+                                    onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
+                                    cases={evidenceCases.length > 0 ? evidenceCases : undefined}
+                                    regulations={evidenceRegulations.length > 0 ? evidenceRegulations : undefined}
+                                />
                             </div>
                         </div>
                     </div>

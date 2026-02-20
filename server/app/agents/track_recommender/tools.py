@@ -129,6 +129,7 @@ def retrieve_track_definitions(track_keys: list[str]) -> list[dict]:
                 "type": "comparison",
                 "content": r.content,
                 "source": r.citation,
+                "source_url": r.source_url,
             })
 
     # 각 트랙별 정의 검색
@@ -152,6 +153,7 @@ def retrieve_track_definitions(track_keys: list[str]) -> list[dict]:
                     "track_name": track_name,
                     "content": r.content,
                     "source": r.citation,
+                    "source_url": r.source_url,
                 })
 
     return results

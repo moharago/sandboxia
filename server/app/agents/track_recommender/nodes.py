@@ -340,7 +340,11 @@ def _extract_evidence_sources(
     similar_cases: dict,
     domain_constraints: dict | None = None,
 ) -> dict:
-    """RAG 결과에서 실제 출처 목록 추출 (R1 + R2 + R3)"""
+    """RAG 결과에서 실제 출처 목록 추출 (R1 + R2 + R3)
+
+    Returns:
+        {"사례": [{"source": ..., "source_url": ...}, ...], "법령": [...], "규제": [...]}
+    """
     sources = {
         "사례": [],
         "법령": [],
@@ -353,7 +357,10 @@ def _extract_evidence_sources(
         for case in cases:
             case_id = case.get("case_id", "")
             if case_id and case_id not in seen_case_ids:
-                sources["사례"].append(case_id)
+                sources["사례"].append({
+                    "source": case_id,
+                    "source_url": case.get("source_url", ""),
+                })
                 seen_case_ids.add(case_id)
 
     # R1: 트랙 정의에서 출처 추출 (중복 제거, citation 정제)
@@ -366,10 +373,11 @@ def _extract_evidence_sources(
         if not source or source in seen_sources:
             continue
         seen_sources.add(source)
+        source_url = td.get("source_url", "")
         if any(kw in source for kw in ["법", "조", "규정", "시행령", "시행규칙"]):
-            sources["법령"].append(source)
+            sources["법령"].append({"source": source, "source_url": source_url})
         else:
-            sources["규제"].append(source)
+            sources["규제"].append({"source": source, "source_url": source_url})
 
     # R3: 도메인 법령에서 citation 추출 (구체적 법령 조항 보존)
     if domain_constraints:
@@ -388,7 +396,8 @@ def _extract_evidence_sources(
                 if not source or source in seen_sources:
                     continue
             seen_sources.add(source)
-            sources["법령"].append(source)
+            source_url = constraint.get("source_url", "")
+            sources["법령"].append({"source": source, "source_url": source_url})
 
     # RAG에서 출처를 못 찾으면 비워둠 (generic 라벨로 대체하지 않음)
     # LLM에게 "추가 확인 필요"를 사용하도록 프롬프트에서 안내
@@ -424,7 +433,8 @@ def _build_available_sources_text(
 
     lines.append("### source_type: \"사례\" → 아래에서 선택")
     if sources["사례"]:
-        for s in sources["사례"]:
+        for item in sources["사례"]:
+            s = item["source"]
             display_name = case_display.get(s, "")
             if display_name:
                 lines.append(f"- {s} ({display_name})")
@@ -436,16 +446,16 @@ def _build_available_sources_text(
     lines.append("")
     lines.append("### source_type: \"법령\" → 아래에서 선택")
     if sources["법령"]:
-        for s in sources["법령"]:
-            lines.append(f"- {s}")
+        for item in sources["법령"]:
+            lines.append(f"- {item['source']}")
     else:
         lines.append("- (해당 법령 없음 — 출처가 필요하면 \"추가 확인 필요\" 사용)")
 
     lines.append("")
     lines.append("### source_type: \"규제\" → 아래에서 선택")
     if sources["규제"]:
-        for s in sources["규제"]:
-            lines.append(f"- {s}")
+        for item in sources["규제"]:
+            lines.append(f"- {item['source']}")
     else:
         lines.append("- (해당 규제 없음 — 출처가 필요하면 \"추가 확인 필요\" 사용)")
 
@@ -458,24 +468,35 @@ def _fix_evidence_sources(
     similar_cases: dict,
     domain_constraints: dict | None = None,
 ) -> dict:
-    """LLM 응답의 evidence.source 검증 및 중복 제거
+    """LLM 응답의 evidence.source 검증 및 중복 제거, source_url 주입
 
     1. RAG 내부 경로(" > " 형식)만 의미 있는 출처명으로 교체
     2. "추가 확인 필요"는 그대로 통과
     3. 유효 목록이 비어있으면 교체 시도 안 함
     4. 트랙 내 중복 source → 다른 출처로 교체
+    5. source_url 주입 (RAG 결과에서 매칭)
     """
     sources = _extract_evidence_sources(
         track_definitions, similar_cases, domain_constraints
     )
 
+    # source → source_url 매핑 생성
+    source_to_url: dict[str, str] = {}
+    for source_list in sources.values():
+        for item in source_list:
+            src = item["source"]
+            url = item.get("source_url", "")
+            if src and url:
+                source_to_url[src] = url
+
     # 유효한 출처 집합 생성
     valid_sources = set()
     for source_list in sources.values():
-        valid_sources.update(source_list)
+        for item in source_list:
+            valid_sources.add(item["source"])
 
-    # 전체 출처 풀 (source_type별 + 통합)
-    all_sources = sources.get("사례", []) + sources.get("법령", []) + sources.get("규제", [])
+    # 전체 출처 풀 (source_type별 + 통합) - dict 형태
+    all_sources_items = sources.get("사례", []) + sources.get("법령", []) + sources.get("규제", [])
 
     for track_key in ["demo", "temp_permit", "quick_check"]:
         track_data = recommendation_data.get(track_key, {})
@@ -495,27 +516,39 @@ def _fix_evidence_sources(
             # RAG 내부 경로(" > " 형식)는 정제
             if " > " in current_source:
                 ev["source"] = _clean_citation(current_source)
-                continue
+                current_source = ev["source"]
 
             # 유효 목록이 비어있으면 LLM 출처를 그대로 유지
             if not valid_sources:
+                # source_url 주입 시도
+                if current_source in source_to_url:
+                    ev["source_url"] = source_to_url[current_source]
                 continue
 
             # 유효 목록에 있으면 통과
             if current_source in valid_sources:
+                # source_url 주입
+                if current_source in source_to_url:
+                    ev["source_url"] = source_to_url[current_source]
                 continue
 
             # display-form "case_id (service_name)" → base id로 유효성 확인
             if " (" in current_source:
                 base_id = current_source.split(" (", 1)[0]
                 if base_id in valid_sources:
+                    # source_url 주입 (base_id로 매핑)
+                    if base_id in source_to_url:
+                        ev["source_url"] = source_to_url[base_id]
                     continue  # base id가 유효하면 display-form 그대로 보존
 
             # 유효 목록에 없는 경우: source_type별 fallback이 있을 때만 교체
             source_type = ev.get("source_type", "규제")
             fallback = sources.get(source_type, [])
             if fallback:
-                ev["source"] = fallback[i % len(fallback)]
+                fallback_item = fallback[i % len(fallback)]
+                ev["source"] = fallback_item["source"]
+                if fallback_item.get("source_url"):
+                    ev["source_url"] = fallback_item["source_url"]
             # fallback이 없으면 LLM이 생성한 출처를 그대로 유지
 
         # 2단계: 트랙 내 중복 source 제거
@@ -528,11 +561,15 @@ def _fix_evidence_sources(
             if current_source in used_sources:
                 # 중복 → 아직 사용하지 않은 다른 출처로 교체
                 source_type = ev.get("source_type", "규제")
-                candidates = sources.get(source_type, []) + all_sources
+                type_candidates = sources.get(source_type, [])
+                all_candidates = type_candidates + all_sources_items
                 replaced = False
-                for candidate in candidates:
+                for candidate_item in all_candidates:
+                    candidate = candidate_item["source"]
                     if candidate not in used_sources:
                         ev["source"] = candidate
+                        if candidate_item.get("source_url"):
+                            ev["source_url"] = candidate_item["source_url"]
                         used_sources.add(candidate)
                         replaced = True
                         break
