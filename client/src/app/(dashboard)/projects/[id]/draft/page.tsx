@@ -212,7 +212,6 @@ export default function DraftPage({ params }: DraftPageProps) {
                                 onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
                                 approvalCases={similarCases}
                                 regulations={regulations}
-                                useDummyData={false}
                                 track={project?.track}
                             />
                         </div>
