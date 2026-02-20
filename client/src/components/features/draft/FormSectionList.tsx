@@ -3,52 +3,9 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 import type { FormType } from "@/stores/wizard-store"
+import type { FormSchema } from "@/types/draft"
 import { getTodayIso, formatDateIso } from "@/lib/utils/date"
 import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
-
-// 새로운 스키마 타입 정의
-interface FieldOption {
-    id: string
-    label: string
-    value: string
-}
-
-interface FormField {
-    key: string
-    label: string
-    formType: string
-    dataType: string
-    required: boolean
-    options?: FieldOption[]
-}
-
-interface TableColumn {
-    key: string
-    label: string
-}
-
-interface TableRow {
-    key: string
-    label: string
-    dataType: string
-}
-
-interface FormSection {
-    key: string
-    label: string
-    fields?: FormField[]
-    isArray?: boolean
-    isTable?: boolean
-    columns?: TableColumn[]
-    rows?: TableRow[]
-}
-
-interface FormSchema {
-    formId: string
-    formName: string
-    version: string
-    sections: FormSection[]
-}
 
 type FormData = Record<string, FormSchema>
 
@@ -99,23 +56,30 @@ function isEndDateField(fieldKey: string): boolean {
 }
 
 /**
- * 문자열이 날짜 형식인지 확인하고 ISO 형식으로 변환
+ * 날짜 필드인지 확인 (필드 키 기반)
+ * 날짜 필드에서만 한국어 날짜 → ISO 변환을 적용
+ */
+const DATE_FIELD_PATTERNS = [
+    "Date",           // applicationDate, startDate, endDate, submissionDate
+    "date",           // 소문자 버전
+    "establishmentDate",
+]
+
+function isDateField(fieldKey: string): boolean {
+    return DATE_FIELD_PATTERNS.some((p) => fieldKey.includes(p))
+}
+
+/**
+ * 날짜 문자열을 ISO 형식으로 변환
  * "2025년 11월 24일" → "2025-11-24"
  * "2026. 02. 06." → "2026-02-06"
- * @param fieldKey 필드 키 (종료일 여부 판단용)
+ *
+ * NOTE: isDateField로 확인된 날짜 필드에서만 호출됨
  */
-function tryConvertDateToIso(value: string, fieldKey = ""): string {
-    // 날짜 패턴 감지: 년/월/일 포함 또는 YYYY.MM.DD 형식
-    const isDateLike =
-        /\d{4}\s*년/.test(value) || // 2025년
-        /^\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?$/.test(value.trim()) // 2026. 02. 06.
-
-    if (isDateLike) {
-        const isEndDate = isEndDateField(fieldKey)
-        const converted = formatDateIso(value, isEndDate)
-        return converted || value // 변환 실패 시 원본 반환
-    }
-    return value
+function convertDateToIso(value: string, fieldKey: string): string {
+    const isEndDate = isEndDateField(fieldKey)
+    const converted = formatDateIso(value, isEndDate)
+    return converted || value // 변환 실패 시 원본 반환
 }
 
 /**
@@ -163,7 +127,7 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
                     } else {
                         // 기타 primitive는 문자열로 변환
                         const strItem = String(item)
-                        result[arrayKey] = tryConvertDateToIso(strItem, arrayKey)
+                        result[arrayKey] = isDateField(arrayKey) ? convertDateToIso(strItem, arrayKey) : strItem
                     }
                 }
             }
@@ -174,9 +138,9 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
             // boolean은 문자열로 변환
             result[newKey] = value ? "true" : ""
         } else {
-            // 나머지는 문자열로 변환 (날짜 형식이면 ISO로 변환)
+            // 나머지는 문자열로 변환 (날짜 필드면 ISO로 변환)
             const strValue = String(value)
-            result[newKey] = tryConvertDateToIso(strValue, newKey)
+            result[newKey] = isDateField(newKey) ? convertDateToIso(strValue, newKey) : strValue
         }
     }
 
@@ -248,15 +212,18 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
     }, [initialValues, flattenedInitialValues, formValues])
     const [savedMessage, setSavedMessage] = useState<string | null>(null)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [savingCardKey, setSavingCardKey] = useState<string | null>(null)
 
     // 카드 저장 mutation
     const cardUpdateMutation = useDraftCardUpdateMutation({
         onSuccess: (data) => {
             setSavedMessage(`${getCardName(formType, data.card_key)} 저장 완료`)
+            setSavingCardKey(null)
             setTimeout(() => setSavedMessage(null), 2000)
         },
         onError: (error) => {
             setSaveError(error.message)
+            setSavingCardKey(null)
             setTimeout(() => setSaveError(null), 3000)
         },
     })
@@ -275,6 +242,7 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
     }, [])
 
     const handleSave = useCallback((cardKey: string) => {
+        setSavingCardKey(cardKey)
         const cardData = formValues[cardKey] || {}
         cardUpdateMutation.mutate({
             project_id: projectId,
@@ -306,7 +274,7 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
                     values={formValues[cardKey] || {}}
                     onValueChange={(fieldKey, value) => handleValueChange(cardKey, fieldKey, value)}
                     onSave={() => handleSave(cardKey)}
-                    isSaving={cardUpdateMutation.isPending}
+                    isSaving={savingCardKey === cardKey && cardUpdateMutation.isPending}
                 />
             ))}
         </div>

@@ -464,6 +464,7 @@ async def generate_draft(
         save_draft_result(
             project_id=project_id,
             application_draft=application_draft,
+            track=track,
             model_name=model_name,
             similar_cases=[c.model_dump() for c in similar_cases],
             domain_laws=[l.model_dump() for l in domain_laws],

@@ -22,6 +22,7 @@ export interface DraftGenerateResponse {
 /** projects.application_draft에 저장되는 구조 */
 export interface ApplicationDraft {
     form_values: Record<string, unknown>
+    track?: string  // 초안 생성에 사용된 트랙 (project.track과 불일치 시 재생성 필요)
     model_name: string
     generated_at: string
     similar_cases?: ApprovalCase[]

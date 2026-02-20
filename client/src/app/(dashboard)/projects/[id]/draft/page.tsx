@@ -131,6 +131,9 @@ export default function DraftPage({ params }: DraftPageProps) {
         typeof draftData.form_values === "object" &&
         Object.keys(draftData.form_values).length > 0
 
+    // 트랙 불일치 감지: 저장된 초안의 track과 현재 프로젝트의 track이 다른 경우
+    const isTrackMismatch = hasDraftData && draftData?.track && draftData.track !== project.track
+
     return (
         <div className="py-6">
             <div className="container">
@@ -146,7 +149,26 @@ export default function DraftPage({ params }: DraftPageProps) {
                             </p>
                         </div>
 
-                        {hasDraftData ? (
+                        {isTrackMismatch ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-semibold text-amber-800 mb-1">
+                                            트랙이 변경되어 초안을 다시 생성해야 합니다
+                                        </h3>
+                                        <p className="text-amber-700 text-sm mb-4">
+                                            이전에 생성된 초안은 다른 트랙 기준으로 작성되었습니다.
+                                            변경된 트랙에 맞는 신청서를 작성하려면 초안을 다시 생성해주세요.
+                                        </p>
+                                        <Button onClick={handleGenerateDraft} variant="outline" className="gap-2 border-amber-400 text-amber-700 hover:bg-amber-100">
+                                            <Sparkles className="h-4 w-4" />
+                                            AI 초안 다시 생성
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : hasDraftData ? (
                             <AIAnalysisCard
                                 title="AI 초안 생성 완료"
                                 summary="AI가 생성한 초안이 아래 폼에 자동으로 채워졌습니다. 내용을 검토하고 필요에 따라 수정하세요."
@@ -167,7 +189,11 @@ export default function DraftPage({ params }: DraftPageProps) {
 
                         {/* 동적 폼 필드 카드 */}
                         {formType ? (
-                            <FormSectionList formType={formType} initialValues={initialValues} projectId={id} />
+                            <FormSectionList
+                                formType={formType}
+                                initialValues={isTrackMismatch ? undefined : initialValues}
+                                projectId={id}
+                            />
                         ) : (
                             <div className="text-center py-8 text-muted-foreground">폼 타입을 확인할 수 없습니다.</div>
                         )}
@@ -176,10 +202,10 @@ export default function DraftPage({ params }: DraftPageProps) {
                             onBack={handleBack}
                             onNext={handleComplete}
                             nextLabel="작성 완료"
-                            isAnalyzed={hasDraftData}
+                            isAnalyzed={hasDraftData && !isTrackMismatch}
                             extraButtons={
                                 <>
-                                    {hasDraftData && (
+                                    {(hasDraftData && !isTrackMismatch) && (
                                         <Button variant="outline" onClick={handleGenerateDraft} className="gap-2">
                                             <Sparkles className="h-4 w-4" />
                                             AI 재생성
@@ -205,7 +231,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                     </div>
 
                     {/* 오른쪽: 참고 패널 */}
-                    <div className={isReferencePanelOpen ? "flex-1" : ""}>
+                    <div className={isReferencePanelOpen ? "flex-1 min-w-0" : ""}>
                         <div className="sticky top-16">
                             <ReferencePanel
                                 isOpen={isReferencePanelOpen}

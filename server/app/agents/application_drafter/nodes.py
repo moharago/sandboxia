@@ -915,8 +915,10 @@ def _merge_passthrough_data(draft: dict, canonical: dict, target_track: str) -> 
             tech_service_data["name"] = service["service_name"]
         if service_type_value:
             tech_service_data["type"] = service_type_value
+        # mainContent: -1 폼(신청서)은 service_description 사용 (신청서 HWP 원본)
         if service.get("service_description"):
             tech_service_data["mainContent"] = service["service_description"]
+            logger.info("[DEBUG] mainContent from service_description for -1 forms")
 
         if tech_service_data:
             # 모든 -1 폼의 technologyService 섹션에 적용 (신청서)
@@ -1196,11 +1198,19 @@ def _merge_passthrough_data(draft: dict, canonical: dict, target_track: str) -> 
     if applicants:
 
         # 제출일자 - HWP에서 파싱된 값 사용, 없으면 오늘 날짜
-        submission_date = applicants.get("submissionDate")
+        # HWP 파서는 snake_case, 일부 데이터는 camelCase 사용 - 둘 다 체크
+        submission_date = (
+            applicants.get("submission_date") or
+            applicants.get("submissionDate") or
+            applicants.get("application_date") or
+            applicants.get("applicationDate")
+        )
         if not submission_date:
             today = date.today()
             submission_date = today.strftime("%Y. %m. %d.")
             logger.info("[DEBUG] submissionDate not found, using today: %s", submission_date)
+        else:
+            logger.info("[DEBUG] submissionDate from canonical: %s", submission_date)
 
         for form_id in ["temporary-2", "demonstration-2"]:
             form_data = _get_form_data(draft, form_id)
@@ -1236,14 +1246,18 @@ def _merge_passthrough_data(draft: dict, canonical: dict, target_track: str) -> 
                         logger.info("[DEBUG] submission overwritten with canonical signatures for %s", form_id)
 
     # 신청일자 - HWP에서 파싱된 날짜 사용, 없으면 오늘 날짜
+    # HWP 파서는 snake_case, 일부 데이터는 camelCase 사용 - 둘 다 체크
     applicants = canonical.get("applicants", {})
-    application_date = applicants.get("applicationDate") if applicants else None
+    application_date = (
+        applicants.get("application_date") or
+        applicants.get("applicationDate")
+    ) if applicants else None
     if not application_date:
         today = date.today()
         application_date = today.strftime("%Y. %m. %d.")
-        logger.info("[DEBUG] applicationDate not found, using today: %s", application_date)
+        logger.info("[DEBUG] application_date not found, using today: %s", application_date)
     else:
-        logger.info("[DEBUG] applicationDate from HWP: %s", application_date)
+        logger.info("[DEBUG] application_date from HWP: %s", application_date)
 
     for form_id in ["temporary-1", "demonstration-1", "fastcheck-1"]:
         form_data = _get_form_data(draft, form_id)

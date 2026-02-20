@@ -99,6 +99,7 @@ $RECYCLE.BIN/
 .idea/
 *.local.md
 
+chroma/
 chroma_data/
 chroma_db/
 

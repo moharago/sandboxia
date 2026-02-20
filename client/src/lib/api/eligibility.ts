@@ -29,20 +29,6 @@ export const eligibilityApi = {
     },
 
     /**
-     * 기존 결과가 있는지 확인 (evidence_data 유무)
-     */
-    hasExistingResult: async (projectId: string): Promise<boolean> => {
-        const result = await eligibilityApi.getByProjectId(projectId)
-
-        if (!result || !result.evidence_data) {
-            return false
-        }
-
-        // evidence_data가 빈 객체인지 확인
-        return Object.keys(result.evidence_data).length > 0
-    },
-
-    /**
      * 트랙 추천 결과가 있는지 확인
      */
     hasTrackResult: async (projectId: string): Promise<boolean> => {

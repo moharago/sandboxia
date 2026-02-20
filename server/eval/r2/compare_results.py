@@ -31,9 +31,20 @@ METRICS_ROWS = [
 
 
 def load_experiment(path: Path) -> dict | None:
-    """실험 결과 JSON 로드 (새 포맷만 지원)"""
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    """실험 결과 JSON 로드 (새 포맷만 지원)
+
+    파일 I/O 또는 JSON 파싱 실패 시 에러를 기록하고 None을 반환하여
+    load_all_experiments 루프가 중단되지 않도록 한다.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"  [ERROR] 파일 로드 실패: {path} ({type(e).__name__}: {e})")
+        return None
+    except Exception as e:
+        print(f"  [ERROR] 예상치 못한 오류: {path} ({type(e).__name__}: {e})")
+        return None
 
     # 새 포맷 검증: experiment 블록 필요
     if "experiment" not in data:
