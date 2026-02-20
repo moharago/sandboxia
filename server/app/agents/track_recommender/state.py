@@ -2,6 +2,8 @@
 
 from typing import TypedDict
 
+from app.agents.eligibility_evaluator.schemas import ApprovalCase, Regulation
+
 
 class TrackScore(TypedDict):
     """트랙별 점수"""
@@ -21,7 +23,6 @@ class TrackEvidence(TypedDict):
     """트랙 추천 근거"""
     source_type: str  # "법령" | "사례" | "규제"
     source: str
-    description: str  # 출처가 왜 근거가 되는지 짧은 설명
 
 
 class TrackComparison(TypedDict):
@@ -51,3 +52,7 @@ class TrackRecommenderState(TypedDict):
     confidence_score: float  # 0-100
     result_summary: str  # AI 분석 요약
     track_comparison: dict[str, TrackComparison]  # JSONB 구조
+
+    # ReferencePanel 데이터 (Step 2,3,4 재사용)
+    approval_cases: list[ApprovalCase]  # 승인사례 탭
+    regulations: list[Regulation]  # 법령·제도 탭

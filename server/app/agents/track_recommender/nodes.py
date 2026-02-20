@@ -6,6 +6,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
+from app.agents.eligibility_evaluator.schemas import ApprovalCase, Regulation
 from app.agents.track_recommender.prompts import (
     RECOMMENDATION_SYSTEM_PROMPT,
     RECOMMENDATION_USER_PROMPT,
@@ -746,10 +747,69 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
     # 신뢰도 = 1순위 트랙의 fit_score
     confidence_score = track_comparison[recommended_track]["fit_score"]
 
+    # ================================================================
+    # ReferencePanel 데이터 생성 (Eligibility Evaluator 방식)
+    # ================================================================
+
+    # approval_cases: R2 similar_cases → ApprovalCase 변환
+    approval_cases: list[ApprovalCase] = []
+    for track_key, cases in similar_cases.items():
+        for case in cases:
+            # distance → similarity 변환 (distance가 낮을수록 유사도 높음)
+            relevance_score = case.get("relevance_score")
+            if relevance_score is not None:
+                similarity = int(100 / (1 + relevance_score))
+            else:
+                similarity = 0
+
+            approval_cases.append(
+                ApprovalCase(
+                    track=case.get("track") or "실증특례",
+                    date=case.get("designation_date", ""),
+                    similarity=similarity,
+                    title=case.get("service_name") or case.get("case_id") or "유사 서비스",
+                    company=case.get("company_name") or "기업",
+                    summary=(case.get("service_description") or "")[:300],
+                    source_url=case.get("source_url"),
+                )
+            )
+
+    # regulations: R1 track_definitions + R3 domain_constraints → Regulation 변환
+    regulation_list: list[Regulation] = []
+
+    # R3 도메인 법령 먼저 (법령·제도 탭에서 법령이 상단에 표시)
+    if domain_constraints:
+        for constraint in domain_constraints.get("constraints", [])[:5]:
+            domain_label = constraint.get("domain_label", "")
+            category = f"법령·{domain_label}" if domain_label else "법령"
+            regulation_list.append(
+                Regulation(
+                    category=category,
+                    title=constraint.get("source") or constraint.get("law_name") or "관련 법령",
+                    summary=(constraint.get("content") or "")[:300],
+                    source_url=constraint.get("source_url"),
+                )
+            )
+
+    # R1 트랙 정의/요건
+    for td in track_definitions[:5]:
+        track_name = td.get("track_name", "")
+        category = track_name if track_name else "제도"
+        regulation_list.append(
+            Regulation(
+                category=category,
+                title=td.get("source") or "규제샌드박스 제도",
+                summary=(td.get("content") or "")[:300],
+                source_url=td.get("source_url"),
+            )
+        )
+
     return {
         "recommended_track": recommended_track,
         "confidence_score": confidence_score,
         "result_summary": recommendation_data.get("result_summary", ""),
         "track_comparison": track_comparison,
         "similar_cases": similar_cases,  # 상태에서 읽어온 값을 명시적으로 전달
+        "approval_cases": approval_cases,
+        "regulations": regulation_list,
     }

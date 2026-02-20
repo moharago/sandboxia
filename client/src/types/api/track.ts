@@ -3,6 +3,7 @@
  */
 
 import type { Track } from "@/types/data/project"
+import type { ApprovalCase, Regulation } from "./eligibility"
 
 // 트랙 추천 대상 (counseling 제외)
 export type RecommendableTrack = Exclude<Track, "counseling">
@@ -90,6 +91,9 @@ export interface TrackRecommendResponse {
     track_comparison: TrackComparison
     similar_cases?: SimilarCases  // 트랙별 유사 승인 사례 (서버에서 omit 가능)
     domain_constraints?: DomainConstraints  // R3 도메인 법령 RAG 검색 결과
+    // ReferencePanel 데이터 (Eligibility Evaluator와 동일 형식)
+    approval_cases?: ApprovalCase[]
+    regulations?: Regulation[]
 }
 
 // 트랙 선택 저장 요청

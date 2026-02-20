@@ -14,8 +14,7 @@ import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { cn } from "@/lib/utils/cn"
 import { useWizardStore } from "@/stores/wizard-store"
-import type { Regulation } from "@/types/api/eligibility"
-import type { DomainConstraints, RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
+import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, CheckCircle2, ExternalLink, Info, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -100,74 +99,19 @@ function transformApiResponse(response: TrackRecommendResponse) {
     }
 }
 
-// track_comparison evidence에서 사례 데이터 추출
-function extractCasesFromEvidence(response: TrackRecommendResponse): CaseData[] {
-    const seen = new Set<string>()
-    const cases: CaseData[] = []
+// API 응답의 approval_cases를 ReferencePanel용 CaseData로 변환
+function transformApprovalCases(response: TrackRecommendResponse): CaseData[] {
+    if (!response.approval_cases) return []
 
-    const trackKeys: RecommendableTrack[] = ["demo", "temp_permit", "quick_check"]
-
-    for (const key of trackKeys) {
-        const trackData = response.track_comparison[key]
-        if (!trackData) continue
-
-        for (const ev of trackData.evidence) {
-            if (ev.source_type !== "사례") continue
-            if (!ev.service_name) continue
-
-            const id = ev.source || ev.service_name
-            if (seen.has(id)) continue
-            seen.add(id)
-
-            // ev.source (case_id)에서 사례명 추출: "실증특례_162_위비케어 컨소시엄" → "위비케어 컨소시엄"
-            let caseName = ev.company_name || ""
-            if (ev.source) {
-                const parts = ev.source.split("_")
-                if (parts.length >= 3) {
-                    caseName = parts.slice(2).join("_") // 3번째 이후 부분을 사례명으로 사용
-                }
-            }
-
-            cases.push({
-                id,
-                title: ev.service_name,
-                company: caseName,
-                track: ev.track || "",
-                summary: ev.description || "",
-                relevance: ev.similarity,
-                link: ev.source_url || undefined,
-            })
-        }
-    }
-
-    return cases
-}
-
-// domain_constraints 원본 데이터에서 법령·제도 데이터 추출
-function extractRegulationsFromDomainConstraints(domainConstraints?: DomainConstraints): Regulation[] {
-    if (!domainConstraints?.constraints) return []
-
-    const seen = new Set<string>()
-    const regulations: Regulation[] = []
-
-    for (const constraint of domainConstraints.constraints) {
-        if (!constraint.source) continue
-        if (seen.has(constraint.source)) continue
-        seen.add(constraint.source)
-
-        const summary = constraint.article_title
-            ? `[${constraint.article_title}] ${constraint.content.slice(0, 80)}${constraint.content.length > 80 ? "..." : ""}`
-            : constraint.content.slice(0, 100) + (constraint.content.length > 100 ? "..." : "")
-
-        regulations.push({
-            category: constraint.domain_label || "법령",
-            title: constraint.source,
-            summary,
-            source_url: constraint.source_url || null,
-        })
-    }
-
-    return regulations
+    return response.approval_cases.map((c, idx) => ({
+        id: `case-${idx}`,
+        title: c.title,
+        company: c.company,
+        track: c.track,
+        summary: c.summary,
+        relevance: c.similarity,
+        link: c.source_url || undefined,
+    }))
 }
 
 export default function TrackPage({ params }: TrackPageProps) {
@@ -191,16 +135,16 @@ export default function TrackPage({ params }: TrackPageProps) {
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
     const defaultTrackId = trackResult ? API_TO_UI_TRACK[trackResult.recommended_track] : null
 
-    // evidence에서 사례 데이터 추출
-    const evidenceCases = useMemo(() => {
+    // ReferencePanel용 데이터 변환
+    const referenceCases = useMemo(() => {
         if (!trackResult) return []
-        return extractCasesFromEvidence(trackResult)
+        return transformApprovalCases(trackResult)
     }, [trackResult])
 
-    // domain_constraints에서 법령·제도 데이터 추출
-    const evidenceRegulations = useMemo(() => {
-        if (!trackResult) return []
-        return extractRegulationsFromDomainConstraints(trackResult.domain_constraints)
+    // regulations는 API 응답에서 직접 사용
+    const referenceRegulations = useMemo(() => {
+        if (!trackResult?.regulations) return []
+        return trackResult.regulations
     }, [trackResult])
 
     // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
@@ -518,8 +462,8 @@ export default function TrackPage({ params }: TrackPageProps) {
                                 <ReferencePanel
                                     isOpen={isReferencePanelOpen}
                                     onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
-                                    cases={evidenceCases.length > 0 ? evidenceCases : undefined}
-                                    regulations={evidenceRegulations.length > 0 ? evidenceRegulations : undefined}
+                                    cases={referenceCases.length > 0 ? referenceCases : undefined}
+                                    regulations={referenceRegulations.length > 0 ? referenceRegulations : undefined}
                                 />
                             </div>
                         </div>
