@@ -1,12 +1,10 @@
 """Track Recommender Agent 노드 함수"""
 
 import json
-import re
 from typing import Any
 
-from langchain_openai import ChatOpenAI
-
 from app.agents.eligibility_evaluator.schemas import ApprovalCase, Regulation
+from app.core.llm import get_llm
 from app.agents.track_recommender.prompts import (
     RECOMMENDATION_SYSTEM_PROMPT,
     RECOMMENDATION_USER_PROMPT,
@@ -19,25 +17,10 @@ from app.agents.track_recommender.tools import (
     retrieve_track_definitions,
     score_track,
 )
-from app.core.config import settings
 from app.tools.shared.rag import (
     compare_tracks,
     search_domain_law,
 )
-
-
-def _camel_to_snake(name: str) -> str:
-    """camelCase를 snake_case로 변환"""
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
-
-
-def _normalize_keys(obj: Any) -> Any:
-    """딕셔너리 키를 snake_case로 정규화 (재귀적)"""
-    if isinstance(obj, dict):
-        return {_camel_to_snake(k): _normalize_keys(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [_normalize_keys(item) for item in obj]
-    return obj
 
 
 def get_field(data: dict, snake_key: str, camel_key: str, default: Any = None) -> Any:
@@ -53,15 +36,6 @@ def get_field(data: dict, snake_key: str, camel_key: str, default: Any = None) -
         찾은 값 또는 기본값
     """
     return data.get(snake_key) or data.get(camel_key) or default
-
-
-def get_llm():
-    """LLM 인스턴스 생성"""
-    return ChatOpenAI(
-        model=settings.LLM_MODEL,
-        temperature=0.1,
-        api_key=settings.OPENAI_API_KEY,
-    )
 
 
 def extract_service_info(canonical: dict) -> str:

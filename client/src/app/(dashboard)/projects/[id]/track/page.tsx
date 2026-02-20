@@ -282,6 +282,13 @@ export default function TrackPage({ params }: TrackPageProps) {
 
         // 기존 초안이 있으면 재생성 여부 확인
         const shouldRegenerateDraft = confirmDraftRegeneration()
+        // 취소 시 아무것도 안 하고 Step 4로 이동
+        if (!shouldRegenerateDraft && hasExistingDraft) {
+            markStepComplete(3)
+            setCurrentStep(4)
+            router.push(`/projects/${id}/draft`)
+            return
+        }
 
         // 1. 트랙 선택 저장 (projects.track 업데이트)
         selectMutation.mutate(
@@ -322,6 +329,7 @@ export default function TrackPage({ params }: TrackPageProps) {
         router,
         queryClient,
         confirmDraftRegeneration,
+        hasExistingDraft,
     ])
 
     const getReasonIcon = (type: string) => {
