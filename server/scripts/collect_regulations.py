@@ -23,11 +23,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_REGULATIONS
 from app.db.export import save_chunks_json
+from app.db.vector import create_embeddings
+from app.rag.config import load_embedding_config
 
 # 로컬 데이터 파일 (fallback)
 LOCAL_DATA_FILE = (
@@ -160,12 +161,17 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
     return documents, doc_ids
 
 
-def collect_and_store_regulations(reset: bool = True, export_chunks: bool = False):
+def collect_and_store_regulations(
+    reset: bool = True,
+    export_chunks: bool = False,
+    embedding_config: str = "E0",
+):
     """규제제도 데이터 수집 및 Vector DB 저장
 
     Args:
         reset: True면 기존 컬렉션 삭제 후 새로 생성
         export_chunks: True면 청크 JSON도 함께 저장 (평가셋 작성용)
+        embedding_config: 임베딩 설정 이름 (E0, E1, E2 등)
     """
     print("=" * 60)
     print("규제제도 데이터 수집 시작 (R1 RAG Tool)")
@@ -198,11 +204,18 @@ def collect_and_store_regulations(reset: bool = True, export_chunks: bool = Fals
     for k, v in sorted(tracks.items()):
         print(f"  - {k}: {v}개")
 
-    # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
+    # 임베딩 모델 초기화 (설정 파일 기반)
+    try:
+        emb_config = load_embedding_config(embedding_config, rag_type="r1")
+        print(f"\n[임베딩 설정] {emb_config.name}: {emb_config.description}")
+        print(f"  - 모델: {emb_config.model}")
+        print(f"  - Provider: {emb_config.provider}")
+        print(f"  - 차원: {emb_config.dimension}")
+    except FileNotFoundError:
+        print(f"\n[경고] 설정 '{embedding_config}'을 찾을 수 없습니다. 기본값(E0) 사용")
+        emb_config = load_embedding_config("E0", rag_type="r1")
+
+    embeddings = create_embeddings(emb_config)
 
     # Chroma DB 초기화
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
@@ -276,6 +289,15 @@ if __name__ == "__main__":
         action="store_true",
         help="청크 JSON도 함께 저장 (평가셋 작성용)",
     )
+    parser.add_argument(
+        "--embedding",
+        default="E0",
+        help="임베딩 설정 (E0=OpenAI-small, E1=OpenAI-large, E2=Upstage)",
+    )
     args = parser.parse_args()
 
-    collect_and_store_regulations(reset=True, export_chunks=args.export_chunks)
+    collect_and_store_regulations(
+        reset=True,
+        export_chunks=args.export_chunks,
+        embedding_config=args.embedding,
+    )

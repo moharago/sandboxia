@@ -238,6 +238,43 @@ JSON만 출력하세요."""
             canonical_dict["applicants"]["signatures"] = hwp_signatures
             logger.info(f"[HWP Parser] applicants.signatures = {hwp_signatures}")
 
+        # HWP 파서에서 추출한 establishment_date 강제 적용
+        hwp_establishment_date = merged_hwp_data.get("company_info", {}).get("establishment_date")
+        if hwp_establishment_date:
+            if "company" not in canonical_dict:
+                canonical_dict["company"] = {}
+            canonical_dict["company"]["establishment_date"] = hwp_establishment_date
+            logger.info(f"[HWP Parser] company.establishment_date = {hwp_establishment_date}")
+
+        # HWP 파서에서 추출한 application_date/submission_date 강제 적용
+        hwp_applicants = merged_hwp_data.get("applicants", {})
+        if hwp_applicants.get("application_date"):
+            if "applicants" not in canonical_dict:
+                canonical_dict["applicants"] = {}
+            canonical_dict["applicants"]["applicationDate"] = hwp_applicants["application_date"]
+            logger.info(f"[HWP Parser] applicants.applicationDate = {hwp_applicants['application_date']}")
+        if hwp_applicants.get("submission_date"):
+            if "applicants" not in canonical_dict:
+                canonical_dict["applicants"] = {}
+            canonical_dict["applicants"]["submissionDate"] = hwp_applicants["submission_date"]
+            logger.info(f"[HWP Parser] applicants.submissionDate = {hwp_applicants['submission_date']}")
+
+        # HWP 파서에서 추출한 service_description 강제 적용 (원본 줄바꿈 보존)
+        hwp_service_description = merged_hwp_data.get("service_info", {}).get("service_description")
+        if hwp_service_description and len(hwp_service_description.strip()) > 10:
+            if "service" not in canonical_dict:
+                canonical_dict["service"] = {}
+            canonical_dict["service"]["service_description"] = hwp_service_description.strip()
+            logger.info(f"[HWP Parser] service.service_description applied (원본 {len(hwp_service_description)}자)")
+
+        # startDate와 durationMonths로 endDate 계산 (없는 경우)
+        project_plan = canonical_dict.get("project_plan", {})
+        if project_plan.get("startDate") and project_plan.get("durationMonths") and not project_plan.get("endDate"):
+            end_date = _calculate_end_date(project_plan["startDate"], project_plan["durationMonths"])
+            if end_date:
+                canonical_dict["project_plan"]["endDate"] = end_date
+                logger.info(f"[Calculated] project_plan.endDate = {end_date}")
+
         total_elapsed = time.time() - total_start
         print(f"[Step1] ========== Canonical 구조 생성 완료 ({total_elapsed:.2f}초) ==========\n")
 
@@ -541,5 +578,44 @@ def _extract_financial_hr_sections(hwp_parse_results: list[dict[str, Any]]) -> s
     result = "\n\n".join(sections)
     print(f"[Step1] 추출 텍스트 총 {len(result):,}자")
     return result
+
+
+def _calculate_end_date(start_date: str, duration_months: int) -> str | None:
+    """startDate와 durationMonths로 endDate 계산
+
+    Args:
+        start_date: 시작일 문자열 (예: "2026년4월", "2026년 4월", "2026.04")
+        duration_months: 기간 (월 단위)
+
+    Returns:
+        종료일 문자열 (예: "2026년9월") 또는 None
+    """
+    try:
+        # 연도와 월 추출
+        year_match = re.search(r"(\d{4})", start_date)
+        month_match = re.search(r"(\d{1,2})(?:월|\.)", start_date)
+
+        if not year_match or not month_match:
+            # "2026년4월" 형식 재시도
+            match = re.search(r"(\d{4})년\s*(\d{1,2})", start_date)
+            if match:
+                year = int(match.group(1))
+                month = int(match.group(2))
+            else:
+                return None
+        else:
+            year = int(year_match.group(1))
+            month = int(month_match.group(1))
+
+        # 종료월 계산
+        end_month = month + duration_months - 1
+        end_year = year + (end_month - 1) // 12
+        end_month = ((end_month - 1) % 12) + 1
+
+        return f"{end_year}년{end_month}월"
+
+    except Exception as e:
+        logger.warning(f"endDate 계산 실패: {e}")
+        return None
 
 
