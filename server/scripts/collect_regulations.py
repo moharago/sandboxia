@@ -165,6 +165,7 @@ def collect_and_store_regulations(
     reset: bool = True,
     export_chunks: bool = False,
     embedding_config: str = "E0",
+    collection_suffix: str = "",
 ):
     """규제제도 데이터 수집 및 Vector DB 저장
 
@@ -172,6 +173,7 @@ def collect_and_store_regulations(
         reset: True면 기존 컬렉션 삭제 후 새로 생성
         export_chunks: True면 청크 JSON도 함께 저장 (평가셋 작성용)
         embedding_config: 임베딩 설정 이름 (E0, E1, E2 등)
+        collection_suffix: 컬렉션 이름에 붙일 접미사 (예: _E1)
     """
     print("=" * 60)
     print("규제제도 데이터 수집 시작 (R1 RAG Tool)")
@@ -221,19 +223,22 @@ def collect_and_store_regulations(
     persist_dir = Path(settings.CHROMA_PERSIST_DIR)
     persist_dir.mkdir(parents=True, exist_ok=True)
 
+    # 컬렉션 이름 설정
+    collection_name = COLLECTION_REGULATIONS + collection_suffix
+
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
         import chromadb
 
         client = chromadb.PersistentClient(path=str(persist_dir))
         try:
-            client.delete_collection(COLLECTION_REGULATIONS)
-            print(f"\n[OK] 기존 {COLLECTION_REGULATIONS} 컬렉션 삭제")
+            client.delete_collection(collection_name)
+            print(f"\n[OK] 기존 {collection_name} 컬렉션 삭제")
         except Exception:
             pass
 
     vectorstore = Chroma(
-        collection_name=COLLECTION_REGULATIONS,
+        collection_name=collection_name,
         embedding_function=embeddings,
         persist_directory=str(persist_dir),
     )
@@ -277,7 +282,7 @@ def collect_and_store_regulations(
     print(f"  - 소스: {source_path}")
     print(f"  - 총 청크 수: {len(documents)}개")
     print(f"  - 저장 위치: {persist_dir}")
-    print(f"  - 컬렉션명: {COLLECTION_REGULATIONS}")
+    print(f"  - 컬렉션명: {collection_name}")
 
 
 if __name__ == "__main__":
@@ -294,10 +299,16 @@ if __name__ == "__main__":
         default="E0",
         help="임베딩 설정 (E0=OpenAI-small, E1=OpenAI-large, E2=Upstage)",
     )
+    parser.add_argument(
+        "--suffix",
+        default="",
+        help="컬렉션 이름 접미사 (예: _E1)",
+    )
     args = parser.parse_args()
 
     collect_and_store_regulations(
         reset=True,
         export_chunks=args.export_chunks,
         embedding_config=args.embedding,
+        collection_suffix=args.suffix,
     )
