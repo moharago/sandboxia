@@ -13,8 +13,6 @@ import re
 import time
 from datetime import date
 
-from langchain_openai import ChatOpenAI
-
 from app.agents.application_drafter.form_schema import load_form_schema
 from app.agents.application_drafter.prompts import (
     ADDITIONAL_QUESTIONS_PROMPT,
@@ -22,10 +20,10 @@ from app.agents.application_drafter.prompts import (
     EMPTY_FIELDS_USER_PROMPT,
     REGULATORY_EXEMPTION_REASON_PROMPT,
     TEMPORARY_PERMIT_REASON_PROMPT,
-    TRACK_NAME_MAP,
 )
 from app.agents.application_drafter.state import ApplicationDrafterState
-from app.core.config import settings
+from app.core.constants import TRACK_NAME_MAP
+from app.core.llm import get_llm
 from app.tools.shared.rag import (
     get_application_requirements,
     get_review_criteria,
@@ -318,15 +316,6 @@ def mask_address(address: str) -> str:
     if match:
         return f"{match.group(1)} [상세주소 생략]"
     return "[REDACTED]"
-
-
-def get_llm() -> ChatOpenAI:
-    return ChatOpenAI(
-        model=settings.LLM_MODEL,
-        temperature=0.3,
-        api_key=settings.OPENAI_API_KEY,
-        max_tokens=8000,  # 텍스트 잘림 방지
-    )
 
 
 def get_service_info(canonical: dict) -> str:
@@ -789,7 +778,7 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
             empty_fields_json=empty_fields_json,
         )
 
-        llm = get_llm()
+        llm = get_llm(temperature=0.3, max_tokens=8000)
 
         try:
             response = await llm.ainvoke([
@@ -1451,11 +1440,7 @@ async def _generate_additional_questions(
 
     # LLM 호출
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            temperature=0.3,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        llm = get_llm(temperature=0.3)
 
         prompt = ADDITIONAL_QUESTIONS_PROMPT.format(
             service_info=service_info,
@@ -1520,11 +1505,7 @@ async def _generate_regulatory_exemption_reason(
         regulatory_info = "- 규제 이슈 정보 없음"
 
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            temperature=0.3,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        llm = get_llm(temperature=0.3)
 
         prompt = REGULATORY_EXEMPTION_REASON_PROMPT.format(
             service_info=service_info,
@@ -1624,11 +1605,7 @@ async def _generate_temporary_permit_reason(
         regulatory_info = "- 규제 이슈 정보 없음"
 
     try:
-        llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            temperature=0.3,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        llm = get_llm(temperature=0.3)
 
         prompt = TEMPORARY_PERMIT_REASON_PROMPT.format(
             service_info=service_info,
