@@ -58,7 +58,7 @@ export function DevModeToggle() {
         return (
             <button
                 onClick={toggleDevMode}
-                className="fixed bottom-4 right-4 z-50 p-2 bg-gray-200 hover:bg-gray-300 rounded-full shadow opacity-50 hover:opacity-100 transition-opacity"
+                className="fixed bottom-4 right-4 z-[110] p-2 bg-gray-200 hover:bg-gray-300 rounded-full shadow opacity-50 hover:opacity-100 transition-opacity"
                 title="개발 모드 켜기"
             >
                 <Settings className="h-4 w-4 text-gray-500" />
@@ -69,7 +69,7 @@ export function DevModeToggle() {
     return (
         <>
             {devShowAILoader && <AILoader message="로더 미리보기 모드입니다..." />}
-            <div className="fixed bottom-4 right-4 z-50">
+            <div className="fixed bottom-4 right-4 z-[110]">
             {isOpen ? (
                 <div className="bg-card border border-border rounded-lg shadow-lg p-4 w-64">
                     <div className="flex items-center justify-between mb-4">

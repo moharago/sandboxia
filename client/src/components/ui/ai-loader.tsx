@@ -3,7 +3,10 @@
 import { Sparkles } from "lucide-react"
 
 interface AILoaderProps {
-    /** 페이지별 상세 메시지 (예: "AI가 트랙을 추천 중입니다...") */
+    /**
+     * 페이지별 상세 메시지 (예: "트랙을 추천 중입니다...")
+     * 컴포넌트가 자동으로 "AI가 " 접두사를 추가하므로 메시지에 포함하지 마세요.
+     */
     message?: string
 }
 
