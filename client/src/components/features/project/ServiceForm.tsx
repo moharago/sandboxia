@@ -1,7 +1,7 @@
 "use client"
 
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { AILoader } from "@/components/ui/ai-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileUpload } from "@/components/ui/file-upload"
 import { Input } from "@/components/ui/input"
@@ -166,8 +166,8 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     return (
         <div className="py-6">
             {isLoading && (
-                <AILoadingOverlay
-                    message={serviceMutation.isPending ? "AI 서비스 분석 중" : "AI 대상성 분석 중"}
+                <AILoader
+                    message={serviceMutation.isPending ? "서비스 정보를 분석하고 있습니다..." : "서비스의 규제 현황을 분석하고 있습니다..."}
                 />
             )}
             <div className="container mx-auto px-4 space-y-6">

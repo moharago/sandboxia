@@ -3,7 +3,8 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { AILoader } from "@/components/ui/ai-loader"
+import { PageLoader } from "@/components/ui/page-loader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -366,11 +367,15 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         )
     }
 
+    // 데이터 로딩 중
+    if (isQueryLoading) {
+        return <PageLoader className="flex-1" />
+    }
+
     return (
         <div className="py-6">
-            {isQueryLoading && <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />}
-            {eligibilityMutation.isPending && <AILoadingOverlay message="AI 대상성 분석 중" />}
-            {isRunningTrackAgent && <AILoadingOverlay message="AI 트랙 추천 중" />}
+            {eligibilityMutation.isPending && <AILoader message="서비스의 규제 현황을 분석하고 있습니다..." />}
+            {isRunningTrackAgent && <AILoader message="최적의 트랙을 추천하고 있습니다..." />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}
