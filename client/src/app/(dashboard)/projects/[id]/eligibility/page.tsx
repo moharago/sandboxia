@@ -18,7 +18,7 @@ import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType, Regulation } from "@/types/api/eligibility"
 import { useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, CheckCircle2, ExternalLink, Play, Scale } from "lucide-react"
+import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, Play, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useRef, useState } from "react"
 
@@ -147,13 +147,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     // Step 1 미완료 시 alert 후 리다이렉트 (Strict Mode 중복 방지)
     const hasRedirected = useRef(false)
-    useEffect(() => {
-        if (!isLoadingProject && project && !isStep1Completed && !hasRedirected.current) {
-            hasRedirected.current = true
-            alert("서비스 분석을 먼저 완료해주세요.")
-            router.push(`/projects/${id}/service`)
-        }
-    }, [isLoadingProject, project, isStep1Completed, router, id])
+    // useEffect(() => {
+    //     if (!isLoadingProject && project && !isStep1Completed && !hasRedirected.current) {
+    //         hasRedirected.current = true
+    //         alert("서비스 분석을 먼저 완료해주세요.")
+    //         router.push(`/projects/${id}/service`)
+    //     }
+    // }, [isLoadingProject, project, isStep1Completed, router, id])
 
     // API mutation hook
     const eligibilityMutation = useEligibilityMutation({
@@ -342,9 +342,28 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     const isQueryLoading = isLoadingExisting || isLoadingProject
 
-    // Step 1 완료 전이면 리다이렉트 중이므로 로딩 표시
-    if (!isLoadingProject && !isStep1Completed) {
-        return null
+    // Step 1 완료 전이면 안내 화면 표시 (project가 있을 때만)
+    if (!isLoadingProject && project && !isStep1Completed) {
+        return (
+            <div className="py-6">
+                <div className="container">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center space-y-4">
+                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
+                            <h2 className="text-lg font-semibold">서비스 분석이 필요합니다</h2>
+                            <p className="text-muted-foreground">이전 단계(서비스 분석)를 먼저 완료해주세요.</p>
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                                onClick={() => router.push(`/projects/${id}/service`)}
+                            >
+                                이전 단계로 돌아가기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (

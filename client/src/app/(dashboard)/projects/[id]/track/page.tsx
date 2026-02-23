@@ -313,7 +313,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                         <div className="text-center space-y-4">
                             <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
                             <h2 className="text-lg font-semibold">트랙 추천 결과가 없습니다</h2>
-                            <p className="text-muted-foreground">이전 단계(시장출시 진단)에서 &quot;다음 단계&quot;를 눌러 진행해주세요.</p>
+                            <p className="text-muted-foreground">이전 단계(시장출시 진단)를 먼저 완료해주세요.</p>
                             <button
                                 type="button"
                                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
