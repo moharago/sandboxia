@@ -170,24 +170,24 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
         )
     }
 
-    // 신속확인은 법령/제도 탭을 기본으로
-    const defaultTab = track === "quick_check" ? "regulations" : "cases"
+    // 법령/제도 탭을 기본으로
+    const defaultTab = "regulations"
 
     return (
         <div className="space-y-4 min-w-0">
             <Tabs defaultValue={defaultTab} className="w-full">
                 <div className="flex items-center gap-3">
                     <TabsList className="h-8 flex-1 grid grid-cols-2 py-0 px-0.5 bg-gray-100">
-                        <TabsTrigger value="cases" className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black">
-                            <BookOpen className="h-3.5 w-3.5" />
-                            승인사례
-                        </TabsTrigger>
                         <TabsTrigger
                             value="regulations"
                             className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black"
                         >
                             <Scale className="h-3.5 w-3.5" />
                             법령·제도
+                        </TabsTrigger>
+                        <TabsTrigger value="cases" className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black">
+                            <BookOpen className="h-3.5 w-3.5" />
+                            승인사례
                         </TabsTrigger>
                     </TabsList>
                     <Button
@@ -201,6 +201,14 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                     </Button>
                 </div>
 
+                <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
+                    {regs.length > 0 ? (
+                        regs.map((regulation, index) => <RegulationItem key={index} regulation={regulation} index={index} />)
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">참고할 관련 법령이 없습니다.</div>
+                    )}
+                </TabsContent>
+
                 <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
                     {displayCases.length > 0 ? (
                         displayCases.map((caseData, index) => <CaseItem key={index} caseData={caseData} index={index} />)
@@ -212,14 +220,6 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                         </div>
                     ) : (
                         <div className="text-center py-8 text-muted-foreground text-sm">참고할 유사 승인사례가 없습니다.</div>
-                    )}
-                </TabsContent>
-
-                <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
-                    {regs.length > 0 ? (
-                        regs.map((regulation, index) => <RegulationItem key={index} regulation={regulation} index={index} />)
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground text-sm">참고할 관련 법령이 없습니다.</div>
                     )}
                 </TabsContent>
             </Tabs>

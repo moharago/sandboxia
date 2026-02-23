@@ -142,7 +142,7 @@ reasons[i]와 evidence[i]는 1:1로 매핑됩니다.
 reasons는 각 트랙의 추천 사유와 판단 이유를 근거에 기반하여 설명합니다.
 
 - 2-3문장으로 구성
-- 공백 포함 70자 초과 120자 이하
+- 공백 포함 70자 이상 120자 이하
 - 출처(evidence)가 왜 근거가 되는지에 대한 설명 포함
 
 ## evidence 작성 규칙
@@ -221,7 +221,7 @@ RECOMMENDATION_USER_PROMPT = """## 서비스 정보
 1. **개수 준수**: demo 5개, temp_permit 5개, quick_check 4개 (reasons와 evidence 동일 개수)
 2. **1:1 매핑**: reasons[i]의 근거가 evidence[i]
 3. **type 값**: "positive", "negative", "neutral" 중 하나
-4. **reasons 글자수**: 각 reason의 text는 반드시 70자 초과 120자 이하 (공백 포함)
+4. **reasons 글자수**: 각 reason의 text는 반드시 70자 이상 120자 이하 (공백 포함)
 5. **source_type 값**: "사례", "법령", "규제" 중 하나
 6. **source 형식**: 법령 조항, 승인 사례 ID, 제도 문서명 등. 근거가 부족하면 "추가 확인 필요"
 7. **"○○ > ○○" 형식 금지**: RAG 내부 경로(예: "트랙비교 > 상세 비교")를 source에 사용하지 마세요
