@@ -52,7 +52,7 @@ function CaseItem({ caseData, index }: CaseItemProps) {
                         </Badge>
                         {caseData.date && <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>}
                     </div>
-                    <h4 className="font-medium text-sm truncate">{caseData.title}</h4>
+                    <h4 className="font-medium text-sm">{caseData.title}</h4>
                     <p className="text-xs text-muted-foreground">{caseData.company}</p>
                 </div>
                 <div className="flex items-center">
@@ -105,7 +105,7 @@ function RegulationItem({ regulation, index }: RegulationItemProps) {
                 aria-controls={`reg-content-${index}`}
             >
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm truncate">{regulation.title}</h4>
+                    <h4 className="font-medium text-sm">{regulation.title}</h4>
                 </div>
                 <div className="flex items-center">
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}

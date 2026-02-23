@@ -139,7 +139,7 @@ reasons[i]와 evidence[i]는 1:1로 매핑됩니다.
 
 ## reasons 작성 규칙
 
-reasons는 각 트랙의 추천 사유와 판단 이유를 근거에 기반하여 설명합니다. 
+reasons는 각 트랙의 추천 사유와 판단 이유를 근거에 기반하여 설명합니다.
 
 - 2-3문장으로 구성
 - 공백 포함 70자 초과 120자 이하
@@ -177,6 +177,10 @@ RECOMMENDATION_USER_PROMPT = """## 서비스 정보
 ## 유사 승인 사례 (RAG 검색 결과)
 
 {similar_cases}
+
+## 도메인 법령 (RAG 검색 결과)
+
+{domain_laws}
 
 ## 참고 출처 목록
 

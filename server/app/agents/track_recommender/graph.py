@@ -89,8 +89,6 @@ async def run_track_recommender(
         "confidence_score": result["confidence_score"],
         "result_summary": result["result_summary"],
         "track_comparison": result["track_comparison"],
-        "similar_cases": result.get("similar_cases", {}),
-        "domain_constraints": result.get("domain_constraints", {}),
-        "approval_cases": result.get("approval_cases", []),
-        "regulations": result.get("regulations", []),
+        "similar_cases": result.get("similar_cases", []),
+        "domain_constraints": result.get("domain_constraints", []),
     }

@@ -1,10 +1,10 @@
 """Track Recommender Agent 노드 함수"""
 
 import json
+import re
 from typing import Any
 
 from app.agents.eligibility_evaluator.schemas import ApprovalCase, Regulation
-from app.core.llm import get_llm
 from app.agents.track_recommender.prompts import (
     RECOMMENDATION_SYSTEM_PROMPT,
     RECOMMENDATION_USER_PROMPT,
@@ -17,10 +17,33 @@ from app.agents.track_recommender.tools import (
     retrieve_track_definitions,
     score_track,
 )
+from app.core.constants import TRACK_NAME_MAP
+from app.core.llm import get_llm
 from app.tools.shared.rag import (
     compare_tracks,
     search_domain_law,
 )
+
+
+def _clean_title(raw_title: str) -> str:
+    """RAG 내부 경로 형식("○○ > ○○")을 정리하여 마지막 부분만 반환
+
+    예시:
+    - "트랙비교 > 상세 비교" → "상세 비교"
+    - "제도정의 > 임시허가 > 개요" → "개요"
+    - "[신속확인 vs 실증특례]" → "신속확인 vs 실증특례"
+    """
+    if not raw_title:
+        return "관련 정보"
+
+    # ">" 구분자가 있으면 마지막 부분만 사용
+    if " > " in raw_title:
+        raw_title = raw_title.split(" > ")[-1].strip()
+
+    # 대괄호 제거
+    raw_title = re.sub(r"[\[\]]", "", raw_title)
+
+    return raw_title.strip() or "관련 정보"
 
 
 def get_field(data: dict, snake_key: str, camel_key: str, default: Any = None) -> Any:
@@ -243,8 +266,7 @@ def _format_track_definitions_for_prompt(track_definitions: list) -> str:
 
     lines = []
     for i, td in enumerate(track_definitions, 1):
-        raw_source = td.get("source", "출처 미상")
-        source = _clean_citation(raw_source) if raw_source != "출처 미상" else raw_source
+        source = td.get("source", "출처 미상")
         content = td.get("content", "")[:200]
         track_name = td.get("track_name", "")
         lines.append(f"{i}. [{source}] {track_name}: {content}...")
@@ -278,36 +300,31 @@ def _format_similar_cases_for_prompt(similar_cases: dict) -> str:
     return "\n".join(lines) if lines else "(검색 결과 없음)"
 
 
-# R1 RAG "카테고리" → 의미 있는 출처명 매핑
-_CATEGORY_TO_SOURCE: dict[str, str] = {
-    "트랙비교": "ICT 규제샌드박스 트랙 비교 가이드",
-    "제도정의": "규제샌드박스 제도 정의",
-    "절차": "규제샌드박스 신청 절차 가이드",
-    "심사기준": "규제샌드박스 심사 기준",
-    "요건": "규제샌드박스 신청 요건",
-}
+def _format_domain_constraints_for_prompt(domain_constraints: dict) -> str:
+    """도메인 법령을 LLM이 참고하기 쉬운 형식으로 변환"""
+    if not domain_constraints:
+        return "(검색 결과 없음)"
 
+    constraints = domain_constraints.get("constraints", [])
+    if not constraints:
+        return "(검색 결과 없음)"
 
-def _clean_citation(citation: str) -> str:
-    """RAG citation을 의미 있는 출처명으로 정제
+    lines = []
+    for i, constraint in enumerate(constraints[:5], 1):
+        law_name = constraint.get("law_name", "")
+        source = constraint.get("source", "")
+        content = constraint.get("content", "")[:200]
+        domain_label = constraint.get("domain_label", "")
+        source_url = constraint.get("source_url", "")
 
-    R1 citation 형식: "카테고리 > 제목" (예: "트랙비교 > 병행 신청")
-    → R1 RAG의 " > " 구분자는 항상 문서 섹션 헤더이므로 카테고리 기반 출처명으로 변환.
-    (법령 인용은 「법명」 제N조 형식이며 " > " 구분자를 사용하지 않음.)
-    """
-    if not citation:
-        return ""
+        title = source or law_name or "관련 법령"
+        lines.append(f"{i}. **{title}** ({domain_label})")
+        if content:
+            lines.append(f"   내용: {content}...")
+        if source_url:
+            lines.append(f"   URL: {source_url}")
 
-    # " > " 구분자가 있으면 R1 RAG 섹션 헤더 → 카테고리 기반 출처명으로 변환
-    if " > " in citation:
-        category = citation.split(" > ", 1)[0].strip()
-        return _CATEGORY_TO_SOURCE.get(category, f"규제샌드박스 {category} 가이드")
-
-    # 일반 citation: 길이만 제한
-    if len(citation) > 50:
-        return citation[:50]
-
-    return citation
+    return "\n".join(lines) if lines else "(검색 결과 없음)"
 
 
 def _extract_evidence_sources(
@@ -338,14 +355,14 @@ def _extract_evidence_sources(
                 })
                 seen_case_ids.add(case_id)
 
-    # R1: 트랙 정의에서 출처 추출 (중복 제거, citation 정제)
+    # R1: 트랙 정의에서 출처 추출 (중복 제거, "○○ > ○○" 정리)
     seen_sources = set()
     for td in track_definitions:
         raw_source = td.get("source", "")
         if not raw_source:
             continue
-        source = _clean_citation(raw_source)
-        if not source or source in seen_sources:
+        source = _clean_title(raw_source)
+        if source in seen_sources:
             continue
         seen_sources.add(source)
         source_url = td.get("source_url", "")
@@ -354,22 +371,17 @@ def _extract_evidence_sources(
         else:
             sources["규제"].append({"source": source, "source_url": source_url})
 
-    # R3: 도메인 법령에서 citation 추출 (구체적 법령 조항 보존)
+    # R3: 도메인 법령에서 citation 추출 ("○○ > ○○" 정리)
     if domain_constraints:
         for constraint in domain_constraints.get("constraints", []):
             citation = constraint.get("source", "")
             law_name = constraint.get("law_name", "")
-            # citation이 있으면 사용, 없으면 law_name 사용
-            source = citation or law_name
-            if not source or source in seen_sources:
+            raw_source = citation or law_name
+            if not raw_source:
                 continue
-            # R3 법령 citation은 _clean_citation 거치지 않고 직접 사용
-            # (예: "의료법 제34조 제1항" → 그대로 보존)
-            # 단, RAG 내부 경로(" > " 형식)만 정제
-            if " > " in source:
-                source = _clean_citation(source)
-                if not source or source in seen_sources:
-                    continue
+            source = _clean_title(raw_source)
+            if source in seen_sources:
+                continue
             seen_sources.add(source)
             source_url = constraint.get("source_url", "")
             sources["법령"].append({"source": source, "source_url": source_url})
@@ -477,7 +489,7 @@ def _fix_evidence_sources(
         track_data = recommendation_data.get(track_key, {})
         evidence_list = track_data.get("evidence", [])
 
-        # 1단계: RAG 내부 경로만 정제, LLM이 생성한 구체적 출처는 보존
+        # 1단계: RAG 내부 경로(" > " 형식) 정제
         for i, ev in enumerate(evidence_list):
             if not isinstance(ev, dict):
                 continue
@@ -488,9 +500,9 @@ def _fix_evidence_sources(
             if current_source == "추가 확인 필요":
                 continue
 
-            # RAG 내부 경로(" > " 형식)는 정제
+            # "○○ > ○○" 형식이면 마지막 부분만 사용
             if " > " in current_source:
-                ev["source"] = _clean_citation(current_source)
+                ev["source"] = _clean_title(current_source)
                 current_source = ev["source"]
 
             # 유효 목록이 비어있으면 LLM 출처를 그대로 유지
@@ -642,6 +654,7 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
     # RAG 결과를 LLM이 인용하기 쉬운 형식으로 변환
     formatted_definitions = _format_track_definitions_for_prompt(track_definitions)
     formatted_cases = _format_similar_cases_for_prompt(similar_cases)
+    formatted_domain_laws = _format_domain_constraints_for_prompt(domain_constraints)
 
     # 사용 가능한 출처 목록 생성 (R1 + R2 + R3)
     available_sources = _build_available_sources_text(
@@ -655,6 +668,7 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
         track_scores=json.dumps(track_scores, ensure_ascii=False, indent=2),
         track_definitions=formatted_definitions,
         similar_cases=formatted_cases,
+        domain_laws=formatted_domain_laws,
         available_sources=available_sources,
     )
 
@@ -700,14 +714,6 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
             "evidence": rec_data.get("evidence", []),
         }
 
-    # evidence.source 최종 정제: RAG 섹션 헤더("카테고리 > 제목") → 의미 있는 출처명
-    for track_key in track_comparison:
-        for ev in track_comparison[track_key].get("evidence", []):
-            if isinstance(ev, dict):
-                src = ev.get("source", "")
-                if " > " in src:
-                    ev["source"] = _clean_citation(src)
-
     # evidence에 R2 사례 메타데이터 주입
     track_comparison = _enrich_case_evidence(track_comparison, similar_cases)
 
@@ -722,23 +728,19 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
     confidence_score = track_comparison[recommended_track]["fit_score"]
 
     # ================================================================
-    # ReferencePanel 데이터 생성 (Eligibility Evaluator 방식)
+    # ReferencePanel 데이터 생성 (RAG 결과 직접 변환)
     # ================================================================
 
-    # approval_cases: R2 similar_cases → ApprovalCase 변환
+    # similar_cases: RAG 검색 결과에서 직접 생성
     approval_cases: list[ApprovalCase] = []
     for track_key, cases in similar_cases.items():
         for case in cases:
-            # relevance_score는 이미 0-1 범위의 유사도
             relevance_score = case.get("relevance_score")
-            if relevance_score is not None:
-                similarity = int(relevance_score * 100)
-            else:
-                similarity = 0
-
+            similarity = int(relevance_score * 100) if relevance_score else 0
+            raw_track = case.get("track", "")
             approval_cases.append(
                 ApprovalCase(
-                    track=case.get("track") or "실증특례",
+                    track=TRACK_NAME_MAP.get(raw_track, raw_track) or "실증특례",
                     date=case.get("designation_date", ""),
                     similarity=similarity,
                     title=case.get("service_name") or case.get("case_id") or "유사 서비스",
@@ -748,31 +750,29 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
                 )
             )
 
-    # regulations: R1 track_definitions + R3 domain_constraints → Regulation 변환
+    # domain_constraints: RAG 검색 결과에서 직접 생성 (R3 도메인 법령 + R1 트랙 정의)
     regulation_list: list[Regulation] = []
-
-    # R3 도메인 법령 먼저 (법령·제도 탭에서 법령이 상단에 표시)
     if domain_constraints:
         for constraint in domain_constraints.get("constraints", [])[:5]:
             domain_label = constraint.get("domain_label", "")
             category = f"법령·{domain_label}" if domain_label else "법령"
+            raw_title = constraint.get("source") or constraint.get("law_name") or "관련 법령"
             regulation_list.append(
                 Regulation(
                     category=category,
-                    title=constraint.get("source") or constraint.get("law_name") or "관련 법령",
+                    title=_clean_title(raw_title),
                     summary=(constraint.get("content") or "")[:300],
                     source_url=constraint.get("source_url"),
                 )
             )
-
-    # R1 트랙 정의/요건
     for td in track_definitions[:5]:
         track_name = td.get("track_name", "")
         category = track_name if track_name else "제도"
+        raw_title = td.get("source") or "규제샌드박스 제도"
         regulation_list.append(
             Regulation(
                 category=category,
-                title=td.get("source") or "규제샌드박스 제도",
+                title=_clean_title(raw_title),
                 summary=(td.get("content") or "")[:300],
                 source_url=td.get("source_url"),
             )
@@ -783,7 +783,6 @@ def generate_recommendation_node(state: TrackRecommenderState) -> dict:
         "confidence_score": confidence_score,
         "result_summary": recommendation_data.get("result_summary", ""),
         "track_comparison": track_comparison,
-        # 오른쪽 패널용 데이터 (ApprovalCase, Regulation 스키마)
         "similar_cases": [c.model_dump() for c in approval_cases],
         "domain_constraints": [r.model_dump() for r in regulation_list],
     }
