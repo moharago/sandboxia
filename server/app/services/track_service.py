@@ -56,8 +56,8 @@ def save_track_result(
     confidence_score: float,
     result_summary: str,
     track_comparison: dict,
-    similar_cases: dict | None = None,
-    domain_constraints: dict | None = None,
+    similar_cases: list | None = None,
+    domain_constraints: list | None = None,
     model_name: str = "gpt-4o-mini",
 ) -> dict | None:
     """트랙 추천 결과 저장
@@ -68,8 +68,8 @@ def save_track_result(
         confidence_score: 신뢰도 점수 (0-100)
         result_summary: AI 분석 요약 텍스트
         track_comparison: 트랙별 비교 데이터 (JSONB)
-        similar_cases: 트랙별 유사 승인 사례 (JSONB)
-        domain_constraints: R3 도메인 법령 RAG 검색 결과 (JSONB)
+        similar_cases: 유사 승인 사례 목록 (JSONB)
+        domain_constraints: 관련 법령 목록 (JSONB)
         model_name: 사용된 LLM 모델명
 
     Returns:
@@ -82,8 +82,8 @@ def save_track_result(
             "confidence_score": confidence_score,
             "result_summary": result_summary,
             "track_comparison": track_comparison,
-            "similar_cases": similar_cases or {},
-            "domain_constraints": domain_constraints or {},
+            "similar_cases": similar_cases or [],
+            "domain_constraints": domain_constraints or [],
             "model_name": model_name,
         },
         on_conflict="project_id",
