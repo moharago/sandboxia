@@ -13,6 +13,7 @@ interface UIState {
     isAuthenticated: boolean
     devIsAnalyzed: boolean
     devHasChanges: boolean
+    devShowAILoader: boolean
 
     toggleSidebar: () => void
     setSidebarOpen: (open: boolean) => void
@@ -23,6 +24,7 @@ interface UIState {
     setAuthenticated: (auth: boolean) => void
     setDevIsAnalyzed: (value: boolean) => void
     setDevHasChanges: (value: boolean) => void
+    setDevShowAILoader: (value: boolean) => void
 
     isNewCaseModalOpen: boolean
     openNewCaseModal: () => void
@@ -39,6 +41,7 @@ export const useUIStore = create<UIState>()(
             isAuthenticated: false,
             devIsAnalyzed: false,
             devHasChanges: false,
+            devShowAILoader: false,
 
             toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
             setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -49,6 +52,7 @@ export const useUIStore = create<UIState>()(
             setAuthenticated: (auth) => set({ isAuthenticated: auth }),
             setDevIsAnalyzed: (value) => set({ devIsAnalyzed: value }),
             setDevHasChanges: (value) => set({ devHasChanges: value }),
+            setDevShowAILoader: (value) => set({ devShowAILoader: value }),
 
             isNewCaseModalOpen: false,
             openNewCaseModal: () => set({ isNewCaseModalOpen: true }),

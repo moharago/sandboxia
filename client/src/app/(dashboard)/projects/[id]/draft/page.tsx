@@ -6,6 +6,7 @@ import { FormSectionList } from "@/components/features/draft/FormSectionList"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
+import { PageLoader } from "@/components/ui/page-loader"
 import { Button } from "@/components/ui/button"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useDraftQuery, draftKeys } from "@/hooks/queries/use-draft-query"
@@ -91,7 +92,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 데이터 로딩 중
     if (isLoadingProject || isLoadingDraft) {
-        return <AILoader message="저장된 초안을 불러오고 있습니다..." />
+        return <PageLoader className="flex-1" />
     }
 
     // AI 초안 생성 중

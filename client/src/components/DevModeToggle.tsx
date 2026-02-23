@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, X, User, LogIn, FileText, FlaskConical } from "lucide-react"
+import { Settings, X, User, LogIn, FileText, FlaskConical, Loader } from "lucide-react"
 import { useUIStore } from "@/stores/ui-store"
+import { AILoader } from "@/components/ui/ai-loader"
 import { useUserStore } from "@/stores/user-store"
 import { useWizardStore, FORM_TYPE_LABELS, type FormType } from "@/stores/wizard-store"
 import { cn } from "@/lib/utils/cn"
@@ -14,10 +15,12 @@ export function DevModeToggle() {
         isAuthenticated,
         devIsAnalyzed,
         devHasChanges,
+        devShowAILoader,
         toggleDevMode,
         setAuthenticated,
         setDevIsAnalyzed,
         setDevHasChanges,
+        setDevShowAILoader,
     } = useUIStore()
     const setUser = useUserStore((state) => state.setUser)
 
@@ -64,7 +67,9 @@ export function DevModeToggle() {
     }
 
     return (
-        <div className="fixed bottom-4 right-4 z-50">
+        <>
+            {devShowAILoader && <AILoader message="AI 분석 중 (미리보기)" />}
+            <div className="fixed bottom-4 right-4 z-50">
             {isOpen ? (
                 <div className="bg-card border border-border rounded-lg shadow-lg p-4 w-64">
                     <div className="flex items-center justify-between mb-4">
@@ -167,6 +172,30 @@ export function DevModeToggle() {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="border-t border-border pt-3">
+                            <div className="flex items-center gap-2 text-sm mb-2">
+                                <Loader className="h-4 w-4 text-muted-foreground" />
+                                <span>로더 미리보기</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">AI Loader</span>
+                                <button
+                                    onClick={() => setDevShowAILoader(!devShowAILoader)}
+                                    className={cn(
+                                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                                        devShowAILoader ? "bg-primary" : "bg-gray-300"
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                                            devShowAILoader ? "translate-x-5" : "translate-x-1"
+                                        )}
+                                    />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             ) : (
@@ -179,5 +208,6 @@ export function DevModeToggle() {
                 </button>
             )}
         </div>
+        </>
     )
 }
