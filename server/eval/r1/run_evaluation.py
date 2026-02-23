@@ -15,7 +15,6 @@
     --output result   # 결과 파일명 (기본: 타임스탬프)
     --config E2       # 임베딩 설정 (없으면 .env 사용)
     --collection_suffix _E2  # 컬렉션 접미사
-    --rewrite extraction|expansion  # Query Rewriting 전략
 """
 
 import json
@@ -41,19 +40,12 @@ from eval.r1.common import (
     get_vector_store,
     load_evaluation_set,
 )
-from eval.r1.query_rewriter import (
-    RewriteStrategy,
-    create_query_rewriter,
-    rewrite_query,
-)
 
 
 def evaluate_single_item(
     vector_store,
     item: dict,
     top_k: int = 5,
-    rewriter=None,
-    rewrite_strategy: RewriteStrategy | None = None,
 ) -> tuple[RetrievalMetrics, float, dict]:
     """단일 평가 항목 평가
 
@@ -61,8 +53,6 @@ def evaluate_single_item(
         vector_store: Vector Store
         item: 평가 항목
         top_k: Top-K 값
-        rewriter: Query rewriter chain (None이면 rewriting 안함)
-        rewrite_strategy: Query rewriting 전략
 
     Returns:
         (metrics, latency_ms, detail_info)
@@ -70,17 +60,12 @@ def evaluate_single_item(
     question = item["question"]
     gold_chunks = item.get("gold_chunks", [])
 
-    # Query Rewriting 적용
-    search_query = question
-    if rewriter is not None and rewrite_strategy is not None:
-        search_query = rewrite_query(question, strategy=rewrite_strategy, rewriter=rewriter)
-
     # gold ID 생성
     gold_ids, must_have_ids = build_gold_chunk_ids(gold_chunks)
 
     # 검색 실행 (시간 측정)
     start_time = time.perf_counter()
-    results = vector_store.similarity_search(search_query, k=top_k)
+    results = vector_store.similarity_search(question, k=top_k)
     end_time = time.perf_counter()
 
     latency_ms = (end_time - start_time) * 1000
@@ -102,7 +87,6 @@ def evaluate_single_item(
         "category": item.get("category", ""),
         "track": item.get("track", ""),
         "question": question,
-        "search_query": search_query if search_query != question else None,
         "gold_ids": gold_ids,
         "must_have_ids": must_have_ids,
         "retrieved_ids": retrieved_ids[:top_k],
@@ -121,7 +105,6 @@ def run_evaluation(
     output_name: str | None = None,
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
-    rewrite_strategy: RewriteStrategy | None = None,
 ):
     """전체 평가 실행
 
@@ -130,7 +113,6 @@ def run_evaluation(
         output_name: 결과 파일명 (없으면 타임스탬프 사용)
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
-        rewrite_strategy: Query Rewriting 전략 (None이면 사용 안함)
     """
     print("=" * 60)
     print("R1 규제제도 & 절차 RAG 평가 시작")
@@ -146,20 +128,10 @@ def run_evaluation(
     else:
         print(f"임베딩: .env 기본값 ({settings.LLM_EMBEDDING_MODEL})")
     print(f"컬렉션: {COLLECTION_REGULATIONS}{collection_suffix}")
-    if rewrite_strategy:
-        print(f"Query Rewrite: {rewrite_strategy.value}")
-    else:
-        print("Query Rewrite: 없음 (baseline)")
 
     # Vector Store 초기화
     print("\nVector Store 초기화 중...")
     vector_store = get_vector_store(embedding_config, collection_suffix)
-
-    # Query Rewriter 초기화 (전략이 지정된 경우에만)
-    rewriter = None
-    if rewrite_strategy:
-        print("Query Rewriter 초기화 중...")
-        rewriter = create_query_rewriter(strategy=rewrite_strategy)
 
     # 평가 실행
     print("\n평가 진행 중...\n")
@@ -168,9 +140,7 @@ def run_evaluation(
     all_details: list[dict] = []
 
     for i, item in enumerate(items, 1):
-        metrics, latency, detail = evaluate_single_item(
-            vector_store, item, top_k, rewriter=rewriter, rewrite_strategy=rewrite_strategy
-        )
+        metrics, latency, detail = evaluate_single_item(vector_store, item, top_k)
         all_metrics.append(metrics)
         all_latencies.append(latency)
         all_details.append(detail)
@@ -244,7 +214,6 @@ def run_evaluation(
             "embedding_provider": embedding_config.provider if embedding_config else "openai",
             "collection": COLLECTION_REGULATIONS + collection_suffix,
             "num_items": len(items),
-            "query_rewrite": rewrite_strategy.value if rewrite_strategy else None,
         },
         "summary": {
             "must_have_recall_at_k": aggregated["avg_must_have_recall_at_k"],
@@ -273,13 +242,6 @@ def main():
     parser.add_argument("--output", type=str, default=None, help="결과 파일명")
     parser.add_argument("--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)")
     parser.add_argument("--collection_suffix", type=str, default="", help="컬렉션 접미사")
-    parser.add_argument(
-        "--rewrite",
-        type=str,
-        choices=["extraction", "expansion"],
-        default=None,
-        help="Query Rewriting 전략 (extraction: 핵심 추출, expansion: 동의어 확장)",
-    )
 
     args = parser.parse_args()
 
@@ -288,17 +250,11 @@ def main():
     if args.config:
         embedding_config = load_embedding_config(args.config, rag_type="r1")
 
-    # Query Rewrite 전략 변환
-    rewrite_strategy = None
-    if args.rewrite:
-        rewrite_strategy = RewriteStrategy(args.rewrite)
-
     run_evaluation(
         top_k=args.top_k,
         output_name=args.output,
         embedding_config=embedding_config,
         collection_suffix=args.collection_suffix,
-        rewrite_strategy=rewrite_strategy,
     )
 
 
