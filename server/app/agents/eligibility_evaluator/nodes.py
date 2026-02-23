@@ -9,9 +9,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 
-from app.core.config import settings
+from app.core.llm import get_fast_llm, get_llm
 from app.tools.shared.rag.case_rag import search_case
 from app.tools.shared.rag.domain_law_rag import search_domain_law
 from app.tools.shared.rag.regulation_rag import search_regulation
@@ -121,27 +120,6 @@ def get_service_name(canonical: dict) -> str:
     """서비스명 추출"""
     service = get_service_info(canonical)
     return service.get("serviceName") or service.get("service_name") or ""
-
-
-# ================================
-# LLM 초기화
-# ================================
-def get_llm() -> ChatOpenAI:
-    """LLM 인스턴스 생성"""
-    return ChatOpenAI(
-        model=settings.LLM_MODEL,
-        temperature=0.1,
-        api_key=settings.OPENAI_API_KEY,
-    )
-
-
-def get_fast_llm() -> ChatOpenAI:
-    """빠른 LLM 인스턴스 (설명 생성용)"""
-    return ChatOpenAI(
-        model="gpt-4o-mini",  # 빠르고 저렴한 모델
-        temperature=0.3,
-        api_key=settings.OPENAI_API_KEY,
-    )
 
 
 # ================================

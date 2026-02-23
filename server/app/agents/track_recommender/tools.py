@@ -10,29 +10,19 @@ E. 추천 사유 생성 (LLM)
 import json
 
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
 
 from app.agents.track_recommender.prompts import (
     SCORING_SYSTEM_PROMPT,
     SCORING_USER_PROMPT,
     TRACK_CRITERIA,
 )
-from app.core.config import settings
+from app.core.llm import get_llm
 from app.tools.shared.rag import (
     compare_tracks,
     get_track_definition,
     search_case,
     search_domain_law,
 )
-
-
-def get_llm():
-    """LLM 인스턴스 생성"""
-    return ChatOpenAI(
-        model=settings.LLM_MODEL,
-        temperature=0.1,
-        api_key=settings.OPENAI_API_KEY,
-    )
 
 
 @tool
@@ -129,6 +119,7 @@ def retrieve_track_definitions(track_keys: list[str]) -> list[dict]:
                 "type": "comparison",
                 "content": r.content,
                 "source": r.citation,
+                "source_url": r.source_url,
             })
 
     # 각 트랙별 정의 검색
@@ -152,6 +143,7 @@ def retrieve_track_definitions(track_keys: list[str]) -> list[dict]:
                     "track_name": track_name,
                     "content": r.content,
                     "source": r.citation,
+                    "source_url": r.source_url,
                 })
 
     return results
