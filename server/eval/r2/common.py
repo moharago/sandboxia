@@ -31,6 +31,7 @@ from eval.metrics import RetrievalMetrics
 EVAL_DIR = Path(__file__).parent
 EVALUATION_SET_PATH = EVAL_DIR / "evaluation_set.json"
 RESULTS_DIR = EVAL_DIR / "results" / "retrieval"
+RESULTS_DIR_LLM = EVAL_DIR / "results" / "llm"
 DATA_DIR = EVAL_DIR.parent.parent / "data" / "r2_data"
 DATA_PATH = DATA_DIR / "cases_structured.json"
 DATA_PATH_ENRICHED = DATA_DIR / "cases_structured_enriched.json"
