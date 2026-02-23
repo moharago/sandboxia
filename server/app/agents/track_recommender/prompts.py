@@ -119,8 +119,8 @@ SCORING_USER_PROMPT = """## 서비스 정보
 
 ```json
 {{
-  "criteria_id_1": {{"answer": true/false, "reason": "판단 근거"}},
-  "criteria_id_2": {{"answer": true/false, "reason": "판단 근거"}},
+  "criteria_id_1": {{"answer": true/false, "reason": "판단 근거 (2-3문장)"}},
+  "criteria_id_2": {{"answer": true/false, "reason": "판단 근거 (2-3문장)"}},
   ...
 }}
 ```
