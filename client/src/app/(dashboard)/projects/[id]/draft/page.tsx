@@ -97,7 +97,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // AI 초안 생성 중
     if (draftMutation.isPending) {
-        return <AILoader message="AI 신청서 초안 생성 중" />
+        return <AILoader message="신청서 초안을 생성하고 있습니다..." />
     }
 
     // track 정보 없음

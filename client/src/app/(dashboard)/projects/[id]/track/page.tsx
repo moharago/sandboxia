@@ -278,7 +278,7 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // AI 분석 중 (재분석 시에만 해당)
     if (isAnalyzing) {
-        return <AILoader message="AI 트랙 추천 중" />
+        return <AILoader message="최적의 트랙을 추천하고 있습니다..." />
     }
 
     // 에러
@@ -334,7 +334,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoader message={isRunningDraftAgent ? "AI 신청서 초안 생성 중" : "트랙 저장 중..."} />}
+                {isSaving && <AILoader message={isRunningDraftAgent ? "신청서 초안을 생성하고 있습니다..." : "트랙을 저장하고 있습니다..."} />}
                 <div className="container">
                     <div className="flex gap-4">
                         {/* 왼쪽: 메인 콘텐츠 */}

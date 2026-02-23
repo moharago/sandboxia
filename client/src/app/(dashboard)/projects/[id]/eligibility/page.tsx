@@ -355,8 +355,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     return (
         <div className="py-6">
-            {eligibilityMutation.isPending && <AILoader message="AI 대상성 분석 중" />}
-            {isRunningTrackAgent && <AILoader message="AI 트랙 추천 중" />}
+            {eligibilityMutation.isPending && <AILoader message="서비스의 규제 현황을 분석하고 있습니다..." />}
+            {isRunningTrackAgent && <AILoader message="최적의 트랙을 추천하고 있습니다..." />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}

@@ -167,7 +167,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         <div className="py-6">
             {isLoading && (
                 <AILoader
-                    message={serviceMutation.isPending ? "AI 서비스 분석 중" : "AI 대상성 분석 중"}
+                    message={serviceMutation.isPending ? "서비스 정보를 분석하고 있습니다..." : "서비스의 규제 현황을 분석하고 있습니다..."}
                 />
             )}
             <div className="container mx-auto px-4 space-y-6">

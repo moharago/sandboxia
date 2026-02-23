@@ -68,7 +68,7 @@ export function DevModeToggle() {
 
     return (
         <>
-            {devShowAILoader && <AILoader message="AI 분석 중 (미리보기)" />}
+            {devShowAILoader && <AILoader message="로더 미리보기 모드입니다..." />}
             <div className="fixed bottom-4 right-4 z-50">
             {isOpen ? (
                 <div className="bg-card border border-border rounded-lg shadow-lg p-4 w-64">
