@@ -3,7 +3,7 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { AILoader } from "@/components/ui/ai-loader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -349,9 +349,9 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     return (
         <div className="py-6">
-            {isQueryLoading && <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />}
-            {eligibilityMutation.isPending && <AILoadingOverlay message="AI 대상성 분석 중" />}
-            {isRunningTrackAgent && <AILoadingOverlay message="AI 트랙 추천 중" />}
+            {isQueryLoading && <AILoader message="이전 분석 결과를 확인하고 있습니다..." />}
+            {eligibilityMutation.isPending && <AILoader message="AI 대상성 분석 중" />}
+            {isRunningTrackAgent && <AILoader message="AI 트랙 추천 중" />}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}

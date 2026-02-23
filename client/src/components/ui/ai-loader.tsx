@@ -2,11 +2,11 @@
 
 import { Sparkles } from "lucide-react"
 
-interface AILoadingOverlayProps {
+interface AILoaderProps {
     message?: string
 }
 
-export function AILoadingOverlay({ message = "AI 분석 중" }: AILoadingOverlayProps) {
+export function AILoader({ message = "AI 분석 중" }: AILoaderProps) {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-8 shadow-lg border border-gray-200">

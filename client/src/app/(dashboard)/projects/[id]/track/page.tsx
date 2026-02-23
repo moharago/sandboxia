@@ -3,7 +3,7 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoadingOverlay } from "@/components/ui/ai-loading-overlay"
+import { AILoader } from "@/components/ui/ai-loader"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -272,12 +272,12 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // 데이터 로딩 중
     if (isLoadingTrack) {
-        return <AILoadingOverlay message="이전 분석 결과를 확인하고 있습니다..." />
+        return <AILoader message="이전 분석 결과를 확인하고 있습니다..." />
     }
 
     // AI 분석 중 (재분석 시에만 해당)
     if (isAnalyzing) {
-        return <AILoadingOverlay message="AI 트랙 추천 중" />
+        return <AILoader message="AI 트랙 추천 중" />
     }
 
     // 에러
@@ -333,7 +333,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoadingOverlay message={isRunningDraftAgent ? "AI 신청서 초안 생성 중" : "트랙 저장 중..."} />}
+                {isSaving && <AILoader message={isRunningDraftAgent ? "AI 신청서 초안 생성 중" : "트랙 저장 중..."} />}
                 <div className="container">
                     <div className="flex gap-4">
                         {/* 왼쪽: 메인 콘텐츠 */}
