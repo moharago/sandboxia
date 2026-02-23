@@ -342,8 +342,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     const isQueryLoading = isLoadingExisting || isLoadingProject
 
-    // Step 1 완료 전이면 안내 화면 표시
-    if (!isLoadingProject && !isStep1Completed) {
+    // Step 1 완료 전이면 안내 화면 표시 (project가 있을 때만)
+    if (!isLoadingProject && project && !isStep1Completed) {
         return (
             <div className="py-6">
                 <div className="container">
