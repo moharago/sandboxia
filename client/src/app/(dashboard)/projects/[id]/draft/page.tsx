@@ -110,7 +110,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                             <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
                             <h2 className="text-lg font-semibold">트랙이 선택되지 않았습니다</h2>
                             <p className="text-muted-foreground">
-                                이전 단계(트랙 선택)에서 트랙을 선택해주세요.
+                                이전 단계(트랙 선택)를 먼저 완료해주세요.
                             </p>
                             <button
                                 type="button"

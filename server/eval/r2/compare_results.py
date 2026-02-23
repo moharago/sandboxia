@@ -4,10 +4,12 @@
 
 실행:
     cd server
-    uv run python eval/r2/compare_results.py                            # 전체 비교
+    uv run python eval/r2/compare_results.py                            # 전체 비교 (retrieval)
     uv run python eval/r2/compare_results.py --filter strategy          # change_factor 필터
     uv run python eval/r2/compare_results.py --tag baseline             # 태그 필터
     uv run python eval/r2/compare_results.py --files file1.json file2.json  # 특정 파일만
+    uv run python eval/r2/compare_results.py --llm                      # LLM 생성 결과 비교
+    uv run python eval/r2/compare_results.py --llm --tag stage3         # LLM 결과 태그 필터
 """
 
 import json
@@ -15,8 +17,9 @@ import sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-RESULTS_DIR = Path(__file__).parent / "results" / "retrieval"
+from eval.r2.common import RESULTS_DIR, RESULTS_DIR_LLM
 
 METRICS_ROWS = [
     ("MH-Recall@K", "must_have_recall_at_k", False),
@@ -27,6 +30,21 @@ METRICS_ROWS = [
     ("Latency P50", "latency_p50_ms", True),
     ("Latency P95", "latency_p95_ms", True),
     ("Build Time", "build_time_ms", True),
+]
+
+LLM_METRICS_ROWS = [
+    ("MH-Recall@K", "must_have_recall_at_k", False),
+    ("Recall@K", "recall_at_k", False),
+    ("MRR", "mrr", False),
+    ("Negative@K", "negative_at_k", True),
+    ("Faithfulness", "faithfulness", False),
+    ("Answer Relevancy", "answer_relevancy", False),
+    ("MI Coverage", "must_include_coverage", False),
+    ("MNI Violation", "must_not_include_violation_rate", True),
+    ("Bullet Coverage", "bullet_coverage", False),
+    ("Ret Latency P50", "retrieval_latency_p50_ms", True),
+    ("Gen Latency P50", "generation_latency_p50_ms", True),
+    ("Gen Latency P95", "generation_latency_p95_ms", True),
 ]
 
 
@@ -57,6 +75,7 @@ def load_all_experiments(
     filter_factor: str | None = None,
     filter_tag: str | None = None,
     file_paths: list[str] | None = None,
+    results_dir: Path | None = None,
 ) -> list[dict]:
     """결과 디렉토리에서 실험 결과 로드
 
@@ -64,18 +83,20 @@ def load_all_experiments(
         filter_factor: change_factor 필터 (예: "strategy")
         filter_tag: 태그 필터 (예: "baseline")
         file_paths: 특정 파일 경로 목록 (지정 시 다른 필터 무시)
+        results_dir: 결과 디렉토리 (기본: RESULTS_DIR)
 
     Returns:
         실험 결과 리스트 (날짜순 정렬)
     """
+    base_dir = results_dir or RESULTS_DIR
     experiments = []
 
     if file_paths:
-        paths = [Path(p) if Path(p).is_absolute() else RESULTS_DIR / p for p in file_paths]
+        paths = [Path(p) if Path(p).is_absolute() else base_dir / p for p in file_paths]
     else:
-        if not RESULTS_DIR.exists():
+        if not base_dir.exists():
             return []
-        paths = sorted(RESULTS_DIR.glob("*.json"))
+        paths = sorted(base_dir.glob("*.json"))
 
     for path in paths:
         if not path.exists():
@@ -104,21 +125,24 @@ def format_value(key: str, value) -> str:
     """지표 값을 포맷팅"""
     if value is None:
         return "N/A"
-    if key in ("latency_p50_ms", "latency_p95_ms", "latency_mean_ms", "build_time_ms"):
+    if key.endswith("_ms"):
         return f"{value:.0f}ms"
     if key == "items_with_negative":
         return str(int(value))
     return f"{value:.4f}"
 
 
-def print_comparison_table(experiments: list[dict]):
+def print_comparison_table(experiments: list[dict], metrics_rows: list | None = None):
     """비교표 출력"""
     if not experiments:
         print("비교할 실험 결과가 없습니다.")
         return
 
+    if metrics_rows is None:
+        metrics_rows = METRICS_ROWS
+
     # 컬럼 너비 계산
-    label_width = 15
+    label_width = max(15, max(len(label) for label, _, _ in metrics_rows) + 2)
     col_width = max(20, max(len(e["experiment"]["id"]) for e in experiments) + 2)
 
     # 헤더
@@ -144,8 +168,8 @@ def print_comparison_table(experiments: list[dict]):
 
     print("─" * (label_width + col_width * len(experiments) + 2))
 
-    # config 요약 (strategy, data_version)
-    for config_key in ("strategy", "data_version", "embedding_model"):
+    # config 요약
+    for config_key in ("strategy", "data_version", "embedding_model", "generation_model"):
         values = [exp["config"].get(config_key, "N/A") for exp in experiments]
         if len(set(values)) > 1:  # 다른 값이 있을 때만 표시
             row = f"{config_key:>{label_width}}"
@@ -156,7 +180,7 @@ def print_comparison_table(experiments: list[dict]):
     print("─" * (label_width + col_width * len(experiments) + 2))
 
     # 지표 행
-    for label, key, lower_is_better in METRICS_ROWS:
+    for label, key, lower_is_better in metrics_rows:
         values = [exp["summary"].get(key) for exp in experiments]
         numeric_values = [v for v in values if v is not None]
 
@@ -267,25 +291,34 @@ def main():
         action="store_true",
         help="2개 실험의 항목별 차이 출력",
     )
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="LLM 생성 결과 비교 (results/llm/ 디렉토리)",
+    )
 
     args = parser.parse_args()
+
+    results_dir = RESULTS_DIR_LLM if args.llm else RESULTS_DIR
 
     experiments = load_all_experiments(
         filter_factor=args.filter,
         filter_tag=args.tag,
         file_paths=args.files,
+        results_dir=results_dir,
     )
 
     if not experiments:
         print("비교할 실험 결과가 없습니다.")
-        print(f"결과 디렉토리: {RESULTS_DIR}")
+        print(f"결과 디렉토리: {results_dir}")
         return
 
     print(f"로드된 실험: {len(experiments)}개")
     for exp in experiments:
         print(f"  - {exp['_filename']}")
 
-    print_comparison_table(experiments)
+    rows = LLM_METRICS_ROWS if args.llm else METRICS_ROWS
+    print_comparison_table(experiments, metrics_rows=rows)
 
     if args.diff and len(experiments) == 2:
         print_per_item_diff(experiments)
