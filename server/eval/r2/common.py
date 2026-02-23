@@ -36,6 +36,7 @@ DATA_DIR = EVAL_DIR.parent.parent / "data" / "r2_data"
 DATA_PATH = DATA_DIR / "cases_structured.json"
 DATA_PATH_ENRICHED = DATA_DIR / "cases_structured_enriched.json"
 
+TEMP_COLLECTION_NAME = "r2_eval_temp"
 VALID_STRATEGIES = ("structured", "hybrid", "fulltext")
 VALID_DATA_VERSIONS = ("original", "enriched")
 
@@ -65,7 +66,7 @@ def load_r2_embedding_config(config_name: str) -> EmbeddingConfig:
 def create_temp_vector_store(
     data: list[dict],
     strategy: str,
-    collection_name: str = "r2_eval_temp",
+    collection_name: str = TEMP_COLLECTION_NAME,
     embedding_config: EmbeddingConfig | None = None,
 ) -> tuple[Chroma, chromadb.ClientAPI]:
     """전략별 임시 Vector Store 생성 (EphemeralClient)

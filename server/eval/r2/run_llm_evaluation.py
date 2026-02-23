@@ -41,6 +41,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from langchain_openai import ChatOpenAI
+
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -59,14 +61,13 @@ def enable_langsmith_tracing(project_name: str = "rag-eval-r2") -> bool:
     return True
 
 
-from langchain_openai import ChatOpenAI
-
 from app.core.config import settings
 from app.rag.config import EmbeddingConfig
 from eval.llm_metrics import LLMMetricsResult, RAGASEvaluator, aggregate_llm_metrics
 from eval.metrics import RetrievalMetrics, aggregate_metrics
 from eval.r2.common import (
     RESULTS_DIR_LLM,
+    TEMP_COLLECTION_NAME,
     VALID_STRATEGIES,
     build_gold_case_ids,
     calculate_r2_metrics,
@@ -557,7 +558,7 @@ async def run_evaluation_async(
     items_with_neg = sum(1 for n in all_negatives if n > 0)
     ret_p50 = statistics.median(all_ret_latencies)
     ret_p95 = (
-        sorted(all_ret_latencies)[int(len(all_ret_latencies) * 0.95)]
+        statistics.quantiles(all_ret_latencies, n=100)[94]
         if len(all_ret_latencies) >= 20
         else max(all_ret_latencies)
     )
@@ -640,7 +641,7 @@ async def run_evaluation_async(
 
         gen_p50 = statistics.median(all_gen_latencies)
         gen_p95 = (
-            sorted(all_gen_latencies)[int(len(all_gen_latencies) * 0.95)]
+            statistics.quantiles(all_gen_latencies, n=100)[94]
             if len(all_gen_latencies) >= 20
             else max(all_gen_latencies)
         )
@@ -758,7 +759,7 @@ async def run_evaluation_async(
 
     # 임시 컬렉션 삭제
     try:
-        client.delete_collection("r2_eval_temp")
+        client.delete_collection(TEMP_COLLECTION_NAME)
     except Exception:
         pass
 

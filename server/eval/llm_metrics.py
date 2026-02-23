@@ -65,8 +65,10 @@ class RAGASEvaluator:
         self.async_client = AsyncOpenAI(**client_kwargs)
 
         # RAGAS LLM 초기화 + max_tokens 증가 (한국어 긴 응답 대응)
-        self.llm = llm_factory(model=model, client=self.async_client)
-        self.llm.model_args["max_tokens"] = 8192
+        self.llm = llm_factory(
+            model=model, provider="openai", client=self.async_client,
+            max_tokens=8192,
+        )
 
         # LangChain 호환 Embeddings (ResponseRelevancy가 embed_query 사용)
         emb_kwargs = {"model": embedding_model}

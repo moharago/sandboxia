@@ -17,9 +17,9 @@ import sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-RESULTS_DIR = Path(__file__).parent / "results" / "retrieval"
-RESULTS_DIR_LLM = Path(__file__).parent / "results" / "llm"
+from eval.r2.common import RESULTS_DIR, RESULTS_DIR_LLM
 
 METRICS_ROWS = [
     ("MH-Recall@K", "must_have_recall_at_k", False),
@@ -125,7 +125,7 @@ def format_value(key: str, value) -> str:
     """지표 값을 포맷팅"""
     if value is None:
         return "N/A"
-    if key in ("latency_p50_ms", "latency_p95_ms", "latency_mean_ms", "build_time_ms"):
+    if key.endswith("_ms"):
         return f"{value:.0f}ms"
     if key == "items_with_negative":
         return str(int(value))
