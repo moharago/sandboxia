@@ -203,7 +203,9 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
 
                 <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
                     {regs.length > 0 ? (
-                        regs.map((regulation, index) => <RegulationItem key={index} regulation={regulation} index={index} />)
+                        regs.map((regulation, index) => (
+                            <RegulationItem key={`${regulation.title}-${index}`} regulation={regulation} index={index} />
+                        ))
                     ) : (
                         <div className="text-center py-8 text-muted-foreground text-sm">참고할 관련 법령이 없습니다.</div>
                     )}
@@ -211,7 +213,9 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
 
                 <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
                     {displayCases.length > 0 ? (
-                        displayCases.map((caseData, index) => <CaseItem key={index} caseData={caseData} index={index} />)
+                        displayCases.map((caseData, index) => (
+                            <CaseItem key={`${caseData.title}-${caseData.company}-${index}`} caseData={caseData} index={index} />
+                        ))
                     ) : track === "quick_check" ? (
                         <div className="text-center py-8 text-muted-foreground text-sm">
                             신속확인은 트랙 판단을 위한 절차로,
