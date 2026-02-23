@@ -79,3 +79,15 @@ C5:
   min_tokens: 100
   max_tokens: 600
   overlap: 100
+
+C6:
+  name: C6
+  description: "large 임베딩 테스트 - 기본 청킹 + text-embedding-3-large"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0

@@ -11,9 +11,10 @@ import asyncio
 import concurrent.futures
 from dataclasses import dataclass
 
-from langchain_openai import OpenAIEmbeddings as LangChainOpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from openai import AsyncOpenAI
 from ragas.dataset_schema import SingleTurnSample
+from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import llm_factory
 from ragas.metrics import Faithfulness, ResponseRelevancy
 
@@ -66,15 +67,19 @@ class RAGASEvaluator:
 
         # RAGAS LLM 초기화 + max_tokens 증가 (한국어 긴 응답 대응)
         self.llm = llm_factory(
-            model=model, provider="openai", client=self.async_client,
+            model=model,
+            provider="openai",
+            client=self.async_client,
             max_tokens=8192,
         )
 
-        # LangChain 호환 Embeddings (ResponseRelevancy가 embed_query 사용)
+        # LangchainEmbeddingsWrapper로 감싸기 (RAGAS 0.4.3 호환)
+        # ResponseRelevancy는 LangChain 스타일 인터페이스(embed_query, embed_documents) 필요
         emb_kwargs = {"model": embedding_model}
         if api_key:
             emb_kwargs["api_key"] = api_key
-        self.embeddings = LangChainOpenAIEmbeddings(**emb_kwargs)
+        langchain_embeddings = OpenAIEmbeddings(**emb_kwargs)
+        self.embeddings = LangchainEmbeddingsWrapper(langchain_embeddings)
 
         # 메트릭 초기화
         self.faithfulness_scorer = Faithfulness(llm=self.llm)
