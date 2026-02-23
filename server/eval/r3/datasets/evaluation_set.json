@@ -1,7 +1,16 @@
 {
-  "version": "4.0",
-  "description": "R3 도메인별 규제/법령 RAG 평가셋 (청킹 전략 무관 - 조 단위 매칭)",
-  "matching_level": "article",
+  "version": "5.0",
+  "description": "R3 도메인별 규제/법령 RAG 평가셋 (청킹 전략별 동적 매칭 지원)",
+  "matching_config": {
+    "article_level": ["law_name", "article_no", "article_title"],
+    "paragraph_level": [
+      "law_name",
+      "article_no",
+      "article_title",
+      "paragraph_no"
+    ],
+    "note": "청킹 전략에 따라 매칭 단위 결정. article_title은 같은 조번호에 여러 조가 있는 경우만 사용."
+  },
   "total_count": 30,
   "evaluation_items": [
     {
@@ -12,24 +21,32 @@
         {
           "law_name": "전자금융거래법",
           "article_no": "9",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①금융회사 책임 원칙, ②고의/중과실 예외"
         },
         {
           "law_name": "전자금융거래법",
           "article_no": "10",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": false,
+          "rationale": "접근매체 분실/도난 시 책임"
         }
       ],
       "negatives": [
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "32",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "전자금융거래법",
           "article_no": "21",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -49,19 +66,24 @@
         {
           "law_name": "전자금융거래법",
           "article_no": "27",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①분쟁처리 절차 마련 의무, ②분쟁조정 신청 가능"
         }
       ],
       "negatives": [
         {
           "law_name": "전자금융거래법",
           "article_no": "24",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "전자금융거래법",
           "article_no": "9",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -81,19 +103,24 @@
         {
           "law_name": "의료법",
           "article_no": "34",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": true,
+          "rationale": "①원격의료 정의 및 의료인 간 허용 범위 명시"
         }
       ],
       "negatives": [
         {
           "law_name": "의료법",
           "article_no": "33",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -113,19 +140,24 @@
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①제공 요건(동의/법률근거), ②고지사항"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "18",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "32",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -145,19 +177,24 @@
         {
           "law_name": "개인정보 보호법",
           "article_no": "18",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①원칙적 제한, ②예외 사유 열거"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "22",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -177,19 +214,24 @@
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "32",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①제공 동의 방법, ②③고지사항 및 절차"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "37",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -210,19 +252,23 @@
           "law_name": "산업융합 촉진법",
           "article_no": "10",
           "article_title": "규제 신속확인",
-          "must_have": true
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①신청 요건, ②③절차 및 회신 기한"
         }
       ],
       "negatives": [
         {
           "law_name": "산업융합 촉진법",
           "article_no": "10",
-          "article_title": "실증을 위한 규제특례"
+          "article_title": "실증을 위한 규제특례",
+          "paragraph_no": null
         },
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "4",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -243,19 +289,23 @@
           "law_name": "산업융합 촉진법",
           "article_no": "10",
           "article_title": "실증을 위한 규제특례",
-          "must_have": true
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①신청 요건, ②책임보험, ③심의 절차"
         }
       ],
       "negatives": [
         {
           "law_name": "산업융합 촉진법",
           "article_no": "10",
-          "article_title": "규제 신속확인"
+          "article_title": "규제 신속확인",
+          "paragraph_no": null
         },
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "5",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -275,24 +325,32 @@
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "4",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①지정 요건, ②포함사항, ③조건 부여"
         },
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "5",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①", "③"],
+          "must_have": false,
+          "rationale": "신청 자격 및 절차"
         }
       ],
       "negatives": [
         {
           "law_name": "산업융합 촉진법",
           "article_no": "10",
-          "article_title": "실증을 위한 규제특례"
+          "article_title": "실증을 위한 규제특례",
+          "paragraph_no": null
         },
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "7",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -312,24 +370,32 @@
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "7",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": true,
+          "rationale": "①취소 사유 열거"
         },
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "11",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": false,
+          "rationale": "중지 및 변경 관련"
         }
       ],
       "negatives": [
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "4",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "금융혁신지원 특별법",
           "article_no": "8",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -349,19 +415,24 @@
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "10",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①②데이터 결합 촉진 시책, ③지원 사항"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "18",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -381,19 +452,24 @@
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "11",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①지정 요건, ②지원 내용"
         }
       ],
       "negatives": [
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "10",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "18",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -413,24 +489,32 @@
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "34",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①②③위원회 설치 및 구성"
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "35",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①조정 신청, ②조정부 구성"
         }
       ],
       "negatives": [
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "20",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "전자금융거래법",
           "article_no": "27",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -450,19 +534,24 @@
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "15",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": null,
+          "must_have": true,
+          "rationale": "데이터 이동 촉진 규정 (조 전체)"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "35",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "10",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -482,24 +571,32 @@
         {
           "law_name": "전기통신사업법",
           "article_no": "6",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①등록 요건, ②조건 부여"
         },
         {
           "law_name": "전기통신사업법",
           "article_no": "7",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": false,
+          "rationale": "결격사유"
         }
       ],
       "negatives": [
         {
           "law_name": "전기통신사업법",
           "article_no": "22",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
           "article_no": "36",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -519,19 +616,24 @@
         {
           "law_name": "전기통신사업법",
           "article_no": "22",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①전송자격인증, ②인증 기준"
         }
       ],
       "negatives": [
         {
           "law_name": "전기통신사업법",
           "article_no": "6",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "전기통신사업법",
           "article_no": "26",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -551,24 +653,32 @@
         {
           "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
           "article_no": "36",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①②③일괄처리 절차"
         },
         {
           "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
           "article_no": "37",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": false,
+          "rationale": "임시허가 제도"
         }
       ],
       "negatives": [
         {
           "law_name": "산업융합 촉진법",
           "article_no": "10",
-          "article_title": "실증을 위한 규제특례"
+          "article_title": "실증을 위한 규제특례",
+          "paragraph_no": null
         },
         {
           "law_name": "정보통신 진흥 및 융합 활성화 등에 관한 특별법",
           "article_no": "10",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -588,24 +698,32 @@
         {
           "law_name": "전기통신사업법",
           "article_no": "28",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①이용약관 신고, ②신고확인증 발급"
         },
         {
           "law_name": "전기통신사업법",
           "article_no": "32",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": false,
+          "rationale": "서비스 안정성 확보"
         }
       ],
       "negatives": [
         {
           "law_name": "전기통신사업법",
           "article_no": "22",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "전자금융거래법",
           "article_no": "9",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -625,19 +743,24 @@
         {
           "law_name": "의료법",
           "article_no": "15",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①진료거부 금지, ②응급환자 의무"
         }
       ],
       "negatives": [
         {
           "law_name": "의료법",
           "article_no": "34",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "의료법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -657,19 +780,24 @@
         {
           "law_name": "의료법",
           "article_no": "17",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①발급 요건(직접 진찰), ②예외 규정"
         }
       ],
       "negatives": [
         {
           "law_name": "의료법",
           "article_no": "15",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "의료법",
           "article_no": "34",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -689,24 +817,32 @@
         {
           "law_name": "의료법",
           "article_no": "12",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①의료기술 보호, ②시설/기재 파괴 금지"
         },
         {
           "law_name": "의료법",
           "article_no": "13",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": null,
+          "must_have": false,
+          "rationale": "기재 압류 금지 (조 전체)"
         }
       ],
       "negatives": [
         {
           "law_name": "의료법",
           "article_no": "15",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "의료법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -726,24 +862,32 @@
         {
           "law_name": "개인정보 보호법",
           "article_no": "15",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①수집 요건, ②고지사항"
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "16",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①②③최소 수집 원칙"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "15",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -764,19 +908,23 @@
           "law_name": "개인정보 보호법",
           "article_no": "35",
           "article_title": "개인정보의 열람",
-          "must_have": true
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①열람 요구권, ②공공기관 열람, ③조치 기한"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "36",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -796,24 +944,32 @@
         {
           "law_name": "개인정보 보호법",
           "article_no": "37",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①②자동화된 결정 거부권"
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "36",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": false,
+          "rationale": "정정/삭제 요구권"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "35",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "개인정보 보호법",
           "article_no": "18",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -834,19 +990,23 @@
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "17",
           "article_title": "정보집합물의 결합 등",
-          "must_have": true
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①데이터전문기관 통한 결합, ②가명처리 원칙"
         }
       ],
       "negatives": [
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "32",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "데이터 산업진흥 및 이용촉진에 관한 기본법",
           "article_no": "10",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -867,19 +1027,23 @@
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "17",
           "article_title": "처리의 위탁",
-          "must_have": true
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①②③위탁 규정 및 관리감독"
         }
       ],
       "negatives": [
         {
           "law_name": "개인정보 보호법",
           "article_no": "17",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "신용정보의 이용 및 보호에 관한 법률",
           "article_no": "32",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -900,19 +1064,23 @@
           "law_name": "산업융합 촉진법",
           "article_no": "10",
           "article_title": "임시허가",
-          "must_have": true
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①신청 요건, ②③절차"
         }
       ],
       "negatives": [
         {
           "law_name": "산업융합 촉진법",
           "article_no": "10",
-          "article_title": "실증을 위한 규제특례"
+          "article_title": "실증을 위한 규제특례",
+          "paragraph_no": null
         },
         {
           "law_name": "행정규제기본법",
           "article_no": "5",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -932,19 +1100,24 @@
         {
           "law_name": "행정규제기본법",
           "article_no": "8",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["③"],
+          "must_have": true,
+          "rationale": "③규제 재검토 절차"
         }
       ],
       "negatives": [
         {
           "law_name": "행정규제기본법",
           "article_no": "5",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "행정규제기본법",
           "article_no": "12",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -964,24 +1137,32 @@
         {
           "law_name": "행정규제기본법",
           "article_no": "7",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②", "③"],
+          "must_have": true,
+          "rationale": "①규제영향분석, ②공표, ③심사"
         },
         {
           "law_name": "행정규제기본법",
           "article_no": "10",
-          "must_have": false
+          "article_title": "",
+          "paragraph_no": ["①"],
+          "must_have": false,
+          "rationale": "위원회 심사 요청"
         }
       ],
       "negatives": [
         {
           "law_name": "행정규제기본법",
           "article_no": "8",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "산업융합 촉진법",
           "article_no": "10",
-          "article_title": "실증을 위한 규제특례"
+          "article_title": "실증을 위한 규제특례",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [
@@ -1001,19 +1182,24 @@
         {
           "law_name": "행정규제기본법",
           "article_no": "5",
-          "must_have": true
+          "article_title": "",
+          "paragraph_no": ["①", "②"],
+          "must_have": true,
+          "rationale": "①②우선허용/사후규제 원칙"
         }
       ],
       "negatives": [
         {
           "law_name": "행정규제기본법",
           "article_no": "7",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         },
         {
           "law_name": "행정규제기본법",
           "article_no": "8",
-          "article_title": ""
+          "article_title": "",
+          "paragraph_no": null
         }
       ],
       "expected_answer_bullets": [

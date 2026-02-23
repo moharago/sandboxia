@@ -1,8 +1,8 @@
 """R3 법령 RAG 평가 스크립트
 
 평가 지표:
-- Must-Have Recall@5: 핵심 조항(must_have=true) 검색률
-- Recall@5: 전체 gold_citations 검색률
+- Must-Have Recall@K: 핵심 조항(must_have=true) 검색률
+- Recall@K: 전체 gold_citations 검색률
 - MRR: 첫 번째 정답 조항의 역순위
 - Latency (P50): 검색 응답 시간
 
@@ -11,10 +11,17 @@
     uv run python eval/r3/run_evaluation.py
 
 옵션:
-    --top_k 10        # Top-K 값 변경 (기본: 5)
-    --output result   # 결과 파일명 (기본: 타임스탬프)
-    --config E2       # 임베딩 설정 (없으면 .env 사용)
-    --collection_suffix _E2  # 컬렉션 접미사
+    --top_k 10              # Top-K 값 변경 (기본: 5)
+    --output result         # 결과 파일명 (기본: 타임스탬프)
+    --config E2             # 임베딩 설정 (없으면 .env 사용)
+    --collection_suffix _E2 # 컬렉션 접미사
+    --chunk_level paragraph # 매칭 단위: article(조) 또는 paragraph(항)
+
+매칭 단위 설명:
+- article: 조 단위 매칭 (법명 + 조번호 + 조제목)
+  → 조 단위 청킹(C5, C6)에 적합
+- paragraph: 항 단위 매칭 (법명 + 조번호 + 조제목 + 항번호)
+  → 항 단위 청킹(C0~C4)에 적합
 """
 
 import json
@@ -33,6 +40,7 @@ from app.rag.config import EmbeddingConfig, load_embedding_config
 from eval.metrics import RetrievalMetrics, aggregate_metrics
 from eval.r3.common import (
     RESULTS_DIR_RETRIEVAL,
+    ChunkLevel,
     build_gold_chunk_ids,
     calculate_retrieval_metrics,
     extract_chunk_id_from_doc,
@@ -47,6 +55,7 @@ def evaluate_single_item(
     vector_store,
     item: dict,
     top_k: int = 5,
+    chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
 ) -> tuple[RetrievalMetrics, float, dict]:
     """단일 평가 항목 평가
 
@@ -54,6 +63,7 @@ def evaluate_single_item(
         vector_store: Vector Store
         item: 평가 항목
         top_k: Top-K 값
+        chunk_level: 청킹 단위 (매칭 기준)
 
     Returns:
         (metrics, latency_ms, detail_info)
@@ -61,8 +71,8 @@ def evaluate_single_item(
     question = item["question"]
     gold_citations = item.get("gold_citations", [])
 
-    # gold ID 생성
-    gold_ids, must_have_ids = build_gold_chunk_ids(gold_citations)
+    # gold ID 생성 (chunk_level에 따라 다르게 생성)
+    gold_ids, must_have_ids = build_gold_chunk_ids(gold_citations, chunk_level)
 
     # 검색 실행 (시간 측정)
     start_time = time.perf_counter()
@@ -80,6 +90,7 @@ def evaluate_single_item(
         gold_ids=gold_ids,
         must_have_ids=must_have_ids,
         k=top_k,
+        chunk_level=chunk_level,
     )
 
     # 상세 정보 (읽기 쉬운 형식으로 변환)
@@ -105,6 +116,7 @@ def run_evaluation(
     output_name: str | None = None,
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
+    chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
 ):
     """전체 평가 실행
 
@@ -113,6 +125,7 @@ def run_evaluation(
         output_name: 결과 파일명 (없으면 타임스탬프 사용)
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
+        chunk_level: 청킹 단위 (매칭 기준) - article 또는 paragraph
     """
     print("=" * 60)
     print("R3 법령 RAG 평가 시작")
@@ -123,6 +136,7 @@ def run_evaluation(
     items = eval_set.get("evaluation_items", [])
     print(f"\n평가셋: {len(items)}개 항목")
     print(f"Top-K: {top_k}")
+    print(f"매칭 단위: {chunk_level.value}")
     if embedding_config:
         print(f"임베딩: {embedding_config.name} ({embedding_config.model})")
     else:
@@ -140,7 +154,7 @@ def run_evaluation(
     all_details: list[dict] = []
 
     for i, item in enumerate(items, 1):
-        metrics, latency, detail = evaluate_single_item(vector_store, item, top_k)
+        metrics, latency, detail = evaluate_single_item(vector_store, item, top_k, chunk_level)
         all_metrics.append(metrics)
         all_latencies.append(latency)
         all_details.append(detail)
@@ -209,6 +223,7 @@ def run_evaluation(
         "timestamp": datetime.now().isoformat(),
         "config": {
             "top_k": top_k,
+            "chunk_level": chunk_level.value,
             "embedding_config": embedding_config.name if embedding_config else ".env",
             "embedding_model": embedding_config.model if embedding_config else settings.LLM_EMBEDDING_MODEL,
             "embedding_provider": embedding_config.provider if embedding_config else "openai",
@@ -242,6 +257,13 @@ def main():
     parser.add_argument("--output", type=str, default=None, help="결과 파일명")
     parser.add_argument("--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)")
     parser.add_argument("--collection_suffix", type=str, default="", help="컬렉션 접미사")
+    parser.add_argument(
+        "--chunk_level",
+        type=str,
+        default="article",
+        choices=["article", "paragraph"],
+        help="매칭 단위: article(조 단위) 또는 paragraph(항 단위) (기본: article)",
+    )
 
     args = parser.parse_args()
 
@@ -250,11 +272,15 @@ def main():
     if args.config:
         embedding_config = load_embedding_config(args.config)
 
+    # 청킹 단위 파싱
+    chunk_level = ChunkLevel(args.chunk_level)
+
     run_evaluation(
         top_k=args.top_k,
         output_name=args.output,
         embedding_config=embedding_config,
         collection_suffix=args.collection_suffix,
+        chunk_level=chunk_level,
     )
 
 
