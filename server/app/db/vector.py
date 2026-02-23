@@ -266,6 +266,95 @@ class ChromaVectorStore(BaseVectorStore):
 
 
 # =============================================================================
+# Qdrant 구현체
+# =============================================================================
+
+
+class QdrantVectorStore(BaseVectorStore):
+    """Qdrant 구현체 (Docker/Cloud 지원)"""
+
+    def __init__(self, collection_name: str, embeddings: Embeddings):
+        from langchain_qdrant import QdrantVectorStore as LangchainQdrant
+        from qdrant_client import QdrantClient
+
+        self._collection_name = collection_name
+        self._embeddings = embeddings
+
+        # Qdrant 클라이언트 생성
+        if settings.QDRANT_API_KEY:
+            # Cloud 모드 (API Key 있으면)
+            logger.info(f"Qdrant Cloud 모드: {settings.QDRANT_HOST}")
+            client = QdrantClient(
+                host=settings.QDRANT_HOST,
+                port=settings.QDRANT_PORT,
+                api_key=settings.QDRANT_API_KEY,
+                https=True,
+            )
+        else:
+            # 로컬 Docker 모드
+            logger.info(f"Qdrant 로컬 모드: {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+            client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+
+        self._qdrant_client = client
+
+        # LangChain Qdrant 래퍼 생성
+        self._client = LangchainQdrant(
+            client=client,
+            collection_name=collection_name,
+            embedding=embeddings,
+        )
+
+    def similarity_search(
+        self,
+        query: str,
+        k: int = 5,
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
+        """유사도 검색 (score 사용)"""
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+
+        # filter를 Qdrant 형식으로 변환
+        qdrant_filter = None
+        if filter:
+            conditions = []
+            for key, value in filter.items():
+                conditions.append(
+                    FieldCondition(key=key, match=MatchValue(value=value))
+                )
+            qdrant_filter = Filter(must=conditions)
+
+        # similarity_search_with_score 사용
+        docs_with_scores = self._client.similarity_search_with_score(
+            query,
+            k=k,
+            filter=qdrant_filter,
+        )
+
+        # Qdrant score는 0~1 범위 (높을수록 유사)
+        return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
+
+    def add_documents(
+        self,
+        documents: list[Document],
+        ids: list[str] | None = None,
+    ) -> list[str]:
+        """문서 추가"""
+        return self._client.add_documents(documents, ids=ids)
+
+    def delete(self, ids: list[str]) -> None:
+        """문서 삭제"""
+        self._client.delete(ids=ids)
+
+    def delete_collection(self) -> None:
+        """컬렉션 삭제"""
+        try:
+            self._qdrant_client.delete_collection(self._collection_name)
+            logger.info(f"Qdrant 컬렉션 '{self._collection_name}' 삭제 완료")
+        except Exception as e:
+            logger.warning(f"Qdrant 컬렉션 삭제 실패: {e}")
+
+
+# =============================================================================
 # 임베딩 팩토리 함수
 # =============================================================================
 

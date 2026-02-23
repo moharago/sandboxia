@@ -55,6 +55,7 @@ async def collect_and_store_laws(
     collection_suffix: str = "",
     reset: bool = False,
     embedding_config: EmbeddingConfig | None = None,
+    vectordb_type: str = "chroma",
 ):
     """법령 데이터 수집 및 Vector DB 저장
 
@@ -101,28 +102,65 @@ async def collect_and_store_laws(
 
     chunker = LawChunker(config)
 
-    persist_dir = Path(settings.CHROMA_PERSIST_DIR)
-    persist_dir.mkdir(parents=True, exist_ok=True)
-
     collection_name = COLLECTION_LAWS + collection_suffix
 
-    # 기존 컬렉션 삭제 (reset 옵션)
-    if reset:
-        import chromadb
+    print(f"\n[Vector DB] {vectordb_type.upper()} 사용")
 
-        print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
-        client = chromadb.PersistentClient(path=str(persist_dir))
-        try:
-            client.delete_collection(name=collection_name)
-            print("  ✓ 기존 컬렉션 삭제 완료")
-        except ValueError:
-            print("  - 기존 컬렉션 없음 (새로 생성)")
+    if vectordb_type == "qdrant":
+        # Qdrant 사용
+        from langchain_qdrant import QdrantVectorStore
+        from qdrant_client import QdrantClient
 
-    vectorstore = Chroma(
-        collection_name=collection_name,
-        embedding_function=embeddings,
-        persist_directory=str(persist_dir),
-    )
+        if settings.QDRANT_API_KEY:
+            print(f"  - Qdrant Cloud: {settings.QDRANT_HOST}")
+            qdrant_client = QdrantClient(
+                host=settings.QDRANT_HOST,
+                port=settings.QDRANT_PORT,
+                api_key=settings.QDRANT_API_KEY,
+                https=True,
+            )
+        else:
+            print(f"  - Qdrant 로컬: {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+            qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+
+        # 기존 컬렉션 삭제 (reset 옵션)
+        if reset:
+            print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
+            try:
+                qdrant_client.delete_collection(collection_name=collection_name)
+                print("  ✓ 기존 컬렉션 삭제 완료")
+            except Exception:
+                print("  - 기존 컬렉션 없음 (새로 생성)")
+
+        vectorstore = QdrantVectorStore(
+            client=qdrant_client,
+            collection_name=collection_name,
+            embedding=embeddings,
+        )
+        persist_dir = Path(settings.CHROMA_PERSIST_DIR).parent / "qdrant"
+
+    else:
+        # Chroma 사용 (기본값)
+        persist_dir = Path(settings.CHROMA_PERSIST_DIR)
+        persist_dir.mkdir(parents=True, exist_ok=True)
+
+        # 기존 컬렉션 삭제 (reset 옵션)
+        if reset:
+            import chromadb
+
+            print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
+            client = chromadb.PersistentClient(path=str(persist_dir))
+            try:
+                client.delete_collection(name=collection_name)
+                print("  ✓ 기존 컬렉션 삭제 완료")
+            except ValueError:
+                print("  - 기존 컬렉션 없음 (새로 생성)")
+
+        vectorstore = Chroma(
+            collection_name=collection_name,
+            embedding_function=embeddings,
+            persist_directory=str(persist_dir),
+        )
 
     documents = []
     document_ids = []

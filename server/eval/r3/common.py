@@ -50,7 +50,8 @@ def load_evaluation_set() -> dict:
 def get_vector_store(
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
-) -> Chroma:
+    vectordb_type: str = "chroma",
+):
     """Vector Store 연결
 
     기존 Vector Store에 연결하여 검색 수행.
@@ -59,9 +60,10 @@ def get_vector_store(
     Args:
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
+        vectordb_type: 사용할 Vector DB (chroma 또는 qdrant)
 
     Returns:
-        Chroma Vector Store
+        Vector Store (Chroma 또는 QdrantVectorStore)
     """
     if embedding_config is None:
         # 프리셋 없으면 .env의 LLM_EMBEDDING_MODEL 사용
@@ -75,6 +77,27 @@ def get_vector_store(
 
     collection_name = COLLECTION_LAWS + collection_suffix
 
+    if vectordb_type == "qdrant":
+        from langchain_qdrant import QdrantVectorStore
+        from qdrant_client import QdrantClient
+
+        if settings.QDRANT_API_KEY:
+            client = QdrantClient(
+                host=settings.QDRANT_HOST,
+                port=settings.QDRANT_PORT,
+                api_key=settings.QDRANT_API_KEY,
+                https=True,
+            )
+        else:
+            client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+
+        return QdrantVectorStore(
+            client=client,
+            collection_name=collection_name,
+            embedding=embeddings,
+        )
+
+    # 기본값: Chroma
     return Chroma(
         collection_name=collection_name,
         embedding_function=embeddings,

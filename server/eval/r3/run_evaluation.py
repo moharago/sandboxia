@@ -117,6 +117,7 @@ def run_evaluation(
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
     chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
+    vectordb_type: str = "chroma",
 ):
     """전체 평가 실행
 
@@ -126,6 +127,7 @@ def run_evaluation(
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
         chunk_level: 청킹 단위 (매칭 기준) - article 또는 paragraph
+        vectordb_type: 사용할 Vector DB (chroma 또는 qdrant)
     """
     print("=" * 60)
     print("R3 법령 RAG 평가 시작")
@@ -142,10 +144,11 @@ def run_evaluation(
     else:
         print(f"임베딩: .env 기본값 ({settings.LLM_EMBEDDING_MODEL})")
     print(f"컬렉션: {COLLECTION_LAWS}{collection_suffix}")
+    print(f"Vector DB: {vectordb_type.upper()}")
 
     # Vector Store 초기화
     print("\nVector Store 초기화 중...")
-    vector_store = get_vector_store(embedding_config, collection_suffix)
+    vector_store = get_vector_store(embedding_config, collection_suffix, vectordb_type)
 
     # 평가 실행
     print("\n평가 진행 중...\n")
@@ -228,6 +231,7 @@ def run_evaluation(
             "embedding_model": embedding_config.model if embedding_config else settings.LLM_EMBEDDING_MODEL,
             "embedding_provider": embedding_config.provider if embedding_config else "openai",
             "collection": COLLECTION_LAWS + collection_suffix,
+            "vectordb": vectordb_type,
             "num_items": len(items),
         },
         "summary": {
@@ -264,6 +268,13 @@ def main():
         choices=["article", "paragraph"],
         help="매칭 단위: article(조 단위) 또는 paragraph(항 단위) (기본: article)",
     )
+    parser.add_argument(
+        "--vectordb",
+        type=str,
+        default="chroma",
+        choices=["chroma", "qdrant"],
+        help="사용할 Vector DB (기본: chroma)",
+    )
 
     args = parser.parse_args()
 
@@ -281,6 +292,7 @@ def main():
         embedding_config=embedding_config,
         collection_suffix=args.collection_suffix,
         chunk_level=chunk_level,
+        vectordb_type=args.vectordb,
     )
 
 

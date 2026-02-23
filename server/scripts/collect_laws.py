@@ -84,6 +84,13 @@ def main():
         action="store_true",
         help="기존 컬렉션 삭제 후 새로 생성 (프리셋 변경 시 권장)",
     )
+    parser.add_argument(
+        "--vectordb",
+        type=str,
+        choices=["chroma", "qdrant"],
+        default="chroma",
+        help="사용할 Vector DB (기본: chroma)",
+    )
     args = parser.parse_args()
 
     if args.list_configs:
@@ -142,6 +149,7 @@ def main():
             collection_suffix=args.collection_suffix,
             reset=args.reset,
             embedding_config=embedding_config,
+            vectordb_type=args.vectordb,
         )
     )
 
