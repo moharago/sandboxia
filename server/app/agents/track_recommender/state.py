@@ -21,7 +21,6 @@ class TrackEvidence(TypedDict):
     """트랙 추천 근거"""
     source_type: str  # "법령" | "사례" | "규제"
     source: str
-    description: str  # 출처가 왜 근거가 되는지 짧은 설명
 
 
 class TrackComparison(TypedDict):
