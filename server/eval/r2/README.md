@@ -88,12 +88,45 @@ uv run python eval/r2/run_evaluation.py --strategy {1단계 승자} --model all
 | KURE-v1 | 셀프호스팅 | 0.606 |
 | BGE-M3 | 셀프호스팅 | 0.598 |
 
-### 3단계: 생성 지표 테스트
+### 3단계: 생성 모델 비교
 
-1~2단계 확정 조합으로, 평가셋 일부(10개)에 대해 생성 품질 테스트.
+1~2단계 확정 조합(structured + enriched + E0)으로, 전체 30개 항목에 대해 생성 품질 비교.
 
-- Faithfulness (근거 충실 / 환각 여부)
-- Correctness (정답성)
+```bash
+uv run python eval/r2/run_llm_evaluation.py --model all --tags stage3
+```
+
+#### 비교 모델 (4개)
+
+| 모델 | 유형 | 비용 |
+|---|---|---|
+| gpt-4o-mini | 4o 계열 소형 | 저 |
+| gpt-4.1-mini | 4.1 계열 소형 | 저 |
+| gpt-4o | 4o 계열 대형 | 중 |
+| gpt-4.1 | 4.1 계열 대형 | 중 |
+
+#### 평가 지표
+
+| 지표 | 설명 | 평가 방식 |
+|---|---|---|
+| Faithfulness | 응답이 컨텍스트에 기반하는지 (환각 방지) | RAGAS (gpt-4.1 Judge) |
+| Answer Relevancy | 응답이 질문에 적절히 답변하는지 | RAGAS (gpt-4.1 Judge) |
+| Must-Include Coverage | `must_include` 키워드 포함 비율 | 문자열 매칭 |
+| Must-Not-Include Violation | `must_not_include` 키워드 위반 여부 | 문자열 매칭 |
+| Bullet Coverage | `expected_answer_bullets` 핵심 포인트 커버 비율 | LLM Judge (gpt-4.1) |
+
+#### 3단계 결과 (2026-02-23, 30항목)
+
+| 지표 | gpt-4o-mini | gpt-4.1-mini | **gpt-4o** | gpt-4.1 |
+|---|---|---|---|---|
+| Faithfulness | 0.957 | 0.919 | **0.975** ★ | 0.942 |
+| Answer Relevancy | 0.715 | 0.653 | **0.718** ★ | 0.627 |
+| MI Coverage | **0.983** | 0.967 | **0.983** | 0.967 |
+| MNI Violation | 0.0% | 0.0% | 0.0% | 0.0% |
+| Bullet Coverage | 0.789 | 0.828 | 0.817 | **0.844** ★ |
+| Gen Latency P50 | 8,960ms | 4,175ms | **2,947ms** ★ | 3,573ms |
+
+> **결론**: gpt-4o가 Faithfulness·Answer Relevancy·Latency 모두 1위. Bullet Coverage만 gpt-4.1이 소폭 우위(+2.8%p)이나 Faithfulness 차이(3.3%p)가 더 크므로 **gpt-4o 채택**.
 
 ### 4단계: 구성 튜닝
 
@@ -112,11 +145,11 @@ uv run python eval/r2/run_evaluation.py --strategy {1단계 승자} --model all
 최적 조건만 찾지 않고, 성능이 안정적으로 유지되는 구간을 같이 기록.
 
 ```
-예시:
-- 데이터 전략: hybrid > structured >> fulltext
-- 임베딩 모델: KURE-v1 ≈ BGE-M3 >> text-embedding-3-small
-- Top-k: 5~7에서 큰 차이 없음 (최적 6)
-- Threshold: 0.30~0.40이 안정적 (최적 0.35)
+현재까지 확정:
+- 데이터 전략: structured + enriched (1단계)
+- 임베딩 모델: E0 text-embedding-3-small (2단계)
+- 생성 모델: gpt-4o (3단계)
+- 청킹: 없음 (1건=1문서)
 ```
 
 확정 후 `collect_cases.py --strategy {승자}`로 production ChromaDB 구축, `chunks.json` 생성.
@@ -275,13 +308,13 @@ recall = len(retrieved_case_ids & gold_case_ids) / len(gold_case_ids)
 
 ### Generation 평가 (run_llm_evaluation.py)
 
-| 지표 | 설명 |
-|---|---|
-| Correctness | 정답성 |
-| Faithfulness | 근거 충실 / 환각 여부 |
-| Completeness | 누락 없이 답했나 (선택) |
-| Must-Include Coverage | `must_include` 키워드 포함 비율 |
-| Must-Not-Include Violation | `must_not_include` 키워드 포함 여부 |
+| 지표 | 설명 | 평가 방식 |
+|---|---|---|
+| Faithfulness | 응답이 컨텍스트에 기반하는지 (환각 방지) | RAGAS LLM Judge |
+| Answer Relevancy | 응답이 질문에 적절히 답변하는지 | RAGAS LLM Judge |
+| Must-Include Coverage | `must_include` 키워드 포함 비율 | 문자열 매칭 |
+| Must-Not-Include Violation | `must_not_include` 키워드 포함 여부 | 문자열 매칭 |
+| Bullet Coverage | `expected_answer_bullets` 핵심 포인트 커버 비율 | LLM Judge |
 
 ---
 
@@ -337,11 +370,14 @@ server/
 - [x] `uv run python eval/r2/run_evaluation.py --data-version enriched --embedding all --tags stage2` 실행
 - [x] 1등 임베딩 모델 확정 → **E0 (text-embedding-3-small) 채택**
 
-### 3단계: 생성 지표 테스트
+### 3단계: 생성 모델 비교
 
-- [ ] run_llm_evaluation.py 생성
-- [ ] 확정 조합 × 10개 항목 비교
-- [ ] 최종 후보 확정
+- [x] run_llm_evaluation.py 생성 (Retrieval + Generation + R2 고유 지표 통합)
+- [x] llm_metrics.py RAGAS >=0.4 호환 업데이트
+- [x] compare_results.py --llm 플래그 추가
+- [x] gpt-4o-mini 기준선 측정 (30항목)
+- [x] 4개 모델 전체 비교 (gpt-4o-mini, gpt-4.1-mini, gpt-4o, gpt-4.1)
+- [x] 생성 모델 확정 → **gpt-4o 채택**
 
 ### 4단계: 구성 튜닝
 
