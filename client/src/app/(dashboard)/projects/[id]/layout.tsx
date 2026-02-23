@@ -22,7 +22,7 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
         }
     }, [isPending, error, project, router])
 
-    if (isPending) {
+    if (isPending || !project) {
         return (
             <div className="flex flex-col h-full">
                 <StepNav projectId={id} company="" service="" />
