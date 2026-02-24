@@ -56,8 +56,8 @@ def save_track_result(
     confidence_score: float,
     result_summary: str,
     track_comparison: dict,
-    similar_cases: dict | None = None,
-    domain_constraints: dict | None = None,
+    similar_cases: list | None = None,
+    domain_constraints: list | None = None,
 ) -> dict | None:
     """트랙 추천 결과 저장
 
@@ -80,8 +80,8 @@ def save_track_result(
             "confidence_score": confidence_score,
             "result_summary": result_summary,
             "track_comparison": track_comparison,
-            "similar_cases": similar_cases or {},
-            "domain_constraints": domain_constraints or {},
+            "similar_cases": similar_cases or [],
+            "domain_constraints": domain_constraints or [],
             "model_name": settings.LLM_MODEL,
         },
         on_conflict="project_id",
