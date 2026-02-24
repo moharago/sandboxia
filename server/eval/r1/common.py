@@ -5,6 +5,7 @@ run_evaluation.py와 run_llm_evaluation.py에서 공유하는 함수들.
 주요 기능:
 - 평가셋 로드
 - Vector Store 연결
+- Hybrid Retriever (BM25 + Vector)
 - Gold chunk ID 매칭 (chunk_id 기반)
 - Retrieval 지표 계산
 """
@@ -13,6 +14,8 @@ import json
 from pathlib import Path
 
 from langchain_chroma import Chroma
+from langchain_community.retrievers import BM25Retriever
+from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
@@ -26,6 +29,7 @@ EVAL_DIR = Path(__file__).parent
 EVALUATION_SET_PATH = EVAL_DIR / "datasets" / "evaluation_set.json"
 RESULTS_DIR_RETRIEVAL = EVAL_DIR / "results" / "retrieval"
 RESULTS_DIR_LLM = EVAL_DIR / "results" / "llm"
+R1_DATA_PATH = Path(__file__).parent.parent.parent / "data" / "r1_data" / "r1_rag_ict_only.json"
 
 
 def load_evaluation_set() -> dict:
@@ -194,3 +198,125 @@ def get_chunk_statistics(vector_store: Chroma) -> dict:
         "total_chunks": total_chunks,
         "avg_chunk_length": round(avg_length, 1),
     }
+
+
+def load_r1_documents() -> list[Document]:
+    """R1 RAG 문서 로드 (BM25용)
+
+    Returns:
+        LangChain Document 리스트
+    """
+    with open(R1_DATA_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    documents = []
+    for item in data:
+        # title + content 결합
+        text = f"{item.get('title', '')}\n\n{item.get('content', '')}"
+        doc = Document(
+            page_content=text,
+            metadata={
+                "document_id": item.get("id", ""),
+                "title": item.get("title", ""),
+                "category": item.get("category", ""),
+                "track": item.get("track", ""),
+            },
+        )
+        documents.append(doc)
+
+    return documents
+
+
+class HybridRetriever:
+    """Hybrid Retriever (BM25 + Vector) with RRF
+
+    Reciprocal Rank Fusion으로 두 검색 결과를 결합합니다.
+    """
+
+    def __init__(
+        self,
+        bm25_retriever: BM25Retriever,
+        vector_store: Chroma,
+        vector_weight: float = 0.5,
+        k: int = 5,
+        rrf_k: int = 60,
+    ):
+        self.bm25_retriever = bm25_retriever
+        self.vector_store = vector_store
+        self.vector_weight = vector_weight
+        self.bm25_weight = 1.0 - vector_weight
+        self.k = k
+        self.rrf_k = rrf_k  # RRF 상수
+
+    def invoke(self, query: str) -> list[Document]:
+        """Hybrid 검색 실행
+
+        Args:
+            query: 검색 쿼리
+
+        Returns:
+            RRF로 결합된 Document 리스트
+        """
+        # 1. BM25 검색
+        bm25_results = self.bm25_retriever.invoke(query)
+
+        # 2. Vector 검색
+        vector_results = self.vector_store.similarity_search(query, k=self.k * 2)
+
+        # 3. RRF 점수 계산
+        doc_scores: dict[str, float] = {}
+        doc_map: dict[str, Document] = {}
+
+        # BM25 결과 점수
+        for rank, doc in enumerate(bm25_results):
+            doc_id = doc.metadata.get("document_id", doc.page_content[:50])
+            rrf_score = self.bm25_weight / (self.rrf_k + rank + 1)
+            doc_scores[doc_id] = doc_scores.get(doc_id, 0) + rrf_score
+            doc_map[doc_id] = doc
+
+        # Vector 결과 점수
+        for rank, doc in enumerate(vector_results):
+            doc_id = doc.metadata.get("document_id", doc.page_content[:50])
+            rrf_score = self.vector_weight / (self.rrf_k + rank + 1)
+            doc_scores[doc_id] = doc_scores.get(doc_id, 0) + rrf_score
+            if doc_id not in doc_map:
+                doc_map[doc_id] = doc
+
+        # 4. 점수로 정렬
+        sorted_ids = sorted(doc_scores.keys(), key=lambda x: doc_scores[x], reverse=True)
+
+        # 5. 상위 K개 반환
+        return [doc_map[doc_id] for doc_id in sorted_ids[: self.k]]
+
+
+def get_hybrid_retriever(
+    embedding_config: EmbeddingConfig | None = None,
+    collection_suffix: str = "",
+    vector_weight: float = 0.5,
+    k: int = 5,
+) -> HybridRetriever:
+    """Hybrid Retriever 생성 (BM25 + Vector)
+
+    Args:
+        embedding_config: 임베딩 설정
+        collection_suffix: 컬렉션 접미사
+        vector_weight: 벡터 검색 가중치 (0.0~1.0, 나머지는 BM25)
+        k: Top-K 값
+
+    Returns:
+        HybridRetriever (BM25 + Vector 조합)
+    """
+    # 1. Vector Store
+    vector_store = get_vector_store(embedding_config, collection_suffix)
+
+    # 2. BM25 Retriever
+    documents = load_r1_documents()
+    bm25_retriever = BM25Retriever.from_documents(documents, k=k * 2)
+
+    # 3. Hybrid Retriever
+    return HybridRetriever(
+        bm25_retriever=bm25_retriever,
+        vector_store=vector_store,
+        vector_weight=vector_weight,
+        k=k,
+    )

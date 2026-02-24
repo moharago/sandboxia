@@ -15,6 +15,8 @@
     --output result   # 결과 파일명 (기본: 타임스탬프)
     --config E2       # 임베딩 설정 (없으면 .env 사용)
     --collection_suffix _E2  # 컬렉션 접미사
+    --hybrid          # Hybrid Search (BM25 + Vector)
+    --vector_weight 0.5  # Hybrid에서 벡터 가중치 (기본: 0.5)
 """
 
 import json
@@ -37,37 +39,26 @@ from eval.r1.common import (
     calculate_retrieval_metrics,
     extract_chunk_id_from_doc,
     get_chunk_statistics,
+    get_hybrid_retriever,
     get_vector_store,
     load_evaluation_set,
 )
 
 
-def evaluate_single_item(
+def evaluate_single_item_vector(
     vector_store,
     item: dict,
     top_k: int = 5,
 ) -> tuple[RetrievalMetrics, float, dict]:
-    """단일 평가 항목 평가
-
-    Args:
-        vector_store: Vector Store
-        item: 평가 항목
-        top_k: Top-K 값
-
-    Returns:
-        (metrics, latency_ms, detail_info)
-    """
+    """단일 평가 항목 평가 (Vector Search)"""
     question = item["question"]
     gold_chunks = item.get("gold_chunks", [])
-
-    # gold ID 생성
     gold_ids, must_have_ids = build_gold_chunk_ids(gold_chunks)
 
     # 검색 실행 (시간 측정)
     start_time = time.perf_counter()
     results = vector_store.similarity_search(question, k=top_k)
     end_time = time.perf_counter()
-
     latency_ms = (end_time - start_time) * 1000
 
     # 검색 결과에서 chunk_id 추출
@@ -81,7 +72,51 @@ def evaluate_single_item(
         k=top_k,
     )
 
-    # 상세 정보
+    detail = {
+        "id": item["id"],
+        "category": item.get("category", ""),
+        "track": item.get("track", ""),
+        "question": question,
+        "gold_ids": gold_ids,
+        "must_have_ids": must_have_ids,
+        "retrieved_ids": retrieved_ids[:top_k],
+        "recall_at_k": metrics.recall_at_k,
+        "must_have_recall_at_k": metrics.must_have_recall_at_k,
+        "mrr": metrics.mrr,
+        "first_hit_rank": metrics.first_hit_rank,
+        "latency_ms": round(latency_ms, 2),
+    }
+
+    return metrics, latency_ms, detail
+
+
+def evaluate_single_item_hybrid(
+    retriever,
+    item: dict,
+    top_k: int = 5,
+) -> tuple[RetrievalMetrics, float, dict]:
+    """단일 평가 항목 평가 (Hybrid Search)"""
+    question = item["question"]
+    gold_chunks = item.get("gold_chunks", [])
+    gold_ids, must_have_ids = build_gold_chunk_ids(gold_chunks)
+
+    # 검색 실행 (시간 측정)
+    start_time = time.perf_counter()
+    results = retriever.invoke(question)[:top_k]
+    end_time = time.perf_counter()
+    latency_ms = (end_time - start_time) * 1000
+
+    # 검색 결과에서 chunk_id 추출
+    retrieved_ids = [extract_chunk_id_from_doc(doc) for doc in results]
+
+    # 지표 계산
+    metrics = calculate_retrieval_metrics(
+        retrieved_ids=retrieved_ids,
+        gold_ids=gold_ids,
+        must_have_ids=must_have_ids,
+        k=top_k,
+    )
+
     detail = {
         "id": item["id"],
         "category": item.get("category", ""),
@@ -105,6 +140,8 @@ def run_evaluation(
     output_name: str | None = None,
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
+    hybrid: bool = False,
+    vector_weight: float = 0.5,
 ):
     """전체 평가 실행
 
@@ -113,6 +150,8 @@ def run_evaluation(
         output_name: 결과 파일명 (없으면 타임스탬프 사용)
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
+        hybrid: Hybrid Search 사용 여부
+        vector_weight: Hybrid에서 벡터 가중치 (0.0~1.0)
     """
     print("=" * 60)
     print("R1 규제제도 & 절차 RAG 평가 시작")
@@ -129,9 +168,21 @@ def run_evaluation(
         print(f"임베딩: .env 기본값 ({settings.LLM_EMBEDDING_MODEL})")
     print(f"컬렉션: {COLLECTION_REGULATIONS}{collection_suffix}")
 
-    # Vector Store 초기화
-    print("\nVector Store 초기화 중...")
-    vector_store = get_vector_store(embedding_config, collection_suffix)
+    if hybrid:
+        print(f"검색 방식: Hybrid (BM25 + Vector, weight={vector_weight})")
+    else:
+        print("검색 방식: Vector Only")
+
+    # Retriever 초기화
+    if hybrid:
+        print("\nHybrid Retriever 초기화 중...")
+        retriever = get_hybrid_retriever(
+            embedding_config, collection_suffix, vector_weight, top_k
+        )
+        vector_store = get_vector_store(embedding_config, collection_suffix)
+    else:
+        print("\nVector Store 초기화 중...")
+        vector_store = get_vector_store(embedding_config, collection_suffix)
 
     # 평가 실행
     print("\n평가 진행 중...\n")
@@ -140,7 +191,15 @@ def run_evaluation(
     all_details: list[dict] = []
 
     for i, item in enumerate(items, 1):
-        metrics, latency, detail = evaluate_single_item(vector_store, item, top_k)
+        if hybrid:
+            metrics, latency, detail = evaluate_single_item_hybrid(
+                retriever, item, top_k
+            )
+        else:
+            metrics, latency, detail = evaluate_single_item_vector(
+                vector_store, item, top_k
+            )
+
         all_metrics.append(metrics)
         all_latencies.append(latency)
         all_details.append(detail)
@@ -166,7 +225,9 @@ def run_evaluation(
     # Latency 통계
     latency_p50 = statistics.median(all_latencies)
     latency_p95 = (
-        sorted(all_latencies)[int(len(all_latencies) * 0.95)] if len(all_latencies) >= 20 else max(all_latencies)
+        sorted(all_latencies)[int(len(all_latencies) * 0.95)]
+        if len(all_latencies) >= 20
+        else max(all_latencies)
     )
     latency_mean = statistics.mean(all_latencies)
 
@@ -210,10 +271,16 @@ def run_evaluation(
         "config": {
             "top_k": top_k,
             "embedding_config": embedding_config.name if embedding_config else ".env",
-            "embedding_model": embedding_config.model if embedding_config else settings.LLM_EMBEDDING_MODEL,
-            "embedding_provider": embedding_config.provider if embedding_config else "openai",
+            "embedding_model": (
+                embedding_config.model if embedding_config else settings.LLM_EMBEDDING_MODEL
+            ),
+            "embedding_provider": (
+                embedding_config.provider if embedding_config else "openai"
+            ),
             "collection": COLLECTION_REGULATIONS + collection_suffix,
             "num_items": len(items),
+            "search_type": "hybrid" if hybrid else "vector",
+            "vector_weight": vector_weight if hybrid else None,
         },
         "summary": {
             "must_have_recall_at_k": aggregated["avg_must_have_recall_at_k"],
@@ -240,8 +307,21 @@ def main():
     parser = argparse.ArgumentParser(description="R1 규제제도 & 절차 RAG 평가")
     parser.add_argument("--top_k", type=int, default=5, help="Top-K 값 (기본: 5)")
     parser.add_argument("--output", type=str, default=None, help="결과 파일명")
-    parser.add_argument("--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)")
-    parser.add_argument("--collection_suffix", type=str, default="", help="컬렉션 접미사")
+    parser.add_argument(
+        "--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)"
+    )
+    parser.add_argument(
+        "--collection_suffix", type=str, default="", help="컬렉션 접미사"
+    )
+    parser.add_argument(
+        "--hybrid", action="store_true", help="Hybrid Search (BM25 + Vector) 사용"
+    )
+    parser.add_argument(
+        "--vector_weight",
+        type=float,
+        default=0.5,
+        help="Hybrid에서 벡터 가중치 (기본: 0.5)",
+    )
 
     args = parser.parse_args()
 
@@ -255,6 +335,8 @@ def main():
         output_name=args.output,
         embedding_config=embedding_config,
         collection_suffix=args.collection_suffix,
+        hybrid=args.hybrid,
+        vector_weight=args.vector_weight,
     )
 
 
