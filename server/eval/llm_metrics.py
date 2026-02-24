@@ -5,15 +5,15 @@ LLM을 평가자로 사용하여 Generation 품질을 측정합니다.
 지표:
 - Faithfulness: 응답이 컨텍스트에 기반하는지 (환각 방지)
 - Answer Relevancy: 응답이 질문에 적절히 답변하는지
-- Factual Correctness: 응답이 예상 답변과 사실적으로 일치하는지 (Reference 필요)
 """
 
 import asyncio
 import concurrent.futures
 from dataclasses import dataclass
 
+from langchain_openai import OpenAIEmbeddings as LangChainOpenAIEmbeddings
 from openai import AsyncOpenAI
-from ragas.embeddings.base import embedding_factory
+from ragas.dataset_schema import SingleTurnSample
 from ragas.llms import llm_factory
 from ragas.metrics import Faithfulness, ResponseRelevancy
 
@@ -28,10 +28,10 @@ class LLMMetricsResult:
 
 
 class RAGASEvaluator:
-    """RAGAS 기반 LLM-as-Judge 평가기
+    """RAGAS 기반 LLM-as-Judge 평가기 (ragas >=0.4)
 
     Usage:
-        evaluator = RAGASEvaluator(model="gpt-4.1")
+        evaluator = RAGASEvaluator(model="gpt-4.1", api_key="sk-...")
 
         result = await evaluator.evaluate(
             question="간편결제 서비스에서 부정결제 사고가 발생하면 책임은 누가 지나요?",
@@ -64,13 +64,23 @@ class RAGASEvaluator:
             client_kwargs["api_key"] = api_key
         self.async_client = AsyncOpenAI(**client_kwargs)
 
-        # RAGAS LLM 및 Embeddings 초기화 (비동기 클라이언트 사용)
-        self.llm = llm_factory(model=model, client=self.async_client)
-        self.embeddings = embedding_factory(provider="openai", model=embedding_model, client=self.async_client)
+        # RAGAS LLM 초기화 + max_tokens 증가 (한국어 긴 응답 대응)
+        self.llm = llm_factory(
+            model=model, provider="openai", client=self.async_client,
+            max_tokens=8192,
+        )
+
+        # LangChain 호환 Embeddings (ResponseRelevancy가 embed_query 사용)
+        emb_kwargs = {"model": embedding_model}
+        if api_key:
+            emb_kwargs["api_key"] = api_key
+        self.embeddings = LangChainOpenAIEmbeddings(**emb_kwargs)
 
         # 메트릭 초기화
         self.faithfulness_scorer = Faithfulness(llm=self.llm)
-        self.relevancy_scorer = ResponseRelevancy(llm=self.llm, embeddings=self.embeddings)
+        self.relevancy_scorer = ResponseRelevancy(
+            llm=self.llm, embeddings=self.embeddings
+        )
 
     async def evaluate_faithfulness(
         self,
@@ -82,21 +92,17 @@ class RAGASEvaluator:
 
         응답의 모든 주장이 컨텍스트에서 추론 가능한지 확인합니다.
 
-        Args:
-            question: 사용자 질문
-            response: LLM 응답
-            contexts: 검색된 컨텍스트 목록
-
         Returns:
             0.0 ~ 1.0 사이의 점수 (1.0이 가장 좋음)
         """
         try:
-            result = await self.faithfulness_scorer.ascore(
+            sample = SingleTurnSample(
                 user_input=question,
                 response=response,
                 retrieved_contexts=contexts,
             )
-            return result.value
+            score = await self.faithfulness_scorer.single_turn_ascore(sample)
+            return float(score)
         except Exception as e:
             print(f"Faithfulness 평가 오류: {e}")
             return None
@@ -110,19 +116,16 @@ class RAGASEvaluator:
 
         응답이 질문에 적절히 답변하는지 확인합니다.
 
-        Args:
-            question: 사용자 질문
-            response: LLM 응답
-
         Returns:
             0.0 ~ 1.0 사이의 점수 (1.0이 가장 좋음)
         """
         try:
-            result = await self.relevancy_scorer.ascore(
+            sample = SingleTurnSample(
                 user_input=question,
                 response=response,
             )
-            return result.value
+            score = await self.relevancy_scorer.single_turn_ascore(sample)
+            return float(score)
         except Exception as e:
             print(f"Answer Relevancy 평가 오류: {e}")
             return None
@@ -144,15 +147,10 @@ class RAGASEvaluator:
             LLMMetricsResult 객체
         """
         try:
-            # 병렬로 평가 실행
-            faithfulness_task = self.evaluate_faithfulness(question, response, contexts)
-            relevancy_task = self.evaluate_answer_relevancy(question, response)
-
             faithfulness, relevancy = await asyncio.gather(
-                faithfulness_task,
-                relevancy_task,
+                self.evaluate_faithfulness(question, response, contexts),
+                self.evaluate_answer_relevancy(question, response),
             )
-
             return LLMMetricsResult(
                 faithfulness=faithfulness,
                 answer_relevancy=relevancy,
@@ -170,20 +168,14 @@ class RAGASEvaluator:
         response: str,
         contexts: list[str],
     ) -> LLMMetricsResult:
-        """동기 방식 평가 (기존 이벤트 루프 내에서도 호출 가능)
-
-        FastAPI 핸들러 등 이미 이벤트 루프가 실행 중인 환경에서도
-        안전하게 호출할 수 있습니다. 이벤트 루프가 없으면 새로 생성합니다.
-        """
+        """동기 방식 평가 (기존 이벤트 루프 내에서도 호출 가능)"""
         coro = self.evaluate(question, response, contexts)
 
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            # 이벤트 루프가 없는 경우 새로 생성하여 실행
             return asyncio.run(coro)
 
-        # 이벤트 루프가 실행 중인 경우 별도 스레드에서 실행
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(asyncio.run, coro)
             return future.result()
