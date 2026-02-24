@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 
 from app.agents.application_drafter import run_application_drafter
-from app.core.config import supabase
+from app.core.config import settings, supabase
 from app.services.utils import is_flat_structure, unflatten
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,6 @@ def save_draft_result(
     project_id: str,
     application_draft: dict,
     track: str,
-    model_name: str = "gpt-4o-mini",
     similar_cases: list | None = None,
     domain_laws: list | None = None,
 ) -> dict | None:
@@ -57,7 +56,6 @@ def save_draft_result(
         project_id: 프로젝트 UUID
         application_draft: AI가 개선한 폼 데이터 (application_input과 동일 구조)
         track: 초안 생성에 사용된 트랙 ("demo" | "temp_permit" | "quick_check")
-        model_name: 사용된 LLM 모델명
         similar_cases: RAG 검색된 유사 승인 사례
         domain_laws: RAG 검색된 관련 법령
 
@@ -70,7 +68,7 @@ def save_draft_result(
     draft_data = {
         "form_values": application_draft,
         "track": track,
-        "model_name": model_name,
+        "model_name": settings.LLM_MODEL,
         "generated_at": datetime.now().isoformat(),
         "similar_cases": similar_cases or [],
         "domain_laws": domain_laws or [],

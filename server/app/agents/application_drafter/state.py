@@ -19,7 +19,6 @@ class ApplicationDrafterState(TypedDict, total=False):
 
     최종 출력:
         application_draft: AI가 값을 채운 폼 데이터 (form_schema와 구조 동일)
-        model_name: 사용된 LLM 모델명
     """
 
     # 입력
@@ -36,4 +35,3 @@ class ApplicationDrafterState(TypedDict, total=False):
 
     # 최종 출력
     application_draft: dict  # form_schema와 동일 구조, canonical 기반으로 값 생성
-    model_name: str
