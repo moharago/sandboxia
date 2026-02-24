@@ -106,7 +106,7 @@ export default function DraftPage({ params }: DraftPageProps) {
     if (draftMutation.isPending) {
         return (
             <AILoader
-                message="신청서 초안을 생성하고 있습니다..."
+                message="신청서 초안 생성 중..."
                 nodes={draftNodes?.nodes}
                 completedNodes={draftProgress.completedNodes}
                 currentNodeId={draftProgress.currentNodeId}

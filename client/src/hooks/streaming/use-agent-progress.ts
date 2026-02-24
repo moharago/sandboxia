@@ -167,6 +167,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
 
                                 case "node_end":
                                     setCompletedNodes(event.completed_nodes)
+                                    setCurrentNodeId(null) // 노드 완료 후 currentNodeId 초기화 → AILoader에서 다음 미완료 노드를 자동 판단
                                     setProgress(event.progress)
                                     setMessage(event.message || null)
                                     if (event.node_id) {

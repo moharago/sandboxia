@@ -7,7 +7,7 @@ import { Check, Circle, Loader2, Sparkles } from "lucide-react"
 interface AILoaderProps {
     /**
      * 페이지별 상세 메시지 (예: "트랙을 추천 중입니다...")
-     * 컴포넌트가 자동으로 "AI가 " 접두사를 추가하므로 메시지에 포함하지 마세요.
+     * 컴포넌트가 자동으로 "AI " 접두사를 추가하므로 메시지에 포함하지 마세요.
      */
     message?: string
     /**
@@ -31,25 +31,32 @@ interface AILoaderProps {
 export function AILoader({ message, nodes, completedNodes = [], currentNodeId, progress }: AILoaderProps) {
     const hasNodes = nodes && nodes.length > 0
 
+    // 진행 중인 노드 자동 판단: currentNodeId가 없으면 완료되지 않은 첫 번째 노드를 진행 중으로 표시
+    const runningNodeId = currentNodeId ?? (hasNodes ? nodes.find((n) => !completedNodes.includes(n.id))?.id : null)
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-8 shadow-lg border border-gray-200 min-w-[320px]">
                 {/* 스피너 + 아이콘 */}
-                <div className="relative">
+                {/* <div className="relative">
                     <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
                     <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-primary" />
-                </div>
+                </div> */}
 
                 {/* 제목 + 메시지 */}
+                {/* <div className="flex items-center gap-2"> */}
                 <div className="flex flex-col items-center gap-1">
-                    <p className="text-lg font-medium text-foreground">AI 분석 중</p>
-                    <p className="text-sm text-muted-foreground">{message ? `AI가 ${message}` : "잠시만 기다려주세요..."}</p>
+                    <Sparkles className="text-primary w-5 h-5 animate-pulse" />
+                    <p className="text-lg font-medium mt-2 text-foreground">
+                        <span>AI 분석 중</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">{message ? `${message}` : "잠시만 기다려주세요..."}</p>
                 </div>
 
                 {/* 진행률 바 */}
                 {typeof progress === "number" && (
                     <div className="w-full mt-2">
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-primary transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
                         </div>
                         <p className="text-xs text-muted-foreground text-center mt-1">{progress}%</p>
@@ -58,25 +65,17 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
 
                 {/* 노드 체크리스트 */}
                 {hasNodes && (
-                    <div className="w-full mt-2 space-y-2">
+                    <div className="w-full mt-2">
                         {nodes.map((node) => {
                             const isCompleted = completedNodes.includes(node.id)
-                            const isRunning = currentNodeId === node.id
+                            const isRunning = runningNodeId === node.id
                             const isPending = !isCompleted && !isRunning
 
                             return (
-                                <div
-                                    key={node.id}
-                                    className={cn(
-                                        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-                                        isCompleted && "bg-green-50",
-                                        isRunning && "bg-primary/5",
-                                        isPending && "bg-gray-50"
-                                    )}
-                                >
-                                    {/* 상태 아이콘 */}
+                                <div key={node.id} className="flex items-center gap-2 px-2 py-1">
+                                    {/* 상태 아이콘 - 모두 동일한 크기(h-4 w-4)로 통일 */}
                                     {isCompleted ? (
-                                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
                                     ) : isRunning ? (
                                         <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
                                     ) : (
@@ -87,9 +86,9 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
                                     <span
                                         className={cn(
                                             "text-sm",
-                                            isCompleted && "text-green-700 font-medium",
+                                            isCompleted && "text-primary font-medium",
                                             isRunning && "text-primary font-medium",
-                                            isPending && "text-gray-400"
+                                            isPending && "text-gray-400 font-medium"
                                         )}
                                     >
                                         {node.label}

@@ -399,7 +399,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         <div className="py-6">
             {eligibilityMutation.isPending && (
                 <AILoader
-                    message="서비스의 규제 현황을 분석하고 있습니다..."
+                    message="서비스 규제 현황 분석 중..."
                     nodes={eligibilityNodes?.nodes}
                     completedNodes={eligibilityProgress.completedNodes}
                     currentNodeId={eligibilityProgress.currentNodeId}
@@ -408,7 +408,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             )}
             {isRunningTrackAgent && (
                 <AILoader
-                    message="최적의 트랙을 추천하고 있습니다..."
+                    message="최적의 트랙 추천 중..."
                     nodes={trackNodes?.nodes}
                     completedNodes={trackProgress.completedNodes}
                     currentNodeId={trackProgress.currentNodeId}

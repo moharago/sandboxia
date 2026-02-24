@@ -4,16 +4,16 @@ import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
-import { PageLoader } from "@/components/ui/page-loader"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { PageLoader } from "@/components/ui/page-loader"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { tracks } from "@/data"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
+import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
-import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { cn } from "@/lib/utils/cn"
 import { useWizardStore } from "@/stores/wizard-store"
@@ -243,7 +243,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                     // 2. Draft Agent 실행 (재생성 선택한 경우에만)
                     if (shouldRegenerateDraft) {
                         setIsRunningDraftAgent(true)
-                        draftProgress.subscribe()  // SSE 구독 시작
+                        draftProgress.subscribe() // SSE 구독 시작
                         try {
                             await draftMutation.mutateAsync({ project_id: id })
                         } catch (error) {
@@ -302,7 +302,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     if (isAnalyzing) {
         return (
             <AILoader
-                message="최적의 트랙을 추천하고 있습니다..."
+                message="최적의 트랙 추천 중..."
                 nodes={trackNodes?.nodes}
                 completedNodes={trackProgress.completedNodes}
                 currentNodeId={trackProgress.currentNodeId}
@@ -366,7 +366,7 @@ export default function TrackPage({ params }: TrackPageProps) {
             <div className="py-6">
                 {isSaving && (
                     <AILoader
-                        message={isRunningDraftAgent ? "신청서 초안을 생성하고 있습니다..." : "트랙을 저장하고 있습니다..."}
+                        message={isRunningDraftAgent ? "신청서 초안 생성중..." : "트랙 저장 중..."}
                         nodes={isRunningDraftAgent ? draftNodes?.nodes : undefined}
                         completedNodes={isRunningDraftAgent ? draftProgress.completedNodes : undefined}
                         currentNodeId={isRunningDraftAgent ? draftProgress.currentNodeId : undefined}
@@ -497,7 +497,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                             <WizardNavigation
                                 onBack={handleBack}
                                 onReanalyze={() => {
-                                    trackProgress.subscribe()  // SSE 구독 시작
+                                    trackProgress.subscribe() // SSE 구독 시작
                                     recommendMutation.mutate({ project_id: id })
                                 }}
                                 onNext={handleSave}
