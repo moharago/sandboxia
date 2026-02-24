@@ -3,6 +3,7 @@
 import { use, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { StepNav } from "@/components/features/project/StepNav"
+import { PageLoader } from "@/components/ui/page-loader"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 
 interface ProjectLayoutProps {
@@ -13,21 +14,19 @@ interface ProjectLayoutProps {
 export default function ProjectLayout({ children, params }: ProjectLayoutProps) {
     const { id } = use(params)
     const router = useRouter()
-    const { data: project, isLoading, error } = useProjectQuery(id)
+    const { data: project, isPending, error } = useProjectQuery(id)
 
     useEffect(() => {
-        if (!isLoading && (error || !project)) {
+        if (!isPending && (error || !project)) {
             router.replace("/not-found")
         }
-    }, [isLoading, error, project, router])
+    }, [isPending, error, project, router])
 
-    if (isLoading || !project) {
+    if (isPending || !project) {
         return (
             <div className="flex flex-col h-full">
-                <div className="h-14 border-b bg-background" /> {/* StepNav placeholder */}
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
+                <StepNav projectId={id} company="" service="" />
+                <PageLoader className="flex-1" />
             </div>
         )
     }
