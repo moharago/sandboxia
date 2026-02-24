@@ -714,8 +714,6 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     similar_cases = state.get("similar_cases", [])
     domain_laws = state.get("domain_laws", [])
 
-    model_name = settings.LLM_MODEL
-
     # ==============================
     # Step 1: 폼 스키마 복사
     # ==============================
@@ -847,7 +845,6 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
 
     return {
         "application_draft": application_draft,
-        "model_name": model_name,
     }
 
 

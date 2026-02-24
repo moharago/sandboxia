@@ -68,7 +68,6 @@ async def run_application_drafter(
         "similar_cases": [],
         "domain_laws": [],
         "application_draft": {},
-        "model_name": "",
     }
 
     result = await application_drafter_agent.ainvoke(
@@ -82,7 +81,6 @@ async def run_application_drafter(
     return {
         "project_id": project_id,
         "application_draft": result.get("application_draft", {}),
-        "model_name": result.get("model_name", ""),
         "similar_cases": result.get("similar_cases", []),
         "domain_laws": result.get("domain_laws", []),
     }

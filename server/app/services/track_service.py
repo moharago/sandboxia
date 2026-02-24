@@ -5,7 +5,7 @@ track_results 테이블 CRUD 및 관련 데이터 조회
 
 from datetime import datetime
 
-from app.core.config import supabase
+from app.core.config import settings, supabase
 
 
 def get_project_canonical(project_id: str) -> dict | None:
@@ -56,9 +56,8 @@ def save_track_result(
     confidence_score: float,
     result_summary: str,
     track_comparison: dict,
-    similar_cases: list | None = None,
-    domain_constraints: list | None = None,
-    model_name: str = "gpt-4o-mini",
+    similar_cases: dict | None = None,
+    domain_constraints: dict | None = None,
 ) -> dict | None:
     """트랙 추천 결과 저장
 
@@ -70,7 +69,6 @@ def save_track_result(
         track_comparison: 트랙별 비교 데이터 (JSONB)
         similar_cases: 유사 승인 사례 목록 (JSONB)
         domain_constraints: 관련 법령 목록 (JSONB)
-        model_name: 사용된 LLM 모델명
 
     Returns:
         생성된 track_results 레코드 또는 None (저장 실패 시)
@@ -82,9 +80,9 @@ def save_track_result(
             "confidence_score": confidence_score,
             "result_summary": result_summary,
             "track_comparison": track_comparison,
-            "similar_cases": similar_cases or [],
-            "domain_constraints": domain_constraints or [],
-            "model_name": model_name,
+            "similar_cases": similar_cases or {},
+            "domain_constraints": domain_constraints or {},
+            "model_name": settings.LLM_MODEL,
         },
         on_conflict="project_id",
     ).execute()
