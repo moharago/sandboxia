@@ -1,23 +1,19 @@
-"""에이전트 진행 상태 스트리밍 API
+"""에이전트 진행 상태 API
 
-각 에이전트의 실행 진행 상태를 SSE(Server-Sent Events)로 스트리밍합니다.
+에이전트의 노드 목록 조회 및 진행 상태를 SSE로 구독하는 API입니다.
 프론트엔드에서 로딩 화면에 단계별 진행 상태를 표시할 때 사용됩니다.
 """
 
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.agents.application_drafter.graph import build_application_drafter_graph
-from app.agents.eligibility_evaluator.graph import compile_eligibility_graph
-from app.agents.service_structurer.graph import build_service_structurer_graph
-from app.agents.track_recommender.graph import build_track_recommender_graph
 from app.api.deps import AuthUser, get_auth_user
 from app.api.schemas.agent_progress import AGENT_NODES, NodeInfo, get_agent_nodes
-from app.api.utils.streaming import stream_agent_progress, stream_service_structurer_progress
+from app.core.progress_store import progress_store
 from app.services.project_service import get_authorized_project
 
 logger = logging.getLogger(__name__)
@@ -80,67 +76,20 @@ async def get_all_agent_nodes() -> dict[str, AgentNodesResponse]:
 
 
 # ===============================
-# 스트리밍 엔드포인트
+# 진행 상태 SSE 구독
 # ===============================
 
 
-class StreamRequest(BaseModel):
-    """스트리밍 요청"""
-    project_id: str
-
-
-@router.post(
-    "/stream/service",
-    summary="서비스 구조화 진행 상태 스트리밍",
-    description="서비스 구조화 에이전트를 실행하면서 진행 상태를 SSE로 스트리밍합니다.",
-)
-async def stream_service_progress(
-    session_id: str = Form(..., description="프로젝트 ID"),
-    requested_track: str = Form(..., description="트랙 (counseling/quick_check/temp_permit/demo)"),
-    consultant_input: str = Form(...),
-    files: list[UploadFile] = File(default=[]),
-    auth_user: AuthUser = Depends(get_auth_user),
-) -> StreamingResponse:
-    """서비스 구조화 진행 상태 스트리밍"""
-    import json
-
-    # 프로젝트 조회 + 권한 확인
-    get_authorized_project(session_id, auth_user)
-
-    # consultant_input JSON 파싱
-    try:
-        consultant_data = json.loads(consultant_input)
-    except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"consultant_input JSON 파싱 오류: {str(e)}",
-        )
-
-    # 에이전트 빌드
-    agent = build_service_structurer_graph()
-
-    return StreamingResponse(
-        stream_service_structurer_progress(
-            agent=agent,
-            session_id=session_id,
-            requested_track=requested_track,
-            consultant_input=consultant_data,
-            files=files,
-        ),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-@router.post(
-    "/stream/eligibility",
-    summary="대상성 판단 진행 상태 스트리밍",
+@router.get(
+    "/subscribe/{project_id}",
+    summary="에이전트 진행 상태 구독 (SSE)",
     description="""
-대상성 판단 에이전트를 실행하면서 진행 상태를 SSE로 스트리밍합니다.
+실행 중인 에이전트의 진행 상태를 SSE로 구독합니다.
+
+## 사용 방법
+1. mutation으로 에이전트 실행 시작
+2. 이 엔드포인트로 SSE 연결하여 진행 상태 수신
+3. agent_end 이벤트 수신 시 연결 종료
 
 ## SSE 이벤트 형식
 ```json
@@ -156,126 +105,16 @@ async def stream_service_progress(
 ```
     """,
 )
-async def stream_eligibility_progress(
-    request: StreamRequest,
+async def subscribe_progress(
+    project_id: str,
     auth_user: AuthUser = Depends(get_auth_user),
 ) -> StreamingResponse:
-    """대상성 판단 진행 상태 스트리밍"""
-    project_id = request.project_id
-
-    # 프로젝트 조회 + 권한 확인
-    project = get_authorized_project(project_id, auth_user)
-
-    canonical = project.get("canonical")
-    if not canonical:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
-        )
-
-    # 에이전트 빌드
-    agent = compile_eligibility_graph()
-
-    # 초기 상태
-    initial_state = {
-        "project_id": project_id,
-        "canonical": canonical,
-    }
+    """에이전트 진행 상태 SSE 구독"""
+    # 프로젝트 권한 확인
+    get_authorized_project(project_id, auth_user)
 
     return StreamingResponse(
-        stream_agent_progress(agent, initial_state, "eligibility_evaluator"),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-@router.post(
-    "/stream/track",
-    summary="트랙 추천 진행 상태 스트리밍",
-    description="트랙 추천 에이전트를 실행하면서 진행 상태를 SSE로 스트리밍합니다.",
-)
-async def stream_track_progress(
-    request: StreamRequest,
-    auth_user: AuthUser = Depends(get_auth_user),
-) -> StreamingResponse:
-    """트랙 추천 진행 상태 스트리밍"""
-    project_id = request.project_id
-
-    # 프로젝트 조회 + 권한 확인
-    project = get_authorized_project(project_id, auth_user)
-
-    canonical = project.get("canonical")
-    if not canonical:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
-        )
-
-    # 에이전트 빌드
-    agent = build_track_recommender_graph()
-
-    # 초기 상태
-    initial_state = {
-        "project_id": project_id,
-        "canonical": canonical,
-    }
-
-    return StreamingResponse(
-        stream_agent_progress(agent, initial_state, "track_recommender"),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-@router.post(
-    "/stream/draft",
-    summary="신청서 초안 생성 진행 상태 스트리밍",
-    description="신청서 초안 생성 에이전트를 실행하면서 진행 상태를 SSE로 스트리밍합니다.",
-)
-async def stream_draft_progress(
-    request: StreamRequest,
-    auth_user: AuthUser = Depends(get_auth_user),
-) -> StreamingResponse:
-    """신청서 초안 생성 진행 상태 스트리밍"""
-    project_id = request.project_id
-
-    # 프로젝트 조회 + 권한 확인
-    project = get_authorized_project(project_id, auth_user)
-
-    canonical = project.get("canonical")
-    if not canonical:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="프로젝트에 서비스 정보(canonical)가 없습니다. Step 1을 먼저 완료하세요.",
-        )
-
-    track = project.get("track")
-    if not track:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="트랙이 선택되지 않았습니다. Step 3을 먼저 완료하세요.",
-        )
-
-    # 에이전트 빌드
-    agent = build_application_drafter_graph()
-
-    # 초기 상태
-    initial_state = {
-        "project_id": project_id,
-        "canonical": canonical,
-        "track": track,
-    }
-
-    return StreamingResponse(
-        stream_agent_progress(agent, initial_state, "application_drafter"),
+        progress_store.subscribe(project_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

@@ -82,6 +82,8 @@ async def run_eligibility_evaluation(
     Returns:
         EligibilityResult: 판단 결과
     """
+    from app.agents.utils import run_agent_with_progress
+
     total_start = time.time()
     print("\n[Step2] ========== 대상성 판단 시작 ==========")
 
@@ -104,10 +106,12 @@ async def run_eligibility_evaluation(
         "regulations": [],
     }
 
-    # 그래프 실행 (recursion_limit: 무한 루프 방지)
-    result = await eligibility_graph.ainvoke(
-        initial_state,
-        config={"recursion_limit": 15},
+    # 에이전트 실행 (진행 상태 추적 포함)
+    result = await run_agent_with_progress(
+        agent=eligibility_graph,
+        initial_state=initial_state,
+        project_id=project_id,
+        agent_type="eligibility_evaluator",
     )
 
     total_elapsed = time.time() - total_start

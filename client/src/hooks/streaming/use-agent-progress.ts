@@ -1,47 +1,34 @@
 /**
  * Agent Progress SSE Hook
  *
- * 에이전트 실행 진행 상태를 SSE로 수신하는 훅
+ * 실행 중인 에이전트의 진행 상태를 SSE로 구독하는 훅
  *
  * @example
  * ```tsx
- * const { status, progress, completedNodes, start } = useAgentProgress({
- *   agentType: "eligibility_evaluator",
+ * const { status, progress, completedNodes, subscribe } = useAgentProgress({
  *   projectId: "uuid-...",
  *   onNodeComplete: (nodeId) => console.log(`${nodeId} 완료`),
  *   onComplete: () => console.log("분석 완료"),
  * })
  *
- * // 분석 시작
- * <button onClick={start}>분석 시작</button>
- *
- * // 진행 상태 표시
- * <ProgressBar value={progress} />
+ * // mutation 실행과 동시에 구독 시작
+ * const handleAnalyze = () => {
+ *   subscribe()  // SSE 구독 시작
+ *   mutation.mutate({ project_id: id })  // 에이전트 실행
+ * }
  * ```
  */
 
 import { useAuthStore } from "@/stores/auth-store"
 import type {
     AgentProgressEvent,
-    AgentType,
     SSEConnectionStatus,
-    UseAgentProgressReturn,
 } from "@/types/api/agent-progress"
 import { useCallback, useRef, useState } from "react"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 
-/** 에이전트별 스트리밍 엔드포인트 */
-const STREAM_ENDPOINTS: Record<AgentType, string> = {
-    service_structurer: "/api/v1/agents/progress/stream/service",
-    eligibility_evaluator: "/api/v1/agents/progress/stream/eligibility",
-    track_recommender: "/api/v1/agents/progress/stream/track",
-    application_drafter: "/api/v1/agents/progress/stream/draft",
-}
-
 interface UseAgentProgressOptions {
-    /** 에이전트 타입 */
-    agentType: AgentType
     /** 프로젝트 ID */
     projectId: string
     /** 노드 완료 시 콜백 */
@@ -52,13 +39,34 @@ interface UseAgentProgressOptions {
     onError?: (error: string) => void
 }
 
+interface UseAgentProgressReturn {
+    /** 현재 연결 상태 */
+    status: SSEConnectionStatus
+    /** 현재 진행률 (0-100) */
+    progress: number
+    /** 현재 진행 중인 노드 ID */
+    currentNodeId: string | null
+    /** 완료된 노드 ID 목록 */
+    completedNodes: string[]
+    /** 현재 메시지 */
+    message: string | null
+    /** 에러 메시지 */
+    error: string | null
+    /** SSE 구독 시작 */
+    subscribe: () => void
+    /** SSE 구독 중단 */
+    unsubscribe: () => void
+    /** 상태 초기화 */
+    reset: () => void
+}
+
 /**
- * 에이전트 진행 상태 SSE 훅
+ * 에이전트 진행 상태 SSE 구독 훅
  */
 export function useAgentProgress(
     options: UseAgentProgressOptions
 ): UseAgentProgressReturn {
-    const { agentType, projectId, onNodeComplete, onComplete, onError } = options
+    const { projectId, onNodeComplete, onComplete, onError } = options
 
     const [status, setStatus] = useState<SSEConnectionStatus>("idle")
     const [progress, setProgress] = useState(0)
@@ -69,19 +77,24 @@ export function useAgentProgress(
 
     const abortControllerRef = useRef<AbortController | null>(null)
 
-    const start = useCallback(async () => {
-        // 이미 실행 중이면 무시
-        if (status === "connecting" || status === "connected") {
-            return
-        }
-
-        // 상태 초기화
-        setStatus("connecting")
+    const reset = useCallback(() => {
+        setStatus("idle")
         setProgress(0)
         setCurrentNodeId(null)
         setCompletedNodes([])
         setMessage(null)
         setError(null)
+    }, [])
+
+    const subscribe = useCallback(async () => {
+        // 이미 구독 중이면 무시
+        if (status === "connecting" || status === "connected") {
+            return
+        }
+
+        // 상태 초기화
+        reset()
+        setStatus("connecting")
 
         // 인증 토큰 가져오기
         const token = await useAuthStore.getState().getAccessToken()
@@ -96,16 +109,17 @@ export function useAgentProgress(
         abortControllerRef.current = new AbortController()
 
         try {
-            const endpoint = STREAM_ENDPOINTS[agentType]
-            const response = await fetch(`${API_BASE}${endpoint}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ project_id: projectId }),
-                signal: abortControllerRef.current.signal,
-            })
+            // GET SSE 엔드포인트 연결
+            const response = await fetch(
+                `${API_BASE}/api/v1/agents/progress/subscribe/${projectId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    signal: abortControllerRef.current.signal,
+                }
+            )
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
@@ -129,17 +143,19 @@ export function useAgentProgress(
 
                 buffer += decoder.decode(value, { stream: true })
 
-                // SSE 이벤트 파싱 (data: {...}\n\n)
+                // SSE 이벤트 파싱 (data: {...}\n\n 또는 : heartbeat\n\n)
                 const lines = buffer.split("\n\n")
-                buffer = lines.pop() || "" // 마지막 불완전한 청크는 버퍼에 유지
+                buffer = lines.pop() || ""
 
                 for (const line of lines) {
+                    // heartbeat 무시
+                    if (line.startsWith(":")) continue
+
                     if (line.startsWith("data: ")) {
                         try {
-                            const jsonStr = line.slice(6) // "data: " 제거
+                            const jsonStr = line.slice(6)
                             const event: AgentProgressEvent = JSON.parse(jsonStr)
 
-                            // 이벤트 타입별 처리
                             switch (event.event_type) {
                                 case "agent_start":
                                     setMessage(event.message || "분석을 시작합니다...")
@@ -166,13 +182,13 @@ export function useAgentProgress(
                                     setCurrentNodeId(null)
                                     setMessage(event.message || "분석이 완료되었습니다.")
                                     onComplete?.()
-                                    break
+                                    return // 스트림 종료
 
                                 case "error":
                                     setStatus("error")
                                     setError(event.message || "오류가 발생했습니다.")
                                     onError?.(event.message || "오류가 발생했습니다.")
-                                    break
+                                    return // 스트림 종료
                             }
                         } catch (parseError) {
                             console.error("SSE 파싱 오류:", parseError)
@@ -192,9 +208,9 @@ export function useAgentProgress(
             setError(errorMessage)
             onError?.(errorMessage)
         }
-    }, [agentType, projectId, status, onNodeComplete, onComplete, onError])
+    }, [projectId, status, reset, onNodeComplete, onComplete, onError])
 
-    const abort = useCallback(() => {
+    const unsubscribe = useCallback(() => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort()
             abortControllerRef.current = null
@@ -209,7 +225,8 @@ export function useAgentProgress(
         completedNodes,
         message,
         error,
-        start,
-        abort,
+        subscribe,
+        unsubscribe,
+        reset,
     }
 }

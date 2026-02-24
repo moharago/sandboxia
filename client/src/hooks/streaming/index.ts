@@ -5,4 +5,3 @@
  */
 
 export { useAgentProgress } from "./use-agent-progress"
-export { useServiceProgress } from "./use-service-progress"
