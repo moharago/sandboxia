@@ -18,6 +18,7 @@
     --chunk_level paragraph # 매칭 단위: article(조) 또는 paragraph(항)
     --vectordb qdrant       # Vector DB 선택 (기본: chroma)
     --hybrid H1             # Hybrid Search 설정 (Qdrant 전용)
+    --generate              # LLM 응답 생성 포함 (LLM-as-Judge 없이 답변만 생성)
 
 매칭 단위 설명:
 - article: 조 단위 매칭 (법명 + 조번호 + 조제목)
@@ -32,11 +33,17 @@ Hybrid Search (Qdrant 전용):
 - H4: BM25 + alpha=0.5
 
 예시:
+    # 기본 검색 평가
+    uv run python eval/r3/run_evaluation.py
+
+    # 검색 + LLM 응답 생성 (답변 확인용)
+    uv run python eval/r3/run_evaluation.py --generate
+
     # Qdrant + SPLADE + alpha=0.5
     uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1
 
-    # Qdrant + BM25 + alpha=0.5
-    uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H4
+    # Qdrant + BM25 + alpha=0.5 + 응답 생성
+    uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H4 --generate
 """
 
 import json
@@ -49,10 +56,54 @@ from pathlib import Path
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from langchain_openai import ChatOpenAI
+
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from app.rag.config import EmbeddingConfig, HybridConfig, load_embedding_config, load_hybrid_config
 from eval.metrics import RetrievalMetrics, aggregate_metrics
+
+# =============================================================================
+# LLM 응답 생성 (--generate 옵션용)
+# =============================================================================
+
+GENERATION_MODEL = "gpt-4o-mini"  # 응답 생성 모델
+
+
+def get_llm(model: str = GENERATION_MODEL) -> ChatOpenAI:
+    """LLM 인스턴스 생성"""
+    return ChatOpenAI(
+        model=model,
+        temperature=0.1,
+        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
+    )
+
+
+def generate_response(llm: ChatOpenAI, question: str, contexts: list[str]) -> tuple[str, float]:
+    """컨텍스트 기반 응답 생성 (동기)
+
+    Returns:
+        (response, latency_ms)
+    """
+    context_text = "\n\n".join(contexts)
+
+    prompt = f"""다음 법령 조항들을 참고하여 질문에 답변해주세요.
+
+## 참고 법령 조항:
+{context_text}
+
+## 질문:
+{question}
+
+## 답변:
+위 법령 조항을 바탕으로 간결하고 정확하게 답변해주세요."""
+
+    start_time = time.perf_counter()
+    response = llm.invoke(prompt)
+    end_time = time.perf_counter()
+
+    latency_ms = (end_time - start_time) * 1000
+    return str(response.content), latency_ms
 from eval.r3.common import (
     RESULTS_DIR_RETRIEVAL,
     ChunkLevel,
@@ -72,7 +123,8 @@ def evaluate_single_item(
     top_k: int = 5,
     chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
     use_hybrid: bool = False,
-) -> tuple[RetrievalMetrics, float, dict]:
+    llm: ChatOpenAI | None = None,
+) -> tuple[RetrievalMetrics, float, float | None, dict]:
     """단일 평가 항목 평가
 
     Args:
@@ -81,9 +133,10 @@ def evaluate_single_item(
         top_k: Top-K 값
         chunk_level: 청킹 단위 (매칭 기준)
         use_hybrid: Hybrid Search 사용 여부
+        llm: LLM 인스턴스 (None이면 응답 생성 안 함)
 
     Returns:
-        (metrics, latency_ms, detail_info)
+        (metrics, retrieval_latency_ms, generation_latency_ms, detail_info)
     """
     question = item["question"]
     gold_citations = item.get("gold_citations", [])
@@ -99,10 +152,12 @@ def evaluate_single_item(
         results = vector_store.similarity_search(question, k=top_k)
     end_time = time.perf_counter()
 
-    latency_ms = (end_time - start_time) * 1000
+    retrieval_latency_ms = (end_time - start_time) * 1000
 
-    # 검색 결과에서 chunk_id 추출
+    # 검색 결과에서 chunk_id와 content 추출
+    # SearchResult 객체는 .metadata와 .content 프로퍼티 제공
     retrieved_ids = [extract_chunk_id_from_doc(doc) for doc in results]
+    contexts = [doc.content for doc in results]
 
     # 지표 계산 (커스텀 매칭 로직 적용)
     metrics = calculate_retrieval_metrics(
@@ -125,10 +180,18 @@ def evaluate_single_item(
         "must_have_recall_at_k": metrics.must_have_recall_at_k,
         "mrr": metrics.mrr,
         "first_hit_rank": metrics.first_hit_rank,
-        "latency_ms": round(latency_ms, 2),
+        "retrieval_latency_ms": round(retrieval_latency_ms, 2),
     }
 
-    return metrics, latency_ms, detail
+    # LLM 응답 생성 (--generate 옵션 사용 시)
+    generation_latency_ms = None
+    if llm is not None:
+        response, generation_latency_ms = generate_response(llm, question, contexts)
+        detail["contexts"] = contexts[:3]  # 상위 3개 컨텍스트 저장
+        detail["response"] = response
+        detail["generation_latency_ms"] = round(generation_latency_ms, 2)
+
+    return metrics, retrieval_latency_ms, generation_latency_ms, detail
 
 
 def run_evaluation(
@@ -139,6 +202,7 @@ def run_evaluation(
     chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
     vectordb_type: str = "chroma",
     hybrid_config: HybridConfig | None = None,
+    generate: bool = False,
 ):
     """전체 평가 실행
 
@@ -154,6 +218,7 @@ def run_evaluation(
         chunk_level: 청킹 단위 (매칭 기준) - article 또는 paragraph
         vectordb_type: 사용할 Vector DB (chroma 또는 qdrant)
         hybrid_config: Hybrid Search 설정 (Qdrant 전용)
+        generate: LLM 응답 생성 여부 (True면 검색 결과로 답변 생성)
     """
     print("=" * 60)
     print("R3 법령 RAG 평가 시작")
@@ -178,6 +243,12 @@ def run_evaluation(
     else:
         print("검색 모드: Dense")
 
+    # LLM 초기화 (--generate 옵션 사용 시)
+    llm = None
+    if generate:
+        print(f"응답 생성: {GENERATION_MODEL}")
+        llm = get_llm()
+
     # Vector Store 초기화
     print("\nVector Store 초기화 중...")
     vector_store = get_vector_store(
@@ -187,28 +258,32 @@ def run_evaluation(
     # 평가 실행
     print("\n평가 진행 중...\n")
     all_metrics: list[RetrievalMetrics] = []
-    all_latencies: list[float] = []
+    all_retrieval_latencies: list[float] = []
+    all_generation_latencies: list[float] = []
     all_details: list[dict] = []
 
     # Qdrant: Hybrid Search / Chroma: Dense
     use_hybrid = (vectordb_type == "qdrant")
 
     for i, item in enumerate(items, 1):
-        metrics, latency, detail = evaluate_single_item(
-            vector_store, item, top_k, chunk_level, use_hybrid=use_hybrid
+        metrics, retrieval_latency, generation_latency, detail = evaluate_single_item(
+            vector_store, item, top_k, chunk_level, use_hybrid=use_hybrid, llm=llm
         )
         all_metrics.append(metrics)
-        all_latencies.append(latency)
+        all_retrieval_latencies.append(retrieval_latency)
+        if generation_latency is not None:
+            all_generation_latencies.append(generation_latency)
         all_details.append(detail)
 
         # 진행 상황 출력
         status = "✓" if metrics.must_have_recall_at_k == 1.0 else "✗"
+        gen_str = f" | Gen: {generation_latency:.0f}ms" if generation_latency else ""
         print(
             f"  [{i:2d}/{len(items)}] {status} {item['id']} | "
             f"MH-Recall: {metrics.must_have_recall_at_k:.2f} | "
             f"Recall: {metrics.recall_at_k:.2f} | "
             f"MRR: {metrics.mrr:.2f} | "
-            f"Latency: {latency:.0f}ms"
+            f"Ret: {retrieval_latency:.0f}ms{gen_str}"
         )
 
     # 집계
@@ -219,12 +294,27 @@ def run_evaluation(
     aggregated["total_chunks"] = chunk_stats["total_chunks"]
     aggregated["avg_chunk_length"] = chunk_stats["avg_chunk_length"]
 
-    # Latency 통계
-    latency_p50 = statistics.median(all_latencies)
-    latency_p95 = (
-        sorted(all_latencies)[int(len(all_latencies) * 0.95)] if len(all_latencies) >= 20 else max(all_latencies)
+    # Retrieval Latency 통계
+    retrieval_p50 = statistics.median(all_retrieval_latencies)
+    retrieval_p95 = (
+        sorted(all_retrieval_latencies)[int(len(all_retrieval_latencies) * 0.95)]
+        if len(all_retrieval_latencies) >= 20
+        else max(all_retrieval_latencies)
     )
-    latency_mean = statistics.mean(all_latencies)
+    retrieval_mean = statistics.mean(all_retrieval_latencies)
+
+    # Generation Latency 통계 (--generate 옵션 사용 시)
+    generation_p50 = None
+    generation_p95 = None
+    generation_mean = None
+    if all_generation_latencies:
+        generation_p50 = statistics.median(all_generation_latencies)
+        generation_p95 = (
+            sorted(all_generation_latencies)[int(len(all_generation_latencies) * 0.95)]
+            if len(all_generation_latencies) >= 20
+            else max(all_generation_latencies)
+        )
+        generation_mean = statistics.mean(all_generation_latencies)
 
     # 결과 출력
     print("\n" + "=" * 60)
@@ -235,10 +325,16 @@ def run_evaluation(
     print(f"  - Recall@{top_k}:           {aggregated['avg_recall_at_k']:.4f}")
     print(f"  - MRR:                      {aggregated['avg_mrr']:.4f}")
 
-    print("\n⏱️  Latency:")
-    print(f"  - P50: {latency_p50:.1f}ms")
-    print(f"  - P95: {latency_p95:.1f}ms")
-    print(f"  - Mean: {latency_mean:.1f}ms")
+    print("\n⏱️  Retrieval Latency:")
+    print(f"  - P50: {retrieval_p50:.1f}ms")
+    print(f"  - P95: {retrieval_p95:.1f}ms")
+    print(f"  - Mean: {retrieval_mean:.1f}ms")
+
+    if generation_p50 is not None:
+        print(f"\n⏱️  Generation Latency ({GENERATION_MODEL}):")
+        print(f"  - P50: {generation_p50:.1f}ms")
+        print(f"  - P95: {generation_p95:.1f}ms")
+        print(f"  - Mean: {generation_mean:.1f}ms")
 
     print("\n📈 세부 통계:")
     print(f"  - 총 gold_citations: {aggregated['total_gold_citations']}")
@@ -275,15 +371,20 @@ def run_evaluation(
             "hybrid_config": hybrid_config.name if hybrid_config else None,
             "hybrid_alpha": hybrid_config.alpha if hybrid_config else None,
             "sparse_model": hybrid_config.sparse_model if hybrid_config else None,
+            "generate": generate,
+            "generation_model": GENERATION_MODEL if generate else None,
             "num_items": len(items),
         },
         "summary": {
             "must_have_recall_at_k": aggregated["avg_must_have_recall_at_k"],
             "recall_at_k": aggregated["avg_recall_at_k"],
             "mrr": aggregated["avg_mrr"],
-            "latency_p50_ms": round(latency_p50, 2),
-            "latency_p95_ms": round(latency_p95, 2),
-            "latency_mean_ms": round(latency_mean, 2),
+            "retrieval_latency_p50_ms": round(retrieval_p50, 2),
+            "retrieval_latency_p95_ms": round(retrieval_p95, 2),
+            "retrieval_latency_mean_ms": round(retrieval_mean, 2),
+            "generation_latency_p50_ms": round(generation_p50, 2) if generation_p50 else None,
+            "generation_latency_p95_ms": round(generation_p95, 2) if generation_p95 else None,
+            "generation_latency_mean_ms": round(generation_mean, 2) if generation_mean else None,
         },
         "aggregated": aggregated,
         "details": all_details,
@@ -324,6 +425,11 @@ def main():
         default=None,
         help="Hybrid Search 설정 (예: H0, H1). Qdrant 전용",
     )
+    parser.add_argument(
+        "--generate",
+        action="store_true",
+        help="LLM 응답 생성 포함 (검색 결과로 답변 생성, LLM-as-Judge 평가 없음)",
+    )
     args = parser.parse_args()
 
     # 임베딩 설정 로드 (프리셋 지정 시에만)
@@ -349,6 +455,7 @@ def main():
         chunk_level=chunk_level,
         vectordb_type=args.vectordb,
         hybrid_config=hybrid_config,
+        generate=args.generate,
     )
 
 

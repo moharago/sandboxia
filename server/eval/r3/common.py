@@ -304,8 +304,12 @@ def format_chunk_ids(chunk_ids: list[dict]) -> list[str]:
     return [format_chunk_id(cid) for cid in chunk_ids]
 
 
-def get_chunk_statistics(vector_store: Chroma) -> dict:
+def get_chunk_statistics(vector_store) -> dict:
     """Vector Store에서 청크 통계 조회
+
+    Note:
+        추상화된 VectorStore에서는 직접 통계 조회가 지원되지 않을 수 있음.
+        ChromaDB의 .get() 메서드는 추상화 레이어에 포함되지 않음.
 
     Returns:
         {
@@ -313,25 +317,42 @@ def get_chunk_statistics(vector_store: Chroma) -> dict:
             "avg_chunk_length": float,
         }
     """
-    # ChromaDB 공용 API를 사용하여 모든 문서 조회
-    result = vector_store.get(include=["documents"])
+    try:
+        # ChromaDB의 경우 내부 collection에 직접 접근 시도
+        if hasattr(vector_store, "_collection"):
+            result = vector_store._collection.get(include=["documents"])
+            documents = result.get("documents", [])
+        elif hasattr(vector_store, "get"):
+            result = vector_store.get(include=["documents"])
+            documents = result.get("documents", [])
+        else:
+            # 지원되지 않는 VectorStore - 기본값 반환
+            return {
+                "total_chunks": -1,  # 알 수 없음
+                "avg_chunk_length": -1.0,
+            }
 
-    documents = result.get("documents", [])
-    # None/empty 문서 필터링
-    filtered_documents = [doc for doc in documents if doc]
-    total_chunks = len(filtered_documents)
+        # None/empty 문서 필터링
+        filtered_documents = [doc for doc in documents if doc]
+        total_chunks = len(filtered_documents)
 
-    if total_chunks == 0:
+        if total_chunks == 0:
+            return {
+                "total_chunks": 0,
+                "avg_chunk_length": 0.0,
+            }
+
+        # 평균 청크 길이 계산 (문자 수 기준)
+        total_length = sum(len(doc) for doc in filtered_documents)
+        avg_length = total_length / total_chunks
+
         return {
-            "total_chunks": 0,
-            "avg_chunk_length": 0.0,
+            "total_chunks": total_chunks,
+            "avg_chunk_length": round(avg_length, 1),
         }
-
-    # 평균 청크 길이 계산 (문자 수 기준)
-    total_length = sum(len(doc) for doc in filtered_documents)
-    avg_length = total_length / total_chunks
-
-    return {
-        "total_chunks": total_chunks,
-        "avg_chunk_length": round(avg_length, 1),
-    }
+    except Exception:
+        # 오류 발생 시 기본값 반환
+        return {
+            "total_chunks": -1,
+            "avg_chunk_length": -1.0,
+        }
