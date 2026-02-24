@@ -13,6 +13,8 @@ import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
+import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
+import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { cn } from "@/lib/utils/cn"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { Regulation } from "@/types/api/eligibility"
@@ -133,6 +135,24 @@ export default function TrackPage({ params }: TrackPageProps) {
     // Supabase에서 트랙 추천 결과 조회
     const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
 
+    // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
+    const { data: trackNodes } = useAgentNodesQuery("track_recommender")
+    const { data: draftNodes } = useAgentNodesQuery("application_drafter")
+
+    // SSE 진행 상태 구독
+    const trackProgress = useAgentProgress({
+        projectId: id,
+        onComplete: () => {
+            queryClient.invalidateQueries({ queryKey: ["track"] })
+        },
+    })
+    const draftProgress = useAgentProgress({
+        projectId: id,
+        onComplete: () => {
+            queryClient.invalidateQueries({ queryKey: ["draft"] })
+        },
+    })
+
     // 결과 변환
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
     const defaultTrackId = trackResult ? API_TO_UI_TRACK[trackResult.recommended_track] : null
@@ -223,6 +243,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                     // 2. Draft Agent 실행 (재생성 선택한 경우에만)
                     if (shouldRegenerateDraft) {
                         setIsRunningDraftAgent(true)
+                        draftProgress.subscribe()  // SSE 구독 시작
                         try {
                             await draftMutation.mutateAsync({ project_id: id })
                         } catch (error) {
@@ -245,6 +266,7 @@ export default function TrackPage({ params }: TrackPageProps) {
         id,
         selectMutation,
         draftMutation,
+        draftProgress,
         setTrackSelection,
         markStepComplete,
         setCurrentStep,
@@ -278,7 +300,15 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // AI 분석 중 (재분석 시에만 해당)
     if (isAnalyzing) {
-        return <AILoader message="최적의 트랙을 추천하고 있습니다..." />
+        return (
+            <AILoader
+                message="최적의 트랙을 추천하고 있습니다..."
+                nodes={trackNodes?.nodes}
+                completedNodes={trackProgress.completedNodes}
+                currentNodeId={trackProgress.currentNodeId}
+                progress={trackProgress.progress}
+            />
+        )
     }
 
     // 에러
@@ -334,7 +364,15 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoader message={isRunningDraftAgent ? "신청서 초안을 생성하고 있습니다..." : "트랙을 저장하고 있습니다..."} />}
+                {isSaving && (
+                    <AILoader
+                        message={isRunningDraftAgent ? "신청서 초안을 생성하고 있습니다..." : "트랙을 저장하고 있습니다..."}
+                        nodes={isRunningDraftAgent ? draftNodes?.nodes : undefined}
+                        completedNodes={isRunningDraftAgent ? draftProgress.completedNodes : undefined}
+                        currentNodeId={isRunningDraftAgent ? draftProgress.currentNodeId : undefined}
+                        progress={isRunningDraftAgent ? draftProgress.progress : undefined}
+                    />
+                )}
                 <div className="container">
                     <div className="flex gap-4">
                         {/* 왼쪽: 메인 콘텐츠 */}
@@ -458,7 +496,10 @@ export default function TrackPage({ params }: TrackPageProps) {
 
                             <WizardNavigation
                                 onBack={handleBack}
-                                onReanalyze={() => recommendMutation.mutate({ project_id: id })}
+                                onReanalyze={() => {
+                                    trackProgress.subscribe()  // SSE 구독 시작
+                                    recommendMutation.mutate({ project_id: id })
+                                }}
                                 onNext={handleSave}
                                 nextLabel="다음 단계"
                                 isAnalyzed={!!analysisResult}

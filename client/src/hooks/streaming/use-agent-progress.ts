@@ -20,10 +20,7 @@
  */
 
 import { useAuthStore } from "@/stores/auth-store"
-import type {
-    AgentProgressEvent,
-    SSEConnectionStatus,
-} from "@/types/api/agent-progress"
+import type { AgentProgressEvent, SSEConnectionStatus } from "@/types/api/agent-progress"
 import { useCallback, useRef, useState } from "react"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
@@ -63,9 +60,7 @@ interface UseAgentProgressReturn {
 /**
  * 에이전트 진행 상태 SSE 구독 훅
  */
-export function useAgentProgress(
-    options: UseAgentProgressOptions
-): UseAgentProgressReturn {
+export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProgressReturn {
     const { projectId, onNodeComplete, onComplete, onError } = options
 
     const [status, setStatus] = useState<SSEConnectionStatus>("idle")
@@ -89,8 +84,11 @@ export function useAgentProgress(
     const subscribe = useCallback(async () => {
         // 이미 구독 중이면 무시
         if (status === "connecting" || status === "connected") {
+            console.log("[SSE] 이미 구독 중, 무시")
             return
         }
+
+        console.log("[SSE] 구독 시작:", projectId)
 
         // 상태 초기화
         reset()
@@ -110,22 +108,20 @@ export function useAgentProgress(
 
         try {
             // GET SSE 엔드포인트 연결
-            const response = await fetch(
-                `${API_BASE}/api/v1/agents/progress/subscribe/${projectId}`,
-                {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    signal: abortControllerRef.current.signal,
-                }
-            )
+            const response = await fetch(`${API_BASE}/api/v1/agents/progress/subscribe/${projectId}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                signal: abortControllerRef.current.signal,
+            })
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
                 throw new Error(errorData.detail || `Request failed: ${response.status}`)
             }
 
+            console.log("[SSE] 연결 성공")
             setStatus("connected")
 
             // ReadableStream으로 SSE 파싱
@@ -155,6 +151,8 @@ export function useAgentProgress(
                         try {
                             const jsonStr = line.slice(6)
                             const event: AgentProgressEvent = JSON.parse(jsonStr)
+
+                            console.log("[SSE] 이벤트 수신:", event.event_type, event.node_id, event.progress)
 
                             switch (event.event_type) {
                                 case "agent_start":

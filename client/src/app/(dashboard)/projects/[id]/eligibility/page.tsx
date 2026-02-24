@@ -4,13 +4,14 @@ import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
-import { PageLoader } from "@/components/ui/page-loader"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageLoader } from "@/components/ui/page-loader"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
+import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { agentsApi } from "@/lib/api/agents"
 import { eligibilityApi } from "@/lib/api/eligibility"
 import { projectsApi } from "@/lib/api/projects"
@@ -19,7 +20,7 @@ import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType, Regulation } from "@/types/api/eligibility"
 import { useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, Play, Scale } from "lucide-react"
+import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useRef, useState } from "react"
 
@@ -93,9 +94,7 @@ function mapResponseToAnalysisData(response: EligibilityResponse | EligibilityRe
     }))
 
     // direct_launch_risks → directLaunchRisks 변환 (description만 추출)
-    const directLaunchRisks = response.direct_launch_risks.map(
-        (risk) => `${risk.title}: ${risk.description}`
-    )
+    const directLaunchRisks = response.direct_launch_risks.map((risk) => `${risk.title}: ${risk.description}`)
 
     return {
         recommendation,
@@ -131,6 +130,25 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     // 기존 eligibility 결과 조회
     const { data: existingResult, isLoading: isLoadingExisting } = useEligibilityQuery(id)
 
+    // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
+    const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
+    const { data: trackNodes } = useAgentNodesQuery("track_recommender")
+
+    // SSE 진행 상태 구독
+    const eligibilityProgress = useAgentProgress({
+        projectId: id,
+        onComplete: () => {
+            // 완료 시 캐시 갱신
+            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+        },
+    })
+    const trackProgress = useAgentProgress({
+        projectId: id,
+        onComplete: () => {
+            queryClient.invalidateQueries({ queryKey: ["track"] })
+        },
+    })
+
     // 트랙 추천 결과 유무 (재분석 경고용)
     const [hasTrackResult, setHasTrackResult] = useState(false)
     useEffect(() => {
@@ -140,8 +158,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     }, [id])
 
     // 기존 결과가 있는지 확인 (evidence_data가 있고 비어있지 않은 경우)
-    const hasExistingResult = existingResult?.evidence_data &&
-        Object.keys(existingResult.evidence_data).length > 0
+    const hasExistingResult = existingResult?.evidence_data && Object.keys(existingResult.evidence_data).length > 0
 
     // Step 1 완료 여부 확인 (current_step >= 2이면 Step 1 완료)
     const isStep1Completed = project && project.current_step >= 2
@@ -225,6 +242,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     // AI 분석 실행 (분석만, 다음 단계로 안 감)
     const handleAnalyze = () => {
         if (!confirmReanalysis()) return
+        eligibilityProgress.subscribe() // SSE 구독 시작
         runAnalysis(false)
     }
 
@@ -253,11 +271,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             try {
                 setIsRunningTrackAgent(true)
+                trackProgress.subscribe() // SSE 구독 시작
                 await agentsApi.recommendTrack({ project_id: id })
             } catch (error) {
                 console.error("트랙 추천 실패:", error)
                 alert("트랙 추천 중 오류가 발생했습니다. 다시 시도해주세요.")
                 setIsRunningTrackAgent(false)
+                trackProgress.reset()
                 return
             }
             setIsRunningTrackAgent(false)
@@ -304,11 +324,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             await queryClient.invalidateQueries({ queryKey: ["projects"] })
                             try {
                                 setIsRunningTrackAgent(true)
+                                trackProgress.subscribe() // SSE 구독 시작
                                 await agentsApi.recommendTrack({ project_id: id })
                             } catch (error) {
                                 console.error("트랙 추천 실패:", error)
                                 alert("트랙 추천 중 오류가 발생했습니다. 다시 시도해주세요.")
                                 setIsRunningTrackAgent(false)
+                                trackProgress.reset()
                                 return
                             }
                             setIsRunningTrackAgent(false)
@@ -337,7 +359,8 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             return
         }
 
-        // 분석 실행 후 다음 단계로 이동
+        // SSE 구독 시작 후 분석 실행
+        eligibilityProgress.subscribe()
         runAnalysis(true)
     }
 
@@ -374,8 +397,24 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
     return (
         <div className="py-6">
-            {eligibilityMutation.isPending && <AILoader message="서비스의 규제 현황을 분석하고 있습니다..." />}
-            {isRunningTrackAgent && <AILoader message="최적의 트랙을 추천하고 있습니다..." />}
+            {eligibilityMutation.isPending && (
+                <AILoader
+                    message="서비스의 규제 현황을 분석하고 있습니다..."
+                    nodes={eligibilityNodes?.nodes}
+                    completedNodes={eligibilityProgress.completedNodes}
+                    currentNodeId={eligibilityProgress.currentNodeId}
+                    progress={eligibilityProgress.progress}
+                />
+            )}
+            {isRunningTrackAgent && (
+                <AILoader
+                    message="최적의 트랙을 추천하고 있습니다..."
+                    nodes={trackNodes?.nodes}
+                    completedNodes={trackProgress.completedNodes}
+                    currentNodeId={trackProgress.currentNodeId}
+                    progress={trackProgress.progress}
+                />
+            )}
             <div className="container">
                 <div className="flex gap-4">
                     {/* 왼쪽: 메인 콘텐츠 */}
@@ -412,8 +451,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                             : (["regulation", "law"] as ReasonCategory[])
                                         )
                                             .map((category) => {
-                                                const categoryReasons = analysisData.reasons
-                                                    .filter((r) => r.category === category)
+                                                const categoryReasons = analysisData.reasons.filter((r) => r.category === category)
 
                                                 if (categoryReasons.length === 0) return null
 
@@ -421,7 +459,10 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                                 return (
                                                     <div key={category} className="py-4 first:pt-0 last:pb-0">
                                                         <div className="flex items-start gap-3">
-                                                            <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", config.badgeClass)}>
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={cn("shrink-0 mt-0.5 text-xs font-medium", config.badgeClass)}
+                                                            >
                                                                 {config.label}
                                                             </Badge>
                                                             <div className="flex-1 space-y-4">
@@ -430,11 +471,19 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                                                         <h4 className="font-medium">{reason.title}</h4>
                                                                         <p className="text-sm text-foreground mt-1">{reason.description}</p>
                                                                         <p className="text-sm text-foreground/70 mt-2">
-                                                                            근거: {reason.sourceUrl ? (
-                                                                                <a href={reason.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                                                                            근거:{" "}
+                                                                            {reason.sourceUrl ? (
+                                                                                <a
+                                                                                    href={reason.sourceUrl}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-primary hover:underline inline-flex items-center gap-1"
+                                                                                >
                                                                                     {reason.source} <ExternalLink className="h-3 w-3" />
                                                                                 </a>
-                                                                            ) : reason.source}
+                                                                            ) : (
+                                                                                reason.source
+                                                                            )}
                                                                         </p>
                                                                     </div>
                                                                 ))}
@@ -450,39 +499,52 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                         )}
 
                         {/* 참고 사례 - not_required일 때만 별도 카드로 표시 */}
-                        {isAnalyzed && analysisData.recommendation === "direct" && analysisData.reasons.filter((r) => r.category === "case").length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>참고 사례</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="divide-y divide-border">
-                                        {analysisData.reasons
-                                            .filter((r) => r.category === "case")
-                                            .map((reason, idx) => (
-                                                <div key={idx} className="py-4 first:pt-0 last:pb-0">
-                                                    <div className="flex items-start gap-3">
-                                                        <Badge variant="outline" className={cn("shrink-0 mt-0.5 text-xs font-medium", CATEGORY_CONFIG.case.badgeClass)}>
-                                                            {CATEGORY_CONFIG.case.label}
-                                                        </Badge>
-                                                        <div className="flex-1">
-                                                            <h4 className="font-medium">{reason.title}</h4>
-                                                            <p className="text-sm text-foreground mt-1">{reason.description}</p>
-                                                            <p className="text-sm text-foreground/70 mt-2">
-                                                                근거: {reason.sourceUrl ? (
-                                                                    <a href={reason.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                                                                        {reason.source} <ExternalLink className="h-3 w-3" />
-                                                                    </a>
-                                                                ) : reason.source}
-                                                            </p>
+                        {isAnalyzed &&
+                            analysisData.recommendation === "direct" &&
+                            analysisData.reasons.filter((r) => r.category === "case").length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>참고 사례</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="divide-y divide-border">
+                                            {analysisData.reasons
+                                                .filter((r) => r.category === "case")
+                                                .map((reason, idx) => (
+                                                    <div key={idx} className="py-4 first:pt-0 last:pb-0">
+                                                        <div className="flex items-start gap-3">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={cn("shrink-0 mt-0.5 text-xs font-medium", CATEGORY_CONFIG.case.badgeClass)}
+                                                            >
+                                                                {CATEGORY_CONFIG.case.label}
+                                                            </Badge>
+                                                            <div className="flex-1">
+                                                                <h4 className="font-medium">{reason.title}</h4>
+                                                                <p className="text-sm text-foreground mt-1">{reason.description}</p>
+                                                                <p className="text-sm text-foreground/70 mt-2">
+                                                                    근거:{" "}
+                                                                    {reason.sourceUrl ? (
+                                                                        <a
+                                                                            href={reason.sourceUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-primary hover:underline inline-flex items-center gap-1"
+                                                                        >
+                                                                            {reason.source} <ExternalLink className="h-3 w-3" />
+                                                                        </a>
+                                                                    ) : (
+                                                                        reason.source
+                                                                    )}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                                                ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
 
                         {/* 바로 출시 시 리스크 */}
                         {isAnalyzed && analysisData.recommendation === "sandbox" && analysisData.directLaunchRisks.length > 0 && (
@@ -519,12 +581,17 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                             onClick={() => setSelectedDecision("direct")}
                                             className={cn(
                                                 "p-4 rounded-lg border-2 text-left transition-all",
-                                                selectedDecision === "direct" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                                selectedDecision === "direct"
+                                                    ? "border-primary bg-primary/5"
+                                                    : "border-border hover:border-primary/50"
                                             )}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <CheckCircle2
-                                                    className={cn("h-6 w-6", selectedDecision === "direct" ? "text-primary" : "text-muted-foreground")}
+                                                    className={cn(
+                                                        "h-6 w-6",
+                                                        selectedDecision === "direct" ? "text-primary" : "text-muted-foreground"
+                                                    )}
                                                 />
                                                 <div>
                                                     <h4 className="font-medium">바로 시장 출시</h4>
@@ -538,11 +605,18 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                             onClick={() => setSelectedDecision("sandbox")}
                                             className={cn(
                                                 "p-4 rounded-lg border-2 text-left transition-all",
-                                                selectedDecision === "sandbox" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                                selectedDecision === "sandbox"
+                                                    ? "border-primary bg-primary/5"
+                                                    : "border-border hover:border-primary/50"
                                             )}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <Scale className={cn("h-6 w-6", selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground")} />
+                                                <Scale
+                                                    className={cn(
+                                                        "h-6 w-6",
+                                                        selectedDecision === "sandbox" ? "text-primary" : "text-muted-foreground"
+                                                    )}
+                                                />
                                                 <div>
                                                     <h4 className="font-medium">규제 샌드박스 신청</h4>
                                                     <p className="text-sm text-muted-foreground">규제 특례를 통한 실증이 필요합니다</p>

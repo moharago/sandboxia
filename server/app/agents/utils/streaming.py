@@ -3,9 +3,12 @@
 LangGraph 에이전트 실행 시 progress_store와 연동하여 진행 상태를 추적합니다.
 """
 
+import logging
 from typing import Any
 
 from app.core.progress_store import progress_store
+
+logger = logging.getLogger(__name__)
 
 
 async def run_agent_with_progress(
@@ -28,33 +31,42 @@ async def run_agent_with_progress(
         에이전트 실행 결과 (마지막 상태)
 
     Raises:
-        RuntimeError: 에이전트 실행 결과가 없을 때
+        RuntimeError: 에이전트 실행 결과가 없습니다
     """
     if config is None:
         config = {"recursion_limit": 15}
 
+    logger.info(f"[Streaming] 에이전트 실행 시작: {agent_type}, project={project_id}")
+
     # 진행 상태 추적 시작
     progress_store.start(project_id, agent_type)
 
-    result = None
-    try:
-        # astream_events로 실행하며 진행 상태 추적
-        async for event in agent.astream_events(
-            initial_state, config=config, version="v2"
-        ):
-            event_kind = event.get("event")
-            node_name = event.get("name", "")
+    # 초기 상태를 복사하여 결과로 사용 (업데이트 병합용)
+    result = dict(initial_state)
 
-            # LangGraph 내부 노드 제외
-            if node_name and not node_name.startswith(("Lang", "Runnable", "__")):
-                if event_kind == "on_chain_start":
+    try:
+        # astream으로 실행하며 노드별 상태 업데이트 추적
+        # stream_mode="updates"는 {node_name: state_update} 형태로 반환
+        async for chunk in agent.astream(
+            initial_state, config=config, stream_mode="updates"
+        ):
+            # chunk는 {node_name: state_update} 형태
+            for node_name, state_update in chunk.items():
+                # LangGraph 내부 노드 제외 (__start__, __end__ 등)
+                if node_name and not node_name.startswith("__"):
+                    logger.info(f"[Streaming] 노드 실행: {node_name}")
+
+                    # 노드 시작 이벤트 (UI에서 spinner 표시용)
                     progress_store.update_node(project_id, node_name, "node_start")
-                elif event_kind == "on_chain_end":
+
+                    # state_update를 result에 병합
+                    if state_update and isinstance(state_update, dict):
+                        result.update(state_update)
+
+                    # 노드 완료 이벤트 (UI에서 체크 표시용)
                     progress_store.update_node(project_id, node_name, "node_end")
-                    # 마지막 이벤트의 output에서 결과 추출
-                    output = event.get("data", {}).get("output")
-                    if output and isinstance(output, dict):
-                        result = output
+
+        logger.info(f"[Streaming] 에이전트 실행 완료: {agent_type}")
 
         # 진행 상태 완료
         progress_store.end(project_id)
@@ -62,8 +74,5 @@ async def run_agent_with_progress(
     except Exception as e:
         progress_store.end(project_id, error=str(e))
         raise
-
-    if not result:
-        raise RuntimeError("에이전트 실행 결과가 없습니다")
 
     return result

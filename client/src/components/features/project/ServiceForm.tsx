@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea"
 import formData from "@/data/formData.json"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
+import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectFilesQuery } from "@/hooks/queries/use-projects-query"
+import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { projectsApi, type ProjectFile } from "@/lib/api/projects"
 import { useUIStore } from "@/stores/ui-store"
 import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
@@ -44,8 +46,19 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
 
     // 기존 eligibility 결과 조회 (재분석 확인용)
     const { data: existingEligibilityResult } = useEligibilityQuery(id)
-    const hasExistingEligibilityResult = existingEligibilityResult?.evidence_data &&
-        Object.keys(existingEligibilityResult.evidence_data).length > 0
+    const hasExistingEligibilityResult = existingEligibilityResult?.evidence_data && Object.keys(existingEligibilityResult.evidence_data).length > 0
+
+    // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
+    const { data: serviceNodes } = useAgentNodesQuery("service_structurer")
+    const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
+
+    // SSE 진행 상태 구독
+    const serviceProgress = useAgentProgress({
+        projectId: id,
+    })
+    const eligibilityProgress = useAgentProgress({
+        projectId: id,
+    })
 
     // Step 2: 대상성 분석 mutation
     const eligibilityMutation = useEligibilityMutation({
@@ -64,6 +77,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     const serviceMutation = useServiceMutation({
         onSuccess: () => {
             // Step 1 완료 → Step 2 (대상성 분석) 자동 실행
+            eligibilityProgress.subscribe() // SSE 구독 시작 (대상성 분석)
             eligibilityMutation.mutate({ project_id: id })
         },
         onError: (error) => {
@@ -148,6 +162,9 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             }
         }
 
+        // SSE 구독 시작 (서비스 분석)
+        serviceProgress.subscribe()
+
         serviceMutation.mutate({
             sessionId: id,
             requestedTrack: selectedTrack,
@@ -163,11 +180,19 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
 
     const isLoading = serviceMutation.isPending || eligibilityMutation.isPending
 
+    // 현재 실행 중인 에이전트에 따라 노드 정보 선택
+    const currentNodes = serviceMutation.isPending ? serviceNodes?.nodes : eligibilityNodes?.nodes
+    const currentProgress = serviceMutation.isPending ? serviceProgress : eligibilityProgress
+
     return (
         <div className="py-6">
             {isLoading && (
                 <AILoader
                     message={serviceMutation.isPending ? "서비스 정보를 분석하고 있습니다..." : "서비스의 규제 현황을 분석하고 있습니다..."}
+                    nodes={currentNodes}
+                    completedNodes={currentProgress.completedNodes}
+                    currentNodeId={currentProgress.currentNodeId}
+                    progress={currentProgress.progress}
                 />
             )}
             <div className="container mx-auto px-4 space-y-6">

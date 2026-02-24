@@ -1,8 +1,8 @@
 "use client"
 
+import { cn } from "@/lib/utils/cn"
 import type { NodeInfo } from "@/types/api/agent-progress"
 import { Check, Circle, Loader2, Sparkles } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 interface AILoaderProps {
     /**
@@ -28,13 +28,7 @@ interface AILoaderProps {
     progress?: number
 }
 
-export function AILoader({
-    message,
-    nodes,
-    completedNodes = [],
-    currentNodeId,
-    progress,
-}: AILoaderProps) {
+export function AILoader({ message, nodes, completedNodes = [], currentNodeId, progress }: AILoaderProps) {
     const hasNodes = nodes && nodes.length > 0
 
     return (
@@ -49,23 +43,16 @@ export function AILoader({
                 {/* 제목 + 메시지 */}
                 <div className="flex flex-col items-center gap-1">
                     <p className="text-lg font-medium text-foreground">AI 분석 중</p>
-                    <p className="text-sm text-muted-foreground">
-                        {message ? `AI가 ${message}` : "잠시만 기다려주세요..."}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{message ? `AI가 ${message}` : "잠시만 기다려주세요..."}</p>
                 </div>
 
                 {/* 진행률 바 */}
                 {typeof progress === "number" && (
                     <div className="w-full mt-2">
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-primary transition-all duration-300 ease-out"
-                                style={{ width: `${progress}%` }}
-                            />
+                            <div className="h-full bg-primary transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
                         </div>
-                        <p className="text-xs text-muted-foreground text-center mt-1">
-                            {progress}%
-                        </p>
+                        <p className="text-xs text-muted-foreground text-center mt-1">{progress}%</p>
                     </div>
                 )}
 

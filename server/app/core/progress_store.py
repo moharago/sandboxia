@@ -57,27 +57,38 @@ class ProgressStore:
         """모든 구독자에게 이벤트 전송"""
         state = self._states.get(project_id)
         if not state:
+            logger.warning(f"[ProgressStore] 브로드캐스트 실패 - 상태 없음: {project_id}")
+            return
+
+        subscriber_count = len(state.subscribers)
+        if subscriber_count == 0:
+            logger.warning(f"[ProgressStore] 브로드캐스트 실패 - 구독자 없음: {project_id}, 이벤트: {event.event_type}")
             return
 
         sse_data = self._format_sse(event)
+        logger.info(f"[ProgressStore] 브로드캐스트: {event.event_type} -> {subscriber_count}명")
         for queue in state.subscribers:
             try:
                 await queue.put(sse_data)
             except Exception as e:
-                logger.warning(f"SSE 전송 실패: {e}")
+                logger.warning(f"[ProgressStore] SSE 전송 실패: {e}")
 
     def start(self, project_id: str, agent_type: str) -> None:
         """에이전트 실행 시작"""
-        # 기존 상태가 있으면 정리
+        # 기존 상태가 있으면 구독자 목록 보존 (race condition 방지)
+        existing_subscribers: list[asyncio.Queue] = []
         if project_id in self._states:
-            old_state = self._states[project_id]
-            # 기존 구독자들에게 완료 이벤트 전송하지 않고 그냥 정리
-            old_state.subscribers.clear()
+            existing_subscribers = self._states[project_id].subscribers
+            logger.info(f"[ProgressStore] 기존 구독자 {len(existing_subscribers)}명 보존: {project_id}")
 
         self._states[project_id] = ProgressState(
             project_id=project_id,
             agent_type=agent_type,
         )
+        # 기존 구독자 복원
+        self._states[project_id].subscribers = existing_subscribers
+
+        logger.info(f"[ProgressStore] 에이전트 시작: {agent_type}, 구독자: {len(existing_subscribers)}명")
 
         # agent_start 이벤트 브로드캐스트
         event = AgentProgressEvent(
@@ -98,8 +109,10 @@ class ProgressStore:
         """노드 진행 상태 업데이트"""
         state = self._states.get(project_id)
         if not state:
-            logger.warning(f"진행 상태 없음: {project_id}")
+            logger.warning(f"[ProgressStore] 진행 상태 없음: {project_id}")
             return
+
+        logger.info(f"[ProgressStore] 노드 업데이트: {node_id} ({event_type}), 구독자: {len(state.subscribers)}명")
 
         if event_type == "node_start":
             state.current_node = node_id
@@ -184,6 +197,7 @@ class ProgressStore:
         state = self._states.get(project_id)
         if state:
             state.subscribers.append(queue)
+            logger.info(f"[ProgressStore] 구독자 등록 (기존 상태): {project_id}, 총 {len(state.subscribers)}명")
 
             # 현재 상태 즉시 전송 (이미 진행 중인 경우)
             if state.completed_nodes or state.current_node:
@@ -203,6 +217,7 @@ class ProgressStore:
             temp_state = ProgressState(project_id=project_id, agent_type="")
             temp_state.subscribers.append(queue)
             self._states[project_id] = temp_state
+            logger.info(f"[ProgressStore] 구독자 등록 (대기 상태): {project_id}")
 
         try:
             while True:
