@@ -133,14 +133,23 @@ async def collect_and_store_laws(
     # 기존 컬렉션 삭제 (reset 옵션)
     if reset:
         print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
-        temp_store = create_vector_store(
-            collection_name=collection_name,
-            embeddings=embeddings,
-            vectordb_type=vectordb_type,
-            hybrid_config=hybrid_search_config,
-        )
         try:
-            temp_store.delete_collection()
+            if vectordb_type == "qdrant":
+                # Qdrant: 직접 클라이언트로 삭제 (컬렉션 없어도 에러 없음)
+                from qdrant_client import QdrantClient
+                qdrant_client = QdrantClient(
+                    host=settings.QDRANT_HOST, port=settings.QDRANT_PORT
+                )
+                qdrant_client.delete_collection(collection_name)
+            else:
+                # Chroma: VectorStore로 삭제
+                temp_store = create_vector_store(
+                    collection_name=collection_name,
+                    embeddings=embeddings,
+                    vectordb_type=vectordb_type,
+                    hybrid_config=hybrid_search_config,
+                )
+                temp_store.delete_collection()
             print("  ✓ 기존 컬렉션 삭제 완료")
         except Exception:
             print("  - 기존 컬렉션 없음 (새로 생성)")

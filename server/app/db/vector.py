@@ -65,7 +65,7 @@ class HybridSearchConfig:
 
     enabled: bool = False
     alpha: float = 0.7  # Dense 70%, Sparse 30%
-    sparse_model: str = "naver/splade-cocondenser-ensembledistil"  # 기본 SPLADE 모델
+    sparse_model: str = "Qdrant/bm25"  # 기본 BM25 (한국어 지원)
 
 
 # =============================================================================
@@ -410,7 +410,7 @@ class QdrantVectorStore(BaseVectorStore):
 
         self._qdrant_client = client
 
-        # Hybrid Search용 Sparse Embedding (SPLADE)
+        # Hybrid Search용 Sparse Embedding (SPLADE/BM25)
         self._sparse_embeddings = None
         self._retrieval_mode = RetrievalMode.DENSE
 
@@ -429,6 +429,9 @@ class QdrantVectorStore(BaseVectorStore):
                     "설치: uv sync (fastembed 포함)"
                 )
 
+        # 컬렉션 존재 여부 확인 및 생성
+        self._ensure_collection_exists(embeddings)
+
         # LangChain Qdrant 래퍼 생성
         self._client = LangchainQdrant(
             client=client,
@@ -436,7 +439,46 @@ class QdrantVectorStore(BaseVectorStore):
             embedding=embeddings,
             sparse_embedding=self._sparse_embeddings,
             retrieval_mode=self._retrieval_mode,
+            validate_collection_config=False,
         )
+
+    def _ensure_collection_exists(self, embeddings: Embeddings) -> None:
+        """컬렉션이 없으면 자동 생성"""
+        from qdrant_client.http import models
+
+        try:
+            self._qdrant_client.get_collection(self._collection_name)
+            logger.debug(f"Qdrant 컬렉션 '{self._collection_name}' 존재 확인")
+        except Exception:
+            # 컬렉션이 없으면 새로 생성
+            logger.info(f"Qdrant 컬렉션 '{self._collection_name}' 새로 생성 중...")
+
+            # 임베딩 차원 확인 (샘플 텍스트로)
+            sample_embedding = embeddings.embed_query("test")
+            vector_size = len(sample_embedding)
+
+            vectors_config = {
+                "": models.VectorParams(
+                    size=vector_size,
+                    distance=models.Distance.COSINE,
+                )
+            }
+
+            # Hybrid 모드면 Sparse 벡터도 추가
+            sparse_vectors_config = None
+            if self._sparse_embeddings is not None:
+                sparse_vectors_config = {
+                    "langchain-sparse": models.SparseVectorParams(
+                        modifier=models.Modifier.IDF,
+                    )
+                }
+
+            self._qdrant_client.create_collection(
+                collection_name=self._collection_name,
+                vectors_config=vectors_config,
+                sparse_vectors_config=sparse_vectors_config,
+            )
+            logger.info(f"Qdrant 컬렉션 '{self._collection_name}' 생성 완료")
 
     def _build_filter(self, filter: dict[str, Any] | None):
         """dict filter를 Qdrant Filter로 변환"""
@@ -516,7 +558,25 @@ class QdrantVectorStore(BaseVectorStore):
         documents: list[Document],
         ids: list[str] | None = None,
     ) -> list[str]:
-        """문서 추가 (Hybrid 모드면 Sparse Vector도 함께 저장)"""
+        """문서 추가 (Hybrid 모드면 Sparse Vector도 함께 저장)
+
+        Note:
+            Qdrant는 UUID 또는 unsigned integer만 ID로 허용합니다.
+            문자열 ID가 전달되면 UUID5로 변환합니다.
+            원본 ID는 metadata['original_id']에 저장됩니다.
+        """
+        import uuid
+
+        if ids:
+            # 문자열 ID를 UUID5로 변환 (namespace + 원본 ID로 결정적 생성)
+            uuid_ids = []
+            for i, doc_id in enumerate(ids):
+                # 원본 ID를 metadata에 보존
+                if "original_id" not in documents[i].metadata:
+                    documents[i].metadata["original_id"] = doc_id
+                # UUID5 생성 (같은 ID는 항상 같은 UUID)
+                uuid_ids.append(str(uuid.uuid5(uuid.NAMESPACE_DNS, doc_id)))
+            return self._client.add_documents(documents, ids=uuid_ids)
         return self._client.add_documents(documents, ids=ids)
 
     def delete(self, ids: list[str]) -> None:
