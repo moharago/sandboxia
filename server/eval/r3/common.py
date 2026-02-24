@@ -22,8 +22,8 @@ from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
-from app.db.vector import create_embeddings
-from app.rag.config import EmbeddingConfig
+from app.db.vector import create_embeddings, create_vector_store, HybridSearchConfig
+from app.rag.config import EmbeddingConfig, HybridConfig
 from eval.metrics import RetrievalMetrics
 
 
@@ -51,6 +51,7 @@ def get_vector_store(
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
     vectordb_type: str = "chroma",
+    hybrid_config: HybridConfig | None = None,
 ):
     """Vector Store 연결
 
@@ -61,47 +62,35 @@ def get_vector_store(
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
         vectordb_type: 사용할 Vector DB (chroma 또는 qdrant)
+        hybrid_config: Hybrid Search 설정 (Qdrant 전용)
 
     Returns:
-        Vector Store (Chroma 또는 QdrantVectorStore)
+        BaseVectorStore 인스턴스
     """
     if embedding_config is None:
-        # 프리셋 없으면 .env의 LLM_EMBEDDING_MODEL 사용
         embeddings = OpenAIEmbeddings(
             model=settings.LLM_EMBEDDING_MODEL,
             openai_api_key=settings.OPENAI_API_KEY,
         )
     else:
-        # 프리셋 있으면 프리셋 사용
         embeddings = create_embeddings(embedding_config)
 
     collection_name = COLLECTION_LAWS + collection_suffix
 
-    if vectordb_type == "qdrant":
-        from langchain_qdrant import QdrantVectorStore
-        from qdrant_client import QdrantClient
-
-        if settings.QDRANT_API_KEY:
-            client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT,
-                api_key=settings.QDRANT_API_KEY,
-                https=True,
-            )
-        else:
-            client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
-
-        return QdrantVectorStore(
-            client=client,
-            collection_name=collection_name,
-            embedding=embeddings,
+    # HybridConfig → HybridSearchConfig 변환
+    hybrid_search_config = None
+    if hybrid_config and vectordb_type == "qdrant":
+        hybrid_search_config = HybridSearchConfig(
+            enabled=True,
+            alpha=hybrid_config.alpha,
+            sparse_model=hybrid_config.sparse_model,
         )
 
-    # 기본값: Chroma
-    return Chroma(
+    return create_vector_store(
         collection_name=collection_name,
-        embedding_function=embeddings,
-        persist_directory=str(settings.CHROMA_PERSIST_DIR),
+        embeddings=embeddings,
+        vectordb_type=vectordb_type,
+        hybrid_config=hybrid_search_config,
     )
 
 

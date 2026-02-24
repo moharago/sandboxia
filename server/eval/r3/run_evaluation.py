@@ -16,12 +16,27 @@
     --config E2             # 임베딩 설정 (없으면 .env 사용)
     --collection_suffix _E2 # 컬렉션 접미사
     --chunk_level paragraph # 매칭 단위: article(조) 또는 paragraph(항)
+    --vectordb qdrant       # Vector DB 선택 (기본: chroma)
+    --hybrid H1             # Hybrid Search 설정 (Qdrant 전용)
 
 매칭 단위 설명:
 - article: 조 단위 매칭 (법명 + 조번호 + 조제목)
   → 조 단위 청킹(C5, C6)에 적합
 - paragraph: 항 단위 매칭 (법명 + 조번호 + 조제목 + 항번호)
   → 항 단위 청킹(C0~C4)에 적합
+
+Hybrid Search (Qdrant 전용):
+- H0: SPLADE + alpha=0.7 (기본)
+- H1: SPLADE + alpha=0.5 (균형)
+- H3: BM25 + alpha=0.7
+- H4: BM25 + alpha=0.5
+
+예시:
+    # Qdrant + SPLADE + alpha=0.5
+    uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1
+
+    # Qdrant + BM25 + alpha=0.5
+    uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H4
 """
 
 import json
@@ -36,7 +51,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
-from app.rag.config import EmbeddingConfig, load_embedding_config
+from app.rag.config import EmbeddingConfig, HybridConfig, load_embedding_config, load_hybrid_config
 from eval.metrics import RetrievalMetrics, aggregate_metrics
 from eval.r3.common import (
     RESULTS_DIR_RETRIEVAL,
@@ -56,6 +71,7 @@ def evaluate_single_item(
     item: dict,
     top_k: int = 5,
     chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
+    use_hybrid: bool = False,
 ) -> tuple[RetrievalMetrics, float, dict]:
     """단일 평가 항목 평가
 
@@ -64,6 +80,7 @@ def evaluate_single_item(
         item: 평가 항목
         top_k: Top-K 값
         chunk_level: 청킹 단위 (매칭 기준)
+        use_hybrid: Hybrid Search 사용 여부
 
     Returns:
         (metrics, latency_ms, detail_info)
@@ -76,7 +93,10 @@ def evaluate_single_item(
 
     # 검색 실행 (시간 측정)
     start_time = time.perf_counter()
-    results = vector_store.similarity_search(question, k=top_k)
+    if use_hybrid:
+        results = vector_store.hybrid_search(question, k=top_k)
+    else:
+        results = vector_store.similarity_search(question, k=top_k)
     end_time = time.perf_counter()
 
     latency_ms = (end_time - start_time) * 1000
@@ -118,8 +138,13 @@ def run_evaluation(
     collection_suffix: str = "",
     chunk_level: ChunkLevel = ChunkLevel.ARTICLE,
     vectordb_type: str = "chroma",
+    hybrid_config: HybridConfig | None = None,
 ):
     """전체 평가 실행
+
+    검색 모드는 VectorDB 타입에 따라 자동 결정:
+    - Chroma: Dense Search
+    - Qdrant: Hybrid Search (Dense + Sparse)
 
     Args:
         top_k: Top-K 값
@@ -128,6 +153,7 @@ def run_evaluation(
         collection_suffix: 컬렉션 이름에 붙일 접미사
         chunk_level: 청킹 단위 (매칭 기준) - article 또는 paragraph
         vectordb_type: 사용할 Vector DB (chroma 또는 qdrant)
+        hybrid_config: Hybrid Search 설정 (Qdrant 전용)
     """
     print("=" * 60)
     print("R3 법령 RAG 평가 시작")
@@ -145,10 +171,18 @@ def run_evaluation(
         print(f"임베딩: .env 기본값 ({settings.LLM_EMBEDDING_MODEL})")
     print(f"컬렉션: {COLLECTION_LAWS}{collection_suffix}")
     print(f"Vector DB: {vectordb_type.upper()}")
+    if vectordb_type == "qdrant":
+        print("검색 모드: Hybrid (Dense + Sparse)")
+        if hybrid_config:
+            print(f"Hybrid 설정: {hybrid_config.name} (alpha={hybrid_config.alpha})")
+    else:
+        print("검색 모드: Dense")
 
     # Vector Store 초기화
     print("\nVector Store 초기화 중...")
-    vector_store = get_vector_store(embedding_config, collection_suffix, vectordb_type)
+    vector_store = get_vector_store(
+        embedding_config, collection_suffix, vectordb_type, hybrid_config
+    )
 
     # 평가 실행
     print("\n평가 진행 중...\n")
@@ -156,8 +190,13 @@ def run_evaluation(
     all_latencies: list[float] = []
     all_details: list[dict] = []
 
+    # Qdrant: Hybrid Search / Chroma: Dense
+    use_hybrid = (vectordb_type == "qdrant")
+
     for i, item in enumerate(items, 1):
-        metrics, latency, detail = evaluate_single_item(vector_store, item, top_k, chunk_level)
+        metrics, latency, detail = evaluate_single_item(
+            vector_store, item, top_k, chunk_level, use_hybrid=use_hybrid
+        )
         all_metrics.append(metrics)
         all_latencies.append(latency)
         all_details.append(detail)
@@ -232,6 +271,10 @@ def run_evaluation(
             "embedding_provider": embedding_config.provider if embedding_config else "openai",
             "collection": COLLECTION_LAWS + collection_suffix,
             "vectordb": vectordb_type,
+            "hybrid_search": use_hybrid,
+            "hybrid_config": hybrid_config.name if hybrid_config else None,
+            "hybrid_alpha": hybrid_config.alpha if hybrid_config else None,
+            "sparse_model": hybrid_config.sparse_model if hybrid_config else None,
             "num_items": len(items),
         },
         "summary": {
@@ -275,13 +318,25 @@ def main():
         choices=["chroma", "qdrant"],
         help="사용할 Vector DB (기본: chroma)",
     )
-
+    parser.add_argument(
+        "--hybrid",
+        type=str,
+        default=None,
+        help="Hybrid Search 설정 (예: H0, H1). Qdrant 전용",
+    )
     args = parser.parse_args()
 
     # 임베딩 설정 로드 (프리셋 지정 시에만)
     embedding_config = None
     if args.config:
         embedding_config = load_embedding_config(args.config)
+
+    # Hybrid 설정 로드 (Qdrant 사용 시)
+    hybrid_config = None
+    if args.hybrid:
+        hybrid_config = load_hybrid_config(args.hybrid.upper())
+        if args.vectordb != "qdrant":
+            print(f"경고: Hybrid 설정 '{args.hybrid}'은 Qdrant에서만 사용됩니다.")
 
     # 청킹 단위 파싱
     chunk_level = ChunkLevel(args.chunk_level)
@@ -293,6 +348,7 @@ def main():
         collection_suffix=args.collection_suffix,
         chunk_level=chunk_level,
         vectordb_type=args.vectordb,
+        hybrid_config=hybrid_config,
     )
 
 

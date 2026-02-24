@@ -11,9 +11,9 @@ from langchain_chroma import Chroma
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from app.db.export import save_chunks_json
-from app.db.vector import create_embeddings
+from app.db.vector import create_embeddings, create_vector_store, HybridSearchConfig
 from app.rag.chunkers.r3_law import LawChunker
-from app.rag.config import ChunkingConfig, EmbeddingConfig
+from app.rag.config import ChunkingConfig, EmbeddingConfig, HybridConfig
 from app.services.law_api import law_api_client
 
 # =============================================================================
@@ -56,8 +56,13 @@ async def collect_and_store_laws(
     reset: bool = False,
     embedding_config: EmbeddingConfig | None = None,
     vectordb_type: str = "chroma",
+    hybrid_config: HybridConfig | None = None,
 ):
     """법령 데이터 수집 및 Vector DB 저장
+
+    검색 모드는 VectorDB 타입에 따라 자동 결정:
+    - Chroma: Dense Search
+    - Qdrant: Hybrid Search (Dense + Sparse)
 
     Args:
         config: 청킹 설정
@@ -65,6 +70,8 @@ async def collect_and_store_laws(
         collection_suffix: 컬렉션 이름에 붙일 접미사
         reset: 기존 컬렉션 삭제 후 새로 생성 여부
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
+        vectordb_type: Vector DB 타입 (chroma 또는 qdrant)
+        hybrid_config: Hybrid Search 설정 (Qdrant 전용, None이면 기본값 사용)
     """
 
     print("=" * 60)
@@ -103,64 +110,49 @@ async def collect_and_store_laws(
     chunker = LawChunker(config)
 
     collection_name = COLLECTION_LAWS + collection_suffix
+    persist_dir = Path(settings.CHROMA_PERSIST_DIR)
+
+    # HybridConfig → HybridSearchConfig 변환
+    hybrid_search_config = None
+    if hybrid_config and vectordb_type == "qdrant":
+        hybrid_search_config = HybridSearchConfig(
+            enabled=True,
+            alpha=hybrid_config.alpha,
+            sparse_model=hybrid_config.sparse_model,
+        )
 
     print(f"\n[Vector DB] {vectordb_type.upper()} 사용")
-
     if vectordb_type == "qdrant":
-        # Qdrant 사용
-        from langchain_qdrant import QdrantVectorStore
-        from qdrant_client import QdrantClient
-
-        if settings.QDRANT_API_KEY:
-            print(f"  - Qdrant Cloud: {settings.QDRANT_HOST}")
-            qdrant_client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT,
-                api_key=settings.QDRANT_API_KEY,
-                https=True,
-            )
-        else:
-            print(f"  - Qdrant 로컬: {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
-            qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
-
-        # 기존 컬렉션 삭제 (reset 옵션)
-        if reset:
-            print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
-            try:
-                qdrant_client.delete_collection(collection_name=collection_name)
-                print("  ✓ 기존 컬렉션 삭제 완료")
-            except Exception:
-                print("  - 기존 컬렉션 없음 (새로 생성)")
-
-        vectorstore = QdrantVectorStore(
-            client=qdrant_client,
-            collection_name=collection_name,
-            embedding=embeddings,
-        )
-        persist_dir = Path(settings.CHROMA_PERSIST_DIR).parent / "qdrant"
-
+        print("  - 검색 모드: Hybrid (Dense + Sparse)")
+        if hybrid_config:
+            print(f"  - Hybrid 설정: {hybrid_config.name} (alpha={hybrid_config.alpha})")
+            print(f"  - Sparse 모델: {hybrid_config.sparse_model}")
     else:
-        # Chroma 사용 (기본값)
-        persist_dir = Path(settings.CHROMA_PERSIST_DIR)
-        persist_dir.mkdir(parents=True, exist_ok=True)
+        print("  - 검색 모드: Dense")
 
-        # 기존 컬렉션 삭제 (reset 옵션)
-        if reset:
-            import chromadb
-
-            print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
-            client = chromadb.PersistentClient(path=str(persist_dir))
-            try:
-                client.delete_collection(name=collection_name)
-                print("  ✓ 기존 컬렉션 삭제 완료")
-            except ValueError:
-                print("  - 기존 컬렉션 없음 (새로 생성)")
-
-        vectorstore = Chroma(
+    # 기존 컬렉션 삭제 (reset 옵션)
+    if reset:
+        print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
+        temp_store = create_vector_store(
             collection_name=collection_name,
-            embedding_function=embeddings,
-            persist_directory=str(persist_dir),
+            embeddings=embeddings,
+            vectordb_type=vectordb_type,
+            hybrid_config=hybrid_search_config,
         )
+        try:
+            temp_store.delete_collection()
+            print("  ✓ 기존 컬렉션 삭제 완료")
+        except Exception:
+            print("  - 기존 컬렉션 없음 (새로 생성)")
+
+    # VectorStore 생성 (팩토리 함수 사용)
+    # Qdrant: Hybrid Search 자동 활성화 / Chroma: Dense only
+    vectorstore = create_vector_store(
+        collection_name=collection_name,
+        embeddings=embeddings,
+        vectordb_type=vectordb_type,
+        hybrid_config=hybrid_search_config,
+    )
 
     documents = []
     document_ids = []

@@ -8,18 +8,21 @@ from app.rag.config import (
     ChunkingConfig,
     ChunkUnit,
     EmbeddingConfig,
+    HybridConfig,
     MultiGranularity,
     PrefixType,
     list_configs,
     load_chunking_config,
     load_config,
     load_embedding_config,
+    load_hybrid_config,
 )
 
 __all__ = [
     # Config classes
     "ChunkingConfig",
     "EmbeddingConfig",
+    "HybridConfig",
     "ChunkUnit",
     "MultiGranularity",
     "PrefixType",
@@ -27,5 +30,6 @@ __all__ = [
     "load_config",
     "load_chunking_config",
     "load_embedding_config",
+    "load_hybrid_config",
     "list_configs",
 ]

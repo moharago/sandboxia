@@ -1,0 +1,74 @@
+# R3 RAG Hybrid Search 프리셋 (Qdrant 전용)
+# 사용: uv run python scripts/collect_laws.py --config C5 --vectordb qdrant
+#       uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1
+#
+# 참고: Hybrid Search는 Dense + Sparse 검색 결합
+#       alpha: Dense 가중치 (1.0=Dense만, 0.0=Sparse만)
+
+# =============================================================================
+# SPLADE 기반 (학습된 희소 임베딩, 문맥/동의어 처리)
+# =============================================================================
+
+H0:
+  name: H0
+  description: "SPLADE 기본 - Dense 70% + Sparse 30%"
+  sparse_model: naver/splade-cocondenser-ensembledistil
+  alpha: 0.7
+  note: "기본값, 의미 검색 중심"
+
+H1:
+  name: H1
+  description: "SPLADE 균형 - Dense 50% + Sparse 50%"
+  sparse_model: naver/splade-cocondenser-ensembledistil
+  alpha: 0.5
+  note: "Dense/Sparse 균형"
+
+H2:
+  name: H2
+  description: "SPLADE 키워드 중심 - Dense 30% + Sparse 70%"
+  sparse_model: naver/splade-cocondenser-ensembledistil
+  alpha: 0.3
+  note: "법률 용어/조항 번호 매칭 강화"
+
+# =============================================================================
+# BM25 기반 (전통적 키워드 빈도, 정확한 단어 매칭)
+# =============================================================================
+
+H3:
+  name: H3
+  description: "BM25 기본 - Dense 70% + Sparse 30%"
+  sparse_model: Qdrant/bm25
+  alpha: 0.7
+  note: "BM25 + 의미 검색 중심"
+
+H4:
+  name: H4
+  description: "BM25 균형 - Dense 50% + Sparse 50%"
+  sparse_model: Qdrant/bm25
+  alpha: 0.5
+  note: "BM25 + Dense/Sparse 균형"
+
+H5:
+  name: H5
+  description: "BM25 키워드 중심 - Dense 30% + Sparse 70%"
+  sparse_model: Qdrant/bm25
+  alpha: 0.3
+  note: "정확한 법률 용어 매칭 최대화"
+
+# =============================================================================
+# 극단값 테스트 (필요 시)
+# =============================================================================
+
+H6:
+  name: H6
+  description: "Dense Only - Sparse 비활성화"
+  sparse_model: naver/splade-cocondenser-ensembledistil
+  alpha: 1.0
+  note: "Chroma Dense와 비교용 (Qdrant에서 Dense만 사용)"
+
+H7:
+  name: H7
+  description: "SPLADE Only - Dense 비활성화"
+  sparse_model: naver/splade-cocondenser-ensembledistil
+  alpha: 0.0
+  note: "순수 키워드 검색 성능 확인"
