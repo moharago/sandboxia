@@ -23,6 +23,7 @@ from app.agents.eligibility_evaluator.schemas import (
     Regulation,
 )
 from app.agents.track_recommender import run_track_recommender
+from app.core.config import settings
 from app.api.deps import AuthUser, get_auth_user
 from app.api.schemas.agents import StructureResponse
 from app.services.draft_service import (
@@ -417,7 +418,6 @@ async def generate_draft(
 
     # 3. 결과 저장
     application_draft = result.get("application_draft", {})
-    model_name = result.get("model_name", "")
 
     # 4. RAG 결과를 ReferencePanel 형식으로 변환
     similar_cases: list[ApprovalCase] = []
@@ -454,7 +454,6 @@ async def generate_draft(
             project_id=project_id,
             application_draft=application_draft,
             track=track,
-            model_name=model_name,
             similar_cases=[c.model_dump() for c in similar_cases],
             domain_laws=[l.model_dump() for l in domain_laws],
         )
@@ -465,7 +464,7 @@ async def generate_draft(
         project_id=project_id,
         track=track,
         application_draft=application_draft,
-        model_name=model_name,
+        model_name=settings.LLM_MODEL,
         similar_cases=similar_cases,
         domain_laws=domain_laws,
     )
