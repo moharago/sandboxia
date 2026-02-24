@@ -22,6 +22,7 @@ from app.agents.application_drafter.prompts import (
     TEMPORARY_PERMIT_REASON_PROMPT,
 )
 from app.agents.application_drafter.state import ApplicationDrafterState
+from app.core.config import settings
 from app.core.constants import TRACK_NAME_MAP
 from app.core.llm import get_llm
 from app.tools.shared.rag import (

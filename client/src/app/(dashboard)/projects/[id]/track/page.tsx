@@ -232,6 +232,12 @@ export default function TrackPage({ params }: TrackPageProps) {
             return
         }
 
+        // 초안 재생성 시 처음부터 "신청서 초안 생성중..." 로딩 표시
+        if (shouldRegenerateDraft) {
+            setIsRunningDraftAgent(true)
+            draftProgress.subscribe() // SSE 구독 미리 시작
+        }
+
         // 1. 트랙 선택 저장 (projects.track 업데이트)
         selectMutation.mutate(
             { projectId: id, track: apiTrackId },
@@ -242,8 +248,6 @@ export default function TrackPage({ params }: TrackPageProps) {
 
                     // 2. Draft Agent 실행 (재생성 선택한 경우에만)
                     if (shouldRegenerateDraft) {
-                        setIsRunningDraftAgent(true)
-                        draftProgress.subscribe() // SSE 구독 시작
                         try {
                             await draftMutation.mutateAsync({ project_id: id })
                         } catch (error) {
@@ -364,13 +368,13 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && (
+                {isRunningDraftAgent && (
                     <AILoader
-                        message={isRunningDraftAgent ? "신청서 초안 생성중..." : "트랙 저장 중..."}
-                        nodes={isRunningDraftAgent ? draftNodes?.nodes : undefined}
-                        completedNodes={isRunningDraftAgent ? draftProgress.completedNodes : undefined}
-                        currentNodeId={isRunningDraftAgent ? draftProgress.currentNodeId : undefined}
-                        progress={isRunningDraftAgent ? draftProgress.progress : undefined}
+                        message="신청서 초안 생성중..."
+                        nodes={draftNodes?.nodes}
+                        completedNodes={draftProgress.completedNodes}
+                        currentNodeId={draftProgress.currentNodeId}
+                        progress={draftProgress.progress}
                     />
                 )}
                 <div className="container">
