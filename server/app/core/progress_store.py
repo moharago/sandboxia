@@ -197,10 +197,11 @@ class ProgressStore:
         state = self._states.get(project_id)
         if state:
             state.subscribers.append(queue)
-            logger.info(f"[ProgressStore] 구독자 등록 (기존 상태): {project_id}, 총 {len(state.subscribers)}명")
+            logger.info(f"[ProgressStore] 구독자 등록 (기존 상태): {project_id}, 총 {len(state.subscribers)}명, is_complete={state.is_complete}")
 
-            # 현재 상태 즉시 전송 (이미 진행 중인 경우)
-            if state.completed_nodes or state.current_node:
+            # 현재 상태 즉시 전송 (이미 진행 중인 경우, 완료된 상태는 전송하지 않음)
+            # 완료된 상태를 전송하면 새 에이전트 시작 전에 progress=100이 표시됨
+            if not state.is_complete and (state.completed_nodes or state.current_node):
                 current_event = AgentProgressEvent(
                     event_type="node_start" if state.current_node else "node_end",
                     agent_type=state.agent_type,

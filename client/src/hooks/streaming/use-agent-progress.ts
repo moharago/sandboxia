@@ -156,6 +156,10 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
 
                             switch (event.event_type) {
                                 case "agent_start":
+                                    // 새 에이전트 시작 시 상태 초기화
+                                    setProgress(0)
+                                    setCompletedNodes([])
+                                    setCurrentNodeId(null)
                                     setMessage(event.message || "분석을 시작합니다...")
                                     break
 
