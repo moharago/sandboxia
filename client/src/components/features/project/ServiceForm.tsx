@@ -21,7 +21,7 @@ import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type T
 import { useQueryClient } from "@tanstack/react-query"
 import { Download, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 interface ServiceFormProps {
     project: Project
@@ -50,7 +50,12 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     const isAtCurrentStep = currentStep === PAGE_STEP // 현재 단계
 
     // 파일 목록 조회
-    const { data: uploadedFileList } = useProjectFilesQuery(id)
+    const { data: uploadedFileList, refetch: refetchFiles } = useProjectFilesQuery(id)
+
+    // 컴포넌트 마운트 시 파일 목록 refetch
+    useEffect(() => {
+        refetchFiles()
+    }, [refetchFiles])
 
     // 에이전트 노드 목록 조회
     const { data: serviceNodes } = useAgentNodesQuery("service_structurer")
@@ -170,8 +175,11 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     })
 
     // 서비스 분석만 실행 (재분석 - 페이지 이동 없음)
-    const runServiceOnly = () => {
+    const runServiceOnly = async () => {
         setReanalyzeModalOpen(false)
+        // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
+        await projectsApi.updateStatus(id, project.status, PAGE_STEP)
+        await queryClient.invalidateQueries({ queryKey: ["projects"] })
         setRunningAgent("service")
         serviceProgress.subscribe()
         serviceMutation.mutate(getMutationPayload(), {

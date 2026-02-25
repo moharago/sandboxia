@@ -1,10 +1,10 @@
 "use client"
 
-import { use, useEffect, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import { StepNav } from "@/components/features/project/StepNav"
 import { PageLoader } from "@/components/ui/page-loader"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { usePathname, useRouter } from "next/navigation"
+import { use, useEffect, type ReactNode } from "react"
 
 interface ProjectLayoutProps {
     children: ReactNode
@@ -14,7 +14,13 @@ interface ProjectLayoutProps {
 export default function ProjectLayout({ children, params }: ProjectLayoutProps) {
     const { id } = use(params)
     const router = useRouter()
-    const { data: project, isPending, error } = useProjectQuery(id)
+    const pathname = usePathname()
+    const { data: project, isPending, error, refetch } = useProjectQuery(id)
+
+    // StepNav로 페이지 이동 시 프로젝트 데이터 refetch
+    useEffect(() => {
+        refetch()
+    }, [pathname, refetch])
 
     useEffect(() => {
         if (!isPending && (error || !project)) {

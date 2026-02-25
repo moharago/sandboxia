@@ -14,6 +14,7 @@ import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { draftKeys, useDraftQuery } from "@/hooks/queries/use-draft-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
+import { projectsApi } from "@/lib/api/projects"
 import { getStepPageName, getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useWizardStore, type FormType } from "@/stores/wizard-store"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
@@ -53,7 +54,7 @@ export default function DraftPage({ params }: DraftPageProps) {
     const [ragRegulations, setRagRegulations] = useState<Regulation[]>([])
 
     // 프로젝트에서 track 정보 조회
-    const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
+    const { data: project, isLoading: isLoadingProject, refetch: refetchProject } = useProjectQuery(id)
 
     // 현재 단계와 페이지 단계 비교
     const currentStep = project?.current_step ?? 1
@@ -61,7 +62,13 @@ export default function DraftPage({ params }: DraftPageProps) {
     const isBehindCurrentStep = currentStep < PAGE_STEP // 이전 단계가 완료되지 않은 상태
 
     // Supabase에서 초안 데이터 조회
-    const { data: draftData, isLoading: isLoadingDraft } = useDraftQuery(id)
+    const { data: draftData, isLoading: isLoadingDraft, refetch: refetchDraft } = useDraftQuery(id)
+
+    // StepNav로 페이지 진입 시 데이터 refetch
+    useEffect(() => {
+        refetchProject()
+        refetchDraft()
+    }, [refetchProject, refetchDraft])
 
     // 기존 결과 확인 (빈 객체 {}는 false로 처리)
     const hasDraftData = !!draftData?.form_values && typeof draftData.form_values === "object" && Object.keys(draftData.form_values).length > 0
@@ -96,6 +103,9 @@ export default function DraftPage({ params }: DraftPageProps) {
     // AI 초안 생성 실행
     const runDraftGeneration = async () => {
         setRegenerateModalOpen(false)
+        // 재생성 시 current_step을 현재 페이지 단계(4)로 업데이트
+        await projectsApi.updateStatus(id, project?.status ?? 3, PAGE_STEP)
+        await queryClient.invalidateQueries({ queryKey: ["projects"] })
         draftProgress.subscribe() // SSE 구독 시작
         try {
             const result = await draftMutation.mutateAsync({ project_id: id })
