@@ -5,9 +5,9 @@ import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
+import { NoResultsView } from "@/components/ui/no-results-view"
 import { PageLoader } from "@/components/ui/page-loader"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
@@ -23,7 +23,7 @@ import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType, Regulation } from "@/types/api/eligibility"
 import { useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, Scale } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ExternalLink, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
 
@@ -233,6 +233,9 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                 return
             }
             setIsRunningTrackAgent(false)
+            // 트랙 결과 쿼리 invalidate (페이지 이동 전)
+            await queryClient.invalidateQueries({ queryKey: ["track"] })
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             setCurrentStep(3)
             router.push(`/projects/${id}/track`)
@@ -309,6 +312,9 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                             return
                         }
                         setIsRunningTrackAgent(false)
+                        // 트랙 결과 쿼리 invalidate (페이지 이동 전)
+                        await queryClient.invalidateQueries({ queryKey: ["track"] })
+                        await queryClient.invalidateQueries({ queryKey: ["projects"] })
                         markStepComplete(2)
                         setCurrentStep(3)
                         router.push(`/projects/${id}/track`)
@@ -322,20 +328,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
     // current_step < page_step이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
     if (!isLoadingProject && !isLoadingExisting && project && isBehindCurrentStep && !hasExistingResult) {
-        return (
-            <div className="py-6">
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">분석 결과가 없습니다</h2>
-                            <p className="text-muted-foreground">이전 단계를 먼저 완료해주세요.</p>
-                            <Button onClick={() => router.push(getStepPagePath(id, currentStep))}>현재 단계로 이동하기</Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
     }
 
     if (isQueryLoading) {

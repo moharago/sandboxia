@@ -8,6 +8,7 @@ import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
 import { Button } from "@/components/ui/button"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
+import { NoResultsView } from "@/components/ui/no-results-view"
 import { PageLoader } from "@/components/ui/page-loader"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
@@ -15,7 +16,7 @@ import { draftKeys, useDraftQuery } from "@/hooks/queries/use-draft-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { projectsApi } from "@/lib/api/projects"
-import { getStepPageName, getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
+import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useWizardStore, type FormType } from "@/stores/wizard-store"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
@@ -148,12 +149,6 @@ export default function DraftPage({ params }: DraftPageProps) {
         router.push(`/projects/${id}/track`)
     }
 
-    // 이전 단계로 이동 (current_step < PAGE_STEP인 경우)
-    const navigateToPreviousStep = () => {
-        const targetPath = getStepPagePath(id, currentStep)
-        router.push(targetPath)
-    }
-
     // 데이터 로딩 중
     if (isLoadingProject || isLoadingDraft) {
         return <PageLoader className="flex-1" />
@@ -174,21 +169,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // current_step < PAGE_STEP이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
     if ((isBehindCurrentStep && !hasDraftData) || !project?.track) {
-        const targetStepName = getStepPageName(currentStep)
-        return (
-            <div className="py-6">
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">분석 결과가 없습니다</h2>
-                            <p className="text-muted-foreground">이전 단계({targetStepName})를 먼저 완료해주세요.</p>
-                            <Button onClick={navigateToPreviousStep}>{targetStepName} 단계로 이동</Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
     }
 
     // 트랙 불일치 감지: 저장된 초안의 track과 현재 프로젝트의 track이 다른 경우

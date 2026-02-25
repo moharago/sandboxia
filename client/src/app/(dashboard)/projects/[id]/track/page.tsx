@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
+import { NoResultsView } from "@/components/ui/no-results-view"
 import { PageLoader } from "@/components/ui/page-loader"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { tracks } from "@/data"
@@ -248,6 +249,9 @@ export default function TrackPage({ params }: TrackPageProps) {
                     } finally {
                         setIsRunningDraftAgent(false)
                     }
+                    // 초안 결과 쿼리 invalidate (페이지 이동 전)
+                    await queryClient.invalidateQueries({ queryKey: ["draft"] })
+                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
                     markStepComplete(3)
                     setCurrentStep(4)
                     router.push(`/projects/${id}/draft`)
@@ -305,20 +309,7 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // current_step < page_step이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
     if (isBehindCurrentStep && !hasExistingResult) {
-        return (
-            <div className="py-6">
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">분석 결과가 없습니다</h2>
-                            <p className="text-muted-foreground">이전 단계를 먼저 완료해주세요.</p>
-                            <Button onClick={() => router.push(getStepPagePath(id, currentStep))}>현재 단계로 이동하기</Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
     }
 
     // AI 분석 중
@@ -354,20 +345,7 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // 결과 없음
     if (!analysisResult) {
-        return (
-            <div className="py-6">
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">트랙 추천 결과가 없습니다</h2>
-                            <p className="text-muted-foreground">이전 단계(시장출시 진단)를 먼저 완료해주세요.</p>
-                            <Button onClick={() => router.push(`/projects/${id}/eligibility`)}>이전 단계로 돌아가기</Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
     }
 
     return (
