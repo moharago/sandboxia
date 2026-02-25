@@ -317,10 +317,14 @@ async def recommend_track(
             similar_cases=similar_cases,
             domain_constraints=domain_constraints,
         )
-        update_project_after_track(project_id)
     except Exception as e:
         logger.warning("track_results 저장 실패: %s", str(e))
         # 저장 실패해도 응답은 반환
+
+    try:
+        update_project_after_track(project_id)
+    except Exception as e:
+        logger.error("update_project_after_track 실패 (project_id=%s): %s", project_id, str(e))
 
     return TrackRecommendResponse(
         project_id=project_id,
@@ -460,9 +464,13 @@ async def generate_draft(
             similar_cases=[c.model_dump() for c in similar_cases],
             domain_laws=[l.model_dump() for l in domain_laws],
         )
-        update_project_after_draft(project_id)
     except Exception as e:
         logger.warning("application_draft 저장 실패: %s", str(e))
+
+    try:
+        update_project_after_draft(project_id)
+    except Exception as e:
+        logger.error("update_project_after_draft 실패 (project_id=%s): %s", project_id, str(e))
 
     return DraftGenerateResponse(
         project_id=project_id,

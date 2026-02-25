@@ -247,6 +247,16 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                     }
                 }
             }
+
+            // SSE 스트림이 agent_end/error 이벤트 없이 종료된 경우 cleanup
+            // (done=true로 루프 탈출했으나 return되지 않은 경우)
+            console.log("[SSE] 스트림 종료 (done=true)")
+            setStatus("idle")
+            setCurrentNodeId(null)
+            setMessage(null)
+            if (useGlobalLoader) {
+                useUIStore.getState().hideGlobalAILoader()
+            }
         } catch (err) {
             if (err instanceof Error && err.name === "AbortError") {
                 // 사용자가 중단함

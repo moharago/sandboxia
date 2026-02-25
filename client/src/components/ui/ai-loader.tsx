@@ -7,7 +7,7 @@ import { Check, Circle, Loader2, Sparkles } from "lucide-react"
 interface AILoaderProps {
     /**
      * 페이지별 상세 메시지 (예: "트랙을 추천 중입니다...")
-     * 컴포넌트가 자동으로 "AI " 접두사를 추가하므로 메시지에 포함하지 마세요.
+     * 컴포넌트는 메시지를 그대로 렌더링합니다 (자동으로 접두사를 추가하지 않음).
      */
     message?: string
     /**
@@ -35,7 +35,13 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
     const runningNodeId = currentNodeId ?? (hasNodes ? nodes.find((n) => !completedNodes.includes(n.id))?.id : null)
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-sm"
+            role="status"
+            aria-live="polite"
+            aria-busy={true}
+            aria-label={message || "AI 분석 중"}
+        >
             <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-8 shadow-lg border border-gray-200 min-w-[320px]">
                 {/* 스피너 + 아이콘 */}
                 {/* <div className="relative">

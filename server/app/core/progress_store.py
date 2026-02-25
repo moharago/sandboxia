@@ -10,7 +10,6 @@
 """
 
 import asyncio
-import json
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
@@ -202,11 +201,12 @@ class ProgressStore:
             # 현재 상태 즉시 전송 (이미 진행 중인 경우, 완료된 상태는 전송하지 않음)
             # 완료된 상태를 전송하면 새 에이전트 시작 전에 progress=100이 표시됨
             if not state.is_complete and (state.completed_nodes or state.current_node):
+                fallback_node_id = state.current_node or (state.completed_nodes[-1] if state.completed_nodes else "")
                 current_event = AgentProgressEvent(
                     event_type="node_start" if state.current_node else "node_end",
                     agent_type=state.agent_type,
                     node_id=state.current_node or (state.completed_nodes[-1] if state.completed_nodes else None),
-                    node_label=get_node_label(state.agent_type, state.current_node or ""),
+                    node_label=get_node_label(state.agent_type, fallback_node_id),
                     progress=state.progress,
                     message=state.message,
                     completed_nodes=state.completed_nodes.copy(),

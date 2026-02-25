@@ -278,6 +278,12 @@ export default function TrackPage({ params }: TrackPageProps) {
                     // 전역 로더는 다음 페이지에서 숨김
                     router.push(`/projects/${id}/draft`)
                 },
+                onError: (error) => {
+                    console.error("트랙 저장 실패:", error)
+                    hideGlobalAILoader()
+                    setIsRunningDraftAgent(false)
+                    draftProgress.unsubscribe()
+                },
             }
         )
     }

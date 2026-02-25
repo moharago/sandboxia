@@ -233,36 +233,37 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             })
         }
 
-        // 사용자 최종 선택 저장
-        const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
-        await eligibilityApi.updateFinalDecision(id, finalLabel)
-        await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+        try {
+            // 사용자 최종 선택 저장
+            const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
+            await eligibilityApi.updateFinalDecision(id, finalLabel)
+            await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
-        if (selectedDecision === "direct") {
-            await projectsApi.updateStatus(id, 4, 2)
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
-            markStepComplete(2)
-            router.push("/dashboard")
-        } else {
-            try {
+            if (selectedDecision === "direct") {
+                await projectsApi.updateStatus(id, 4, 2)
+                await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                markStepComplete(2)
+                hideGlobalAILoader()
+                router.push("/dashboard")
+            } else {
                 trackProgress.subscribe()
                 await agentsApi.recommendTrack({ project_id: id })
-            } catch (error) {
-                console.error("트랙 추천 실패:", error)
-                hideGlobalAILoader()
-                setErrorMessage("트랙 추천 중 오류가 발생했습니다.")
-                setErrorModalOpen(true)
-                setIsRunningTrackAgent(false)
-                return
+                // 트랙 결과 쿼리 invalidate (페이지 이동 전)
+                await queryClient.invalidateQueries({ queryKey: ["track"] })
+                await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                markStepComplete(2)
+                setCurrentStep(3)
+                // 전역 로더는 다음 페이지에서 숨김
+                router.push(`/projects/${id}/track`)
             }
+        } catch (error) {
+            console.error("트랙 추천/전환 실패:", error)
+            const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+            setErrorMessage(`처리 중 오류가 발생했습니다: ${message}`)
+            setErrorModalOpen(true)
+        } finally {
+            hideGlobalAILoader()
             setIsRunningTrackAgent(false)
-            // 트랙 결과 쿼리 invalidate (페이지 이동 전)
-            await queryClient.invalidateQueries({ queryKey: ["track"] })
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
-            markStepComplete(2)
-            setCurrentStep(3)
-            // 전역 로더는 다음 페이지에서 숨김
-            router.push(`/projects/${id}/track`)
         }
     }
 

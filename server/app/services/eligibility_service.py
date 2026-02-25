@@ -118,9 +118,12 @@ def update_project_after_eligibility(project_id: str) -> dict | None:
         .execute()
     )
 
-    logger.info(f"[Eligibility] 프로젝트 {project_id}: current_step → 2")
-
-    return result.data[0] if result.data else None
+    if result.data:
+        logger.info(f"[Eligibility] 프로젝트 {project_id}: current_step → 2")
+        return result.data[0]
+    else:
+        logger.warning(f"[Eligibility] 프로젝트 {project_id} 업데이트 실패: 데이터 없음")
+        return None
 
 
 def update_final_eligibility_label(

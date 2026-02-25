@@ -88,8 +88,12 @@ def get_node_label(agent_type: str, node_id: str) -> str:
 
 
 def calculate_progress(agent_type: str, completed_nodes: list[str]) -> int:
-    """완료된 노드 수 기반 진행률 계산"""
-    total_nodes = len(AGENT_NODES.get(agent_type, []))
+    """완료된 노드 수 기반 진행률 계산 (중복 제거 및 유효 노드만 계산)"""
+    agent_node_ids = {node.id for node in AGENT_NODES.get(agent_type, [])}
+    total_nodes = len(agent_node_ids)
     if total_nodes == 0:
         return 0
-    return int((len(completed_nodes) / total_nodes) * 100)
+    # 중복 제거 및 유효한 노드만 카운트
+    valid_completed = set(completed_nodes) & agent_node_ids
+    progress = int((len(valid_completed) / total_nodes) * 100)
+    return min(progress, 100)  # 최대 100으로 제한

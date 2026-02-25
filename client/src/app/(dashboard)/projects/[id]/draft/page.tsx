@@ -132,11 +132,17 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 작성 완료 버튼 클릭 → 바로 대시보드로 이동
     const handleCompleteClick = async () => {
-        // 작성 완료 시 status: 3으로 업데이트
-        await projectsApi.updateStatus(id, 3, 4)
-        await queryClient.invalidateQueries({ queryKey: ["projects"] })
-        markStepComplete(4)
-        router.push("/dashboard")
+        try {
+            // 작성 완료 시 status: 3으로 업데이트
+            await projectsApi.updateStatus(id, 3, 4)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            markStepComplete(4)
+            router.push("/dashboard")
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+            setErrorMessage(`작성 완료 처리에 실패했습니다: ${message}`)
+            setErrorModalOpen(true)
+        }
     }
 
     // RAG 결과: state 우선, 없으면 DB에서 읽기

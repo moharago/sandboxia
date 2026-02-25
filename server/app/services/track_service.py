@@ -142,6 +142,9 @@ def update_project_after_track(project_id: str) -> dict | None:
         .execute()
     )
 
-    logger.info(f"[Track] 프로젝트 {project_id}: current_step → 3")
-
-    return result.data[0] if result.data else None
+    if result.data:
+        logger.info(f"[Track] 프로젝트 {project_id}: current_step → 3")
+        return result.data[0]
+    else:
+        logger.warning(f"[Track] 프로젝트 {project_id} 업데이트 실패: 데이터 없음")
+        return None

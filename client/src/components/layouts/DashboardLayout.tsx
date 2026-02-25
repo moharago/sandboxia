@@ -16,7 +16,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname()
     const mainRef = useRef<HTMLElement>(null)
-    const { globalAILoader } = useUIStore()
+    const globalAILoader = useUIStore((state) => state.globalAILoader)
 
     // 페이지 전환 시 스크롤 초기화
     useEffect(() => {

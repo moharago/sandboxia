@@ -49,8 +49,9 @@ export function getStepPageName(currentStep: number): string {
         case 3:
             return "트랙 선택"
         case 4:
-        case 5:
             return "신청서 작성"
+        case 5:
+            return "완료"
         default:
             return "서비스 분석"
     }

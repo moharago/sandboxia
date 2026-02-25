@@ -113,7 +113,6 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             hideGlobalAILoader()
             setErrorMessage(`시장출시 진단 실패: ${error.message}`)
             setErrorModalOpen(true)
-            router.push(`/projects/${id}/eligibility`)
         },
     })
 
@@ -194,18 +193,32 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     // 서비스 분석만 실행 (재분석 - 페이지 이동 없음)
     const runServiceOnly = async () => {
         setReanalyzeModalOpen(false)
-        // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
-        await projectsApi.updateStatus(id, project.status, PAGE_STEP)
-        await queryClient.invalidateQueries({ queryKey: ["projects"] })
-        setRunningAgent("service")
-        serviceProgress.subscribe()
-        serviceMutation.mutate(getMutationPayload(), {
-            onSuccess: () => {
-                setRunningAgent(null)
-                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
-                queryClient.invalidateQueries({ queryKey: ["projects"] })
-            },
-        })
+        try {
+            // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
+            await projectsApi.updateStatus(id, project.status, PAGE_STEP)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            setRunningAgent("service")
+            serviceProgress.subscribe()
+            serviceMutation.mutate(getMutationPayload(), {
+                onSuccess: () => {
+                    setRunningAgent(null)
+                    hideGlobalAILoader() // 재분석 완료 시 로더 숨김
+                    queryClient.invalidateQueries({ queryKey: ["projects"] })
+                },
+                onError: () => {
+                    setRunningAgent(null)
+                    hideGlobalAILoader()
+                    queryClient.invalidateQueries({ queryKey: ["projects"] })
+                },
+            })
+        } catch (error) {
+            setRunningAgent(null)
+            hideGlobalAILoader()
+            const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+            setErrorMessage(`서비스 분석 준비 중 오류가 발생했습니다: ${message}`)
+            setErrorModalOpen(true)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+        }
     }
 
     // 서비스 + eligibility 순차 실행 후 이동
