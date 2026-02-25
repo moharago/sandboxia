@@ -3,6 +3,7 @@
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { FileUpload } from "@/components/ui/file-upload"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,12 +12,13 @@ import formData from "@/data/formData.json"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useServiceMutation } from "@/hooks/mutations/use-service-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
-import { useEligibilityQuery } from "@/hooks/queries/use-eligibility-query"
 import { useProjectFilesQuery } from "@/hooks/queries/use-projects-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { projectsApi, type ProjectFile } from "@/lib/api/projects"
+import { PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useUIStore } from "@/stores/ui-store"
 import { DEFAULT_TRACK, FORM_ID_TO_TRACK, TRACK_TO_FORM_ID, type Project, type Track } from "@/types/data/project"
+import { useQueryClient } from "@tanstack/react-query"
 import { Download, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -31,64 +33,71 @@ interface FormState {
     serviceName: string
     description: string
     memo: string
-    /** 선택된 트랙 (counseling/quick_check/temp_permit/demo) */
     selectedTrack: Track
     uploadedFiles: Record<string, File | null>
 }
 
+const PAGE_STEP = PAGE_STEPS.service // 1
+
 export function ServiceForm({ project, id }: ServiceFormProps) {
     const router = useRouter()
+    const queryClient = useQueryClient()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
 
-    // 이미 분석 완료된 경우 (current_step >= 2) 업로드된 파일 목록 조회
-    const isAnalysisCompleted = project.current_step >= 2
+    // 현재 단계와 페이지 단계 비교
+    const currentStep = project.current_step
+    const isAheadOfCurrentStep = currentStep > PAGE_STEP // 이미 분석 완료된 상태
+    const isAtCurrentStep = currentStep === PAGE_STEP // 현재 단계
+
+    // 파일 목록 조회
     const { data: uploadedFileList } = useProjectFilesQuery(id)
 
-    // 기존 eligibility 결과 조회 (재분석 확인용)
-    const { data: existingEligibilityResult } = useEligibilityQuery(id)
-    const hasExistingEligibilityResult = existingEligibilityResult?.evidence_data && Object.keys(existingEligibilityResult.evidence_data).length > 0
-
-    // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
+    // 에이전트 노드 목록 조회
     const { data: serviceNodes } = useAgentNodesQuery("service_structurer")
     const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
 
     // SSE 진행 상태 구독
-    const serviceProgress = useAgentProgress({
-        projectId: id,
-    })
-    const eligibilityProgress = useAgentProgress({
-        projectId: id,
-    })
+    const serviceProgress = useAgentProgress({ projectId: id })
+    const eligibilityProgress = useAgentProgress({ projectId: id })
 
-    // Step 2: 대상성 분석 mutation
-    const eligibilityMutation = useEligibilityMutation({
-        onSuccess: () => {
-            // Step 1 + Step 2 모두 완료 → eligibility 페이지로 이동
-            router.push(`/projects/${id}/eligibility`)
-        },
-        onError: (error) => {
-            // Step 2 실패해도 페이지 이동 (Step 1은 완료됨)
-            alert(`대상성 분석 실패: ${error.message}\n\nStep 2 페이지에서 다시 시도해주세요.`)
-            router.push(`/projects/${id}/eligibility`)
-        },
-    })
+    // 모달 상태
+    const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
+    const [nextStepModalOpen, setNextStepModalOpen] = useState(false)
+    const [errorModalOpen, setErrorModalOpen] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
 
-    // Step 1: 서비스 구조화 mutation
+    // 에이전트 실행 상태 (어떤 에이전트 로딩 화면 보여줄지)
+    const [runningAgent, setRunningAgent] = useState<"service" | "eligibility" | null>(null)
+
+    // Mutations
     const serviceMutation = useServiceMutation({
         onSuccess: () => {
-            // Step 1 완료 → Step 2 (대상성 분석) 자동 실행
-            eligibilityProgress.subscribe() // SSE 구독 시작 (대상성 분석)
-            eligibilityMutation.mutate({ project_id: id })
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
         },
         onError: (error) => {
-            alert(error.message || "서버 오류가 발생했습니다.")
+            setRunningAgent(null)
+            setErrorMessage(error.message || "서비스 분석 중 오류가 발생했습니다.")
+            setErrorModalOpen(true)
         },
     })
 
-    // 저장된 트랙 (DB 값 그대로 사용, 없으면 counseling=상담신청)
-    const savedTrack: Track = project.track ?? "counseling"
+    const eligibilityMutation = useEligibilityMutation({
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
+            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+            setRunningAgent(null)
+            router.push(`/projects/${id}/eligibility`)
+        },
+        onError: (error) => {
+            setRunningAgent(null)
+            setErrorMessage(`시장출시 진단 실패: ${error.message}`)
+            setErrorModalOpen(true)
+            router.push(`/projects/${id}/eligibility`)
+        },
+    })
 
-    // projectData로 초기값 설정 (key로 리마운트되므로 useEffect 불필요)
+    // 폼 상태
+    const savedTrack: Track = project.track ?? "counseling"
     const [formState, setFormState] = useState<FormState>({
         companyName: project.company_name,
         serviceName: project.service_name || "",
@@ -103,7 +112,6 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     }
 
     const { companyName, serviceName, description, memo, selectedTrack, uploadedFiles } = formState
-    // selectedTrack을 formData의 id(문자열)로 변환하여 찾기
     const selectedFormId = TRACK_TO_FORM_ID[selectedTrack]
     const selectedForm = formData.find((f) => f.id === selectedFormId)
 
@@ -124,77 +132,158 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             link.click()
             document.body.removeChild(link)
         } catch (error) {
-            alert(`파일 다운로드에 실패했습니다.\n${error instanceof Error ? error.message : ""}`)
+            setErrorMessage(`파일 다운로드에 실패했습니다.\n${error instanceof Error ? error.message : ""}`)
+            setErrorModalOpen(true)
         }
     }
 
     const isFormValid = (() => {
-        if (!companyName.trim() || !serviceName.trim() || !description.trim()) {
-            return false
-        }
-        // 신청서 업로드 폼에 파일이 업로드되어야 유효
+        if (!companyName.trim() || !serviceName.trim() || !description.trim()) return false
         if (selectedForm) {
             for (const app of selectedForm.application) {
-                if (!uploadedFiles[app.id]) {
-                    return false
-                }
+                if (!uploadedFiles[app.id]) return false
             }
         }
         return true
     })()
 
-    const handleSave = () => {
-        // 기존 대상성 분석 결과가 있으면 재분석 확인
-        if (hasExistingEligibilityResult) {
-            const confirmed = window.confirm(
-                "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
-            )
-            if (!confirmed) return
-        }
-
+    const getFiles = (): File[] => {
         const files: File[] = []
         if (selectedForm) {
             for (const app of selectedForm.application) {
                 const file = uploadedFiles[app.id]
-                if (file) {
-                    files.push(file)
-                }
+                if (file) files.push(file)
             }
         }
+        return files
+    }
 
-        // SSE 구독 시작 (서비스 분석)
+    const getMutationPayload = () => ({
+        sessionId: id,
+        requestedTrack: selectedTrack,
+        consultantInput: {
+            company_name: companyName,
+            service_name: serviceName,
+            service_description: description,
+            additional_memo: memo,
+        },
+        files: getFiles(),
+    })
+
+    // 서비스 분석만 실행 (재분석 - 페이지 이동 없음)
+    const runServiceOnly = () => {
+        setReanalyzeModalOpen(false)
+        setRunningAgent("service")
         serviceProgress.subscribe()
-
-        serviceMutation.mutate({
-            sessionId: id,
-            requestedTrack: selectedTrack,
-            consultantInput: {
-                company_name: companyName,
-                service_name: serviceName,
-                service_description: description,
-                additional_memo: memo,
+        serviceMutation.mutate(getMutationPayload(), {
+            onSuccess: () => {
+                setRunningAgent(null)
+                queryClient.invalidateQueries({ queryKey: ["projects"] })
             },
-            files,
         })
     }
 
-    const isLoading = serviceMutation.isPending || eligibilityMutation.isPending
+    // 서비스 + eligibility 순차 실행 후 이동
+    const runServiceAndEligibility = () => {
+        setRunningAgent("service")
+        serviceProgress.subscribe()
+        serviceMutation.mutate(getMutationPayload(), {
+            onSuccess: () => {
+                setRunningAgent("eligibility")
+                eligibilityProgress.subscribe()
+                eligibilityMutation.mutate({ project_id: id })
+            },
+        })
+    }
 
-    // 현재 실행 중인 에이전트에 따라 노드 정보 선택
-    const currentNodes = serviceMutation.isPending ? serviceNodes?.nodes : eligibilityNodes?.nodes
-    const currentProgress = serviceMutation.isPending ? serviceProgress : eligibilityProgress
+    // eligibility만 실행 후 이동
+    const runEligibilityAndNavigate = () => {
+        setNextStepModalOpen(false)
+        setRunningAgent("eligibility")
+        eligibilityProgress.subscribe()
+        eligibilityMutation.mutate({ project_id: id })
+    }
+
+    // 다음 단계 버튼 클릭
+    const handleNext = () => {
+        if (isAheadOfCurrentStep) {
+            // 이미 분석 완료 상태 - 다음 단계에 결과가 있으므로 확인 모달
+            setNextStepModalOpen(true)
+        } else {
+            // 현재 단계 - 서비스 + eligibility 순차 실행
+            runServiceAndEligibility()
+        }
+    }
+
+    // 재분석 버튼 클릭
+    const handleReanalyze = () => {
+        setReanalyzeModalOpen(true)
+    }
+
+    // 다음 단계로 이동만 (분석 없이)
+    const navigateToNext = () => {
+        setNextStepModalOpen(false)
+        router.push(`/projects/${id}/eligibility`)
+    }
+
+    const isLoading = serviceMutation.isPending || eligibilityMutation.isPending
+    const currentNodes = runningAgent === "service" ? serviceNodes?.nodes : eligibilityNodes?.nodes
+    const currentProgress = runningAgent === "service" ? serviceProgress : eligibilityProgress
 
     return (
         <div className="py-6">
+            {/* AI 로더 */}
             {isLoading && (
                 <AILoader
-                    message={serviceMutation.isPending ? "서비스 정보 분석 중..." : "서비스 규제 현황 분석 중..."}
+                    message={runningAgent === "service" ? "서비스 정보 분석 중..." : "서비스 규제 현황 분석 중..."}
                     nodes={currentNodes}
                     completedNodes={currentProgress.completedNodes}
                     currentNodeId={currentProgress.currentNodeId}
                     progress={currentProgress.progress}
                 />
             )}
+
+            {/* 재분석 확인 모달 */}
+            <ConfirmModal
+                isOpen={reanalyzeModalOpen}
+                onClose={() => setReanalyzeModalOpen(false)}
+                onConfirm={runServiceOnly}
+                title="서비스 분석 재실행"
+                description={[
+                    "이미 서비스 분석이 완료된 상태입니다.",
+                    "다시 분석하시겠습니까?",
+                    "기존 분석 결과는 새로운 결과로 대체되며, 이후 단계(시장출시 진단, 트랙 선택 등)도 재분석이 필요합니다.",
+                ]}
+                confirmLabel="분석 실행"
+                cancelLabel="취소"
+            />
+
+            {/* 다음 단계 확인 모달 */}
+            <ConfirmModal
+                isOpen={nextStepModalOpen}
+                onClose={navigateToNext}
+                onConfirm={runEligibilityAndNavigate}
+                title="다음 단계 분석"
+                description={[
+                    "다음 단계(시장출시 진단)에 이미 분석 결과가 있습니다.",
+                    "재분석하시겠습니까?",
+                    "기존 결과는 새로운 결과로 대체될 수 있습니다.",
+                ]}
+                confirmLabel="분석 실행"
+                cancelLabel="기존 결과 유지"
+            />
+
+            {/* 에러 모달 */}
+            <ConfirmModal
+                isOpen={errorModalOpen}
+                onClose={() => setErrorModalOpen(false)}
+                onConfirm={() => setErrorModalOpen(false)}
+                title="오류 발생"
+                description={errorMessage}
+                confirmLabel="확인"
+                cancelLabel="닫기"
+            />
+
             <div className="container mx-auto px-4 space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">기업 정보 입력</h1>
@@ -300,7 +389,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
                         </CardContent>
                     )}
 
-                    {/* 파일 업로드 UI (항상 표시) */}
+                    {/* 파일 업로드 UI */}
                     {selectedForm && (
                         <CardContent className="space-y-4">
                             {selectedForm.application.map((app) => (
@@ -316,11 +405,12 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
                 </Card>
 
                 <WizardNavigation
-                    onAnalyze={handleSave}
-                    onNext={() => router.push(`/projects/${id}/eligibility`)}
+                    onAnalyze={isAtCurrentStep ? runServiceAndEligibility : undefined}
+                    onReanalyze={isAheadOfCurrentStep ? handleReanalyze : undefined}
+                    onNext={isAheadOfCurrentStep ? handleNext : undefined}
                     analyzeLabel="AI 분석 및 다음 단계"
                     nextLabel="다음 단계"
-                    isAnalyzed={isAnalysisCompleted || devIsAnalyzed}
+                    isAnalyzed={isAheadOfCurrentStep || devIsAnalyzed}
                     hasChanges={devHasChanges}
                     isLoading={isLoading}
                     isAnalyzeDisabled={!isFormValid}

@@ -5,7 +5,9 @@ import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { PageLoader } from "@/components/ui/page-loader"
 import { useEligibilityMutation } from "@/hooks/mutations/use-eligibility-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
@@ -16,13 +18,14 @@ import { agentsApi } from "@/lib/api/agents"
 import { eligibilityApi } from "@/lib/api/eligibility"
 import { projectsApi } from "@/lib/api/projects"
 import { cn } from "@/lib/utils/cn"
+import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType, Regulation } from "@/types/api/eligibility"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, Scale } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useRef, useState } from "react"
+import { use, useEffect, useState } from "react"
 
 type ReasonCategory = "law" | "regulation" | "case"
 
@@ -35,25 +38,15 @@ interface AnalysisReason {
 }
 
 const CATEGORY_CONFIG: Record<ReasonCategory, { label: string; badgeClass: string }> = {
-    regulation: {
-        label: "규제 기준",
-        badgeClass: "bg-blue-100 text-blue-700 border-blue-300",
-    },
-    case: {
-        label: "사례 기준",
-        badgeClass: "bg-green-100 text-green-700 border-green-300",
-    },
-    law: {
-        label: "법령 기준",
-        badgeClass: "bg-purple-100 text-purple-700 border-purple-300",
-    },
+    regulation: { label: "규제 기준", badgeClass: "bg-blue-100 text-blue-700 border-blue-300" },
+    case: { label: "사례 기준", badgeClass: "bg-green-100 text-green-700 border-green-300" },
+    law: { label: "법령 기준", badgeClass: "bg-purple-100 text-purple-700 border-purple-300" },
 }
 
-interface MarketPageProps {
+interface EligibilityPageProps {
     params: Promise<{ id: string }>
 }
 
-// API 응답을 UI 데이터로 변환
 interface AIAnalysisData {
     recommendation: "direct" | "sandbox"
     confidence: number
@@ -62,7 +55,6 @@ interface AIAnalysisData {
     directLaunchRisks: string[]
 }
 
-// JudgmentType을 ReasonCategory로 변환
 function mapJudgmentTypeToCategory(type: JudgmentType): ReasonCategory {
     switch (type) {
         case "규제 기준":
@@ -76,15 +68,9 @@ function mapJudgmentTypeToCategory(type: JudgmentType): ReasonCategory {
     }
 }
 
-// API 응답 또는 DB 레코드를 UI 데이터로 변환
 function mapResponseToAnalysisData(response: EligibilityResponse | EligibilityResult): AIAnalysisData {
-    // eligibility_label → recommendation 변환
     const recommendation = response.eligibility_label === "not_required" ? "direct" : "sandbox"
-
-    // confidence_score (0-1) → confidence (0-100) 변환
     const confidence = Math.round(response.confidence_score * 100)
-
-    // judgment_summary → reasons 변환
     const reasons: AnalysisReason[] = response.evidence_data.judgment_summary.map((item) => ({
         category: mapJudgmentTypeToCategory(item.type),
         title: item.title,
@@ -92,20 +78,10 @@ function mapResponseToAnalysisData(response: EligibilityResponse | EligibilityRe
         source: item.source,
         sourceUrl: item.source_url ?? null,
     }))
-
-    // direct_launch_risks → directLaunchRisks 변환 (description만 추출)
     const directLaunchRisks = response.direct_launch_risks.map((risk) => `${risk.title}: ${risk.description}`)
-
-    return {
-        recommendation,
-        confidence,
-        summary: response.result_summary,
-        reasons,
-        directLaunchRisks,
-    }
+    return { recommendation, confidence, summary: response.result_summary, reasons, directLaunchRisks }
 }
 
-// 분석 전 기본 UI 데이터
 const defaultAnalysisData: AIAnalysisData = {
     recommendation: "sandbox",
     confidence: 0,
@@ -115,8 +91,9 @@ const defaultAnalysisData: AIAnalysisData = {
 }
 
 type DecisionType = "direct" | "sandbox"
+const PAGE_STEP = PAGE_STEPS.eligibility // 2
 
-export default function EligibilityPage({ params }: MarketPageProps) {
+export default function EligibilityPage({ params }: EligibilityPageProps) {
     const { id } = use(params)
     const router = useRouter()
     const queryClient = useQueryClient()
@@ -124,56 +101,40 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     const { setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
 
-    // 프로젝트 정보 조회 (current_step 확인용)
+    // 프로젝트 정보 조회
     const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
-
-    // 기존 eligibility 결과 조회
     const { data: existingResult, isLoading: isLoadingExisting } = useEligibilityQuery(id)
 
-    // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
+    // 에이전트 노드 목록 조회
     const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
     const { data: trackNodes } = useAgentNodesQuery("track_recommender")
 
-    // SSE 진행 상태 구독
-    const eligibilityProgress = useAgentProgress({
-        projectId: id,
-        onComplete: () => {
-            // 완료 시 캐시 갱신
-            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
-        },
-    })
-    const trackProgress = useAgentProgress({
-        projectId: id,
-        onComplete: () => {
-            queryClient.invalidateQueries({ queryKey: ["track"] })
-        },
-    })
+    // SSE 진행 상태
+    const eligibilityProgress = useAgentProgress({ projectId: id })
+    const trackProgress = useAgentProgress({ projectId: id })
+
+    // 현재 단계와 페이지 단계 비교
+    const currentStep = project?.current_step ?? 1
+    const isAheadOfCurrentStep = currentStep > PAGE_STEP
+    const isAtCurrentStep = currentStep === PAGE_STEP
+    const isBehindCurrentStep = currentStep < PAGE_STEP
+
+    // 기존 결과 확인
+    const hasExistingResult = existingResult?.evidence_data && Object.keys(existingResult.evidence_data).length > 0
 
     // 트랙 추천 결과 유무 (재분석 경고용)
     const [hasTrackResult, setHasTrackResult] = useState(false)
     useEffect(() => {
-        if (id) {
-            eligibilityApi.hasTrackResult(id).then(setHasTrackResult)
-        }
+        if (id) eligibilityApi.hasTrackResult(id).then(setHasTrackResult)
     }, [id])
 
-    // 기존 결과가 있는지 확인 (evidence_data가 있고 비어있지 않은 경우)
-    const hasExistingResult = existingResult?.evidence_data && Object.keys(existingResult.evidence_data).length > 0
+    // 모달 상태
+    const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
+    const [nextStepModalOpen, setNextStepModalOpen] = useState(false)
+    const [errorModalOpen, setErrorModalOpen] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
 
-    // Step 1 완료 여부 확인 (current_step >= 2이면 Step 1 완료)
-    const isStep1Completed = project && project.current_step >= 2
-
-    // Step 1 미완료 시 alert 후 리다이렉트 (Strict Mode 중복 방지)
-    const hasRedirected = useRef(false)
-    // useEffect(() => {
-    //     if (!isLoadingProject && project && !isStep1Completed && !hasRedirected.current) {
-    //         hasRedirected.current = true
-    //         alert("서비스 분석을 먼저 완료해주세요.")
-    //         router.push(`/projects/${id}/service`)
-    //     }
-    // }, [isLoadingProject, project, isStep1Completed, router, id])
-
-    // API mutation hook
+    // Mutation
     const eligibilityMutation = useEligibilityMutation({
         onSuccess: (data) => {
             const mappedData = mapResponseToAnalysisData(data)
@@ -182,9 +143,11 @@ export default function EligibilityPage({ params }: MarketPageProps) {
             setIsAnalyzed(true)
             setApprovalCases(data.evidence_data.approval_cases ?? [])
             setRegulations(data.evidence_data.regulations ?? [])
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
         },
         onError: (error) => {
-            alert(`분석 실패: ${error.message}`)
+            setErrorMessage(`분석 실패: ${error.message}`)
+            setErrorModalOpen(true)
         },
     })
 
@@ -194,31 +157,23 @@ export default function EligibilityPage({ params }: MarketPageProps) {
     const [isAnalyzed, setIsAnalyzed] = useState(false)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isRunningTrackAgent, setIsRunningTrackAgent] = useState(false)
-
-    // 오른쪽 패널용 데이터
     const [approvalCases, setApprovalCases] = useState<ApprovalCase[]>()
     const [regulations, setRegulations] = useState<Regulation[]>()
 
-    // 기존 결과가 로드되면 화면에 표시
+    // 기존 결과 로드
     useEffect(() => {
         if (existingResult && hasExistingResult) {
             const mappedData = mapResponseToAnalysisData(existingResult)
             setAnalysisData(mappedData)
             setApprovalCases(existingResult.evidence_data.approval_cases ?? [])
             setRegulations(existingResult.evidence_data.regulations ?? [])
-
-            // 사용자가 이미 선택한 값이 있으면 그걸 사용, 없으면 AI 추천값 사용
             if (existingResult.final_eligibility_label) {
-                // final_eligibility_label: "not_required" → "direct", "required" → "sandbox"
-                const userChoice = existingResult.final_eligibility_label === "not_required" ? "direct" : "sandbox"
-                setSelectedDecision(userChoice)
+                setSelectedDecision(existingResult.final_eligibility_label === "not_required" ? "direct" : "sandbox")
             } else {
                 setSelectedDecision(mappedData.recommendation)
             }
-
             setIsAnalyzed(true)
         } else if (existingResult === null) {
-            // 결과가 없으면 초기 상태로
             setAnalysisData(defaultAnalysisData)
             setSelectedDecision("sandbox")
             setIsAnalyzed(false)
@@ -230,54 +185,37 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         router.push(`/projects/${id}/service`)
     }
 
-    // 재분석 확인 (기존 결과가 있으면 confirm, 없으면 바로 true)
-    const confirmReanalysis = (): boolean => {
-        if (!hasExistingResult) return true
-        const message = hasTrackResult
-            ? "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있으며,\n트랙 추천 등 이후 단계도 재분석이 필요합니다."
-            : "이미 대상성 분석이 완료된 프로젝트입니다.\n다시 분석하시겠습니까?\n\n기존 분석 결과는 새로운 결과로 대체될 수 있습니다."
-        return window.confirm(message)
+    // eligibility 분석만 실행 (재분석 - 페이지 이동 없음)
+    const runEligibilityOnly = () => {
+        setReanalyzeModalOpen(false)
+        eligibilityProgress.subscribe()
+        eligibilityMutation.mutate({ project_id: id })
     }
 
-    // AI 분석 실행 (분석만, 다음 단계로 안 감)
-    const handleAnalyze = () => {
-        if (!confirmReanalysis()) return
-        eligibilityProgress.subscribe() // SSE 구독 시작
-        runAnalysis(false)
-    }
+    // 트랙 에이전트 실행 후 이동
+    const runTrackAndNavigate = async () => {
+        setNextStepModalOpen(false)
 
-    // 다음 단계로 이동 (분석 완료 후)
-    const handleNext = async () => {
-        if (!isAnalyzed) return
-
-        setMarketAnalysis({
-            decision: selectedDecision,
-            aiRecommendation: analysisData.recommendation,
-        })
-
-        // 사용자 최종 선택 저장 (direct → not_required, sandbox → required)
+        // 사용자 최종 선택 저장
         const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
         await eligibilityApi.updateFinalDecision(id, finalLabel)
-        await queryClient.invalidateQueries({ queryKey: ["eligibility"] }) // eligibility 캐시 무효화
+        await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
         if (selectedDecision === "direct") {
-            // 바로출시 선택 → current_step=5, status=4 (completed)
             await projectsApi.updateStatus(id, 4, 5)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             router.push("/dashboard")
         } else {
-            // 샌드박스 신청 선택 → 트랙 추천 에이전트 실행 후 이동
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
             try {
                 setIsRunningTrackAgent(true)
-                trackProgress.subscribe() // SSE 구독 시작
+                trackProgress.subscribe()
                 await agentsApi.recommendTrack({ project_id: id })
             } catch (error) {
                 console.error("트랙 추천 실패:", error)
-                alert("트랙 추천 중 오류가 발생했습니다. 다시 시도해주세요.")
+                setErrorMessage("트랙 추천 중 오류가 발생했습니다.")
+                setErrorModalOpen(true)
                 setIsRunningTrackAgent(false)
-                trackProgress.reset()
                 return
             }
             setIsRunningTrackAgent(false)
@@ -287,102 +225,100 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         }
     }
 
-    // AI 분석 실행 (재분석 확인 포함)
-    const runAnalysis = (goNextAfter: boolean) => {
+    // 다음 페이지로 이동만 (분석 없이)
+    const navigateToNext = () => {
+        setNextStepModalOpen(false)
+
+        setMarketAnalysis({
+            decision: selectedDecision,
+            aiRecommendation: analysisData.recommendation,
+        })
+
+        if (selectedDecision === "direct") {
+            router.push("/dashboard")
+        } else {
+            router.push(`/projects/${id}/track`)
+        }
+    }
+
+    // 재분석 버튼 클릭
+    const handleReanalyze = () => {
+        setReanalyzeModalOpen(true)
+    }
+
+    // 다음 단계 버튼 클릭
+    const handleNext = () => {
+        if (!isAnalyzed) return
+
+        if (isAheadOfCurrentStep && hasTrackResult) {
+            // 이미 분석 완료 + 다음 단계 결과 있음 → 확인 모달
+            setNextStepModalOpen(true)
+        } else {
+            // 현재 단계이거나 다음 단계 결과 없음 → 바로 실행
+            runTrackAndNavigate()
+        }
+    }
+
+    // 분석 + 다음 단계 (한 번에)
+    const handleAnalyzeAndNext = () => {
+        if (isAnalyzed) {
+            handleNext()
+            return
+        }
+        eligibilityProgress.subscribe()
         eligibilityMutation.mutate(
             { project_id: id },
             {
                 onSuccess: async (data) => {
                     const mappedData = mapResponseToAnalysisData(data)
-                    setAnalysisData(mappedData)
-                    setSelectedDecision(mappedData.recommendation)
-                    setIsAnalyzed(true)
+                    setMarketAnalysis({
+                        decision: mappedData.recommendation,
+                        aiRecommendation: mappedData.recommendation,
+                    })
 
-                    // 서버에서 current_step이 변경될 수 있으므로 프로젝트 캐시 갱신
-                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                    const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
+                    await eligibilityApi.updateFinalDecision(id, finalLabel)
 
-                    if (goNextAfter) {
-                        // 바로 다음 단계로 이동
-                        setMarketAnalysis({
-                            decision: mappedData.recommendation,
-                            aiRecommendation: mappedData.recommendation,
-                        })
-
-                        // 사용자 최종 선택 저장 (AI 추천 그대로 수락)
-                        const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
-                        await eligibilityApi.updateFinalDecision(id, finalLabel)
-                        await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
-
-                        if (mappedData.recommendation === "direct") {
-                            // 바로출시 → status=4, current_step=5 (completed)
-                            await projectsApi.updateStatus(id, 4, 5)
-                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
-                            markStepComplete(2)
-                            router.push("/dashboard")
-                        } else {
-                            // 샌드박스 신청 → 트랙 추천 에이전트 실행 후 이동
-                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
-                            try {
-                                setIsRunningTrackAgent(true)
-                                trackProgress.subscribe() // SSE 구독 시작
-                                await agentsApi.recommendTrack({ project_id: id })
-                            } catch (error) {
-                                console.error("트랙 추천 실패:", error)
-                                alert("트랙 추천 중 오류가 발생했습니다. 다시 시도해주세요.")
-                                setIsRunningTrackAgent(false)
-                                trackProgress.reset()
-                                return
-                            }
+                    if (mappedData.recommendation === "direct") {
+                        await projectsApi.updateStatus(id, 4, 5)
+                        await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                        markStepComplete(2)
+                        router.push("/dashboard")
+                    } else {
+                        try {
+                            setIsRunningTrackAgent(true)
+                            trackProgress.subscribe()
+                            await agentsApi.recommendTrack({ project_id: id })
+                        } catch (error) {
+                            console.error("트랙 추천 실패:", error)
+                            setErrorMessage("트랙 추천 중 오류가 발생했습니다.")
+                            setErrorModalOpen(true)
                             setIsRunningTrackAgent(false)
-                            markStepComplete(2)
-                            setCurrentStep(3)
-                            router.push(`/projects/${id}/track`)
+                            return
                         }
+                        setIsRunningTrackAgent(false)
+                        markStepComplete(2)
+                        setCurrentStep(3)
+                        router.push(`/projects/${id}/track`)
                     }
                 },
             }
         )
     }
 
-    // 분석 + 다음 단계 (한 번에)
-    const handleAnalyzeAndNext = () => {
-        // 이미 분석된 경우 바로 다음 단계로
-        if (isAnalyzed) {
-            handleNext()
-            return
-        }
-
-        // 기존 결과가 있으면 재분석 확인
-        if (!confirmReanalysis()) {
-            // 취소하면 기존 결과로 다음 단계 진행
-            handleNext()
-            return
-        }
-
-        // SSE 구독 시작 후 분석 실행
-        eligibilityProgress.subscribe()
-        runAnalysis(true)
-    }
-
     const isQueryLoading = isLoadingExisting || isLoadingProject
 
-    // Step 1 완료 전이면 안내 화면 표시 (project가 있을 때만)
-    if (!isLoadingProject && project && !isStep1Completed) {
+    // current_step < page_step: 이전 단계 미완료
+    if (!isLoadingProject && project && isBehindCurrentStep) {
         return (
             <div className="py-6">
                 <div className="container">
                     <div className="flex items-center justify-center min-h-[400px]">
                         <div className="text-center space-y-4">
                             <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">서비스 분석이 필요합니다</h2>
-                            <p className="text-muted-foreground">이전 단계(서비스 분석)를 먼저 완료해주세요.</p>
-                            <button
-                                type="button"
-                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                                onClick={() => router.push(`/projects/${id}/service`)}
-                            >
-                                이전 단계로 돌아가기
-                            </button>
+                            <h2 className="text-lg font-semibold">분석 결과가 없습니다</h2>
+                            <p className="text-muted-foreground">이전 단계를 먼저 완료해주세요.</p>
+                            <Button onClick={() => router.push(getStepPagePath(id, currentStep))}>현재 단계로 이동하기</Button>
                         </div>
                     </div>
                 </div>
@@ -390,13 +326,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
         )
     }
 
-    // 데이터 로딩 중
     if (isQueryLoading) {
         return <PageLoader className="flex-1" />
     }
 
     return (
         <div className="py-6">
+            {/* AI 로더 */}
             {eligibilityMutation.isPending && (
                 <AILoader
                     message="서비스 규제 현황 분석 중..."
@@ -415,16 +351,58 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                     progress={trackProgress.progress}
                 />
             )}
+
+            {/* 재분석 확인 모달 */}
+            <ConfirmModal
+                isOpen={reanalyzeModalOpen}
+                onClose={() => setReanalyzeModalOpen(false)}
+                onConfirm={runEligibilityOnly}
+                title="시장출시 진단 재분석"
+                description={[
+                    "이미 시장출시 진단이 완료된 상태입니다.",
+                    "다시 분석하시겠습니까?",
+                    hasTrackResult
+                        ? "기존 분석 결과는 새로운 결과로 대체되며, 이후 단계(트랙 선택, 신청서 작성 등)도 재분석이 필요합니다."
+                        : "기존 분석 결과는 새로운 결과로 대체될 수 있습니다.",
+                ]}
+                confirmLabel="분석 실행"
+                cancelLabel="취소"
+            />
+
+            {/* 다음 단계 확인 모달 */}
+            <ConfirmModal
+                isOpen={nextStepModalOpen}
+                onClose={navigateToNext}
+                onConfirm={runTrackAndNavigate}
+                title="다음 단계 분석"
+                description={[
+                    "다음 단계(트랙 선택)에 이미 분석 결과가 있습니다.",
+                    "재분석하시겠습니까?",
+                    "기존 결과는 새로운 결과로 대체될 수 있습니다.",
+                ]}
+                confirmLabel="분석 실행"
+                cancelLabel="기존 결과 유지"
+            />
+
+            {/* 에러 모달 */}
+            <ConfirmModal
+                isOpen={errorModalOpen}
+                onClose={() => setErrorModalOpen(false)}
+                onConfirm={() => setErrorModalOpen(false)}
+                title="오류 발생"
+                description={errorMessage}
+                confirmLabel="확인"
+                cancelLabel="닫기"
+            />
+
             <div className="container">
                 <div className="flex gap-4">
-                    {/* 왼쪽: 메인 콘텐츠 */}
                     <div className={isReferencePanelOpen ? "flex-[2] space-y-6" : "flex-1 space-y-6"}>
                         <div>
                             <h1 className="text-2xl font-bold mb-2">시장출시 진단</h1>
                             <p className="text-muted-foreground">AI가 서비스의 규제 현황을 분석하여 시장 출시 가능 여부를 판단합니다</p>
                         </div>
 
-                        {/* AI 분석 요약 */}
                         <AIAnalysisCard
                             summary={analysisData.summary}
                             confidence={analysisData.confidence}
@@ -445,16 +423,13 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="divide-y divide-border">
-                                        {/* sandbox(required): 규제+법령+사례 모두 표시 / direct(not_required): 규제+법령만 */}
                                         {(analysisData.recommendation === "sandbox"
                                             ? (["regulation", "law", "case"] as ReasonCategory[])
                                             : (["regulation", "law"] as ReasonCategory[])
                                         )
                                             .map((category) => {
                                                 const categoryReasons = analysisData.reasons.filter((r) => r.category === category)
-
                                                 if (categoryReasons.length === 0) return null
-
                                                 const config = CATEGORY_CONFIG[category]
                                                 return (
                                                     <div key={category} className="py-4 first:pt-0 last:pb-0">
@@ -498,7 +473,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             </Card>
                         )}
 
-                        {/* 참고 사례 - not_required일 때만 별도 카드로 표시 */}
+                        {/* 참고 사례 */}
                         {isAnalyzed &&
                             analysisData.recommendation === "direct" &&
                             analysisData.reasons.filter((r) => r.category === "case").length > 0 && (
@@ -568,7 +543,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                             </Card>
                         )}
 
-                        {/* 컨설턴트 최종 결정 */}
+                        {/* 최종 결정 */}
                         {isAnalyzed && (
                             <Card>
                                 <CardHeader>
@@ -628,7 +603,7 @@ export default function EligibilityPage({ params }: MarketPageProps) {
                                     {selectedDecision !== analysisData.recommendation && (
                                         <div className="text-sm flex gap-2 items-center px-2">
                                             <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                            <span className="text-amber-700">AI 추천과 다른 선택입니다. 선택에 대한 근거를 확인해주세요.</span>
+                                            <span className="text-amber-700">AI 추천과 다른 선택입니다.</span>
                                         </div>
                                     )}
                                 </CardContent>
@@ -637,18 +612,17 @@ export default function EligibilityPage({ params }: MarketPageProps) {
 
                         <WizardNavigation
                             onBack={handleBack}
-                            onAnalyze={handleAnalyzeAndNext}
-                            onReanalyze={handleAnalyze}
-                            onNext={handleNext}
+                            onAnalyze={isAtCurrentStep && !isAnalyzed ? handleAnalyzeAndNext : undefined}
+                            onReanalyze={isAheadOfCurrentStep || (isAtCurrentStep && isAnalyzed) ? handleReanalyze : undefined}
+                            onNext={isAnalyzed ? handleNext : undefined}
                             analyzeLabel="AI 분석 및 다음 단계"
                             nextLabel={selectedDecision === "direct" ? "완료" : "다음 단계"}
-                            isAnalyzed={isAnalyzed || devIsAnalyzed}
+                            isAnalyzed={isAheadOfCurrentStep || isAnalyzed || devIsAnalyzed}
                             hasChanges={devHasChanges}
                             isLoading={eligibilityMutation.isPending || isQueryLoading || isRunningTrackAgent}
                         />
                     </div>
 
-                    {/* 오른쪽: 참고 패널 */}
                     <div className={isReferencePanelOpen ? "flex-1 min-w-0" : ""}>
                         <div className="sticky top-16">
                             <ReferencePanel

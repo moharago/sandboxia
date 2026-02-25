@@ -7,12 +7,14 @@ import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { AILoader } from "@/components/ui/ai-loader"
 import { Button } from "@/components/ui/button"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { PageLoader } from "@/components/ui/page-loader"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { draftKeys, useDraftQuery } from "@/hooks/queries/use-draft-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
+import { getStepPageName, getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useWizardStore, type FormType } from "@/stores/wizard-store"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
@@ -23,6 +25,8 @@ import { use, useState } from "react"
 
 /** Track 타입 가드: TRACK_TO_FORM_ID에 존재하는 유효한 Track인지 확인 */
 const isTrack = (value: string | null | undefined): value is Track => value != null && Object.prototype.hasOwnProperty.call(TRACK_TO_FORM_ID, value)
+
+const PAGE_STEP = PAGE_STEPS.draft // 4
 
 interface DraftPageProps {
     params: Promise<{ id: string }>
@@ -37,12 +41,23 @@ export default function DraftPage({ params }: DraftPageProps) {
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
 
+    // 모달 상태
+    const [regenerateModalOpen, setRegenerateModalOpen] = useState(false)
+    const [completeModalOpen, setCompleteModalOpen] = useState(false)
+    const [errorModalOpen, setErrorModalOpen] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
+
     // RAG 결과 state (mutation 성공 시 바로 표시용)
     const [ragSimilarCases, setRagSimilarCases] = useState<ApprovalCase[]>([])
     const [ragRegulations, setRagRegulations] = useState<Regulation[]>([])
 
     // 프로젝트에서 track 정보 조회
     const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
+
+    // 현재 단계와 페이지 단계 비교
+    const currentStep = project?.current_step ?? 1
+    const isAtOrAheadOfCurrentStep = currentStep >= PAGE_STEP // 분석 완료된 상태
+    const isBehindCurrentStep = currentStep < PAGE_STEP // 이전 단계가 완료되지 않은 상태
 
     // Supabase에서 초안 데이터 조회
     const { data: draftData, isLoading: isLoadingDraft } = useDraftQuery(id)
@@ -67,8 +82,9 @@ export default function DraftPage({ params }: DraftPageProps) {
     // application_draft.form_values를 그대로 initialValues로 사용
     const initialValues = draftData?.form_values
 
-    // AI 초안 생성 핸들러
-    const handleGenerateDraft = async () => {
+    // AI 초안 생성 실행
+    const runDraftGeneration = async () => {
+        setRegenerateModalOpen(false)
         draftProgress.subscribe() // SSE 구독 시작
         try {
             const result = await draftMutation.mutateAsync({ project_id: id })
@@ -77,10 +93,29 @@ export default function DraftPage({ params }: DraftPageProps) {
             setRagRegulations(result.domain_laws ?? [])
             // 성공 시 draft query invalidate하여 새 데이터 로드
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
         } catch (error) {
             const message = error instanceof Error ? error.message : "알 수 없는 오류"
-            alert(`AI 초안 생성에 실패했습니다: ${message}`)
+            setErrorMessage(`AI 초안 생성에 실패했습니다: ${message}`)
+            setErrorModalOpen(true)
         }
+    }
+
+    // AI 재생성 버튼 클릭 (확인 모달 표시)
+    const handleRegenerate = () => {
+        setRegenerateModalOpen(true)
+    }
+
+    // 작성 완료 버튼 클릭 (확인 모달 표시)
+    const handleCompleteClick = () => {
+        setCompleteModalOpen(true)
+    }
+
+    // 작성 완료 확정
+    const confirmComplete = () => {
+        setCompleteModalOpen(false)
+        markStepComplete(4)
+        router.push("/dashboard")
     }
 
     // RAG 결과: state 우선, 없으면 DB에서 읽기
@@ -92,9 +127,10 @@ export default function DraftPage({ params }: DraftPageProps) {
         router.push(`/projects/${id}/track`)
     }
 
-    const handleComplete = () => {
-        markStepComplete(4)
-        router.push("/dashboard")
+    // 이전 단계로 이동 (current_step < PAGE_STEP인 경우)
+    const navigateToPreviousStep = () => {
+        const targetPath = getStepPagePath(id, currentStep)
+        router.push(targetPath)
     }
 
     // 데이터 로딩 중
@@ -115,23 +151,18 @@ export default function DraftPage({ params }: DraftPageProps) {
         )
     }
 
-    // track 정보 없음
-    if (!project?.track) {
+    // 이전 단계가 완료되지 않은 경우 (current_step < PAGE_STEP)
+    if (isBehindCurrentStep || !project?.track) {
+        const targetStepName = getStepPageName(currentStep)
         return (
             <div className="py-6">
                 <div className="container">
                     <div className="flex items-center justify-center min-h-[400px]">
                         <div className="text-center space-y-4">
                             <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">트랙이 선택되지 않았습니다</h2>
-                            <p className="text-muted-foreground">이전 단계(트랙 선택)를 먼저 완료해주세요.</p>
-                            <button
-                                type="button"
-                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                                onClick={() => router.push(`/projects/${id}/track`)}
-                            >
-                                이전 단계로 돌아가기
-                            </button>
+                            <h2 className="text-lg font-semibold">분석 결과가 없습니다</h2>
+                            <p className="text-muted-foreground">이전 단계({targetStepName})를 먼저 완료해주세요.</p>
+                            <Button onClick={navigateToPreviousStep}>{targetStepName} 단계로 이동</Button>
                         </div>
                     </div>
                 </div>
@@ -169,9 +200,10 @@ export default function DraftPage({ params }: DraftPageProps) {
                                             생성해주세요.
                                         </p>
                                         <Button
-                                            onClick={handleGenerateDraft}
+                                            onClick={runDraftGeneration}
                                             variant="outline"
                                             className="gap-2 border-amber-400 text-amber-700 hover:bg-amber-100"
+                                            disabled={draftMutation.isPending}
                                         >
                                             <Sparkles className="h-4 w-4" />
                                             AI 초안 다시 생성
@@ -191,7 +223,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                                 <p className="text-muted-foreground mb-4">
                                     버튼을 클릭하면 AI가 서비스 정보를 기반으로 신청서 초안을 자동 생성합니다.
                                 </p>
-                                <Button onClick={handleGenerateDraft} className="gap-2">
+                                <Button onClick={runDraftGeneration} className="gap-2" disabled={draftMutation.isPending}>
                                     <Sparkles className="h-4 w-4" />
                                     AI 초안 생성
                                 </Button>
@@ -207,13 +239,16 @@ export default function DraftPage({ params }: DraftPageProps) {
 
                         <WizardNavigation
                             onBack={handleBack}
-                            onNext={handleComplete}
+                            onNext={hasDraftData && !isTrackMismatch ? handleCompleteClick : undefined}
+                            onAnalyze={!hasDraftData || isTrackMismatch ? runDraftGeneration : undefined}
                             nextLabel="작성 완료"
+                            analyzeLabel="AI 초안 생성"
                             isAnalyzed={hasDraftData && !isTrackMismatch}
+                            isLoading={draftMutation.isPending}
                             extraButtons={
                                 <>
                                     {hasDraftData && !isTrackMismatch && (
-                                        <Button variant="outline" onClick={handleGenerateDraft} className="gap-2">
+                                        <Button variant="outline" onClick={handleRegenerate} className="gap-2">
                                             <Sparkles className="h-4 w-4" />
                                             AI 재생성
                                         </Button>
@@ -240,6 +275,39 @@ export default function DraftPage({ params }: DraftPageProps) {
                                 projectId={id}
                             />
                         )}
+
+                        {/* AI 재생성 확인 모달 */}
+                        <ConfirmModal
+                            isOpen={regenerateModalOpen}
+                            onClose={() => setRegenerateModalOpen(false)}
+                            onConfirm={runDraftGeneration}
+                            title="신청서 초안 재생성"
+                            description={["이미 생성된 초안이 있습니다.", "초안을 다시 생성하시겠습니까?", "기존 초안은 새로운 결과로 대체됩니다."]}
+                            confirmLabel="재생성"
+                            cancelLabel="취소"
+                        />
+
+                        {/* 작성 완료 확인 모달 */}
+                        <ConfirmModal
+                            isOpen={completeModalOpen}
+                            onClose={() => setCompleteModalOpen(false)}
+                            onConfirm={confirmComplete}
+                            title="신청서 작성 완료"
+                            description={["신청서 작성을 완료하시겠습니까?", "대시보드로 이동합니다."]}
+                            confirmLabel="완료"
+                            cancelLabel="취소"
+                        />
+
+                        {/* 에러 모달 */}
+                        <ConfirmModal
+                            isOpen={errorModalOpen}
+                            onClose={() => setErrorModalOpen(false)}
+                            onConfirm={() => setErrorModalOpen(false)}
+                            title="오류 발생"
+                            description={errorMessage}
+                            confirmLabel="확인"
+                            cancelLabel="닫기"
+                        />
                     </div>
 
                     {/* 오른쪽: 참고 패널 */}
