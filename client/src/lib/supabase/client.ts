@@ -1,12 +1,9 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
-
+// createBrowserClient는 내부적으로 싱글톤 패턴을 사용하므로
+// 매번 호출해도 동일한 인스턴스를 반환합니다.
+// 이렇게 하면 인증 상태도 자동으로 관리됩니다.
 export function createClient() {
-    if (supabaseClient) {
-        return supabaseClient
-    }
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -18,6 +15,5 @@ export function createClient() {
         throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY')
     }
 
-    supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
-    return supabaseClient
+    return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
