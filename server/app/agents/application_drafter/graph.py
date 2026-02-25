@@ -70,7 +70,6 @@ async def run_application_drafter(
         "similar_cases": [],
         "domain_laws": [],
         "application_draft": {},
-        "model_name": "",
     }
 
     # 에이전트 실행 (진행 상태 추적 포함)
@@ -87,7 +86,6 @@ async def run_application_drafter(
     return {
         "project_id": project_id,
         "application_draft": result.get("application_draft", {}),
-        "model_name": result.get("model_name", ""),
         "similar_cases": result.get("similar_cases", []),
         "domain_laws": result.get("domain_laws", []),
     }
