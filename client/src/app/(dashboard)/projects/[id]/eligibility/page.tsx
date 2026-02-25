@@ -111,7 +111,8 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     // 컴포넌트 마운트 시 전역 로더 숨기기
     useEffect(() => {
         hideGlobalAILoader()
-    }, [hideGlobalAILoader])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     // SSE 진행 상태 (전역 로더 자동 업데이트)
     const eligibilityProgress = useAgentProgress({

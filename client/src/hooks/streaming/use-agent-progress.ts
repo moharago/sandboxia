@@ -69,7 +69,6 @@ interface UseAgentProgressReturn {
  */
 export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProgressReturn {
     const { projectId, onNodeComplete, onComplete, onError, useGlobalLoader, globalLoaderMessage, globalLoaderNodes } = options
-    const { showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader } = useUIStore.getState()
 
     const [status, setStatus] = useState<SSEConnectionStatus>("idle")
     const [progress, setProgress] = useState(0)
@@ -104,7 +103,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
 
         // 전역 로더 표시
         if (useGlobalLoader) {
-            showGlobalAILoader({
+            useUIStore.getState().showGlobalAILoader({
                 message: globalLoaderMessage,
                 nodes: globalLoaderNodes,
                 progress: 0,
@@ -118,6 +117,9 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
         if (!token) {
             setStatus("error")
             setError("로그인이 필요합니다.")
+            if (useGlobalLoader) {
+                useUIStore.getState().hideGlobalAILoader()
+            }
             onError?.("로그인이 필요합니다.")
             return
         }
@@ -181,7 +183,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setCurrentNodeId(null)
                                     setMessage(event.message || "분석을 시작합니다...")
                                     if (useGlobalLoader) {
-                                        updateGlobalAILoader({
+                                        useUIStore.getState().updateGlobalAILoader({
                                             progress: 0,
                                             completedNodes: [],
                                             currentNodeId: null,
@@ -194,7 +196,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setProgress(event.progress)
                                     setMessage(event.message || null)
                                     if (useGlobalLoader) {
-                                        updateGlobalAILoader({
+                                        useUIStore.getState().updateGlobalAILoader({
                                             currentNodeId: event.node_id || null,
                                             progress: event.progress,
                                         })
@@ -207,7 +209,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setProgress(event.progress)
                                     setMessage(event.message || null)
                                     if (useGlobalLoader) {
-                                        updateGlobalAILoader({
+                                        useUIStore.getState().updateGlobalAILoader({
                                             completedNodes: event.completed_nodes,
                                             currentNodeId: null,
                                             progress: event.progress,
@@ -225,7 +227,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setMessage(event.message || "분석이 완료되었습니다.")
                                     // 전역 로더는 숨기지 않음 - 페이지 전환 후 명시적으로 숨겨야 함
                                     if (useGlobalLoader) {
-                                        updateGlobalAILoader({ progress: 100 })
+                                        useUIStore.getState().updateGlobalAILoader({ progress: 100 })
                                     }
                                     onComplete?.()
                                     return // 스트림 종료
@@ -234,7 +236,7 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setStatus("error")
                                     setError(event.message || "오류가 발생했습니다.")
                                     if (useGlobalLoader) {
-                                        hideGlobalAILoader()
+                                        useUIStore.getState().hideGlobalAILoader()
                                     }
                                     onError?.(event.message || "오류가 발생했습니다.")
                                     return // 스트림 종료
@@ -256,11 +258,11 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
             setStatus("error")
             setError(errorMessage)
             if (useGlobalLoader) {
-                hideGlobalAILoader()
+                useUIStore.getState().hideGlobalAILoader()
             }
             onError?.(errorMessage)
         }
-    }, [projectId, status, reset, onNodeComplete, onComplete, onError, useGlobalLoader, globalLoaderMessage, globalLoaderNodes, showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader])
+    }, [projectId, status, reset, onNodeComplete, onComplete, onError, useGlobalLoader, globalLoaderMessage, globalLoaderNodes])
 
     const unsubscribe = useCallback(() => {
         if (abortControllerRef.current) {

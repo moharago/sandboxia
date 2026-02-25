@@ -54,8 +54,12 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     // 컴포넌트 마운트 시 파일 목록 refetch + 전역 로더 숨기기
     useEffect(() => {
         refetchFiles()
+    }, [refetchFiles])
+
+    useEffect(() => {
         hideGlobalAILoader()
-    }, [refetchFiles, hideGlobalAILoader])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     // 에이전트 노드 목록 조회
     const { data: serviceNodes } = useAgentNodesQuery("service_structurer")

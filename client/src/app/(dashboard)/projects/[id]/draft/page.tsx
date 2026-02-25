@@ -46,7 +46,6 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 모달 상태
     const [regenerateModalOpen, setRegenerateModalOpen] = useState(false)
-    const [completeModalOpen, setCompleteModalOpen] = useState(false)
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
@@ -82,7 +81,8 @@ export default function DraftPage({ params }: DraftPageProps) {
     // 컴포넌트 마운트 시 전역 로더 숨기기
     useEffect(() => {
         hideGlobalAILoader()
-    }, [hideGlobalAILoader])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     // SSE 진행 상태 구독 (전역 로더 자동 업데이트)
     const draftProgress = useAgentProgress({
@@ -130,14 +130,8 @@ export default function DraftPage({ params }: DraftPageProps) {
         setRegenerateModalOpen(true)
     }
 
-    // 작성 완료 버튼 클릭 (확인 모달 표시)
-    const handleCompleteClick = () => {
-        setCompleteModalOpen(true)
-    }
-
-    // 작성 완료 확정
-    const confirmComplete = async () => {
-        setCompleteModalOpen(false)
+    // 작성 완료 버튼 클릭 → 바로 대시보드로 이동
+    const handleCompleteClick = async () => {
         // 작성 완료 시 status: 3으로 업데이트
         await projectsApi.updateStatus(id, 3, 4)
         await queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -280,17 +274,6 @@ export default function DraftPage({ params }: DraftPageProps) {
                             title="신청서 초안 재생성"
                             description={["이미 생성된 초안이 있습니다.", "초안을 다시 생성하시겠습니까?", "기존 초안은 새로운 결과로 대체됩니다."]}
                             confirmLabel="재생성"
-                            cancelLabel="취소"
-                        />
-
-                        {/* 작성 완료 확인 모달 */}
-                        <ConfirmModal
-                            isOpen={completeModalOpen}
-                            onClose={() => setCompleteModalOpen(false)}
-                            onConfirm={confirmComplete}
-                            title="신청서 작성 완료"
-                            description={["신청서 작성을 완료하시겠습니까?", "대시보드로 이동합니다."]}
-                            confirmLabel="완료"
                             cancelLabel="취소"
                         />
 
