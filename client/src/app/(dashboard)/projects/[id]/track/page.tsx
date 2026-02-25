@@ -3,7 +3,6 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoader } from "@/components/ui/ai-loader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -20,6 +19,7 @@ import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { cn } from "@/lib/utils/cn"
 import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
+import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { Regulation } from "@/types/api/eligibility"
 import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
@@ -115,6 +115,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     const queryClient = useQueryClient()
 
     const { setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
+    const { showGlobalAILoader, hideGlobalAILoader } = useUIStore()
 
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
@@ -131,12 +132,24 @@ export default function TrackPage({ params }: TrackPageProps) {
     const { data: trackNodes } = useAgentNodesQuery("track_recommender")
     const { data: draftNodes } = useAgentNodesQuery("application_drafter")
 
+    // 컴포넌트 마운트 시 전역 로더 숨기기
+    useEffect(() => {
+        hideGlobalAILoader()
+    }, [hideGlobalAILoader])
+
+    // SSE 진행 상태 (전역 로더 자동 업데이트)
     const trackProgress = useAgentProgress({
         projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "최적의 트랙 추천 중...",
+        globalLoaderNodes: trackNodes?.nodes,
         onComplete: () => queryClient.invalidateQueries({ queryKey: ["track"] }),
     })
     const draftProgress = useAgentProgress({
         projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "신청서 초안 생성 중...",
+        globalLoaderNodes: draftNodes?.nodes,
         onComplete: () => queryClient.invalidateQueries({ queryKey: ["draft"] }),
     })
 
@@ -213,7 +226,14 @@ export default function TrackPage({ params }: TrackPageProps) {
     const runTrackOnly = () => {
         setReanalyzeModalOpen(false)
         trackProgress.subscribe()
-        recommendMutation.mutate({ project_id: id })
+        recommendMutation.mutate({ project_id: id }, {
+            onSuccess: () => {
+                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
+            },
+            onError: () => {
+                hideGlobalAILoader()
+            },
+        })
     }
 
     // 초안 생성 후 이동
@@ -226,6 +246,14 @@ export default function TrackPage({ params }: TrackPageProps) {
         if (track) setTrackSelection(track)
 
         setIsRunningDraftAgent(true)
+        // 전역 로더 표시
+        showGlobalAILoader({
+            message: "신청서 초안 생성 중...",
+            nodes: draftNodes?.nodes,
+            progress: 0,
+            completedNodes: [],
+            currentNodeId: null,
+        })
         draftProgress.subscribe()
 
         selectMutation.mutate(
@@ -237,14 +265,16 @@ export default function TrackPage({ params }: TrackPageProps) {
                         await draftMutation.mutateAsync({ project_id: id })
                     } catch (error) {
                         console.error("신청서 초안 생성 실패:", error)
-                    } finally {
+                        hideGlobalAILoader()
                         setIsRunningDraftAgent(false)
+                        return
                     }
                     // 초안 결과 쿼리 invalidate (페이지 이동 전)
                     await queryClient.invalidateQueries({ queryKey: ["draft"] })
                     await queryClient.invalidateQueries({ queryKey: ["projects"] })
                     markStepComplete(3)
                     setCurrentStep(4)
+                    // 전역 로더는 다음 페이지에서 숨김
                     router.push(`/projects/${id}/draft`)
                 },
             }
@@ -303,17 +333,9 @@ export default function TrackPage({ params }: TrackPageProps) {
         return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
     }
 
-    // AI 분석 중
+    // AI 분석 중 (전역 로더가 표시됨)
     if (isAnalyzing) {
-        return (
-            <AILoader
-                message="최적의 트랙 추천 중..."
-                nodes={trackNodes?.nodes}
-                completedNodes={trackProgress.completedNodes}
-                currentNodeId={trackProgress.currentNodeId}
-                progress={trackProgress.progress}
-            />
-        )
+        return <PageLoader className="flex-1" />
     }
 
     // 에러
@@ -342,17 +364,6 @@ export default function TrackPage({ params }: TrackPageProps) {
     return (
         <TooltipProvider>
             <div className="py-6">
-                {/* AI 로더 */}
-                {isRunningDraftAgent && (
-                    <AILoader
-                        message="신청서 초안 생성중..."
-                        nodes={draftNodes?.nodes}
-                        completedNodes={draftProgress.completedNodes}
-                        currentNodeId={draftProgress.currentNodeId}
-                        progress={draftProgress.progress}
-                    />
-                )}
-
                 {/* 재분석 확인 모달 */}
                 <ConfirmModal
                     isOpen={reanalyzeModalOpen}

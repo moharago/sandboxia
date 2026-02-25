@@ -5,7 +5,6 @@ import { DownloadModal } from "@/components/features/draft/DownloadModal"
 import { FormSectionList } from "@/components/features/draft/FormSectionList"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoader } from "@/components/ui/ai-loader"
 import { Button } from "@/components/ui/button"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { NoResultsView } from "@/components/ui/no-results-view"
@@ -17,6 +16,7 @@ import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { projectsApi } from "@/lib/api/projects"
 import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
+import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore, type FormType } from "@/stores/wizard-store"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
@@ -40,6 +40,7 @@ export default function DraftPage({ params }: DraftPageProps) {
     const queryClient = useQueryClient()
 
     const { markStepComplete, setCurrentStep } = useWizardStore()
+    const { showGlobalAILoader, hideGlobalAILoader } = useUIStore()
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
 
@@ -78,9 +79,17 @@ export default function DraftPage({ params }: DraftPageProps) {
     // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
     const { data: draftNodes } = useAgentNodesQuery("application_drafter")
 
-    // SSE 진행 상태 구독
+    // 컴포넌트 마운트 시 전역 로더 숨기기
+    useEffect(() => {
+        hideGlobalAILoader()
+    }, [hideGlobalAILoader])
+
+    // SSE 진행 상태 구독 (전역 로더 자동 업데이트)
     const draftProgress = useAgentProgress({
         projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "신청서 초안 생성 중...",
+        globalLoaderNodes: draftNodes?.nodes,
         onComplete: () => {
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
         },
@@ -107,7 +116,9 @@ export default function DraftPage({ params }: DraftPageProps) {
             // 성공 시 draft query invalidate하여 새 데이터 로드
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
             queryClient.invalidateQueries({ queryKey: ["projects"] })
+            hideGlobalAILoader() // 생성 완료 시 로더 숨김
         } catch (error) {
+            hideGlobalAILoader()
             const message = error instanceof Error ? error.message : "알 수 없는 오류"
             setErrorMessage(`AI 초안 생성에 실패했습니다: ${message}`)
             setErrorModalOpen(true)
@@ -148,17 +159,9 @@ export default function DraftPage({ params }: DraftPageProps) {
         return <PageLoader className="flex-1" />
     }
 
-    // AI 초안 생성 중
+    // AI 초안 생성 중 (전역 로더가 표시됨)
     if (draftMutation.isPending) {
-        return (
-            <AILoader
-                message="신청서 초안 생성 중..."
-                nodes={draftNodes?.nodes}
-                completedNodes={draftProgress.completedNodes}
-                currentNodeId={draftProgress.currentNodeId}
-                progress={draftProgress.progress}
-            />
-        )
+        return <PageLoader className="flex-1" />
     }
 
     // current_step < PAGE_STEP이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시

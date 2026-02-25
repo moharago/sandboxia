@@ -20,7 +20,8 @@
  */
 
 import { useAuthStore } from "@/stores/auth-store"
-import type { AgentProgressEvent, SSEConnectionStatus } from "@/types/api/agent-progress"
+import { useUIStore } from "@/stores/ui-store"
+import type { AgentProgressEvent, NodeInfo, SSEConnectionStatus } from "@/types/api/agent-progress"
 import { useCallback, useRef, useState } from "react"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
@@ -34,6 +35,12 @@ interface UseAgentProgressOptions {
     onComplete?: () => void
     /** 에러 발생 시 콜백 */
     onError?: (error: string) => void
+    /** 전역 AI 로더 사용 여부 (true면 자동으로 전역 로더 상태 업데이트) */
+    useGlobalLoader?: boolean
+    /** 전역 로더에 표시할 메시지 */
+    globalLoaderMessage?: string
+    /** 전역 로더에 표시할 노드 목록 */
+    globalLoaderNodes?: NodeInfo[]
 }
 
 interface UseAgentProgressReturn {
@@ -61,7 +68,8 @@ interface UseAgentProgressReturn {
  * 에이전트 진행 상태 SSE 구독 훅
  */
 export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProgressReturn {
-    const { projectId, onNodeComplete, onComplete, onError } = options
+    const { projectId, onNodeComplete, onComplete, onError, useGlobalLoader, globalLoaderMessage, globalLoaderNodes } = options
+    const { showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader } = useUIStore.getState()
 
     const [status, setStatus] = useState<SSEConnectionStatus>("idle")
     const [progress, setProgress] = useState(0)
@@ -93,6 +101,17 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
         // 상태 초기화
         reset()
         setStatus("connecting")
+
+        // 전역 로더 표시
+        if (useGlobalLoader) {
+            showGlobalAILoader({
+                message: globalLoaderMessage,
+                nodes: globalLoaderNodes,
+                progress: 0,
+                completedNodes: [],
+                currentNodeId: null,
+            })
+        }
 
         // 인증 토큰 가져오기
         const token = await useAuthStore.getState().getAccessToken()
@@ -161,12 +180,25 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setCompletedNodes([])
                                     setCurrentNodeId(null)
                                     setMessage(event.message || "분석을 시작합니다...")
+                                    if (useGlobalLoader) {
+                                        updateGlobalAILoader({
+                                            progress: 0,
+                                            completedNodes: [],
+                                            currentNodeId: null,
+                                        })
+                                    }
                                     break
 
                                 case "node_start":
                                     setCurrentNodeId(event.node_id || null)
                                     setProgress(event.progress)
                                     setMessage(event.message || null)
+                                    if (useGlobalLoader) {
+                                        updateGlobalAILoader({
+                                            currentNodeId: event.node_id || null,
+                                            progress: event.progress,
+                                        })
+                                    }
                                     break
 
                                 case "node_end":
@@ -174,6 +206,13 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setCurrentNodeId(null) // 노드 완료 후 currentNodeId 초기화 → AILoader에서 다음 미완료 노드를 자동 판단
                                     setProgress(event.progress)
                                     setMessage(event.message || null)
+                                    if (useGlobalLoader) {
+                                        updateGlobalAILoader({
+                                            completedNodes: event.completed_nodes,
+                                            currentNodeId: null,
+                                            progress: event.progress,
+                                        })
+                                    }
                                     if (event.node_id) {
                                         onNodeComplete?.(event.node_id)
                                     }
@@ -184,12 +223,19 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
                                     setProgress(100)
                                     setCurrentNodeId(null)
                                     setMessage(event.message || "분석이 완료되었습니다.")
+                                    // 전역 로더는 숨기지 않음 - 페이지 전환 후 명시적으로 숨겨야 함
+                                    if (useGlobalLoader) {
+                                        updateGlobalAILoader({ progress: 100 })
+                                    }
                                     onComplete?.()
                                     return // 스트림 종료
 
                                 case "error":
                                     setStatus("error")
                                     setError(event.message || "오류가 발생했습니다.")
+                                    if (useGlobalLoader) {
+                                        hideGlobalAILoader()
+                                    }
                                     onError?.(event.message || "오류가 발생했습니다.")
                                     return // 스트림 종료
                             }
@@ -209,9 +255,12 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
             const errorMessage = err instanceof Error ? err.message : "알 수 없는 오류"
             setStatus("error")
             setError(errorMessage)
+            if (useGlobalLoader) {
+                hideGlobalAILoader()
+            }
             onError?.(errorMessage)
         }
-    }, [projectId, status, reset, onNodeComplete, onComplete, onError])
+    }, [projectId, status, reset, onNodeComplete, onComplete, onError, useGlobalLoader, globalLoaderMessage, globalLoaderNodes, showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader])
 
     const unsubscribe = useCallback(() => {
         if (abortControllerRef.current) {

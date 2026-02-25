@@ -3,7 +3,6 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoader } from "@/components/ui/ai-loader"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
@@ -99,7 +98,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const queryClient = useQueryClient()
 
     const { setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
-    const { devIsAnalyzed, devHasChanges } = useUIStore()
+    const { devIsAnalyzed, devHasChanges, showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader } = useUIStore()
 
     // 프로젝트 정보 조회 (refetchOnMount: "always"로 자동 refetch)
     const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
@@ -109,9 +108,24 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
     const { data: trackNodes } = useAgentNodesQuery("track_recommender")
 
-    // SSE 진행 상태
-    const eligibilityProgress = useAgentProgress({ projectId: id })
-    const trackProgress = useAgentProgress({ projectId: id })
+    // 컴포넌트 마운트 시 전역 로더 숨기기
+    useEffect(() => {
+        hideGlobalAILoader()
+    }, [hideGlobalAILoader])
+
+    // SSE 진행 상태 (전역 로더 자동 업데이트)
+    const eligibilityProgress = useAgentProgress({
+        projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "서비스 규제 현황 분석 중...",
+        globalLoaderNodes: eligibilityNodes?.nodes,
+    })
+    const trackProgress = useAgentProgress({
+        projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "최적의 트랙 추천 중...",
+        globalLoaderNodes: trackNodes?.nodes,
+    })
 
     // 현재 단계와 페이지 단계 비교
     const currentStep = project?.current_step ?? 1
@@ -153,6 +167,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             queryClient.invalidateQueries({ queryKey: ["projects"] })
         },
         onError: (error) => {
+            hideGlobalAILoader()
             setErrorMessage(`분석 실패: ${error.message}`)
             setErrorModalOpen(true)
         },
@@ -196,11 +211,27 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const runEligibilityOnly = () => {
         setReanalyzeModalOpen(false)
         eligibilityProgress.subscribe()
-        eligibilityMutation.mutate({ project_id: id })
+        eligibilityMutation.mutate({ project_id: id }, {
+            onSuccess: () => {
+                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
+            },
+        })
     }
 
     // 트랙 에이전트 실행 후 이동
     const runTrackAndNavigate = async () => {
+        // sandbox인 경우 전역 로더 표시
+        if (selectedDecision === "sandbox") {
+            setIsRunningTrackAgent(true)
+            showGlobalAILoader({
+                message: "최적의 트랙 추천 중...",
+                nodes: trackNodes?.nodes,
+                progress: 0,
+                completedNodes: [],
+                currentNodeId: null,
+            })
+        }
+
         // 사용자 최종 선택 저장
         const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
         await eligibilityApi.updateFinalDecision(id, finalLabel)
@@ -213,11 +244,11 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             router.push("/dashboard")
         } else {
             try {
-                setIsRunningTrackAgent(true)
                 trackProgress.subscribe()
                 await agentsApi.recommendTrack({ project_id: id })
             } catch (error) {
                 console.error("트랙 추천 실패:", error)
+                hideGlobalAILoader()
                 setErrorMessage("트랙 추천 중 오류가 발생했습니다.")
                 setErrorModalOpen(true)
                 setIsRunningTrackAgent(false)
@@ -229,6 +260,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             setCurrentStep(3)
+            // 전역 로더는 다음 페이지에서 숨김
             router.push(`/projects/${id}/track`)
         }
     }
@@ -277,6 +309,19 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             {
                 onSuccess: async (data) => {
                     const mappedData = mapResponseToAnalysisData(data)
+
+                    // sandbox인 경우 전역 로더 메시지/노드 업데이트
+                    if (mappedData.recommendation === "sandbox") {
+                        setIsRunningTrackAgent(true)
+                        showGlobalAILoader({
+                            message: "최적의 트랙 추천 중...",
+                            nodes: trackNodes?.nodes,
+                            progress: 0,
+                            completedNodes: [],
+                            currentNodeId: null,
+                        })
+                    }
+
                     setMarketAnalysis({
                         decision: mappedData.recommendation,
                         aiRecommendation: mappedData.recommendation,
@@ -292,11 +337,11 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                         router.push("/dashboard")
                     } else {
                         try {
-                            setIsRunningTrackAgent(true)
                             trackProgress.subscribe()
                             await agentsApi.recommendTrack({ project_id: id })
                         } catch (error) {
                             console.error("트랙 추천 실패:", error)
+                            hideGlobalAILoader()
                             setErrorMessage("트랙 추천 중 오류가 발생했습니다.")
                             setErrorModalOpen(true)
                             setIsRunningTrackAgent(false)
@@ -308,6 +353,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                         await queryClient.invalidateQueries({ queryKey: ["projects"] })
                         markStepComplete(2)
                         setCurrentStep(3)
+                        // 전역 로더는 다음 페이지에서 숨김
                         router.push(`/projects/${id}/track`)
                     }
                 },
@@ -328,26 +374,6 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
     return (
         <div className="py-6">
-            {/* AI 로더 */}
-            {eligibilityMutation.isPending && (
-                <AILoader
-                    message="서비스 규제 현황 분석 중..."
-                    nodes={eligibilityNodes?.nodes}
-                    completedNodes={eligibilityProgress.completedNodes}
-                    currentNodeId={eligibilityProgress.currentNodeId}
-                    progress={eligibilityProgress.progress}
-                />
-            )}
-            {isRunningTrackAgent && (
-                <AILoader
-                    message="최적의 트랙 추천 중..."
-                    nodes={trackNodes?.nodes}
-                    completedNodes={trackProgress.completedNodes}
-                    currentNodeId={trackProgress.currentNodeId}
-                    progress={trackProgress.progress}
-                />
-            )}
-
             {/* 재분석 확인 모달 */}
             <ConfirmModal
                 isOpen={reanalyzeModalOpen}

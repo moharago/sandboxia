@@ -1,7 +1,6 @@
 "use client"
 
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoader } from "@/components/ui/ai-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { FileUpload } from "@/components/ui/file-upload"
@@ -42,7 +41,7 @@ const PAGE_STEP = PAGE_STEPS.service // 1
 export function ServiceForm({ project, id }: ServiceFormProps) {
     const router = useRouter()
     const queryClient = useQueryClient()
-    const { devIsAnalyzed, devHasChanges } = useUIStore()
+    const { devIsAnalyzed, devHasChanges, showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader } = useUIStore()
 
     // 현재 단계와 페이지 단계 비교
     const currentStep = project.current_step
@@ -52,18 +51,29 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     // 파일 목록 조회
     const { data: uploadedFileList, refetch: refetchFiles } = useProjectFilesQuery(id)
 
-    // 컴포넌트 마운트 시 파일 목록 refetch
+    // 컴포넌트 마운트 시 파일 목록 refetch + 전역 로더 숨기기
     useEffect(() => {
         refetchFiles()
-    }, [refetchFiles])
+        hideGlobalAILoader()
+    }, [refetchFiles, hideGlobalAILoader])
 
     // 에이전트 노드 목록 조회
     const { data: serviceNodes } = useAgentNodesQuery("service_structurer")
     const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
 
-    // SSE 진행 상태 구독
-    const serviceProgress = useAgentProgress({ projectId: id })
-    const eligibilityProgress = useAgentProgress({ projectId: id })
+    // SSE 진행 상태 구독 (전역 로더 자동 업데이트)
+    const serviceProgress = useAgentProgress({
+        projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "서비스 정보 분석 중...",
+        globalLoaderNodes: serviceNodes?.nodes,
+    })
+    const eligibilityProgress = useAgentProgress({
+        projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "서비스 규제 현황 분석 중...",
+        globalLoaderNodes: eligibilityNodes?.nodes,
+    })
 
     // 모달 상태
     const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
@@ -80,6 +90,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         },
         onError: (error) => {
             setRunningAgent(null)
+            hideGlobalAILoader()
             setErrorMessage(error.message || "서비스 분석 중 오류가 발생했습니다.")
             setErrorModalOpen(true)
         },
@@ -90,10 +101,12 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             queryClient.invalidateQueries({ queryKey: ["projects"] })
             queryClient.invalidateQueries({ queryKey: ["eligibility"] })
             setRunningAgent(null)
+            // 전역 로더는 다음 페이지에서 숨김
             router.push(`/projects/${id}/eligibility`)
         },
         onError: (error) => {
             setRunningAgent(null)
+            hideGlobalAILoader()
             setErrorMessage(`시장출시 진단 실패: ${error.message}`)
             setErrorModalOpen(true)
             router.push(`/projects/${id}/eligibility`)
@@ -185,6 +198,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         serviceMutation.mutate(getMutationPayload(), {
             onSuccess: () => {
                 setRunningAgent(null)
+                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
             },
         })
@@ -197,6 +211,14 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         serviceMutation.mutate(getMutationPayload(), {
             onSuccess: () => {
                 setRunningAgent("eligibility")
+                // 전역 로더 메시지/노드 업데이트
+                showGlobalAILoader({
+                    message: "서비스 규제 현황 분석 중...",
+                    nodes: eligibilityNodes?.nodes,
+                    progress: 0,
+                    completedNodes: [],
+                    currentNodeId: null,
+                })
                 eligibilityProgress.subscribe()
                 eligibilityMutation.mutate({ project_id: id })
             },
@@ -214,23 +236,10 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         setReanalyzeModalOpen(true)
     }
 
-    const isLoading = serviceMutation.isPending || eligibilityMutation.isPending
-    const currentNodes = runningAgent === "service" ? serviceNodes?.nodes : eligibilityNodes?.nodes
-    const currentProgress = runningAgent === "service" ? serviceProgress : eligibilityProgress
+    const isLoading = serviceMutation.isPending || eligibilityMutation.isPending || runningAgent !== null
 
     return (
         <div className="py-6">
-            {/* AI 로더 */}
-            {isLoading && (
-                <AILoader
-                    message={runningAgent === "service" ? "서비스 정보 분석 중..." : "서비스 규제 현황 분석 중..."}
-                    nodes={currentNodes}
-                    completedNodes={currentProgress.completedNodes}
-                    currentNodeId={currentProgress.currentNodeId}
-                    progress={currentProgress.progress}
-                />
-            )}
-
             {/* 재분석 확인 모달 */}
             <ConfirmModal
                 isOpen={reanalyzeModalOpen}
