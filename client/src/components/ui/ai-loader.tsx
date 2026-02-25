@@ -60,14 +60,17 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
                 </div>
 
                 {/* 진행률 바 */}
-                {typeof progress === "number" && (
-                    <div className="w-full mt-2">
-                        <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
+                {typeof progress === "number" && (() => {
+                    const normalizedProgress = Math.min(100, Math.max(0, Number(progress) || 0))
+                    return (
+                        <div className="w-full mt-2">
+                            <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary transition-all duration-300 ease-out" style={{ width: `${normalizedProgress}%` }} />
+                            </div>
+                            <p className="text-xs text-muted-foreground text-center mt-1">{normalizedProgress}%</p>
                         </div>
-                        <p className="text-xs text-muted-foreground text-center mt-1">{progress}%</p>
-                    </div>
-                )}
+                    )
+                })()}
 
                 {/* 노드 체크리스트 */}
                 {hasNodes && (

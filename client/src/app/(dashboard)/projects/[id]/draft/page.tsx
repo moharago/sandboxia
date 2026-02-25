@@ -116,12 +116,13 @@ export default function DraftPage({ params }: DraftPageProps) {
             // 성공 시 draft query invalidate하여 새 데이터 로드
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
             queryClient.invalidateQueries({ queryKey: ["projects"] })
-            hideGlobalAILoader() // 생성 완료 시 로더 숨김
         } catch (error) {
-            hideGlobalAILoader()
             const message = error instanceof Error ? error.message : "알 수 없는 오류"
             setErrorMessage(`AI 초안 생성에 실패했습니다: ${message}`)
             setErrorModalOpen(true)
+        } finally {
+            draftProgress.unsubscribe()
+            hideGlobalAILoader()
         }
     }
 

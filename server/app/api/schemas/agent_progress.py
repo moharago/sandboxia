@@ -38,7 +38,7 @@ class AgentProgressEvent(BaseModel):
     agent_type: str = Field(..., description="에이전트 타입")
     node_id: str | None = Field(None, description="현재 노드 ID")
     node_label: str | None = Field(None, description="현재 노드 라벨")
-    progress: int = Field(..., description="진행률 (0-100)")
+    progress: int = Field(..., ge=0, le=100, description="진행률 (0-100)")
     message: str | None = Field(None, description="진행 메시지")
     completed_nodes: list[str] = Field(default_factory=list, description="완료된 노드 ID 목록")
 
@@ -69,6 +69,16 @@ AGENT_NODES: dict[str, list[NodeInfo]] = {
         NodeInfo(id="load_form_schema", label="양식 로드", description="트랙에 맞는 신청서 양식을 로드합니다"),
         NodeInfo(id="retrieve_context", label="자료 검색", description="작성에 필요한 참고 자료를 검색합니다"),
         NodeInfo(id="generate_draft", label="초안 생성", description="신청서 초안을 생성합니다"),
+    ],
+    "strategy_advisor": [
+        NodeInfo(id="retrieve_cases", label="사례 검색", description="유사 승인 사례를 검색합니다"),
+        NodeInfo(id="extract_patterns", label="패턴 추출", description="승인 포인트 패턴을 추출합니다"),
+        NodeInfo(id="generate_strategy", label="전략 생성", description="적용 전략을 생성합니다"),
+    ],
+    "risk_checker": [
+        NodeInfo(id="generate_checklist", label="체크리스트 생성", description="기준 체크리스트를 생성합니다"),
+        NodeInfo(id="detect_gaps", label="누락 탐지", description="누락/약점을 탐지합니다"),
+        NodeInfo(id="generate_report", label="리포트 생성", description="최종 검수 리포트를 생성합니다"),
     ],
 }
 

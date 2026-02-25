@@ -210,23 +210,20 @@ def update_project_after_draft(project_id: str) -> dict | None:
     Returns:
         업데이트된 projects 레코드 또는 None
     """
-    try:
-        result = (
-            supabase.table("projects")
-            .update({
-                "current_step": 4,  # draft 에이전트 완료 → Step 4
-                "status": 2,  # Step 4가 되면 status=2
-            })
-            .eq("id", project_id)
-            .execute()
-        )
+    result = (
+        supabase.table("projects")
+        .update({
+            "current_step": 4,  # draft 에이전트 완료 → Step 4
+            "status": 2,  # Step 4가 되면 status=2
+            "updated_at": datetime.now().isoformat(),
+        })
+        .eq("id", project_id)
+        .execute()
+    )
 
-        if result.data:
-            logger.info(f"[Draft] 프로젝트 {project_id}: current_step → 4, status → 2")
-            return result.data[0]
-        else:
-            logger.warning(f"[Draft] 프로젝트 {project_id} 업데이트 실패: 데이터 없음")
-            return None
-    except Exception as e:
-        logger.error(f"[Draft] 프로젝트 {project_id} 업데이트 중 오류: {e}")
+    if result.data:
+        logger.info("[Draft] 프로젝트 %s: current_step → 4, status → 2", project_id)
+        return result.data[0]
+    else:
+        logger.warning("[Draft] 프로젝트 %s 업데이트 실패: 데이터 없음", project_id)
         return None

@@ -336,6 +336,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                         await projectsApi.updateStatus(id, 4, 2)
                         await queryClient.invalidateQueries({ queryKey: ["projects"] })
                         markStepComplete(2)
+                        hideGlobalAILoader()
                         router.push("/dashboard")
                     } else {
                         try {

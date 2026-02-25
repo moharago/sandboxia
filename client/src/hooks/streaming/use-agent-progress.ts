@@ -261,6 +261,9 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
             if (err instanceof Error && err.name === "AbortError") {
                 // 사용자가 중단함
                 setStatus("idle")
+                if (useGlobalLoader) {
+                    useUIStore.getState().hideGlobalAILoader()
+                }
                 return
             }
 

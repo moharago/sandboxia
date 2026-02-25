@@ -266,6 +266,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                         await draftMutation.mutateAsync({ project_id: id })
                     } catch (error) {
                         console.error("신청서 초안 생성 실패:", error)
+                        draftProgress.unsubscribe()
                         hideGlobalAILoader()
                         setIsRunningDraftAgent(false)
                         return

@@ -93,6 +93,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             queryClient.invalidateQueries({ queryKey: ["projects"] })
         },
         onError: (error) => {
+            serviceProgress.unsubscribe()
             setRunningAgent(null)
             hideGlobalAILoader()
             setErrorMessage(error.message || "서비스 분석 중 오류가 발생했습니다.")
@@ -109,6 +110,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             router.push(`/projects/${id}/eligibility`)
         },
         onError: (error) => {
+            eligibilityProgress.unsubscribe()
             setRunningAgent(null)
             hideGlobalAILoader()
             setErrorMessage(`시장출시 진단 실패: ${error.message}`)
