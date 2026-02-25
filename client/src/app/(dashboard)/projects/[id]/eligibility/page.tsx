@@ -130,9 +130,16 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
     // 모달 상태
     const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
-    const [nextStepModalOpen, setNextStepModalOpen] = useState(false)
+    const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+
+    // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
+    useEffect(() => {
+        if (!isLoadingExisting && !isLoadingProject && isBehindCurrentStep && hasExistingResult) {
+            setStaleDataModalOpen(true)
+        }
+    }, [isLoadingExisting, isLoadingProject, isBehindCurrentStep, hasExistingResult])
 
     // Mutation
     const eligibilityMutation = useEligibilityMutation({
@@ -194,7 +201,6 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
     // 트랙 에이전트 실행 후 이동
     const runTrackAndNavigate = async () => {
-        setNextStepModalOpen(false)
 
         // 사용자 최종 선택 저장
         const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
@@ -227,8 +233,6 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
     // 다음 페이지로 이동만 (분석 없이)
     const navigateToNext = () => {
-        setNextStepModalOpen(false)
-
         setMarketAnalysis({
             decision: selectedDecision,
             aiRecommendation: analysisData.recommendation,
@@ -246,15 +250,15 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
         setReanalyzeModalOpen(true)
     }
 
-    // 다음 단계 버튼 클릭
+    // 다음 단계 버튼 클릭 (current_step > PAGE_STEP인 경우: 분석 없이 이동만)
     const handleNext = () => {
         if (!isAnalyzed) return
 
-        if (isAheadOfCurrentStep && hasTrackResult) {
-            // 이미 분석 완료 + 다음 단계 결과 있음 → 확인 모달
-            setNextStepModalOpen(true)
+        if (isAheadOfCurrentStep) {
+            // current_step > PAGE_STEP: 분석 없이 바로 이동
+            navigateToNext()
         } else {
-            // 현재 단계이거나 다음 단계 결과 없음 → 바로 실행
+            // current_step == PAGE_STEP: 트랙 분석 후 이동
             runTrackAndNavigate()
         }
     }
@@ -308,8 +312,8 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
     const isQueryLoading = isLoadingExisting || isLoadingProject
 
-    // current_step < page_step: 이전 단계 미완료
-    if (!isLoadingProject && project && isBehindCurrentStep) {
+    // current_step < page_step이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
+    if (!isLoadingProject && !isLoadingExisting && project && isBehindCurrentStep && !hasExistingResult) {
         return (
             <div className="py-6">
                 <div className="container">
@@ -369,21 +373,6 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                 cancelLabel="취소"
             />
 
-            {/* 다음 단계 확인 모달 */}
-            <ConfirmModal
-                isOpen={nextStepModalOpen}
-                onClose={navigateToNext}
-                onConfirm={runTrackAndNavigate}
-                title="다음 단계 분석"
-                description={[
-                    "다음 단계(트랙 선택)에 이미 분석 결과가 있습니다.",
-                    "재분석하시겠습니까?",
-                    "기존 결과는 새로운 결과로 대체될 수 있습니다.",
-                ]}
-                confirmLabel="분석 실행"
-                cancelLabel="기존 결과 유지"
-            />
-
             {/* 에러 모달 */}
             <ConfirmModal
                 isOpen={errorModalOpen}
@@ -393,6 +382,24 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                 description={errorMessage}
                 confirmLabel="확인"
                 cancelLabel="닫기"
+            />
+
+            {/* 이전 단계 재분석으로 인한 재분석 필요 모달 */}
+            <ConfirmModal
+                isOpen={staleDataModalOpen}
+                onClose={() => setStaleDataModalOpen(false)}
+                onConfirm={() => {
+                    setStaleDataModalOpen(false)
+                    runEligibilityOnly()
+                }}
+                title="재분석 필요"
+                description={[
+                    "이전 단계에서 재분석이 수행되었습니다.",
+                    "현재 단계의 분석 결과가 최신 상태가 아닐 수 있습니다.",
+                    "재분석을 실행하시겠습니까?",
+                ]}
+                confirmLabel="재분석"
+                cancelLabel="기존 결과 유지"
             />
 
             <div className="container">

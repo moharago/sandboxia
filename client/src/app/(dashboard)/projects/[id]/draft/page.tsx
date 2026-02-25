@@ -21,7 +21,7 @@ import { TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, Download, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useState } from "react"
+import { use, useEffect, useState } from "react"
 
 /** Track 타입 가드: TRACK_TO_FORM_ID에 존재하는 유효한 Track인지 확인 */
 const isTrack = (value: string | null | undefined): value is Track => value != null && Object.prototype.hasOwnProperty.call(TRACK_TO_FORM_ID, value)
@@ -44,6 +44,7 @@ export default function DraftPage({ params }: DraftPageProps) {
     // 모달 상태
     const [regenerateModalOpen, setRegenerateModalOpen] = useState(false)
     const [completeModalOpen, setCompleteModalOpen] = useState(false)
+    const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
 
@@ -61,6 +62,16 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // Supabase에서 초안 데이터 조회
     const { data: draftData, isLoading: isLoadingDraft } = useDraftQuery(id)
+
+    // 기존 결과 확인 (빈 객체 {}는 false로 처리)
+    const hasDraftData = !!draftData?.form_values && typeof draftData.form_values === "object" && Object.keys(draftData.form_values).length > 0
+
+    // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
+    useEffect(() => {
+        if (!isLoadingDraft && !isLoadingProject && isBehindCurrentStep && hasDraftData) {
+            setStaleDataModalOpen(true)
+        }
+    }, [isLoadingDraft, isLoadingProject, isBehindCurrentStep, hasDraftData])
 
     // 에이전트 노드 목록 조회 (스트리밍 체크리스트용)
     const { data: draftNodes } = useAgentNodesQuery("application_drafter")
@@ -151,8 +162,8 @@ export default function DraftPage({ params }: DraftPageProps) {
         )
     }
 
-    // 이전 단계가 완료되지 않은 경우 (current_step < PAGE_STEP)
-    if (isBehindCurrentStep || !project?.track) {
+    // current_step < PAGE_STEP이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
+    if ((isBehindCurrentStep && !hasDraftData) || !project?.track) {
         const targetStepName = getStepPageName(currentStep)
         return (
             <div className="py-6">
@@ -169,9 +180,6 @@ export default function DraftPage({ params }: DraftPageProps) {
             </div>
         )
     }
-
-    // 초안 데이터 있는지 여부 (빈 객체 {}는 false로 처리)
-    const hasDraftData = !!draftData?.form_values && typeof draftData.form_values === "object" && Object.keys(draftData.form_values).length > 0
 
     // 트랙 불일치 감지: 저장된 초안의 track과 현재 프로젝트의 track이 다른 경우
     const isTrackMismatch = hasDraftData && draftData?.track && draftData.track !== project.track
@@ -307,6 +315,24 @@ export default function DraftPage({ params }: DraftPageProps) {
                             description={errorMessage}
                             confirmLabel="확인"
                             cancelLabel="닫기"
+                        />
+
+                        {/* 이전 단계 재분석으로 인한 재분석 필요 모달 */}
+                        <ConfirmModal
+                            isOpen={staleDataModalOpen}
+                            onClose={() => setStaleDataModalOpen(false)}
+                            onConfirm={() => {
+                                setStaleDataModalOpen(false)
+                                runDraftGeneration()
+                            }}
+                            title="재분석 필요"
+                            description={[
+                                "이전 단계에서 재분석이 수행되었습니다.",
+                                "현재 단계의 초안이 최신 상태가 아닐 수 있습니다.",
+                                "초안을 다시 생성하시겠습니까?",
+                            ]}
+                            confirmLabel="재생성"
+                            cancelLabel="기존 결과 유지"
                         />
                     </div>
 

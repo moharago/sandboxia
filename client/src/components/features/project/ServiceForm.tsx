@@ -62,7 +62,6 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
 
     // 모달 상태
     const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
-    const [nextStepModalOpen, setNextStepModalOpen] = useState(false)
     const [errorModalOpen, setErrorModalOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
 
@@ -196,34 +195,15 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         })
     }
 
-    // eligibility만 실행 후 이동
-    const runEligibilityAndNavigate = () => {
-        setNextStepModalOpen(false)
-        setRunningAgent("eligibility")
-        eligibilityProgress.subscribe()
-        eligibilityMutation.mutate({ project_id: id })
-    }
-
-    // 다음 단계 버튼 클릭
+    // 다음 단계 버튼 클릭 (current_step > PAGE_STEP인 경우: 분석 없이 이동만)
     const handleNext = () => {
-        if (isAheadOfCurrentStep) {
-            // 이미 분석 완료 상태 - 다음 단계에 결과가 있으므로 확인 모달
-            setNextStepModalOpen(true)
-        } else {
-            // 현재 단계 - 서비스 + eligibility 순차 실행
-            runServiceAndEligibility()
-        }
+        // current_step > PAGE_STEP: 분석 없이 바로 이동
+        router.push(`/projects/${id}/eligibility`)
     }
 
     // 재분석 버튼 클릭
     const handleReanalyze = () => {
         setReanalyzeModalOpen(true)
-    }
-
-    // 다음 단계로 이동만 (분석 없이)
-    const navigateToNext = () => {
-        setNextStepModalOpen(false)
-        router.push(`/projects/${id}/eligibility`)
     }
 
     const isLoading = serviceMutation.isPending || eligibilityMutation.isPending
@@ -256,21 +236,6 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
                 ]}
                 confirmLabel="분석 실행"
                 cancelLabel="취소"
-            />
-
-            {/* 다음 단계 확인 모달 */}
-            <ConfirmModal
-                isOpen={nextStepModalOpen}
-                onClose={navigateToNext}
-                onConfirm={runEligibilityAndNavigate}
-                title="다음 단계 분석"
-                description={[
-                    "다음 단계(시장출시 진단)에 이미 분석 결과가 있습니다.",
-                    "재분석하시겠습니까?",
-                    "기존 결과는 새로운 결과로 대체될 수 있습니다.",
-                ]}
-                confirmLabel="분석 실행"
-                cancelLabel="기존 결과 유지"
             />
 
             {/* 에러 모달 */}

@@ -26,5 +26,7 @@ export function useTrackQuery(projectId: string) {
         queryKey: trackKeys.byProject(projectId),
         queryFn: () => trackApi.getByProjectId(projectId),
         enabled: !!projectId,
+        staleTime: 1000 * 60 * 2, // 2분간 캐시 유지
+        retry: 2, // 최대 2번 재시도
     })
 }

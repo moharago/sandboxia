@@ -25,7 +25,7 @@ import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } 
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, CheckCircle2, ExternalLink, Info, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useMemo, useState } from "react"
+import { use, useEffect, useMemo, useState } from "react"
 
 interface TrackPageProps {
     params: Promise<{ id: string }>
@@ -121,7 +121,7 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // 모달 상태
     const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
-    const [nextStepModalOpen, setNextStepModalOpen] = useState(false)
+    const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
 
     const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
     const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
@@ -143,6 +143,16 @@ export default function TrackPage({ params }: TrackPageProps) {
     const isAheadOfCurrentStep = currentStep > PAGE_STEP
     const isAtCurrentStep = currentStep === PAGE_STEP
     const isBehindCurrentStep = currentStep < PAGE_STEP
+
+    // 기존 결과 확인
+    const hasExistingResult = !!trackResult
+
+    // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
+    useEffect(() => {
+        if (!isLoadingTrack && !isLoadingProject && isBehindCurrentStep && hasExistingResult) {
+            setStaleDataModalOpen(true)
+        }
+    }, [isLoadingTrack, isLoadingProject, isBehindCurrentStep, hasExistingResult])
 
     // 결과 변환
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
@@ -206,8 +216,6 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // 초안 생성 후 이동
     const runDraftAndNavigate = async () => {
-        setNextStepModalOpen(false)
-
         if (!effectiveSelectedTrackId) return
         const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
         if (!apiTrackId) return
@@ -240,8 +248,6 @@ export default function TrackPage({ params }: TrackPageProps) {
 
     // 다음 페이지로 이동만 (분석 없이)
     const navigateToNext = async () => {
-        setNextStepModalOpen(false)
-
         if (!effectiveSelectedTrackId) return
         const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
         if (!apiTrackId) return
@@ -268,13 +274,13 @@ export default function TrackPage({ params }: TrackPageProps) {
         setReanalyzeModalOpen(true)
     }
 
-    // 다음 단계 버튼 클릭
+    // 다음 단계 버튼 클릭 (current_step > PAGE_STEP인 경우: 분석 없이 이동만)
     const handleNext = () => {
-        if (isAheadOfCurrentStep && hasExistingDraft) {
-            // 이미 분석 완료 + 다음 단계 결과 있음 → 확인 모달
-            setNextStepModalOpen(true)
+        if (isAheadOfCurrentStep) {
+            // current_step > PAGE_STEP: 분석 없이 바로 이동
+            navigateToNext()
         } else {
-            // 현재 단계이거나 다음 단계 결과 없음 → 바로 실행
+            // current_step == PAGE_STEP: 초안 생성 후 이동
             runDraftAndNavigate()
         }
     }
@@ -287,8 +293,8 @@ export default function TrackPage({ params }: TrackPageProps) {
         return <PageLoader className="flex-1" />
     }
 
-    // current_step < page_step: 이전 단계 미완료
-    if (isBehindCurrentStep) {
+    // current_step < page_step이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
+    if (isBehindCurrentStep && !hasExistingResult) {
         return (
             <div className="py-6">
                 <div className="container">
@@ -385,19 +391,22 @@ export default function TrackPage({ params }: TrackPageProps) {
                     cancelLabel="취소"
                 />
 
-                {/* 다음 단계 확인 모달 */}
+                {/* 이전 단계 재분석으로 인한 재분석 필요 모달 */}
                 <ConfirmModal
-                    isOpen={nextStepModalOpen}
-                    onClose={navigateToNext}
-                    onConfirm={runDraftAndNavigate}
-                    title="다음 단계 분석"
+                    isOpen={staleDataModalOpen}
+                    onClose={() => setStaleDataModalOpen(false)}
+                    onConfirm={() => {
+                        setStaleDataModalOpen(false)
+                        runTrackOnly()
+                    }}
+                    title="재분석 필요"
                     description={[
-                        "다음 단계(신청서 작성)에 이미 생성된 초안이 있습니다.",
-                        "초안을 다시 생성하시겠습니까?",
-                        "기존 초안은 새로운 초안으로 대체될 수 있습니다.",
+                        "이전 단계에서 재분석이 수행되었습니다.",
+                        "현재 단계의 분석 결과가 최신 상태가 아닐 수 있습니다.",
+                        "재분석을 실행하시겠습니까?",
                     ]}
-                    confirmLabel="초안 재생성"
-                    cancelLabel="기존 초안 유지"
+                    confirmLabel="재분석"
+                    cancelLabel="기존 결과 유지"
                 />
 
                 <div className="container">
