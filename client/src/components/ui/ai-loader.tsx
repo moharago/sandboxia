@@ -43,14 +43,6 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
             aria-label={message || "AI 분석 중"}
         >
             <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-8 shadow-lg border border-gray-200 min-w-[320px]">
-                {/* 스피너 + 아이콘 */}
-                {/* <div className="relative">
-                    <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                    <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-primary" />
-                </div> */}
-
-                {/* 제목 + 메시지 */}
-                {/* <div className="flex items-center gap-2"> */}
                 <div className="flex flex-col items-center gap-1">
                     <Sparkles className="text-primary w-5 h-5 animate-pulse" />
                     <p className="text-lg font-medium mt-2 text-foreground">

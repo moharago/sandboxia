@@ -84,8 +84,8 @@ AGENT_NODES: dict[str, list[NodeInfo]] = {
 
 
 def get_agent_nodes(agent_type: str) -> list[NodeInfo]:
-    """에이전트의 노드 목록 반환"""
-    return AGENT_NODES.get(agent_type, [])
+    """에이전트의 노드 목록 반환 (방어적 복사)"""
+    return list(AGENT_NODES.get(agent_type, []))
 
 
 def get_node_label(agent_type: str, node_id: str) -> str:

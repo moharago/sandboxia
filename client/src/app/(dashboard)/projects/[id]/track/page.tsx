@@ -229,9 +229,11 @@ export default function TrackPage({ params }: TrackPageProps) {
         trackProgress.subscribe()
         recommendMutation.mutate({ project_id: id }, {
             onSuccess: () => {
+                trackProgress.unsubscribe()
                 hideGlobalAILoader() // 재분석 완료 시 로더 숨김
             },
             onError: () => {
+                trackProgress.unsubscribe()
                 hideGlobalAILoader()
             },
         })

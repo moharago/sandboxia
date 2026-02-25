@@ -101,6 +101,12 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
         reset()
         setStatus("connecting")
 
+        // AbortController 생성 (토큰 확인 전에 생성하여 조기 취소 지원)
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+        abortControllerRef.current = new AbortController()
+
         // 전역 로더 표시
         if (useGlobalLoader) {
             useUIStore.getState().showGlobalAILoader({
@@ -123,9 +129,6 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
             onError?.("로그인이 필요합니다.")
             return
         }
-
-        // AbortController 생성
-        abortControllerRef.current = new AbortController()
 
         try {
             // GET SSE 엔드포인트 연결

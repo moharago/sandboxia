@@ -168,6 +168,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             queryClient.invalidateQueries({ queryKey: ["projects"] })
         },
         onError: (error) => {
+            eligibilityProgress.unsubscribe()
             hideGlobalAILoader()
             setErrorMessage(`분석 실패: ${error.message}`)
             setErrorModalOpen(true)
@@ -262,6 +263,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             setErrorMessage(`처리 중 오류가 발생했습니다: ${message}`)
             setErrorModalOpen(true)
         } finally {
+            trackProgress.unsubscribe()
             hideGlobalAILoader()
             setIsRunningTrackAgent(false)
         }
@@ -312,52 +314,53 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                 onSuccess: async (data) => {
                     const mappedData = mapResponseToAnalysisData(data)
 
-                    // sandbox인 경우 전역 로더 메시지/노드 업데이트
-                    if (mappedData.recommendation === "sandbox") {
-                        setIsRunningTrackAgent(true)
-                        showGlobalAILoader({
-                            message: "최적의 트랙 추천 중...",
-                            nodes: trackNodes?.nodes,
-                            progress: 0,
-                            completedNodes: [],
-                            currentNodeId: null,
+                    try {
+                        // sandbox인 경우 전역 로더 메시지/노드 업데이트
+                        if (mappedData.recommendation === "sandbox") {
+                            setIsRunningTrackAgent(true)
+                            showGlobalAILoader({
+                                message: "최적의 트랙 추천 중...",
+                                nodes: trackNodes?.nodes,
+                                progress: 0,
+                                completedNodes: [],
+                                currentNodeId: null,
+                            })
+                        }
+
+                        setMarketAnalysis({
+                            decision: mappedData.recommendation,
+                            aiRecommendation: mappedData.recommendation,
                         })
-                    }
 
-                    setMarketAnalysis({
-                        decision: mappedData.recommendation,
-                        aiRecommendation: mappedData.recommendation,
-                    })
+                        const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
+                        await eligibilityApi.updateFinalDecision(id, finalLabel)
 
-                    const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
-                    await eligibilityApi.updateFinalDecision(id, finalLabel)
-
-                    if (mappedData.recommendation === "direct") {
-                        await projectsApi.updateStatus(id, 4, 2)
-                        await queryClient.invalidateQueries({ queryKey: ["projects"] })
-                        markStepComplete(2)
-                        hideGlobalAILoader()
-                        router.push("/dashboard")
-                    } else {
-                        try {
+                        if (mappedData.recommendation === "direct") {
+                            await projectsApi.updateStatus(id, 4, 2)
+                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            markStepComplete(2)
+                            hideGlobalAILoader()
+                            router.push("/dashboard")
+                        } else {
                             trackProgress.subscribe()
                             await agentsApi.recommendTrack({ project_id: id })
-                        } catch (error) {
-                            console.error("트랙 추천 실패:", error)
-                            hideGlobalAILoader()
-                            setErrorMessage("트랙 추천 중 오류가 발생했습니다.")
-                            setErrorModalOpen(true)
-                            setIsRunningTrackAgent(false)
-                            return
+                            // 트랙 결과 쿼리 invalidate (페이지 이동 전)
+                            await queryClient.invalidateQueries({ queryKey: ["track"] })
+                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            markStepComplete(2)
+                            setCurrentStep(3)
+                            // 전역 로더는 다음 페이지에서 숨김
+                            router.push(`/projects/${id}/track`)
                         }
+                    } catch (error) {
+                        console.error("분석 후 처리 실패:", error)
+                        const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+                        setErrorMessage(`처리 중 오류가 발생했습니다: ${message}`)
+                        setErrorModalOpen(true)
+                    } finally {
+                        trackProgress.unsubscribe()
+                        hideGlobalAILoader()
                         setIsRunningTrackAgent(false)
-                        // 트랙 결과 쿼리 invalidate (페이지 이동 전)
-                        await queryClient.invalidateQueries({ queryKey: ["track"] })
-                        await queryClient.invalidateQueries({ queryKey: ["projects"] })
-                        markStepComplete(2)
-                        setCurrentStep(3)
-                        // 전역 로더는 다음 페이지에서 숨김
-                        router.push(`/projects/${id}/track`)
                     }
                 },
             }
