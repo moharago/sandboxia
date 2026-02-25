@@ -18,7 +18,6 @@ import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
 import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
-import { projectsApi } from "@/lib/api/projects"
 import { cn } from "@/lib/utils/cn"
 import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useWizardStore } from "@/stores/wizard-store"
@@ -125,14 +124,9 @@ export default function TrackPage({ params }: TrackPageProps) {
     const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
 
-    const { data: project, isLoading: isLoadingProject, refetch: refetchProject } = useProjectQuery(id)
-    const { data: trackResult, isLoading: isLoadingTrack, refetch: refetchTrack } = useTrackQuery(id)
-
-    // StepNav로 페이지 진입 시 데이터 refetch
-    useEffect(() => {
-        refetchProject()
-        refetchTrack()
-    }, [refetchProject, refetchTrack])
+    // 프로젝트 정보 조회 (refetchOnMount: "always"로 자동 refetch)
+    const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
+    const { data: trackResult, isPending: isLoadingTrack } = useTrackQuery(id)
 
     const { data: trackNodes } = useAgentNodesQuery("track_recommender")
     const { data: draftNodes } = useAgentNodesQuery("application_drafter")
@@ -216,11 +210,8 @@ export default function TrackPage({ params }: TrackPageProps) {
     }
 
     // 트랙 재분석만 실행 (페이지 이동 없음)
-    const runTrackOnly = async () => {
+    const runTrackOnly = () => {
         setReanalyzeModalOpen(false)
-        // 재분석 시 current_step을 현재 페이지 단계(3)로 업데이트
-        await projectsApi.updateStatus(id, project?.status ?? 2, PAGE_STEP)
-        await queryClient.invalidateQueries({ queryKey: ["projects"] })
         trackProgress.subscribe()
         recommendMutation.mutate({ project_id: id })
     }

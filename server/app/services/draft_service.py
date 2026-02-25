@@ -196,3 +196,30 @@ async def run_draft(
             message=f"신청서 초안 생성 중 오류가 발생했습니다: {str(e)}",
             status_code=500,
         )
+
+
+def update_project_after_draft(project_id: str) -> dict | None:
+    """초안 생성 완료 후 프로젝트 업데이트
+
+    - 항상 current_step을 4로 설정 (application_drafter 에이전트 완료)
+    - status: 2 (Step 4가 되면 status=2)
+
+    Args:
+        project_id: 프로젝트 UUID
+
+    Returns:
+        업데이트된 projects 레코드 또는 None
+    """
+    result = (
+        supabase.table("projects")
+        .update({
+            "current_step": 4,  # draft 에이전트 완료 → Step 4
+            "status": 2,  # Step 4가 되면 status=2
+        })
+        .eq("id", project_id)
+        .execute()
+    )
+
+    logger.info(f"[Draft] 프로젝트 {project_id}: current_step → 4, status → 2")
+
+    return result.data[0] if result.data else None

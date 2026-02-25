@@ -3,9 +3,12 @@
 track_results 테이블 CRUD 및 관련 데이터 조회
 """
 
+import logging
 from datetime import datetime
 
 from app.core.config import settings, supabase
+
+logger = logging.getLogger(__name__)
 
 
 def get_project_canonical(project_id: str) -> dict | None:
@@ -115,3 +118,30 @@ def update_project_track(project_id: str, track: str) -> dict | None:
         return None
 
     return result.data[0]
+
+
+def update_project_after_track(project_id: str) -> dict | None:
+    """트랙 추천 완료 후 프로젝트 업데이트
+
+    - 항상 current_step을 3으로 설정 (track_recommender 에이전트 완료)
+    - status: 1 (Step 1~3은 항상 status=1)
+
+    Args:
+        project_id: 프로젝트 UUID
+
+    Returns:
+        업데이트된 projects 레코드 또는 None
+    """
+    result = (
+        supabase.table("projects")
+        .update({
+            "current_step": 3,  # track 에이전트 완료 → Step 3
+            "status": 1,  # Step 1~3은 항상 status=1
+        })
+        .eq("id", project_id)
+        .execute()
+    )
+
+    logger.info(f"[Track] 프로젝트 {project_id}: current_step → 3")
+
+    return result.data[0] if result.data else None

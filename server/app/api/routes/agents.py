@@ -31,6 +31,7 @@ from app.services.draft_service import (
     run_draft,
     save_draft_result,
     update_draft_card,
+    update_project_after_draft,
 )
 from app.services.eligibility_service import (
     EligibilityServiceError,
@@ -44,6 +45,7 @@ from app.services.structure_service import StructureService, StructureServiceErr
 from app.services.track_service import (
     get_track_result,
     save_track_result,
+    update_project_after_track,
 )
 
 logger = logging.getLogger(__name__)
@@ -315,6 +317,7 @@ async def recommend_track(
             similar_cases=similar_cases,
             domain_constraints=domain_constraints,
         )
+        update_project_after_track(project_id)
     except Exception as e:
         logger.warning("track_results 저장 실패: %s", str(e))
         # 저장 실패해도 응답은 반환
@@ -457,6 +460,7 @@ async def generate_draft(
             similar_cases=[c.model_dump() for c in similar_cases],
             domain_laws=[l.model_dump() for l in domain_laws],
         )
+        update_project_after_draft(project_id)
     except Exception as e:
         logger.warning("application_draft 저장 실패: %s", str(e))
 

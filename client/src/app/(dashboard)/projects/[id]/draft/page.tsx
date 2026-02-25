@@ -54,22 +54,16 @@ export default function DraftPage({ params }: DraftPageProps) {
     const [ragSimilarCases, setRagSimilarCases] = useState<ApprovalCase[]>([])
     const [ragRegulations, setRagRegulations] = useState<Regulation[]>([])
 
-    // 프로젝트에서 track 정보 조회
-    const { data: project, isLoading: isLoadingProject, refetch: refetchProject } = useProjectQuery(id)
+    // 프로젝트에서 track 정보 조회 (refetchOnMount: "always"로 자동 refetch)
+    const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
 
     // 현재 단계와 페이지 단계 비교
     const currentStep = project?.current_step ?? 1
     const isAtOrAheadOfCurrentStep = currentStep >= PAGE_STEP // 분석 완료된 상태
     const isBehindCurrentStep = currentStep < PAGE_STEP // 이전 단계가 완료되지 않은 상태
 
-    // Supabase에서 초안 데이터 조회
-    const { data: draftData, isLoading: isLoadingDraft, refetch: refetchDraft } = useDraftQuery(id)
-
-    // StepNav로 페이지 진입 시 데이터 refetch
-    useEffect(() => {
-        refetchProject()
-        refetchDraft()
-    }, [refetchProject, refetchDraft])
+    // Supabase에서 초안 데이터 조회 (refetchOnMount: "always"로 자동 refetch)
+    const { data: draftData, isPending: isLoadingDraft } = useDraftQuery(id)
 
     // 기존 결과 확인 (빈 객체 {}는 false로 처리)
     const hasDraftData = !!draftData?.form_values && typeof draftData.form_values === "object" && Object.keys(draftData.form_values).length > 0
@@ -104,9 +98,6 @@ export default function DraftPage({ params }: DraftPageProps) {
     // AI 초안 생성 실행
     const runDraftGeneration = async () => {
         setRegenerateModalOpen(false)
-        // 재생성 시 current_step을 현재 페이지 단계(4)로 업데이트
-        await projectsApi.updateStatus(id, project?.status ?? 3, PAGE_STEP)
-        await queryClient.invalidateQueries({ queryKey: ["projects"] })
         draftProgress.subscribe() // SSE 구독 시작
         try {
             const result = await draftMutation.mutateAsync({ project_id: id })
@@ -134,8 +125,11 @@ export default function DraftPage({ params }: DraftPageProps) {
     }
 
     // 작성 완료 확정
-    const confirmComplete = () => {
+    const confirmComplete = async () => {
         setCompleteModalOpen(false)
+        // 작성 완료 시 status: 3으로 업데이트
+        await projectsApi.updateStatus(id, 3, 4)
+        await queryClient.invalidateQueries({ queryKey: ["projects"] })
         markStepComplete(4)
         router.push("/dashboard")
     }

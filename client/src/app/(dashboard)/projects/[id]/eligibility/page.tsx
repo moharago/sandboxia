@@ -101,15 +101,9 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const { setMarketAnalysis, markStepComplete, setCurrentStep } = useWizardStore()
     const { devIsAnalyzed, devHasChanges } = useUIStore()
 
-    // 프로젝트 정보 조회
-    const { data: project, isLoading: isLoadingProject, refetch: refetchProject } = useProjectQuery(id)
-    const { data: existingResult, isLoading: isLoadingExisting, refetch: refetchEligibility } = useEligibilityQuery(id)
-
-    // StepNav로 페이지 진입 시 데이터 refetch
-    useEffect(() => {
-        refetchProject()
-        refetchEligibility()
-    }, [refetchProject, refetchEligibility])
+    // 프로젝트 정보 조회 (refetchOnMount: "always"로 자동 refetch)
+    const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
+    const { data: existingResult, isPending: isLoadingExisting } = useEligibilityQuery(id)
 
     // 에이전트 노드 목록 조회
     const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
@@ -199,11 +193,8 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     }
 
     // eligibility 분석만 실행 (재분석 - 페이지 이동 없음)
-    const runEligibilityOnly = async () => {
+    const runEligibilityOnly = () => {
         setReanalyzeModalOpen(false)
-        // 재분석 시 current_step을 현재 페이지 단계(2)로 업데이트
-        await projectsApi.updateStatus(id, project?.status ?? 2, PAGE_STEP)
-        await queryClient.invalidateQueries({ queryKey: ["projects"] })
         eligibilityProgress.subscribe()
         eligibilityMutation.mutate({ project_id: id })
     }
@@ -216,7 +207,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
         await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
         if (selectedDecision === "direct") {
-            await projectsApi.updateStatus(id, 4, 5)
+            await projectsApi.updateStatus(id, 4, 2)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(2)
             router.push("/dashboard")
@@ -295,7 +286,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                     await eligibilityApi.updateFinalDecision(id, finalLabel)
 
                     if (mappedData.recommendation === "direct") {
-                        await projectsApi.updateStatus(id, 4, 5)
+                        await projectsApi.updateStatus(id, 4, 2)
                         await queryClient.invalidateQueries({ queryKey: ["projects"] })
                         markStepComplete(2)
                         router.push("/dashboard")

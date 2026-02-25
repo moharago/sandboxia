@@ -99,10 +99,8 @@ def save_eligibility_result(
 def update_project_after_eligibility(project_id: str) -> dict | None:
     """대상성 판단 완료 후 프로젝트 업데이트
 
-    - 최초 분석: current_step을 3으로 올림 (Step 2 완료 → Step 3으로 이동)
-    - 재분석 (current_step >= 3): current_step을 2로 리셋
-      (step 3+ 데이터는 유지하되, 사용자에게 재분석 필요를 알림)
-    - status: 1 (재분석 시에도 status=1 유지)
+    - 항상 current_step을 2로 설정 (eligibility_evaluator 에이전트 완료)
+    - status: 1 (Step 1~3은 항상 status=1)
 
     Args:
         project_id: 프로젝트 UUID
@@ -110,37 +108,17 @@ def update_project_after_eligibility(project_id: str) -> dict | None:
     Returns:
         업데이트된 projects 레코드 또는 None
     """
-    # 현재 프로젝트의 current_step 조회
-    project = (
-        supabase.table("projects")
-        .select("current_step")
-        .eq("id", project_id)
-        .maybe_single()
-        .execute()
-    )
-
-    if not project.data:
-        logger.error(f"프로젝트를 찾을 수 없습니다: {project_id}")
-        return None
-
-    current = project.data.get("current_step", 1)
-
-    # 재분석인 경우 (이미 step 3 이상 진행) → step 2로 리셋
-    # 최초 분석인 경우 → step 3으로 올림
-    new_step = 2 if current >= 3 else 3
-
     result = (
         supabase.table("projects")
         .update({
-            "current_step": new_step,
-            "status": 1,
+            "current_step": 2,  # eligibility 에이전트 완료 → Step 2
+            "status": 1,  # Step 1~3은 항상 status=1
         })
         .eq("id", project_id)
         .execute()
     )
 
-    if new_step == 2:
-        logger.info(f"[재분석] 프로젝트 {project_id}: current_step {current} → 2로 리셋")
+    logger.info(f"[Eligibility] 프로젝트 {project_id}: current_step → 2")
 
     return result.data[0] if result.data else None
 
