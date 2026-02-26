@@ -36,7 +36,8 @@ export function useProjectsQuery() {
             const response = await projectsApi.getMyProjects()
             return response.map(toProject)
         },
-        staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+        staleTime: 1000 * 60 * 2, // 2분간 캐시 유지
+        retry: 2,
     })
 }
 
@@ -50,7 +51,10 @@ export function useProjectQuery(id: string) {
             const response = await projectsApi.getProject(id)
             return toProject(response)
         },
-        staleTime: 1000 * 60 * 5,
+        enabled: !!id,
+        staleTime: 1000 * 30, // 30초간 캐시 유지
+        refetchOnMount: "always", // 컴포넌트 마운트 시 항상 refetch
+        retry: 2,
     })
 }
 
@@ -61,6 +65,9 @@ export function useProjectFilesQuery(projectId: string) {
     return useQuery<ProjectFile[], Error>({
         queryKey: projectKeys.files(projectId),
         queryFn: () => projectsApi.getProjectFiles(projectId),
-        staleTime: 1000 * 60 * 5,
+        enabled: !!projectId,
+        staleTime: 0, // 항상 새로 fetch (파일 목록은 중요)
+        refetchOnMount: "always", // 컴포넌트 마운트 시 항상 refetch
+        retry: 2,
     })
 }

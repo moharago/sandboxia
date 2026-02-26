@@ -6,6 +6,8 @@ import { Header } from "./Header"
 import { Sidebar } from "./Sidebar"
 import { Footer } from "./Footer"
 import { NewCaseModal } from "@/components/features/projects/NewCaseModal"
+import { AILoader } from "@/components/ui/ai-loader"
+import { useUIStore } from "@/stores/ui-store"
 
 interface DashboardLayoutProps {
     children: React.ReactNode
@@ -14,6 +16,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname()
     const mainRef = useRef<HTMLElement>(null)
+    const globalAILoader = useUIStore((state) => state.globalAILoader)
 
     // 페이지 전환 시 스크롤 초기화
     useEffect(() => {
@@ -33,6 +36,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </main>
             </div>
             <NewCaseModal />
+
+            {/* 전역 AI 로더 */}
+            {globalAILoader.isVisible && (
+                <AILoader
+                    message={globalAILoader.message}
+                    nodes={globalAILoader.nodes}
+                    completedNodes={globalAILoader.completedNodes}
+                    currentNodeId={globalAILoader.currentNodeId}
+                    progress={globalAILoader.progress}
+                />
+            )}
         </div>
     )
 }
