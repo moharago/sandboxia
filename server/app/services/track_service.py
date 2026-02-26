@@ -3,12 +3,9 @@
 track_results 테이블 CRUD 및 관련 데이터 조회
 """
 
-import logging
 from datetime import datetime
 
 from app.core.config import settings, supabase
-
-logger = logging.getLogger(__name__)
 
 
 def get_project_canonical(project_id: str) -> dict | None:
@@ -61,7 +58,7 @@ def save_track_result(
     track_comparison: dict,
     similar_cases: list | None = None,
     domain_constraints: list | None = None,
-) -> dict | None:
+) -> dict:
     """트랙 추천 결과 저장
 
     Args:
@@ -74,7 +71,7 @@ def save_track_result(
         domain_constraints: 관련 법령 목록 (JSONB)
 
     Returns:
-        생성된 track_results 레코드 또는 None (저장 실패 시)
+        생성된 track_results 레코드
     """
     result = supabase.table("track_results").upsert(
         {
@@ -90,13 +87,10 @@ def save_track_result(
         on_conflict="project_id",
     ).execute()
 
-    if not result.data:
-        return None
-
     return result.data[0]
 
 
-def update_project_track(project_id: str, track: str) -> dict | None:
+def update_project_track(project_id: str, track: str) -> dict:
     """프로젝트의 선택된 트랙 업데이트
 
     Args:
@@ -104,7 +98,7 @@ def update_project_track(project_id: str, track: str) -> dict | None:
         track: 선택된 트랙 ("demo" | "temp_permit" | "quick_check")
 
     Returns:
-        업데이트된 projects 레코드 또는 None (업데이트 실패 시)
+        업데이트된 projects 레코드
     """
     result = supabase.table("projects") \
         .update({
@@ -114,13 +108,10 @@ def update_project_track(project_id: str, track: str) -> dict | None:
         .eq("id", project_id) \
         .execute()
 
-    if not result.data:
-        return None
-
     return result.data[0]
 
 
-def update_project_after_track(project_id: str) -> dict | None:
+def update_project_after_track(project_id: str) -> dict:
     """트랙 추천 완료 후 프로젝트 업데이트
 
     - 항상 current_step을 3으로 설정 (track_recommender 에이전트 완료)
@@ -130,7 +121,7 @@ def update_project_after_track(project_id: str) -> dict | None:
         project_id: 프로젝트 UUID
 
     Returns:
-        업데이트된 projects 레코드 또는 None
+        업데이트된 projects 레코드
     """
     result = (
         supabase.table("projects")
@@ -142,9 +133,4 @@ def update_project_after_track(project_id: str) -> dict | None:
         .execute()
     )
 
-    if result.data:
-        logger.info(f"[Track] 프로젝트 {project_id}: current_step → 3")
-        return result.data[0]
-    else:
-        logger.warning(f"[Track] 프로젝트 {project_id} 업데이트 실패: 데이터 없음")
-        return None
+    return result.data[0]

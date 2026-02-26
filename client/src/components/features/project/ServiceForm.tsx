@@ -49,13 +49,9 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     const isAtCurrentStep = currentStep === PAGE_STEP // 현재 단계
 
     // 파일 목록 조회
-    const { data: uploadedFileList, refetch: refetchFiles } = useProjectFilesQuery(id)
+    const { data: uploadedFileList } = useProjectFilesQuery(id)
 
-    // 컴포넌트 마운트 시 파일 목록 refetch + 전역 로더 숨기기
-    useEffect(() => {
-        refetchFiles()
-    }, [refetchFiles])
-
+    // 컴포넌트 마운트 시 전역 로더 숨기기
     useEffect(() => {
         hideGlobalAILoader()
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,7 +194,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         try {
             // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
             await projectsApi.updateStatus(id, project.status, PAGE_STEP)
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
             setRunningAgent("service")
             serviceProgress.subscribe()
             serviceMutation.mutate(getMutationPayload(), {
@@ -219,7 +215,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
             setErrorMessage(`서비스 분석 준비 중 오류가 발생했습니다: ${message}`)
             setErrorModalOpen(true)
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
         }
     }
 

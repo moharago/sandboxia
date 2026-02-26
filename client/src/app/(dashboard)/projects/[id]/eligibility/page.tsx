@@ -238,20 +238,20 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             // 사용자 최종 선택 저장
             const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
             await eligibilityApi.updateFinalDecision(id, finalLabel)
-            await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
             if (selectedDecision === "direct") {
                 await projectsApi.updateStatus(id, 4, 2)
-                await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                queryClient.invalidateQueries({ queryKey: ["projects"] })
                 markStepComplete(2)
                 hideGlobalAILoader()
                 router.push("/dashboard")
             } else {
                 trackProgress.subscribe()
                 await agentsApi.recommendTrack({ project_id: id })
-                // 트랙 결과 쿼리 invalidate (페이지 이동 전)
-                await queryClient.invalidateQueries({ queryKey: ["track"] })
-                await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                // 트랙 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                queryClient.invalidateQueries({ queryKey: ["track"] })
+                queryClient.invalidateQueries({ queryKey: ["projects"] })
                 markStepComplete(2)
                 setCurrentStep(3)
                 // 전역 로더는 다음 페이지에서 숨김
@@ -337,16 +337,16 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
                         if (mappedData.recommendation === "direct") {
                             await projectsApi.updateStatus(id, 4, 2)
-                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             hideGlobalAILoader()
                             router.push("/dashboard")
                         } else {
                             trackProgress.subscribe()
                             await agentsApi.recommendTrack({ project_id: id })
-                            // 트랙 결과 쿼리 invalidate (페이지 이동 전)
-                            await queryClient.invalidateQueries({ queryKey: ["track"] })
-                            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                            // 트랙 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                            queryClient.invalidateQueries({ queryKey: ["track"] })
+                            queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             setCurrentStep(3)
                             // 전역 로더는 다음 페이지에서 숨김

@@ -263,7 +263,7 @@ export default function TrackPage({ params }: TrackPageProps) {
             { projectId: id, track: apiTrackId },
             {
                 onSuccess: async () => {
-                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                    queryClient.invalidateQueries({ queryKey: ["projects"] })
                     try {
                         await draftMutation.mutateAsync({ project_id: id })
                     } catch (error) {
@@ -273,9 +273,9 @@ export default function TrackPage({ params }: TrackPageProps) {
                         setIsRunningDraftAgent(false)
                         return
                     }
-                    // 초안 결과 쿼리 invalidate (페이지 이동 전)
-                    await queryClient.invalidateQueries({ queryKey: ["draft"] })
-                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                    // 초안 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                    queryClient.invalidateQueries({ queryKey: ["draft"] })
+                    queryClient.invalidateQueries({ queryKey: ["projects"] })
                     markStepComplete(3)
                     setCurrentStep(4)
                     // 전역 로더는 다음 페이지에서 숨김
@@ -304,8 +304,8 @@ export default function TrackPage({ params }: TrackPageProps) {
         selectMutation.mutate(
             { projectId: id, track: apiTrackId },
             {
-                onSuccess: async () => {
-                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: ["projects"] })
                     markStepComplete(3)
                     setCurrentStep(4)
                     router.push(`/projects/${id}/draft`)
