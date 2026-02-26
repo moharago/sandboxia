@@ -2,7 +2,7 @@
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { DownloadModal } from "@/components/features/draft/DownloadModal"
-import { FormSectionList } from "@/components/features/draft/FormSectionList"
+import { FormSectionList, type FormSectionListHandle } from "@/components/features/draft/FormSectionList"
 import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
 import { Button } from "@/components/ui/button"
@@ -19,11 +19,11 @@ import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
 import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore, type FormType } from "@/stores/wizard-store"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
-import { TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
+import { PROJECT_STATUS, TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
 import { useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Download, Sparkles } from "lucide-react"
+import { AlertCircle, CheckCircle2, Download, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useState } from "react"
+import { use, useEffect, useRef, useState } from "react"
 
 /** Track 타입 가드: TRACK_TO_FORM_ID에 존재하는 유효한 Track인지 확인 */
 const isTrack = (value: string | null | undefined): value is Track => value != null && Object.prototype.hasOwnProperty.call(TRACK_TO_FORM_ID, value)
@@ -39,12 +39,14 @@ export default function DraftPage({ params }: DraftPageProps) {
     const router = useRouter()
     const queryClient = useQueryClient()
 
+    const formSectionRef = useRef<FormSectionListHandle>(null)
     const { markStepComplete, setCurrentStep } = useWizardStore()
     const { showGlobalAILoader, hideGlobalAILoader } = useUIStore()
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
 
     // 모달 상태
+    const [completeModalOpen, setCompleteModalOpen] = useState(false)
     const [regenerateModalOpen, setRegenerateModalOpen] = useState(false)
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
@@ -134,7 +136,8 @@ export default function DraftPage({ params }: DraftPageProps) {
     // 작성 완료 버튼 클릭 → 바로 대시보드로 이동
     const handleCompleteClick = async () => {
         try {
-            // 작성 완료 시 status: 3으로 업데이트
+            // 모든 섹션 일괄 저장 후 status 업데이트
+            await formSectionRef.current?.saveAll()
             await projectsApi.updateStatus(id, 3, 4)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(4)
@@ -149,6 +152,20 @@ export default function DraftPage({ params }: DraftPageProps) {
     // RAG 결과: state 우선, 없으면 DB에서 읽기
     const similarCases = ragSimilarCases.length > 0 ? ragSimilarCases : ((draftData?.similar_cases as ApprovalCase[]) ?? [])
     const regulations = ragRegulations.length > 0 ? ragRegulations : ((draftData?.domain_laws as Regulation[]) ?? [])
+
+    // 프로젝트 완료 처리 (status → 4)
+    const handleProjectComplete = async () => {
+        try {
+            await projectsApi.updateStatus(id, PROJECT_STATUS.COMPLETED)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            setCompleteModalOpen(false)
+            router.push("/dashboard")
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+            setErrorMessage(`완료 처리에 실패했습니다: ${message}`)
+            setErrorModalOpen(true)
+        }
+    }
 
     const handleBack = () => {
         setCurrentStep(3)
@@ -229,7 +246,12 @@ export default function DraftPage({ params }: DraftPageProps) {
 
                         {/* 동적 폼 필드 카드 */}
                         {formType ? (
-                            <FormSectionList formType={formType} initialValues={isTrackMismatch ? undefined : initialValues} projectId={id} />
+                            <FormSectionList
+                                ref={formSectionRef}
+                                formType={formType}
+                                initialValues={isTrackMismatch ? undefined : initialValues}
+                                projectId={id}
+                            />
                         ) : (
                             <div className="text-center py-8 text-muted-foreground">폼 타입을 확인할 수 없습니다.</div>
                         )}
@@ -260,6 +282,12 @@ export default function DraftPage({ params }: DraftPageProps) {
                                         <Download className="h-4 w-4" />
                                         다운로드
                                     </Button>
+                                    {hasDraftData && !isTrackMismatch && (
+                                        <Button onClick={() => setCompleteModalOpen(true)} className="gap-2">
+                                            프로젝트 완료
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                 </>
                             }
                         />
@@ -272,6 +300,17 @@ export default function DraftPage({ params }: DraftPageProps) {
                                 projectId={id}
                             />
                         )}
+
+                        {/* 프로젝트 완료 확인 모달 */}
+                        <ConfirmModal
+                            isOpen={completeModalOpen}
+                            onClose={() => setCompleteModalOpen(false)}
+                            onConfirm={handleProjectComplete}
+                            title="프로젝트 완료"
+                            description="프로젝트를 완료 처리하시겠습니까?"
+                            confirmLabel="완료 처리"
+                            cancelLabel="취소"
+                        />
 
                         {/* AI 재생성 확인 모달 */}
                         <ConfirmModal

@@ -1,19 +1,20 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react"
-import { DynamicFormCard } from "./DynamicFormCard"
+import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
+import { agentsApi } from "@/lib/api/agents"
+import { formatDateIso, getTodayIso } from "@/lib/utils/date"
 import type { FormType } from "@/stores/wizard-store"
 import type { FormSchema } from "@/types/draft"
-import { getTodayIso, formatDateIso } from "@/lib/utils/date"
-import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { DynamicFormCard } from "./DynamicFormCard"
 
 type FormData = Record<string, FormSchema>
 
 // 폼 데이터 import
 import counselingData from "@/data/form/counseling.json"
-import temporaryData from "@/data/form/temporary.json"
 import demonstrationData from "@/data/form/demonstration.json"
 import fastcheckData from "@/data/form/fastcheck.json"
+import temporaryData from "@/data/form/temporary.json"
 import formMetaData from "@/data/formData.json"
 
 const formDataMap: Record<FormType, FormData> = {
@@ -60,8 +61,8 @@ function isEndDateField(fieldKey: string): boolean {
  * 날짜 필드에서만 한국어 날짜 → ISO 변환을 적용
  */
 const DATE_FIELD_PATTERNS = [
-    "Date",           // applicationDate, startDate, endDate, submissionDate
-    "date",           // 소문자 버전
+    "Date", // applicationDate, startDate, endDate, submissionDate
+    "date", // 소문자 버전
     "establishmentDate",
 ]
 
@@ -147,13 +148,20 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
     return result
 }
 
+export interface FormSectionListHandle {
+    saveAll: () => Promise<void>
+}
+
 interface FormSectionListProps {
     formType: FormType
     initialValues?: Record<string, unknown>
     projectId: string
 }
 
-export function FormSectionList({ formType, initialValues, projectId }: FormSectionListProps) {
+export const FormSectionList = forwardRef<FormSectionListHandle, FormSectionListProps>(function FormSectionList(
+    { formType, initialValues, projectId },
+    ref
+) {
     const [formValues, setFormValues] = useState<Record<string, Record<string, string>>>({})
     const prevInitialValuesRef = useRef<Record<string, unknown> | undefined>(undefined)
 
@@ -241,15 +249,37 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
         }))
     }, [])
 
-    const handleSave = useCallback((cardKey: string) => {
-        setSavingCardKey(cardKey)
-        const cardData = formValues[cardKey] || {}
-        cardUpdateMutation.mutate({
-            project_id: projectId,
-            card_key: cardKey,
-            card_data: cardData,
-        })
-    }, [formValues, projectId, cardUpdateMutation])
+    // 전체 카드 일괄 저장 (외부에서 ref로 호출)
+    useImperativeHandle(
+        ref,
+        () => ({
+            saveAll: async () => {
+                await Promise.all(
+                    cardKeys.map((cardKey) =>
+                        agentsApi.updateDraftCard({
+                            project_id: projectId,
+                            card_key: cardKey,
+                            card_data: formValues[cardKey] || {},
+                        })
+                    )
+                )
+            },
+        }),
+        [cardKeys, formValues, projectId]
+    )
+
+    const handleSave = useCallback(
+        (cardKey: string) => {
+            setSavingCardKey(cardKey)
+            const cardData = formValues[cardKey] || {}
+            cardUpdateMutation.mutate({
+                project_id: projectId,
+                card_key: cardKey,
+                card_data: cardData,
+            })
+        },
+        [formValues, projectId, cardUpdateMutation]
+    )
 
     return (
         <div className="space-y-4">
@@ -279,4 +309,4 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
             ))}
         </div>
     )
-}
+})
