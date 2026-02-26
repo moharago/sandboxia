@@ -36,44 +36,50 @@ function CaseItem({ caseData, index }: CaseItemProps) {
     }
 
     return (
-        <div className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+        <div className="border border-border rounded-lg">
             <button
                 type="button"
-                className="w-full flex items-start justify-between gap-2 cursor-pointer text-left"
+                className="w-full p-3 gap-2 text-left hover:bg-muted/50 transition-colors"
                 onClick={handleToggle}
                 onKeyDown={handleKeyDown}
                 aria-expanded={isExpanded}
                 aria-controls={`case-content-${index}`}
             >
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs shrink-0">
-                            {caseData.track}
-                        </Badge>
-                        {caseData.date && <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>}
+                <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className="text-xs shrink-0">
+                                {caseData.track}
+                            </Badge>
+                            {caseData.date && <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>}
+                        </div>
+                        <h4 className="font-medium text-sm">{caseData.title}</h4>
+                        <p className="text-xs text-muted-foreground">{caseData.company}</p>
                     </div>
-                    <h4 className="font-medium text-sm">{caseData.title}</h4>
-                    <p className="text-xs text-muted-foreground">{caseData.company}</p>
+                    <div className="flex items-center">
+                        {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center">
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </div>
+                {isExpanded && (
+                    <div id={`case-content-${index}`} className="mt-3 pt-3 border-t border-border">
+                        <p className="text-sm text-muted-foreground">{caseData.summary}</p>
+                        {caseData.source_url && (
+                            <a
+                                href={caseData.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 text-xs text-primary hover:text-teal-6 inline-flex items-center gap-1"
+                            >
+                                상세보기 <ExternalLink className="h-3 w-3" />
+                            </a>
+                        )}
+                    </div>
+                )}
             </button>
-            {isExpanded && (
-                <div id={`case-content-${index}`} className="mt-3 pt-3 border-t border-border">
-                    <p className="text-sm text-muted-foreground">{caseData.summary}</p>
-                    {caseData.source_url && (
-                        <a
-                            href={caseData.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                            상세보기 <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
-            )}
         </div>
     )
 }
@@ -203,9 +209,7 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
 
                 <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
                     {regs.length > 0 ? (
-                        regs.map((regulation, index) => (
-                            <RegulationItem key={`${regulation.title}-${index}`} regulation={regulation} index={index} />
-                        ))
+                        regs.map((regulation, index) => <RegulationItem key={`${regulation.title}-${index}`} regulation={regulation} index={index} />)
                     ) : (
                         <div className="text-center py-8 text-muted-foreground text-sm">참고할 관련 법령이 없습니다.</div>
                     )}
