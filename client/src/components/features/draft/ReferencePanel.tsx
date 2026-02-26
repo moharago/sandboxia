@@ -178,7 +178,7 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                     {regs.length > 0 ? (
                         regs.map((reg, index) => (
                             <ReferenceItem
-                                key={`${reg.title}-${index}`}
+                                key={reg.title}
                                 data={{
                                     title: reg.title,
                                     summary: reg.summary,
@@ -198,7 +198,7 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                     {displayCases.length > 0 ? (
                         displayCases.map((caseData, index) => (
                             <ReferenceItem
-                                key={`${caseData.title}-${caseData.company}-${index}`}
+                                key={`${caseData.title}-${caseData.company}`}
                                 data={{
                                     title: caseData.title,
                                     subtitle: caseData.company,

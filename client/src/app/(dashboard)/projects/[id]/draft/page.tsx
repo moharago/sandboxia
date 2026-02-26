@@ -45,6 +45,9 @@ export default function DraftPage({ params }: DraftPageProps) {
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
 
+    // 완료 처리 로딩 상태
+    const [isCompleting, setIsCompleting] = useState(false)
+
     // 모달 상태
     const [completeModalOpen, setCompleteModalOpen] = useState(false)
     const [regenerateModalOpen, setRegenerateModalOpen] = useState(false)
@@ -135,9 +138,11 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 작성 완료 버튼 클릭 → 바로 대시보드로 이동
     const handleCompleteClick = async () => {
+        if (isCompleting) return
+        setIsCompleting(true)
         try {
-            // 모든 섹션 일괄 저장 후 status 업데이트
-            await formSectionRef.current?.saveAll()
+            if (!formSectionRef.current) throw new Error("폼 데이터를 저장할 수 없습니다.")
+            await formSectionRef.current.saveAll()
             await projectsApi.updateStatus(id, 3, 4)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(4)
@@ -146,6 +151,8 @@ export default function DraftPage({ params }: DraftPageProps) {
             const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
             setErrorMessage(`작성 완료 처리에 실패했습니다: ${message}`)
             setErrorModalOpen(true)
+        } finally {
+            setIsCompleting(false)
         }
     }
 
@@ -155,8 +162,11 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 프로젝트 완료 처리 (전체 저장 → status → 4)
     const handleProjectComplete = async () => {
+        if (isCompleting) return
+        setIsCompleting(true)
         try {
-            await formSectionRef.current?.saveAll()
+            if (!formSectionRef.current) throw new Error("폼 데이터를 저장할 수 없습니다.")
+            await formSectionRef.current.saveAll()
             await projectsApi.updateStatus(id, PROJECT_STATUS.COMPLETED)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             setCompleteModalOpen(false)
@@ -165,6 +175,8 @@ export default function DraftPage({ params }: DraftPageProps) {
             const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
             setErrorMessage(`완료 처리에 실패했습니다: ${message}`)
             setErrorModalOpen(true)
+        } finally {
+            setIsCompleting(false)
         }
     }
 
@@ -311,6 +323,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                             description="프로젝트를 완료 처리하시겠습니까?"
                             confirmLabel="완료 처리"
                             cancelLabel="취소"
+                            isLoading={isCompleting}
                         />
 
                         {/* AI 재생성 확인 모달 */}
