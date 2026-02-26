@@ -131,7 +131,12 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
         # 청크 내용 구성
         title = item.get("title", "")
         content = item.get("content", "")
-        chunk_content = f"[{title}]\n\n{content}"
+
+        # 트랙이 특정 트랙인 경우 content에 포함 (검색 매칭 개선)
+        if track != "공통" and normalized_track != "all":
+            chunk_content = f"[{track}] [{title}]\n\n{content}"
+        else:
+            chunk_content = f"[{title}]\n\n{content}"
 
         # 인용 형식 생성
         citation = f"{category} > {title}"
@@ -296,7 +301,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--embedding",
-        default="E0",
+        default="E1",
         help="임베딩 설정 (E0=OpenAI-small, E1=OpenAI-large, E2=Upstage)",
     )
     parser.add_argument(

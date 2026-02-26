@@ -1,33 +1,35 @@
 {
-  "timestamp": "2026-02-20T11:14:18.585443",
+  "timestamp": "2026-02-25T15:43:10.776864",
   "config": {
     "top_k": 5,
-    "embedding_config": ".env",
-    "embedding_model": "text-embedding-3-small",
-    "embedding_provider": "openai",
-    "collection": "rag_regulations",
-    "num_items": 30
+    "embedding_config": "E2",
+    "embedding_model": "solar-embedding-1-large",
+    "embedding_provider": "upstage",
+    "collection": "rag_regulations_E2",
+    "num_items": 30,
+    "search_type": "vector",
+    "vector_weight": null
   },
   "summary": {
-    "must_have_recall_at_k": 0.6333,
-    "recall_at_k": 0.5722,
-    "mrr": 0.7167,
-    "latency_p50_ms": 135.68,
-    "latency_p95_ms": 222.63,
-    "latency_mean_ms": 154.66
+    "must_have_recall_at_k": 0.7167,
+    "recall_at_k": 0.6194,
+    "mrr": 0.7483,
+    "latency_p50_ms": 624.73,
+    "latency_p95_ms": 810.82,
+    "latency_mean_ms": 603.89
   },
   "aggregated": {
     "k": 5,
     "num_queries": 30,
-    "avg_recall_at_k": 0.5722,
-    "avg_must_have_recall_at_k": 0.6333,
-    "avg_mrr": 0.7167,
-    "total_gold_citations": 67,
-    "total_retrieved_gold": 37,
+    "avg_recall_at_k": 0.6194,
+    "avg_must_have_recall_at_k": 0.7167,
+    "avg_mrr": 0.7483,
+    "total_gold_citations": 66,
+    "total_retrieved_gold": 41,
     "total_must_have_citations": 43,
-    "total_must_have_retrieved": 28,
-    "total_chunks": 148,
-    "avg_chunk_length": 759.6
+    "total_must_have_retrieved": 31,
+    "total_chunks": 147,
+    "avg_chunk_length": 763.6
   },
   "details": [
     {
@@ -37,24 +39,23 @@
       "question": "규제샌드박스가 뭔가요?",
       "gold_ids": [
         "reg_r1-001",
-        "reg_r1-137",
-        "reg_r1-142"
+        "reg_r1-137"
       ],
       "must_have_ids": [
         "reg_r1-001"
       ],
       "retrieved_ids": [
         "reg_r1-137",
-        "reg_r1-142",
-        "reg_r1-145",
-        "reg_r1-139",
-        "reg_r1-059"
+        "reg_r1-068",
+        "reg_r1-001",
+        "reg_r1-069",
+        "reg_r1-003"
       ],
-      "recall_at_k": 0.6666666666666666,
-      "must_have_recall_at_k": 0.0,
+      "recall_at_k": 1.0,
+      "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 576.72
+      "latency_ms": 952.83
     },
     {
       "id": "R1-0002",
@@ -72,16 +73,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-014",
-        "reg_r1-075",
-        "reg_r1-083",
         "reg_r1-072",
-        "reg_r1-074"
+        "reg_r1-019",
+        "reg_r1-077",
+        "reg_r1-048"
       ],
       "recall_at_k": 0.3333333333333333,
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 222.63
+      "latency_ms": 620.6
     },
     {
       "id": "R1-0003",
@@ -99,16 +100,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-020",
-        "reg_r1-135",
-        "reg_r1-132",
-        "reg_r1-036",
-        "reg_r1-129"
+        "reg_r1-032",
+        "reg_r1-107",
+        "reg_r1-101",
+        "reg_r1-048"
       ],
       "recall_at_k": 0.3333333333333333,
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 147.63
+      "latency_ms": 630.38
     },
     {
       "id": "R1-0004",
@@ -125,17 +126,17 @@
         "reg_r1-035"
       ],
       "retrieved_ids": [
-        "reg_r1-080",
         "reg_r1-034",
+        "reg_r1-080",
         "reg_r1-082",
-        "reg_r1-085",
-        "reg_r1-092"
+        "reg_r1-074",
+        "reg_r1-083"
       ],
       "recall_at_k": 0.3333333333333333,
       "must_have_recall_at_k": 0.5,
-      "mrr": 0.5,
-      "first_hit_rank": 2,
-      "latency_ms": 139.23
+      "mrr": 1.0,
+      "first_hit_rank": 1,
+      "latency_ms": 533.31
     },
     {
       "id": "R1-0005",
@@ -146,24 +147,24 @@
         "reg_r1-047",
         "reg_r1-048",
         "reg_r1-052",
-        "reg_r1-143"
+        "reg_r1-142"
       ],
       "must_have_ids": [
         "reg_r1-047",
         "reg_r1-048"
       ],
       "retrieved_ids": [
-        "reg_r1-036",
-        "reg_r1-138",
-        "reg_r1-143",
+        "reg_r1-048",
+        "reg_r1-047",
+        "reg_r1-051",
         "reg_r1-052",
-        "reg_r1-051"
+        "reg_r1-103"
       ],
-      "recall_at_k": 0.5,
-      "must_have_recall_at_k": 0.0,
-      "mrr": 0.3333333333333333,
-      "first_hit_rank": 3,
-      "latency_ms": 119.65
+      "recall_at_k": 0.75,
+      "must_have_recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_hit_rank": 1,
+      "latency_ms": 666.05
     },
     {
       "id": "R1-0006",
@@ -172,25 +173,25 @@
       "question": "실증특례와 임시허가는 무엇이 다른가요?",
       "gold_ids": [
         "reg_r1-036",
-        "reg_r1-143",
+        "reg_r1-142",
         "reg_r1-138"
       ],
       "must_have_ids": [
         "reg_r1-036",
-        "reg_r1-143"
+        "reg_r1-142"
       ],
       "retrieved_ids": [
-        "reg_r1-143",
-        "reg_r1-138",
+        "reg_r1-142",
         "reg_r1-036",
-        "reg_r1-107",
-        "reg_r1-056"
+        "reg_r1-048",
+        "reg_r1-138",
+        "reg_r1-047"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 138.89
+      "latency_ms": 698.58
     },
     {
       "id": "R1-0007",
@@ -209,15 +210,15 @@
       "retrieved_ids": [
         "reg_r1-049",
         "reg_r1-050",
-        "reg_r1-039",
-        "reg_r1-048",
-        "reg_r1-025"
+        "reg_r1-127",
+        "reg_r1-054",
+        "reg_r1-064"
       ],
       "recall_at_k": 0.6666666666666666,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 124.46
+      "latency_ms": 623.68
     },
     {
       "id": "R1-0008",
@@ -234,17 +235,17 @@
         "reg_r1-059"
       ],
       "retrieved_ids": [
-        "reg_r1-059",
-        "reg_r1-139",
-        "reg_r1-145",
         "reg_r1-053",
-        "reg_r1-006"
+        "reg_r1-059",
+        "reg_r1-104",
+        "reg_r1-068",
+        "reg_r1-143"
       ],
       "recall_at_k": 0.6666666666666666,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 111.22
+      "latency_ms": 767.57
     },
     {
       "id": "R1-0009",
@@ -259,17 +260,17 @@
         "reg_r1-017"
       ],
       "retrieved_ids": [
-        "reg_r1-079",
-        "reg_r1-075",
-        "reg_r1-073",
-        "reg_r1-077",
-        "reg_r1-076"
+        "reg_r1-048",
+        "reg_r1-047",
+        "reg_r1-078",
+        "reg_r1-014",
+        "reg_r1-058"
       ],
       "recall_at_k": 0.0,
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 148.43
+      "latency_ms": 620.05
     },
     {
       "id": "R1-0010",
@@ -284,17 +285,17 @@
         "reg_r1-028"
       ],
       "retrieved_ids": [
+        "reg_r1-021",
+        "reg_r1-007",
+        "reg_r1-048",
         "reg_r1-028",
-        "reg_r1-032",
-        "reg_r1-036",
-        "reg_r1-131",
-        "reg_r1-135"
+        "reg_r1-009"
       ],
-      "recall_at_k": 0.5,
+      "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
-      "mrr": 1.0,
-      "first_hit_rank": 1,
-      "latency_ms": 119.55
+      "mrr": 0.5,
+      "first_hit_rank": 2,
+      "latency_ms": 638.85
     },
     {
       "id": "R1-0011",
@@ -309,17 +310,17 @@
         "reg_r1-041"
       ],
       "retrieved_ids": [
-        "reg_r1-086",
-        "reg_r1-062",
-        "reg_r1-091",
-        "reg_r1-056",
-        "reg_r1-090"
+        "reg_r1-043",
+        "reg_r1-048",
+        "reg_r1-084",
+        "reg_r1-007",
+        "reg_r1-114"
       ],
       "recall_at_k": 0.0,
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 132.75
+      "latency_ms": 622.91
     },
     {
       "id": "R1-0012",
@@ -334,17 +335,17 @@
         "reg_r1-022"
       ],
       "retrieved_ids": [
-        "reg_r1-131",
-        "reg_r1-135",
-        "reg_r1-132",
-        "reg_r1-129",
-        "reg_r1-124"
+        "reg_r1-022",
+        "reg_r1-107",
+        "reg_r1-109",
+        "reg_r1-108",
+        "reg_r1-020"
       ],
-      "recall_at_k": 0.0,
-      "must_have_recall_at_k": 0.0,
-      "mrr": 0.0,
-      "first_hit_rank": null,
-      "latency_ms": 126.9
+      "recall_at_k": 1.0,
+      "must_have_recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_hit_rank": 1,
+      "latency_ms": 732.36
     },
     {
       "id": "R1-0013",
@@ -359,17 +360,17 @@
         "reg_r1-037"
       ],
       "retrieved_ids": [
+        "reg_r1-048",
         "reg_r1-062",
-        "reg_r1-086",
+        "reg_r1-083",
         "reg_r1-092",
-        "reg_r1-038",
-        "reg_r1-091"
+        "reg_r1-034"
       ],
-      "recall_at_k": 0.0,
+      "recall_at_k": 0.5,
       "must_have_recall_at_k": 0.0,
-      "mrr": 0.0,
-      "first_hit_rank": null,
-      "latency_ms": 107.26
+      "mrr": 0.2,
+      "first_hit_rank": 5,
+      "latency_ms": 728.63
     },
     {
       "id": "R1-0014",
@@ -384,17 +385,17 @@
         "reg_r1-063"
       ],
       "retrieved_ids": [
-        "reg_r1-145",
-        "reg_r1-139",
+        "reg_r1-068",
         "reg_r1-063",
-        "reg_r1-117",
-        "reg_r1-001"
+        "reg_r1-107",
+        "reg_r1-003",
+        "reg_r1-022"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 1.0,
-      "mrr": 0.3333333333333333,
-      "first_hit_rank": 3,
-      "latency_ms": 155.47
+      "mrr": 0.5,
+      "first_hit_rank": 2,
+      "latency_ms": 676.2
     },
     {
       "id": "R1-0015",
@@ -410,17 +411,17 @@
         "reg_r1-027"
       ],
       "retrieved_ids": [
+        "reg_r1-048",
         "reg_r1-064",
-        "reg_r1-032",
-        "reg_r1-135",
         "reg_r1-020",
-        "reg_r1-132"
+        "reg_r1-107",
+        "reg_r1-065"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 0.5,
-      "mrr": 1.0,
-      "first_hit_rank": 1,
-      "latency_ms": 112.74
+      "mrr": 0.5,
+      "first_hit_rank": 2,
+      "latency_ms": 607.16
     },
     {
       "id": "R1-0016",
@@ -437,16 +438,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-065",
-        "reg_r1-040",
-        "reg_r1-067",
         "reg_r1-048",
-        "reg_r1-097"
+        "reg_r1-034",
+        "reg_r1-062",
+        "reg_r1-074"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.5,
+      "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 132.41
+      "latency_ms": 810.82
     },
     {
       "id": "R1-0017",
@@ -461,16 +462,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-060",
+        "reg_r1-076",
         "reg_r1-054",
-        "reg_r1-038",
-        "reg_r1-023",
-        "reg_r1-062"
+        "reg_r1-077",
+        "reg_r1-048"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 151.29
+      "latency_ms": 626.02
     },
     {
       "id": "R1-0018",
@@ -485,17 +486,17 @@
         "reg_r1-061"
       ],
       "retrieved_ids": [
-        "reg_r1-131",
         "reg_r1-061",
-        "reg_r1-124",
-        "reg_r1-135",
-        "reg_r1-128"
+        "reg_r1-024",
+        "reg_r1-128",
+        "reg_r1-054",
+        "reg_r1-109"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 1.0,
-      "mrr": 0.5,
-      "first_hit_rank": 2,
-      "latency_ms": 145.48
+      "mrr": 1.0,
+      "first_hit_rank": 1,
+      "latency_ms": 280.28
     },
     {
       "id": "R1-0019",
@@ -512,16 +513,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-062",
+        "reg_r1-038",
         "reg_r1-086",
-        "reg_r1-091",
-        "reg_r1-097",
-        "reg_r1-038"
+        "reg_r1-080",
+        "reg_r1-098"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 181.56
+      "latency_ms": 477.17
     },
     {
       "id": "R1-0020",
@@ -539,16 +540,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-013",
-        "reg_r1-139",
-        "reg_r1-145",
-        "reg_r1-117",
-        "reg_r1-004"
+        "reg_r1-009",
+        "reg_r1-068",
+        "reg_r1-003",
+        "reg_r1-021"
       ],
       "recall_at_k": 0.3333333333333333,
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 107.42
+      "latency_ms": 540.09
     },
     {
       "id": "R1-0021",
@@ -563,17 +564,17 @@
         "reg_r1-007"
       ],
       "retrieved_ids": [
-        "reg_r1-137",
-        "reg_r1-142",
-        "reg_r1-028",
-        "reg_r1-139",
-        "reg_r1-145"
+        "reg_r1-009",
+        "reg_r1-021",
+        "reg_r1-003",
+        "reg_r1-007",
+        "reg_r1-114"
       ],
       "recall_at_k": 0.5,
-      "must_have_recall_at_k": 0.0,
-      "mrr": 0.3333333333333333,
-      "first_hit_rank": 3,
-      "latency_ms": 102.26
+      "must_have_recall_at_k": 1.0,
+      "mrr": 0.25,
+      "first_hit_rank": 4,
+      "latency_ms": 557.92
     },
     {
       "id": "R1-0022",
@@ -582,25 +583,25 @@
       "question": "심사는 얼마나 걸리나요?",
       "gold_ids": [
         "reg_r1-140",
-        "reg_r1-146",
+        "reg_r1-145",
         "reg_r1-058"
       ],
       "must_have_ids": [
         "reg_r1-140",
-        "reg_r1-146"
+        "reg_r1-145"
       ],
       "retrieved_ids": [
         "reg_r1-140",
-        "reg_r1-146",
-        "reg_r1-040",
-        "reg_r1-027",
-        "reg_r1-067"
+        "reg_r1-145",
+        "reg_r1-026",
+        "reg_r1-058",
+        "reg_r1-048"
       ],
-      "recall_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 141.58
+      "latency_ms": 676.18
     },
     {
       "id": "R1-0023",
@@ -608,23 +609,23 @@
       "track": "all",
       "question": "규제샌드박스 신청 비용이 있나요?",
       "gold_ids": [
-        "reg_r1-147"
+        "reg_r1-146"
       ],
       "must_have_ids": [
-        "reg_r1-147"
+        "reg_r1-146"
       ],
       "retrieved_ids": [
+        "reg_r1-053",
         "reg_r1-059",
-        "reg_r1-147",
-        "reg_r1-145",
-        "reg_r1-139",
-        "reg_r1-006"
+        "reg_r1-068",
+        "reg_r1-107",
+        "reg_r1-104"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
-      "mrr": 0.5,
-      "first_hit_rank": 2,
-      "latency_ms": 131.12
+      "recall_at_k": 0.0,
+      "must_have_recall_at_k": 0.0,
+      "mrr": 0.0,
+      "first_hit_rank": null,
+      "latency_ms": 625.77
     },
     {
       "id": "R1-0024",
@@ -633,25 +634,25 @@
       "question": "실증특례 지원 범위가 어떻게 되나요?",
       "gold_ids": [
         "reg_r1-031",
-        "reg_r1-148",
+        "reg_r1-147",
         "reg_r1-141"
       ],
       "must_have_ids": [
         "reg_r1-031",
-        "reg_r1-148"
+        "reg_r1-147"
       ],
       "retrieved_ids": [
-        "reg_r1-148",
+        "reg_r1-147",
         "reg_r1-141",
-        "reg_r1-135",
-        "reg_r1-131",
-        "reg_r1-124"
+        "reg_r1-020",
+        "reg_r1-033",
+        "reg_r1-116"
       ],
       "recall_at_k": 0.6666666666666666,
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 178.03
+      "latency_ms": 809.18
     },
     {
       "id": "R1-0025",
@@ -665,17 +666,17 @@
         "reg_r1-044"
       ],
       "retrieved_ids": [
+        "reg_r1-034",
+        "reg_r1-046",
+        "reg_r1-048",
         "reg_r1-062",
-        "reg_r1-097",
-        "reg_r1-091",
-        "reg_r1-138",
-        "reg_r1-086"
+        "reg_r1-047"
       ],
       "recall_at_k": 0.0,
       "must_have_recall_at_k": 0.0,
       "mrr": 0.0,
       "first_hit_rank": null,
-      "latency_ms": 187.9
+      "latency_ms": 539.65
     },
     {
       "id": "R1-0026",
@@ -689,17 +690,17 @@
         "reg_r1-030"
       ],
       "retrieved_ids": [
+        "reg_r1-113",
         "reg_r1-030",
-        "reg_r1-125",
-        "reg_r1-132",
-        "reg_r1-042",
-        "reg_r1-124"
+        "reg_r1-114",
+        "reg_r1-032",
+        "reg_r1-107"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
-      "mrr": 1.0,
-      "first_hit_rank": 1,
-      "latency_ms": 127.65
+      "mrr": 0.5,
+      "first_hit_rank": 2,
+      "latency_ms": 687.12
     },
     {
       "id": "R1-0027",
@@ -714,16 +715,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-042",
-        "reg_r1-097",
-        "reg_r1-058",
-        "reg_r1-030",
-        "reg_r1-094"
+        "reg_r1-092",
+        "reg_r1-043",
+        "reg_r1-098",
+        "reg_r1-048"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 128.62
+      "latency_ms": 283.92
     },
     {
       "id": "R1-0028",
@@ -731,25 +732,25 @@
       "track": "all",
       "question": "규제샌드박스 지정 결정은 누가 하나요?",
       "gold_ids": [
-        "reg_r1-145",
+        "reg_r1-144",
         "reg_r1-139"
       ],
       "must_have_ids": [
-        "reg_r1-145",
+        "reg_r1-144",
         "reg_r1-139"
       ],
       "retrieved_ids": [
+        "reg_r1-144",
         "reg_r1-139",
-        "reg_r1-145",
-        "reg_r1-006",
-        "reg_r1-059",
-        "reg_r1-142"
+        "reg_r1-068",
+        "reg_r1-104",
+        "reg_r1-143"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 138.62
+      "latency_ms": 534.38
     },
     {
       "id": "R1-0029",
@@ -757,24 +758,24 @@
       "track": "all",
       "question": "여러 부처 관련된 서비스는 어떻게 신청하나요?",
       "gold_ids": [
-        "reg_r1-144",
+        "reg_r1-143",
         "reg_r1-051"
       ],
       "must_have_ids": [
-        "reg_r1-144"
+        "reg_r1-143"
       ],
       "retrieved_ids": [
-        "reg_r1-144",
-        "reg_r1-054",
-        "reg_r1-025",
+        "reg_r1-143",
+        "reg_r1-076",
+        "reg_r1-077",
         "reg_r1-039",
-        "reg_r1-053"
+        "reg_r1-109"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 129.26
+      "latency_ms": 274.05
     },
     {
       "id": "R1-0030",
@@ -789,16 +790,16 @@
       ],
       "retrieved_ids": [
         "reg_r1-051",
-        "reg_r1-124",
-        "reg_r1-125",
-        "reg_r1-073",
+        "reg_r1-048",
+        "reg_r1-103",
+        "reg_r1-047",
         "reg_r1-054"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 173.2
+      "latency_ms": 275.15
     }
   ]
 }

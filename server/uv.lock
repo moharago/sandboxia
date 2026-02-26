@@ -31,8 +31,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "ragas" },
-    { name = "storage3" },
     { name = "rank-bm25" },
+    { name = "sentence-transformers" },
+    { name = "storage3" },
     { name = "supabase" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -70,6 +71,9 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "ragas", specifier = ">=0.2.0" },
+    { name = "rank-bm25", specifier = ">=0.2.2" },
+    { name = "sentence-transformers", specifier = ">=3.4.1" },
+    { name = "storage3", specifier = ">=0.7.0,<1.0.0" },
     { name = "supabase", specifier = ">=2.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.40.*" },
 ]

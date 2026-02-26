@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-23T12:51:33.254259",
+  "timestamp": "2026-02-25T16:07:47.736302",
   "config": {
     "top_k": 5,
     "embedding_config": ".env",
@@ -7,28 +7,29 @@
     "embedding_provider": "openai",
     "collection": "rag_regulations",
     "num_items": 30,
-    "query_rewrite": false
+    "search_type": "vector",
+    "vector_weight": null
   },
   "summary": {
-    "must_have_recall_at_k": 0.9833,
-    "recall_at_k": 0.8306,
-    "mrr": 0.9167,
-    "latency_p50_ms": 178.24,
-    "latency_p95_ms": 515.2,
-    "latency_mean_ms": 208.92
+    "must_have_recall_at_k": 0.7333,
+    "recall_at_k": 0.6861,
+    "mrr": 0.8833,
+    "latency_p50_ms": 127.03,
+    "latency_p95_ms": 279.75,
+    "latency_mean_ms": 151.53
   },
   "aggregated": {
     "k": 5,
     "num_queries": 30,
-    "avg_recall_at_k": 0.8306,
-    "avg_must_have_recall_at_k": 0.9833,
-    "avg_mrr": 0.9167,
-    "total_gold_citations": 67,
-    "total_retrieved_gold": 54,
+    "avg_recall_at_k": 0.6861,
+    "avg_must_have_recall_at_k": 0.7333,
+    "avg_mrr": 0.8833,
+    "total_gold_citations": 70,
+    "total_retrieved_gold": 46,
     "total_must_have_citations": 43,
-    "total_must_have_retrieved": 42,
-    "total_chunks": 148,
-    "avg_chunk_length": 761.7
+    "total_must_have_retrieved": 32,
+    "total_chunks": 147,
+    "avg_chunk_length": 763.6
   },
   "details": [
     {
@@ -36,34 +37,31 @@
       "category": "제도정의",
       "track": "all",
       "question": "규제샌드박스가 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-001",
-        "reg_r1-137",
-        "reg_r1-142"
+        "reg_r1-137"
       ],
       "must_have_ids": [
         "reg_r1-001"
       ],
       "retrieved_ids": [
         "reg_r1-137",
-        "reg_r1-142",
         "reg_r1-006",
         "reg_r1-001",
-        "reg_r1-059"
+        "reg_r1-059",
+        "reg_r1-069"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 633.58
+      "latency_ms": 512.08
     },
     {
       "id": "R1-0002",
       "category": "트랙정의",
       "track": "신속확인",
       "question": "신속확인 제도가 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-014",
         "reg_r1-015",
@@ -77,21 +75,20 @@
         "reg_r1-014",
         "reg_r1-019",
         "reg_r1-060",
-        "reg_r1-015",
-        "reg_r1-047"
+        "reg_r1-047",
+        "reg_r1-079"
       ],
-      "recall_at_k": 0.6666666666666666,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.3333333333333333,
+      "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 233.85
+      "latency_ms": 112.21
     },
     {
       "id": "R1-0003",
       "category": "트랙정의",
       "track": "실증특례",
       "question": "실증특례란 무엇인가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-020",
         "reg_r1-021",
@@ -103,8 +100,8 @@
       ],
       "retrieved_ids": [
         "reg_r1-020",
-        "reg_r1-130",
         "reg_r1-036",
+        "reg_r1-130",
         "reg_r1-033",
         "reg_r1-102"
       ],
@@ -112,14 +109,13 @@
       "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 348.1
+      "latency_ms": 128.38
     },
     {
       "id": "R1-0004",
       "category": "트랙정의",
       "track": "임시허가",
       "question": "임시허가 제도에 대해 설명해주세요",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-034",
         "reg_r1-035",
@@ -133,26 +129,25 @@
         "reg_r1-034",
         "reg_r1-080",
         "reg_r1-085",
-        "reg_r1-035",
-        "reg_r1-143"
+        "reg_r1-142",
+        "reg_r1-138"
       ],
-      "recall_at_k": 0.6666666666666666,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.3333333333333333,
+      "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 175.89
+      "latency_ms": 125.68
     },
     {
       "id": "R1-0005",
       "category": "트랙비교",
       "track": "all",
       "question": "신속확인, 실증특례, 임시허가 차이점이 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-047",
         "reg_r1-048",
         "reg_r1-052",
-        "reg_r1-143"
+        "reg_r1-142"
       ],
       "must_have_ids": [
         "reg_r1-047",
@@ -161,7 +156,7 @@
       "retrieved_ids": [
         "reg_r1-047",
         "reg_r1-138",
-        "reg_r1-143",
+        "reg_r1-142",
         "reg_r1-036",
         "reg_r1-048"
       ],
@@ -169,26 +164,25 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 152.67
+      "latency_ms": 146.84
     },
     {
       "id": "R1-0006",
       "category": "트랙비교",
       "track": "all",
       "question": "실증특례와 임시허가는 무엇이 다른가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-036",
-        "reg_r1-143",
+        "reg_r1-142",
         "reg_r1-138"
       ],
       "must_have_ids": [
         "reg_r1-036",
-        "reg_r1-143"
+        "reg_r1-142"
       ],
       "retrieved_ids": [
+        "reg_r1-142",
         "reg_r1-138",
-        "reg_r1-143",
         "reg_r1-036",
         "reg_r1-020",
         "reg_r1-047"
@@ -197,14 +191,13 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 161.75
+      "latency_ms": 137.44
     },
     {
       "id": "R1-0007",
       "category": "트랙비교",
       "track": "all",
       "question": "어떤 트랙을 선택해야 하나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-049",
         "reg_r1-050",
@@ -225,14 +218,13 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 206.35
+      "latency_ms": 125.08
     },
     {
       "id": "R1-0008",
       "category": "절차",
       "track": "all",
       "question": "규제샌드박스 신청 절차가 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-053",
         "reg_r1-059",
@@ -247,46 +239,46 @@
         "reg_r1-053",
         "reg_r1-006",
         "reg_r1-137",
-        "reg_r1-142"
+        "reg_r1-063"
       ],
       "recall_at_k": 0.6666666666666666,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 177.93
+      "latency_ms": 110.59
     },
     {
       "id": "R1-0009",
       "category": "트랙정의",
       "track": "신속확인",
       "question": "신속확인 처리 기한이 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-017",
-        "reg_r1-015"
+        "reg_r1-015",
+        "reg_r1-014",
+        "reg_r1-019"
       ],
       "must_have_ids": [
         "reg_r1-017"
       ],
       "retrieved_ids": [
-        "reg_r1-015",
         "reg_r1-014",
-        "reg_r1-017",
         "reg_r1-058",
-        "reg_r1-079"
+        "reg_r1-079",
+        "reg_r1-019",
+        "reg_r1-077"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.5,
+      "must_have_recall_at_k": 0.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 172.16
+      "latency_ms": 114.68
     },
     {
       "id": "R1-0010",
       "category": "트랙정의",
       "track": "실증특례",
       "question": "실증특례 유효기간이 얼마나 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-028",
         "reg_r1-007"
@@ -295,24 +287,23 @@
         "reg_r1-028"
       ],
       "retrieved_ids": [
-        "reg_r1-021",
         "reg_r1-028",
+        "reg_r1-021",
         "reg_r1-032",
         "reg_r1-020",
         "reg_r1-036"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 1.0,
-      "mrr": 0.5,
-      "first_hit_rank": 2,
-      "latency_ms": 175.54
+      "mrr": 1.0,
+      "first_hit_rank": 1,
+      "latency_ms": 124.08
     },
     {
       "id": "R1-0011",
       "category": "트랙정의",
       "track": "임시허가",
       "question": "임시허가 연장 신청은 어떻게 하나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-041",
         "reg_r1-045"
@@ -321,24 +312,23 @@
         "reg_r1-041"
       ],
       "retrieved_ids": [
-        "reg_r1-041",
         "reg_r1-029",
-        "reg_r1-035",
+        "reg_r1-041",
         "reg_r1-084",
-        "reg_r1-085"
+        "reg_r1-085",
+        "reg_r1-043"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 1.0,
-      "mrr": 1.0,
-      "first_hit_rank": 1,
-      "latency_ms": 223.17
+      "mrr": 0.5,
+      "first_hit_rank": 2,
+      "latency_ms": 279.75
     },
     {
       "id": "R1-0012",
       "category": "트랙정의",
       "track": "실증특례",
       "question": "실증특례 신청 요건이 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-022",
         "reg_r1-020"
@@ -350,21 +340,20 @@
         "reg_r1-020",
         "reg_r1-131",
         "reg_r1-130",
-        "reg_r1-022",
-        "reg_r1-033"
+        "reg_r1-033",
+        "reg_r1-129"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.5,
+      "must_have_recall_at_k": 0.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 182.14
+      "latency_ms": 129.75
     },
     {
       "id": "R1-0013",
       "category": "트랙정의",
       "track": "임시허가",
       "question": "임시허가 신청 요건이 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-037",
         "reg_r1-034"
@@ -373,24 +362,23 @@
         "reg_r1-037"
       ],
       "retrieved_ids": [
-        "reg_r1-037",
         "reg_r1-034",
         "reg_r1-043",
-        "reg_r1-035",
-        "reg_r1-085"
+        "reg_r1-085",
+        "reg_r1-067",
+        "reg_r1-080"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.5,
+      "must_have_recall_at_k": 0.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 126.04
+      "latency_ms": 124.76
     },
     {
       "id": "R1-0014",
       "category": "심사기준",
       "track": "all",
       "question": "규제샌드박스 심사 기준이 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-063",
         "reg_r1-067"
@@ -401,22 +389,21 @@
       "retrieved_ids": [
         "reg_r1-063",
         "reg_r1-137",
-        "reg_r1-142",
-        "reg_r1-145",
-        "reg_r1-139"
+        "reg_r1-139",
+        "reg_r1-144",
+        "reg_r1-006"
       ],
       "recall_at_k": 0.5,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 172.21
+      "latency_ms": 135.89
     },
     {
       "id": "R1-0015",
       "category": "심사기준",
       "track": "실증특례",
       "question": "실증특례 심사 기준이 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-064",
         "reg_r1-027"
@@ -427,23 +414,22 @@
       ],
       "retrieved_ids": [
         "reg_r1-064",
-        "reg_r1-027",
-        "reg_r1-131",
         "reg_r1-130",
-        "reg_r1-135"
+        "reg_r1-131",
+        "reg_r1-135",
+        "reg_r1-020"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.5,
+      "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 182.25
+      "latency_ms": 130.53
     },
     {
       "id": "R1-0016",
       "category": "심사기준",
       "track": "임시허가",
       "question": "임시허가 심사 기준 8가지가 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-065",
         "reg_r1-040"
@@ -463,14 +449,13 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 168.65
+      "latency_ms": 156.69
     },
     {
       "id": "R1-0017",
       "category": "제출요건",
       "track": "신속확인",
       "question": "신속확인 제출 서류가 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-060"
       ],
@@ -481,21 +466,20 @@
         "reg_r1-060",
         "reg_r1-014",
         "reg_r1-054",
-        "reg_r1-015",
-        "reg_r1-019"
+        "reg_r1-019",
+        "reg_r1-076"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 197.19
+      "latency_ms": 132.05
     },
     {
       "id": "R1-0018",
       "category": "제출요건",
       "track": "실증특례",
       "question": "실증특례 제출 서류 목록 알려주세요",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-061",
         "reg_r1-023"
@@ -506,22 +490,21 @@
       "retrieved_ids": [
         "reg_r1-131",
         "reg_r1-061",
-        "reg_r1-023",
         "reg_r1-124",
+        "reg_r1-023",
         "reg_r1-024"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 207.34
+      "latency_ms": 228.26
     },
     {
       "id": "R1-0019",
       "category": "제출요건",
       "track": "임시허가",
       "question": "임시허가 제출 서류가 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-062",
         "reg_r1-086",
@@ -541,14 +524,13 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 149.63
+      "latency_ms": 112.16
     },
     {
       "id": "R1-0020",
       "category": "제도변경",
       "track": "all",
       "question": "2026년 규제샌드박스 개정 내용이 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-007",
         "reg_r1-013",
@@ -561,60 +543,60 @@
       "retrieved_ids": [
         "reg_r1-013",
         "reg_r1-137",
-        "reg_r1-142",
-        "reg_r1-007",
-        "reg_r1-001"
+        "reg_r1-001",
+        "reg_r1-006",
+        "reg_r1-063"
       ],
-      "recall_at_k": 0.6666666666666666,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.3333333333333333,
+      "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 178.55
+      "latency_ms": 115.31
     },
     {
       "id": "R1-0021",
       "category": "제도변경",
       "track": "all",
       "question": "규제샌드박스 유효기간이 얼마나 연장됐나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-007",
-        "reg_r1-028"
+        "reg_r1-028",
+        "reg_r1-021",
+        "reg_r1-035"
       ],
       "must_have_ids": [
         "reg_r1-007"
       ],
       "retrieved_ids": [
-        "reg_r1-007",
         "reg_r1-137",
-        "reg_r1-142",
+        "reg_r1-021",
+        "reg_r1-035",
         "reg_r1-003",
         "reg_r1-001"
       ],
       "recall_at_k": 0.5,
-      "must_have_recall_at_k": 1.0,
-      "mrr": 1.0,
-      "first_hit_rank": 1,
-      "latency_ms": 179.98
+      "must_have_recall_at_k": 0.0,
+      "mrr": 0.5,
+      "first_hit_rank": 2,
+      "latency_ms": 197.85
     },
     {
       "id": "R1-0022",
       "category": "절차",
       "track": "all",
       "question": "심사는 얼마나 걸리나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-140",
-        "reg_r1-146",
+        "reg_r1-145",
         "reg_r1-058"
       ],
       "must_have_ids": [
         "reg_r1-140",
-        "reg_r1-146"
+        "reg_r1-145"
       ],
       "retrieved_ids": [
         "reg_r1-140",
-        "reg_r1-146",
+        "reg_r1-145",
         "reg_r1-058",
         "reg_r1-026",
         "reg_r1-017"
@@ -623,67 +605,64 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 150.74
+      "latency_ms": 109.76
     },
     {
       "id": "R1-0023",
       "category": "제출요건",
       "track": "all",
       "question": "규제샌드박스 신청 비용이 있나요?",
-      "search_query": null,
       "gold_ids": [
-        "reg_r1-147"
+        "reg_r1-146"
       ],
       "must_have_ids": [
-        "reg_r1-147"
+        "reg_r1-146"
       ],
       "retrieved_ids": [
-        "reg_r1-147",
+        "reg_r1-146",
         "reg_r1-059",
         "reg_r1-006",
         "reg_r1-137",
-        "reg_r1-142"
+        "reg_r1-053"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 515.2
+      "latency_ms": 107.36
     },
     {
       "id": "R1-0024",
       "category": "트랙정의",
       "track": "실증특례",
       "question": "실증특례 지원 범위가 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-031",
-        "reg_r1-148",
+        "reg_r1-147",
         "reg_r1-141"
       ],
       "must_have_ids": [
         "reg_r1-031",
-        "reg_r1-148"
+        "reg_r1-147"
       ],
       "retrieved_ids": [
         "reg_r1-141",
-        "reg_r1-148",
-        "reg_r1-031",
+        "reg_r1-147",
         "reg_r1-033",
-        "reg_r1-020"
+        "reg_r1-020",
+        "reg_r1-130"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "must_have_recall_at_k": 0.5,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 118.29
+      "latency_ms": 112.3
     },
     {
       "id": "R1-0025",
       "category": "트랙정의",
       "track": "임시허가",
       "question": "임시허가 지원 내용이 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-044"
       ],
@@ -692,23 +671,22 @@
       ],
       "retrieved_ids": [
         "reg_r1-034",
-        "reg_r1-044",
         "reg_r1-085",
-        "reg_r1-035",
-        "reg_r1-080"
+        "reg_r1-080",
+        "reg_r1-138",
+        "reg_r1-142"
       ],
-      "recall_at_k": 1.0,
-      "must_have_recall_at_k": 1.0,
-      "mrr": 0.5,
-      "first_hit_rank": 2,
-      "latency_ms": 175.46
+      "recall_at_k": 0.0,
+      "must_have_recall_at_k": 0.0,
+      "mrr": 0.0,
+      "first_hit_rank": null,
+      "latency_ms": 123.81
     },
     {
       "id": "R1-0026",
       "category": "트랙정의",
       "track": "실증특례",
       "question": "실증특례 취소 사유가 뭔가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-030"
       ],
@@ -718,22 +696,21 @@
       "retrieved_ids": [
         "reg_r1-030",
         "reg_r1-042",
-        "reg_r1-032",
         "reg_r1-125",
+        "reg_r1-032",
         "reg_r1-020"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 221.19
+      "latency_ms": 179.79
     },
     {
       "id": "R1-0027",
       "category": "트랙정의",
       "track": "임시허가",
       "question": "임시허가 취소 사유가 어떻게 되나요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-042"
       ],
@@ -744,31 +721,30 @@
         "reg_r1-034",
         "reg_r1-042",
         "reg_r1-043",
-        "reg_r1-035",
-        "reg_r1-085"
+        "reg_r1-085",
+        "reg_r1-084"
       ],
       "recall_at_k": 1.0,
       "must_have_recall_at_k": 1.0,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 120.96
+      "latency_ms": 159.9
     },
     {
       "id": "R1-0028",
       "category": "심사기준",
       "track": "all",
       "question": "규제샌드박스 지정 결정은 누가 하나요?",
-      "search_query": null,
       "gold_ids": [
-        "reg_r1-145",
+        "reg_r1-144",
         "reg_r1-139"
       ],
       "must_have_ids": [
-        "reg_r1-145",
+        "reg_r1-144",
         "reg_r1-139"
       ],
       "retrieved_ids": [
-        "reg_r1-145",
+        "reg_r1-144",
         "reg_r1-139",
         "reg_r1-006",
         "reg_r1-059",
@@ -778,23 +754,22 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 199.17
+      "latency_ms": 130.22
     },
     {
       "id": "R1-0029",
       "category": "절차",
       "track": "all",
       "question": "여러 부처 관련된 서비스는 어떻게 신청하나요?",
-      "search_query": null,
       "gold_ids": [
-        "reg_r1-144",
+        "reg_r1-143",
         "reg_r1-051"
       ],
       "must_have_ids": [
-        "reg_r1-144"
+        "reg_r1-143"
       ],
       "retrieved_ids": [
-        "reg_r1-144",
+        "reg_r1-143",
         "reg_r1-076",
         "reg_r1-025",
         "reg_r1-039",
@@ -804,14 +779,13 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 1.0,
       "first_hit_rank": 1,
-      "latency_ms": 206.87
+      "latency_ms": 117.15
     },
     {
       "id": "R1-0030",
       "category": "트랙비교",
       "track": "all",
       "question": "신속확인과 실증특례 병행 신청이 가능한가요?",
-      "search_query": null,
       "gold_ids": [
         "reg_r1-051"
       ],
@@ -829,7 +803,7 @@
       "must_have_recall_at_k": 1.0,
       "mrr": 0.5,
       "first_hit_rank": 2,
-      "latency_ms": 154.7
+      "latency_ms": 125.69
     }
   ]
 }

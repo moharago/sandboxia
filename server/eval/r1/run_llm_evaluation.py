@@ -87,20 +87,49 @@ def get_llm(model: str = GENERATION_MODEL) -> ChatOpenAI:
     )
 
 
-async def generate_response(llm: ChatOpenAI, question: str, contexts: list[str]) -> str:
-    """컨텍스트 기반 응답 생성"""
-    context_text = "\n\n".join(contexts)
-
-    prompt = f"""다음 규제샌드박스 제도 관련 정보를 참고하여 질문에 답변해주세요.
+PROMPT_V1 = """다음 규제샌드박스 제도 관련 정보를 참고하여 질문에 답변해주세요.
 
 ## 참고 정보:
-{context_text}
+{context}
 
 ## 질문:
 {question}
 
 ## 답변:
 위 정보를 바탕으로 간결하고 정확하게 답변해주세요."""
+
+PROMPT_V2 = """당신은 규제샌드박스 제도 전문 상담사입니다.
+아래 참고 정보만을 사용하여 질문에 직접적으로 답변하세요.
+
+## 규칙:
+1. 질문에서 묻는 내용에 직접 답변하세요
+2. 참고 정보에 있는 내용만 사용하세요
+3. 숫자, 기간, 조건 등 구체적인 정보를 포함하세요
+4. 정보가 없으면 "제공된 정보에서 확인할 수 없습니다"라고 답하세요
+
+## 참고 정보:
+{context}
+
+## 질문:
+{question}
+
+## 답변:"""
+
+
+async def generate_response(
+    llm: ChatOpenAI, question: str, contexts: list[str], prompt_version: str = "v1"
+) -> str:
+    """컨텍스트 기반 응답 생성
+
+    Args:
+        prompt_version: "v1" (기존) 또는 "v2" (개선)
+    """
+    context_text = "\n\n".join(contexts)
+
+    if prompt_version == "v2":
+        prompt = PROMPT_V2.format(context=context_text, question=question)
+    else:
+        prompt = PROMPT_V1.format(context=context_text, question=question)
 
     response = await llm.ainvoke(prompt)
     return str(response.content)
@@ -112,6 +141,7 @@ async def evaluate_single_item(
     evaluator: RAGASEvaluator,
     item: dict,
     top_k: int = 5,
+    prompt_version: str = "v1",
 ) -> tuple[RetrievalMetrics, LLMMetricsResult, float, float, dict]:
     """단일 평가 항목 평가 (Retrieval + Generation)
 
@@ -144,7 +174,7 @@ async def evaluate_single_item(
 
     # 2. 응답 생성
     generation_start = time.perf_counter()
-    response = await generate_response(llm, question, contexts)
+    response = await generate_response(llm, question, contexts, prompt_version)
     generation_end = time.perf_counter()
     generation_latency = (generation_end - generation_start) * 1000
 
@@ -187,6 +217,7 @@ async def run_evaluation_async(
     limit: int | None = None,
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
+    prompt_version: str = "v1",
 ):
     """전체 평가 실행 (비동기)"""
     print("=" * 70)
@@ -210,6 +241,7 @@ async def run_evaluation_async(
     print(f"컬렉션: {COLLECTION_REGULATIONS}{collection_suffix}")
     print(f"Generation Model: {GENERATION_MODEL}")
     print(f"Judge Model: {JUDGE_MODEL}")
+    print(f"Prompt Version: {prompt_version}")
 
     # 초기화
     print("\n초기화 중...")
@@ -233,7 +265,7 @@ async def run_evaluation_async(
             generation_latency,
             detail,
         ) = await evaluate_single_item(
-            vector_store, llm, evaluator, item, top_k
+            vector_store, llm, evaluator, item, top_k, prompt_version
         )
 
         all_retrieval_metrics.append(retrieval_metrics)
@@ -319,6 +351,7 @@ async def run_evaluation_async(
             "embedding_provider": embedding_config.provider if embedding_config else "openai",
             "judge_model": JUDGE_MODEL,
             "generation_model": GENERATION_MODEL,
+            "prompt_version": prompt_version,
             "collection": COLLECTION_REGULATIONS + collection_suffix,
             "num_items": len(items),
         },
@@ -353,6 +386,7 @@ def run_evaluation(
     limit: int | None = None,
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
+    prompt_version: str = "v1",
 ):
     """전체 평가 실행 (동기 래퍼)"""
     asyncio.run(
@@ -362,6 +396,7 @@ def run_evaluation(
             limit=limit,
             embedding_config=embedding_config,
             collection_suffix=collection_suffix,
+            prompt_version=prompt_version,
         )
     )
 
@@ -388,6 +423,7 @@ def main():
     )
     parser.add_argument("--config", type=str, default=None, help="임베딩 설정 (없으면 .env 사용)")
     parser.add_argument("--collection_suffix", type=str, default="", help="컬렉션 접미사")
+    parser.add_argument("--prompt", type=str, default="v1", choices=["v1", "v2"], help="프롬프트 버전 (v1: 기존, v2: 개선)")
 
     args = parser.parse_args()
 
@@ -407,6 +443,7 @@ def main():
         limit=args.limit,
         embedding_config=embedding_config,
         collection_suffix=args.collection_suffix,
+        prompt_version=args.prompt,
     )
 
 

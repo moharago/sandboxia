@@ -6,6 +6,7 @@ run_evaluation.py와 run_llm_evaluation.py에서 공유하는 함수들.
 - 평가셋 로드
 - Vector Store 연결
 - Hybrid Retriever (BM25 + Vector)
+- Re-ranking Retriever (Bi-encoder + Cross-encoder)
 - Gold chunk ID 매칭 (chunk_id 기반)
 - Retrieval 지표 계산
 """
@@ -319,4 +320,116 @@ def get_hybrid_retriever(
         vector_store=vector_store,
         vector_weight=vector_weight,
         k=k,
+    )
+
+
+class RerankerRetriever:
+    """Re-ranking Retriever (Bi-encoder → Cross-encoder)
+
+    2단계 검색 파이프라인:
+    1. Bi-encoder (Vector Search): 빠른 후보 검색 (Top-N)
+    2. Cross-encoder (Re-ranker): 정밀 재정렬 (Top-K)
+
+    Bi-encoder vs Cross-encoder:
+    - Bi-encoder: Query, Doc을 각각 임베딩 → 코사인 유사도 (빠름, 정확도 낮음)
+    - Cross-encoder: Query+Doc을 함께 입력 → 관련성 점수 (느림, 정확도 높음)
+    """
+
+    def __init__(
+        self,
+        vector_store: Chroma,
+        reranker,  # BGEReranker
+        initial_k: int = 20,
+        final_k: int = 5,
+    ):
+        """
+        Args:
+            vector_store: Chroma Vector Store (Bi-encoder)
+            reranker: BGEReranker 인스턴스 (Cross-encoder)
+            initial_k: 초기 검색 후보 수 (Bi-encoder로 검색)
+            final_k: 최종 반환 수 (Cross-encoder로 재정렬 후)
+        """
+        self.vector_store = vector_store
+        self.reranker = reranker
+        self.initial_k = initial_k
+        self.final_k = final_k
+
+    def invoke(self, query: str) -> tuple[list[Document], float, float]:
+        """Re-ranking 검색 실행
+
+        Args:
+            query: 검색 쿼리
+
+        Returns:
+            (documents, retrieval_latency_ms, rerank_latency_ms)
+        """
+        import time
+
+        # 1. Bi-encoder: 빠른 후보 검색
+        start_time = time.perf_counter()
+        initial_results = self.vector_store.similarity_search(
+            query, k=self.initial_k
+        )
+        retrieval_latency_ms = (time.perf_counter() - start_time) * 1000
+
+        if not initial_results:
+            return [], retrieval_latency_ms, 0.0
+
+        # 2. Cross-encoder: 정밀 재정렬
+        documents = [doc.page_content for doc in initial_results]
+        doc_ids = [
+            doc.metadata.get("document_id", "") for doc in initial_results
+        ]
+
+        reranked_docs, reranked_ids, rerank_latency_ms = (
+            self.reranker.rerank_with_ids(
+                query=query,
+                documents=documents,
+                doc_ids=doc_ids,
+                top_k=self.final_k,
+            )
+        )
+
+        # 3. 재정렬된 결과를 Document로 변환
+        id_to_doc = {
+            doc.metadata.get("document_id", ""): doc for doc in initial_results
+        }
+        final_results = [
+            id_to_doc[doc_id] for doc_id in reranked_ids if doc_id in id_to_doc
+        ]
+
+        return final_results, retrieval_latency_ms, rerank_latency_ms
+
+
+def get_reranker_retriever(
+    embedding_config: EmbeddingConfig | None = None,
+    collection_suffix: str = "",
+    initial_k: int = 20,
+    final_k: int = 5,
+) -> RerankerRetriever:
+    """Re-ranking Retriever 생성
+
+    Args:
+        embedding_config: 임베딩 설정
+        collection_suffix: 컬렉션 접미사
+        initial_k: 초기 검색 후보 수 (Bi-encoder)
+        final_k: 최종 반환 수 (Cross-encoder 후)
+
+    Returns:
+        RerankerRetriever
+    """
+    from eval.r1.reranker import BGEReranker
+
+    # 1. Vector Store (Bi-encoder)
+    vector_store = get_vector_store(embedding_config, collection_suffix)
+
+    # 2. BGE Reranker (Cross-encoder)
+    reranker = BGEReranker()
+
+    # 3. RerankerRetriever
+    return RerankerRetriever(
+        vector_store=vector_store,
+        reranker=reranker,
+        initial_k=initial_k,
+        final_k=final_k,
     )
