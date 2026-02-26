@@ -15,6 +15,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
                 defaultOptions: {
                     queries: {
                         staleTime: Infinity, // 데이터는 mutation 성공 시 invalidate로만 갱신
+                        gcTime: Infinity, // 세션 동안 캐시 유지 (step 이동 시 PageLoader 방지)
                         refetchOnWindowFocus: false,
                         refetchOnReconnect: false,
                     },
