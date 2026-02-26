@@ -49,13 +49,9 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     const isAtCurrentStep = currentStep === PAGE_STEP // 현재 단계
 
     // 파일 목록 조회
-    const { data: uploadedFileList, refetch: refetchFiles } = useProjectFilesQuery(id)
+    const { data: uploadedFileList } = useProjectFilesQuery(id)
 
-    // 컴포넌트 마운트 시 파일 목록 refetch + 전역 로더 숨기기
-    useEffect(() => {
-        refetchFiles()
-    }, [refetchFiles])
-
+    // 컴포넌트 마운트 시 전역 로더 숨기기
     useEffect(() => {
         hideGlobalAILoader()
         // eslint-disable-next-line react-hooks/exhaustive-deps

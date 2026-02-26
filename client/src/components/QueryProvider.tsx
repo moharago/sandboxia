@@ -14,11 +14,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        staleTime: 30 * 1000,
-                        retry: 2,
-                        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-                        refetchOnWindowFocus: true,
-                        refetchOnReconnect: true,
+                        staleTime: Infinity, // 데이터는 mutation 성공 시 invalidate로만 갱신
+                        refetchOnWindowFocus: false,
+                        refetchOnReconnect: false,
                     },
                 },
             })

@@ -62,7 +62,6 @@ export function useAgentNodesQuery(agentType: AgentType) {
     return useQuery({
         queryKey: agentNodesKeys.byType(agentType),
         queryFn: () => fetchAgentNodes(agentType),
-        staleTime: Infinity, // 노드 목록은 정적이므로 항상 fresh
-        gcTime: Infinity,
+        gcTime: Infinity, // 노드 목록은 정적 → GC도 안 함
     })
 }
