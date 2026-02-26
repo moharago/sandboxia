@@ -15,6 +15,7 @@ const buttonVariants = cva(
                 ghost: "border border-grass-9 text-grass-9 hover:bg-grass-9 hover:text-white",
                 "ghost-muted": "bg-transparent text-muted-foreground hover:bg-neutral-100 active:bg-neutral-200",
                 "ghost-destructive": "bg-transparent text-foreground/80 hover:text-destructive",
+                "ghost-success": "bg-transparent text-foreground/80 hover:text-green-600",
                 link: "text-primary underline-offset-4 hover:underline",
                 gradient: "gradient-primary text-white shadow hover:opacity-90",
                 text: "bg-transparent text-primary hover:text-primary/80 p-0 h-auto font-bold",
