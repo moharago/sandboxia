@@ -3,37 +3,41 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
-import { AILoader } from "@/components/ui/ai-loader"
-import { PageLoader } from "@/components/ui/page-loader"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
+import { NoResultsView } from "@/components/ui/no-results-view"
+import { PageLoader } from "@/components/ui/page-loader"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { tracks } from "@/data"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useTrackRecommendMutation, useTrackSelectMutation } from "@/hooks/mutations/use-track-mutation"
+import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
 import { useTrackQuery } from "@/hooks/queries/use-track-query"
+import { useAgentProgress } from "@/hooks/streaming/use-agent-progress"
 import { cn } from "@/lib/utils/cn"
+import { getStepPagePath, PAGE_STEPS } from "@/lib/utils/step-utils"
+import { useUIStore } from "@/stores/ui-store"
 import { useWizardStore } from "@/stores/wizard-store"
 import type { Regulation } from "@/types/api/eligibility"
 import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, CheckCircle2, ExternalLink, Info, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useCallback, useMemo, useState } from "react"
+import { use, useEffect, useMemo, useState } from "react"
 
 interface TrackPageProps {
     params: Promise<{ id: string }>
 }
 
-// API 트랙 ID → UI 트랙 ID 매핑
 const API_TO_UI_TRACK: Record<RecommendableTrack, string> = {
     demo: "track-demonstration",
     temp_permit: "track-temporary",
     quick_check: "track-fastcheck",
 }
 
-// UI 트랙 ID → API 트랙 ID 매핑
 const UI_TO_API_TRACK: Record<string, RecommendableTrack> = {
     "track-demonstration": "demo",
     "track-temporary": "temp_permit",
@@ -41,20 +45,11 @@ const UI_TO_API_TRACK: Record<string, RecommendableTrack> = {
 }
 
 const verdictStyles: Record<string, { bg: string; text: string; border: string }> = {
-    "AI 추천": {
-        bg: "bg-blue-50",
-        text: "text-blue-700",
-        border: "border-blue-200",
-    },
-    "조건부 가능": {
-        bg: "bg-amber-50",
-        text: "text-amber-700",
-        border: "border-amber-200",
-    },
+    "AI 추천": { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    "조건부 가능": { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
     비추천: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
 }
 
-// API 응답을 UI 형식으로 변환
 function transformApiResponse(response: TrackRecommendResponse) {
     const recommendations: Array<{
         trackId: string
@@ -64,7 +59,6 @@ function transformApiResponse(response: TrackRecommendResponse) {
         reasons: Array<{ type: "positive" | "negative" | "neutral"; text: string; source: string; sourceUrl?: string; description: string }>
     }> = []
 
-    // 3개 트랙을 순회하며 UI 형식으로 변환
     const trackKeys: RecommendableTrack[] = ["demo", "temp_permit", "quick_check"]
 
     for (const apiTrackId of trackKeys) {
@@ -72,8 +66,6 @@ function transformApiResponse(response: TrackRecommendResponse) {
         if (!trackData) continue
 
         const uiTrackId = API_TO_UI_TRACK[apiTrackId]
-
-        // reasons와 evidence를 1:1 매핑 (서버 프롬프트에서 reasons[i]와 evidence[i]가 대응)
         const reasons = trackData.reasons.map((r, index) => {
             const evidence = trackData.evidence?.[index]
             return {
@@ -101,7 +93,6 @@ function transformApiResponse(response: TrackRecommendResponse) {
     }
 }
 
-// API 응답의 similar_cases를 ReferencePanel용 CaseData로 변환
 function transformSimilarCases(response: TrackRecommendResponse): CaseData[] {
     if (!response.similar_cases || !Array.isArray(response.similar_cases) || response.similar_cases.length === 0) return []
 
@@ -116,143 +107,108 @@ function transformSimilarCases(response: TrackRecommendResponse): CaseData[] {
     }))
 }
 
+const PAGE_STEP = PAGE_STEPS.track // 3
+
 export default function TrackPage({ params }: TrackPageProps) {
     const { id } = use(params)
     const router = useRouter()
     const queryClient = useQueryClient()
 
     const { setTrackSelection, markStepComplete, setCurrentStep } = useWizardStore()
+    const { showGlobalAILoader, hideGlobalAILoader } = useUIStore()
 
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null)
     const [isReferencePanelOpen, setIsReferencePanelOpen] = useState(true)
     const [isRunningDraftAgent, setIsRunningDraftAgent] = useState(false)
 
-    // Supabase에서 프로젝트 정보 조회 (application_draft 존재 여부 확인용)
-    const { data: project, isLoading: isLoadingProject } = useProjectQuery(id)
+    // 모달 상태
+    const [reanalyzeModalOpen, setReanalyzeModalOpen] = useState(false)
+    const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
 
-    // Supabase에서 트랙 추천 결과 조회
-    const { data: trackResult, isLoading: isLoadingTrack } = useTrackQuery(id)
+    // 프로젝트 정보 조회 (refetchOnMount: "always"로 자동 refetch)
+    const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
+    const { data: trackResult, isPending: isLoadingTrack } = useTrackQuery(id)
+
+    const { data: trackNodes } = useAgentNodesQuery("track_recommender")
+    const { data: draftNodes } = useAgentNodesQuery("application_drafter")
+
+    // 컴포넌트 마운트 시 전역 로더 숨기기
+    useEffect(() => {
+        hideGlobalAILoader()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // SSE 진행 상태 (전역 로더 자동 업데이트)
+    const trackProgress = useAgentProgress({
+        projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "최적의 트랙 추천 중...",
+        globalLoaderNodes: trackNodes?.nodes,
+        onComplete: () => queryClient.invalidateQueries({ queryKey: ["track"] }),
+    })
+    const draftProgress = useAgentProgress({
+        projectId: id,
+        useGlobalLoader: true,
+        globalLoaderMessage: "신청서 초안 생성 중...",
+        globalLoaderNodes: draftNodes?.nodes,
+        onComplete: () => queryClient.invalidateQueries({ queryKey: ["draft"] }),
+    })
+
+    // 현재 단계와 페이지 단계 비교
+    const currentStep = project?.current_step ?? 1
+    const isAheadOfCurrentStep = currentStep > PAGE_STEP
+    const isAtCurrentStep = currentStep === PAGE_STEP
+    const isBehindCurrentStep = currentStep < PAGE_STEP
+
+    // 기존 결과 확인
+    const hasExistingResult = !!trackResult
+
+    // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
+    useEffect(() => {
+        if (!isLoadingTrack && !isLoadingProject && isBehindCurrentStep && hasExistingResult) {
+            setStaleDataModalOpen(true)
+        }
+    }, [isLoadingTrack, isLoadingProject, isBehindCurrentStep, hasExistingResult])
 
     // 결과 변환
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
     const defaultTrackId = trackResult ? API_TO_UI_TRACK[trackResult.recommended_track] : null
 
-    // ReferencePanel용 데이터: similar_cases (ApprovalCase[] 구조)
     const referenceCases = useMemo(() => {
         if (!trackResult) return []
         return transformSimilarCases(trackResult)
     }, [trackResult])
 
-    // ReferencePanel용 데이터: domain_constraints (Regulation[] 구조)
     const referenceRegulations = useMemo(() => {
         if (!trackResult?.domain_constraints || !Array.isArray(trackResult.domain_constraints)) return []
         return trackResult.domain_constraints as Regulation[]
     }, [trackResult])
 
-    // AI 추천 트랙을 기본 선택으로 (사용자가 아직 선택하지 않은 경우)
     const effectiveSelectedTrackId = selectedTrackId ?? defaultTrackId
-
-    // 기존 초안 존재 여부 확인 (로딩 중이면 false로 처리)
     const hasExistingDraft = !isLoadingProject && Boolean(project?.application_draft && Object.keys(project.application_draft).length > 0)
 
-    // 초안 재생성 확인 (기존 초안이 있으면 confirm, 없거나 로딩 중이면 바로 true)
-    const confirmDraftRegeneration = useCallback((): boolean => {
-        if (isLoadingProject || !hasExistingDraft) return true
-        return window.confirm(
-            "이미 생성된 신청서 초안이 있습니다.\n다시 생성하시겠습니까?\n\n기존 초안의 수정 내용은 새로운 초안으로 대체될 수 있습니다."
-        )
-    }, [isLoadingProject, hasExistingDraft])
-
-    // API Mutations
+    // Mutations
     const recommendMutation = useTrackRecommendMutation({
-        onError: (error) => {
-            console.error("트랙 추천 실패:", error)
-        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["track"] }),
+        onError: (error) => console.error("트랙 추천 실패:", error),
     })
 
     const draftMutation = useDraftGenerateMutation()
 
     const selectMutation = useTrackSelectMutation({
-        onError: (error) => {
-            console.error("트랙 저장 실패:", error)
-        },
+        onError: (error) => console.error("트랙 저장 실패:", error),
     })
 
     const handleSelectTrack = (trackId: string) => {
         setSelectedTrackId(trackId)
         const track = tracks.find((t) => t.id === trackId)
-        if (track) {
-            setTrackSelection(track)
-        }
+        if (track) setTrackSelection(track)
     }
 
     const handleBack = () => {
         setCurrentStep(2)
         router.push(`/projects/${id}/eligibility`)
     }
-
-    const handleSave = useCallback(async () => {
-        if (!effectiveSelectedTrackId) return
-
-        const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
-        if (!apiTrackId) return
-
-        const track = tracks.find((t) => t.id === effectiveSelectedTrackId)
-        if (track) {
-            setTrackSelection(track)
-        }
-
-        // 기존 초안이 있으면 재생성 여부 확인
-        const shouldRegenerateDraft = confirmDraftRegeneration()
-        // 취소 시 아무것도 안 하고 Step 4로 이동
-        if (!shouldRegenerateDraft && hasExistingDraft) {
-            markStepComplete(3)
-            setCurrentStep(4)
-            router.push(`/projects/${id}/draft`)
-            return
-        }
-
-        // 1. 트랙 선택 저장 (projects.track 업데이트)
-        selectMutation.mutate(
-            { projectId: id, track: apiTrackId },
-            {
-                onSuccess: async () => {
-                    // 프로젝트 캐시 invalidate (track 변경 반영)
-                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
-
-                    // 2. Draft Agent 실행 (재생성 선택한 경우에만)
-                    if (shouldRegenerateDraft) {
-                        setIsRunningDraftAgent(true)
-                        try {
-                            await draftMutation.mutateAsync({ project_id: id })
-                        } catch (error) {
-                            console.error("신청서 초안 생성 실패:", error)
-                            // 초안 생성 실패해도 다음 단계로 이동
-                        } finally {
-                            setIsRunningDraftAgent(false)
-                        }
-                    }
-
-                    // 3. 다음 단계로 이동
-                    markStepComplete(3)
-                    setCurrentStep(4)
-                    router.push(`/projects/${id}/draft`)
-                },
-            }
-        )
-    }, [
-        effectiveSelectedTrackId,
-        id,
-        selectMutation,
-        draftMutation,
-        setTrackSelection,
-        markStepComplete,
-        setCurrentStep,
-        router,
-        queryClient,
-        confirmDraftRegeneration,
-        hasExistingDraft,
-    ])
 
     const getReasonIcon = (type: string) => {
         switch (type) {
@@ -267,22 +223,133 @@ export default function TrackPage({ params }: TrackPageProps) {
         }
     }
 
+    // 트랙 재분석만 실행 (페이지 이동 없음)
+    const runTrackOnly = () => {
+        setReanalyzeModalOpen(false)
+        trackProgress.subscribe()
+        recommendMutation.mutate({ project_id: id }, {
+            onSuccess: () => {
+                trackProgress.unsubscribe()
+                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
+            },
+            onError: () => {
+                trackProgress.unsubscribe()
+                hideGlobalAILoader()
+            },
+        })
+    }
+
+    // 초안 생성 후 이동
+    const runDraftAndNavigate = async () => {
+        if (!effectiveSelectedTrackId) return
+        const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
+        if (!apiTrackId) return
+
+        const track = tracks.find((t) => t.id === effectiveSelectedTrackId)
+        if (track) setTrackSelection(track)
+
+        setIsRunningDraftAgent(true)
+        // 전역 로더 표시
+        showGlobalAILoader({
+            message: "신청서 초안 생성 중...",
+            nodes: draftNodes?.nodes,
+            progress: 0,
+            completedNodes: [],
+            currentNodeId: null,
+        })
+        draftProgress.subscribe()
+
+        selectMutation.mutate(
+            { projectId: id, track: apiTrackId },
+            {
+                onSuccess: async () => {
+                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                    try {
+                        await draftMutation.mutateAsync({ project_id: id })
+                    } catch (error) {
+                        console.error("신청서 초안 생성 실패:", error)
+                        draftProgress.unsubscribe()
+                        hideGlobalAILoader()
+                        setIsRunningDraftAgent(false)
+                        return
+                    }
+                    // 초안 결과 쿼리 invalidate (페이지 이동 전)
+                    await queryClient.invalidateQueries({ queryKey: ["draft"] })
+                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                    markStepComplete(3)
+                    setCurrentStep(4)
+                    // 전역 로더는 다음 페이지에서 숨김
+                    router.push(`/projects/${id}/draft`)
+                },
+                onError: (error) => {
+                    console.error("트랙 저장 실패:", error)
+                    hideGlobalAILoader()
+                    setIsRunningDraftAgent(false)
+                    draftProgress.unsubscribe()
+                },
+            }
+        )
+    }
+
+    // 다음 페이지로 이동만 (분석 없이)
+    const navigateToNext = async () => {
+        if (!effectiveSelectedTrackId) return
+        const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
+        if (!apiTrackId) return
+
+        const track = tracks.find((t) => t.id === effectiveSelectedTrackId)
+        if (track) setTrackSelection(track)
+
+        // 트랙 선택만 저장하고 이동
+        selectMutation.mutate(
+            { projectId: id, track: apiTrackId },
+            {
+                onSuccess: async () => {
+                    await queryClient.invalidateQueries({ queryKey: ["projects"] })
+                    markStepComplete(3)
+                    setCurrentStep(4)
+                    router.push(`/projects/${id}/draft`)
+                },
+            }
+        )
+    }
+
+    // 재분석 버튼 클릭
+    const handleReanalyze = () => {
+        setReanalyzeModalOpen(true)
+    }
+
+    // 다음 단계 버튼 클릭 (current_step > PAGE_STEP인 경우: 분석 없이 이동만)
+    const handleNext = () => {
+        if (isAheadOfCurrentStep) {
+            // current_step > PAGE_STEP: 분석 없이 바로 이동
+            navigateToNext()
+        } else {
+            // current_step == PAGE_STEP: 초안 생성 후 이동
+            runDraftAndNavigate()
+        }
+    }
+
     const isAnalyzing = recommendMutation.isPending
     const isSaving = selectMutation.isPending || isRunningDraftAgent
-    const isError = recommendMutation.isError
 
-    // 데이터 로딩 중
-    if (isLoadingTrack) {
+    // 로딩 중
+    if (isLoadingTrack || isLoadingProject) {
         return <PageLoader className="flex-1" />
     }
 
-    // AI 분석 중 (재분석 시에만 해당)
+    // current_step < page_step이고 기존 데이터가 없는 경우: "분석 결과가 없습니다" 표시
+    if (isBehindCurrentStep && !hasExistingResult) {
+        return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
+    }
+
+    // AI 분석 중 (전역 로더가 표시됨)
     if (isAnalyzing) {
-        return <AILoader message="최적의 트랙을 추천하고 있습니다..." />
+        return <PageLoader className="flex-1" />
     }
 
     // 에러
-    if (isError) {
+    if (recommendMutation.isError) {
         return (
             <div className="py-6">
                 <div className="container">
@@ -290,14 +357,8 @@ export default function TrackPage({ params }: TrackPageProps) {
                         <div className="text-center space-y-4">
                             <XCircle className="h-12 w-12 mx-auto text-red-500" />
                             <h2 className="text-lg font-semibold">트랙 분석에 실패했습니다</h2>
-                            <p className="text-muted-foreground">{recommendMutation.error?.message || "알 수 없는 오류가 발생했습니다."}</p>
-                            <button
-                                type="button"
-                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                                onClick={() => router.push(`/projects/${id}/eligibility`)}
-                            >
-                                이전 단계로 돌아가기
-                            </button>
+                            <p className="text-muted-foreground">{recommendMutation.error?.message || "알 수 없는 오류"}</p>
+                            <Button onClick={() => router.push(`/projects/${id}/eligibility`)}>이전 단계로 돌아가기</Button>
                         </div>
                     </div>
                 </div>
@@ -305,51 +366,61 @@ export default function TrackPage({ params }: TrackPageProps) {
         )
     }
 
-    // 결과 없음 - 이전 단계에서 트랙 추천이 실행되지 않은 경우
+    // 결과 없음
     if (!analysisResult) {
-        return (
-            <div className="py-6">
-                <div className="container">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center space-y-4">
-                            <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
-                            <h2 className="text-lg font-semibold">트랙 추천 결과가 없습니다</h2>
-                            <p className="text-muted-foreground">이전 단계(시장출시 진단)를 먼저 완료해주세요.</p>
-                            <button
-                                type="button"
-                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                                onClick={() => router.push(`/projects/${id}/eligibility`)}
-                            >
-                                이전 단계로 돌아가기
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <NoResultsView onNavigate={() => router.push(getStepPagePath(id, currentStep))} />
     }
-
-    const sortedRecommendations = analysisResult.recommendations
 
     return (
         <TooltipProvider>
             <div className="py-6">
-                {isSaving && <AILoader message={isRunningDraftAgent ? "신청서 초안을 생성하고 있습니다..." : "트랙을 저장하고 있습니다..."} />}
+                {/* 재분석 확인 모달 */}
+                <ConfirmModal
+                    isOpen={reanalyzeModalOpen}
+                    onClose={() => setReanalyzeModalOpen(false)}
+                    onConfirm={runTrackOnly}
+                    title="트랙 추천 재분석"
+                    description={[
+                        "이미 트랙 추천이 완료된 상태입니다.",
+                        "다시 분석하시겠습니까?",
+                        hasExistingDraft
+                            ? "기존 분석 결과는 새로운 결과로 대체되며, 신청서 초안도 재생성이 필요합니다."
+                            : "기존 분석 결과는 새로운 결과로 대체될 수 있습니다.",
+                    ]}
+                    confirmLabel="분석 실행"
+                    cancelLabel="취소"
+                />
+
+                {/* 이전 단계 재분석으로 인한 재분석 필요 모달 */}
+                <ConfirmModal
+                    isOpen={staleDataModalOpen}
+                    onClose={() => setStaleDataModalOpen(false)}
+                    onConfirm={() => {
+                        setStaleDataModalOpen(false)
+                        runTrackOnly()
+                    }}
+                    title="재분석 필요"
+                    description={[
+                        "이전 단계에서 재분석이 수행되었습니다.",
+                        "현재 단계의 분석 결과가 최신 상태가 아닐 수 있습니다.",
+                        "재분석을 실행하시겠습니까?",
+                    ]}
+                    confirmLabel="재분석"
+                    cancelLabel="기존 결과 유지"
+                />
+
                 <div className="container">
                     <div className="flex gap-4">
-                        {/* 왼쪽: 메인 콘텐츠 */}
                         <div className={isReferencePanelOpen ? "flex-[2] space-y-6" : "flex-1 space-y-6"}>
                             <div>
                                 <h1 className="text-2xl font-bold mb-2">트랙 선택</h1>
                                 <p className="text-muted-foreground">AI가 분석한 결과를 바탕으로 최적의 규제 샌드박스 트랙을 선택하세요</p>
                             </div>
 
-                            {/* AI 분석 요약 */}
                             <AIAnalysisCard summary={analysisResult.summary} confidence={analysisResult.confidence} />
 
-                            {/* 트랙 카드들 */}
                             <div className="space-y-4">
-                                {sortedRecommendations.map((rec) => {
+                                {analysisResult.recommendations.map((rec) => {
                                     const track = tracks.find((t) => t.id === rec.trackId)
                                     if (!track) return null
 
@@ -418,7 +489,6 @@ export default function TrackPage({ params }: TrackPageProps) {
                                             <div className="mx-6 border-t border-gray-200" />
 
                                             <CardContent className="space-y-4 mt-3">
-                                                {/* AI 분석 결과 */}
                                                 <div className="space-y-2">
                                                     <ul className="space-y-2">
                                                         {rec.reasons.map((reason, index) => (
@@ -458,15 +528,14 @@ export default function TrackPage({ params }: TrackPageProps) {
 
                             <WizardNavigation
                                 onBack={handleBack}
-                                onReanalyze={() => recommendMutation.mutate({ project_id: id })}
-                                onNext={handleSave}
+                                onReanalyze={isAheadOfCurrentStep || isAtCurrentStep ? handleReanalyze : undefined}
+                                onNext={handleNext}
                                 nextLabel="다음 단계"
                                 isAnalyzed={!!analysisResult}
                                 isLoading={isSaving || recommendMutation.isPending}
                             />
                         </div>
 
-                        {/* 오른쪽: 참고 패널 */}
                         <div className={isReferencePanelOpen ? "flex-1" : ""}>
                             <div className="sticky top-16">
                                 <ReferencePanel

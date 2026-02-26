@@ -1,9 +1,14 @@
 """파일 다운로드 API"""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
+from storage3.exceptions import StorageApiError
 
 from app.api.deps import AuthUser, get_auth_user
 from app.core.config import supabase
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
@@ -50,9 +55,17 @@ def get_download_url(file_id: str, user: AuthUser = Depends(get_auth_user)):
 
     # signed URL 생성 (서버의 service role key 사용)
     # download 옵션으로 원본 파일명 지정
-    url_result = supabase.storage.from_(STORAGE_BUCKET).create_signed_url(
-        storage_path, 60, options={"download": file_name}
-    )
+    try:
+        url_result = supabase.storage.from_(STORAGE_BUCKET).create_signed_url(
+            storage_path, 60, options={"download": file_name}
+        )
+    except StorageApiError as e:
+        logger.error(f"Storage API error for file {file_id}: {e}")
+        # 스토리지에 파일이 없는 경우 (DB 레코드만 존재)
+        raise HTTPException(
+            status_code=404,
+            detail="파일이 스토리지에 존재하지 않습니다. 파일을 다시 업로드해주세요.",
+        )
 
     if url_result.get("error"):
         raise HTTPException(status_code=500, detail="다운로드 URL 생성 실패")

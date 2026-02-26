@@ -64,23 +64,27 @@ async def run_track_recommender(
     Returns:
         추천 결과 딕셔너리
     """
+    from app.agents.utils import run_agent_with_progress
+
     initial_state: TrackRecommenderState = {
         "project_id": project_id,
         "canonical": canonical,
         "track_scores": {},
         "track_definitions": [],
-        "similar_cases": {},
-        "domain_constraints": {},
+        "similar_cases": [],
+        "domain_constraints": [],
         "recommended_track": "",
         "confidence_score": 0.0,
         "result_summary": "",
         "track_comparison": {},
     }
 
-    # 그래프 실행 (recursion_limit: 무한 루프 방지)
-    result = await track_recommender_agent.ainvoke(
-        initial_state,
-        config={"recursion_limit": 15},
+    # 에이전트 실행 (진행 상태 추적 포함)
+    result = await run_agent_with_progress(
+        agent=track_recommender_agent,
+        initial_state=initial_state,
+        project_id=project_id,
+        agent_type="track_recommender",
     )
 
     return {

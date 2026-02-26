@@ -78,7 +78,7 @@ async def run_service_structurer(
     """Service Structurer Agent 실행 헬퍼 함수
 
     Args:
-        session_id: 세션 ID
+        session_id: 세션 ID (= project_id)
         requested_track: 트랙 (counseling/quick_check/temp_permit/demo)
         consultant_input: 컨설턴트 입력 데이터
         file_paths: HWP 파일 경로 리스트 (optional)
@@ -87,6 +87,8 @@ async def run_service_structurer(
     Returns:
         실행 결과 (canonical_structure 포함)
     """
+    from app.agents.utils import run_agent_with_progress
+
     initial_state: ServiceStructurerState = {
         "messages": [],
         "session_id": session_id,
@@ -99,9 +101,12 @@ async def run_service_structurer(
         "error": None,
     }
 
-    result = await service_structurer_agent.ainvoke(
-        initial_state,
-        config={"recursion_limit": 15},
+    # 에이전트 실행 (진행 상태 추적 포함)
+    result = await run_agent_with_progress(
+        agent=service_structurer_agent,
+        initial_state=initial_state,
+        project_id=session_id,  # session_id = project_id
+        agent_type="service_structurer",
     )
 
     return {

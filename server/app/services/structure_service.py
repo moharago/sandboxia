@@ -249,8 +249,8 @@ class StructureService:
         try:
             update_data = {
                 "updated_at": datetime.now().isoformat(),
-                "current_step": 2,  # 서비스 분석 완료 → 시장진단 단계로 이동
-                "status": 1,  # 재분석 시에도 status=1 유지 (Step 1~3은 항상 1)
+                "current_step": 1,  # 서비스 분석 완료 → Step 1 완료
+                "status": 1,  # Step 1~3은 항상 status=1
             }
 
             if application_input is not None:
