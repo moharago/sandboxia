@@ -22,7 +22,7 @@
 import { useAuthStore } from "@/stores/auth-store"
 import { useUIStore } from "@/stores/ui-store"
 import type { AgentProgressEvent, NodeInfo, SSEConnectionStatus } from "@/types/api/agent-progress"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 
@@ -286,6 +286,16 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
             abortControllerRef.current = null
         }
         setStatus("idle")
+    }, [])
+
+    // 컴포넌트 언마운트 시 자동 cleanup
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+                abortControllerRef.current = null
+            }
+        }
     }, [])
 
     return {
