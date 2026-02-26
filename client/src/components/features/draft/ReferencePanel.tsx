@@ -81,22 +81,24 @@ function ReferenceItem({ data, index, idPrefix = "ref" }: ReferenceItemProps) {
                         )}
                     </div>
                 </div>
-                {isExpanded && (
-                    <div id={contentId} className="mt-3 pt-3 border-t border-border">
+            </button>
+            {isExpanded && (
+                <div id={contentId} className="px-3 pb-3">
+                    <div className="pt-3 border-t border-border">
                         <p className="text-sm text-muted-foreground">{data.summary}</p>
                         {data.sourceUrl && (
                             <a
                                 href={data.sourceUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="mt-2 text-xs text-primary hover:text-teal-6 inline-flex items-center gap-1"
+                                className="mt-2 text-xs text-primary hover:text-teal-600 inline-flex items-center gap-1"
                             >
                                 {data.linkLabel ?? "상세보기"} <ExternalLink className="h-3 w-3" />
                             </a>
                         )}
                     </div>
-                )}
-            </button>
+                </div>
+            )}
         </div>
     )
 }

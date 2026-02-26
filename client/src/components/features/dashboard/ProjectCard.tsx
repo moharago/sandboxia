@@ -31,6 +31,7 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
     const queryClient = useQueryClient()
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+    const [isCompleting, setIsCompleting] = useState(false)
     const isCompleted = project.status === PROJECT_STATUS.COMPLETED || project.status === PROJECT_STATUS.DIRECT_LAUNCH
 
     const formattedDate = new Date(project.updated_at)
@@ -51,9 +52,16 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
     }
 
     const handleCompleteConfirm = async () => {
-        await projectsApi.updateStatus(project.id, PROJECT_STATUS.COMPLETED)
-        setIsCompleteModalOpen(false)
-        queryClient.invalidateQueries({ queryKey: ["projects"] })
+        setIsCompleting(true)
+        try {
+            await projectsApi.updateStatus(project.id, PROJECT_STATUS.COMPLETED)
+            setIsCompleteModalOpen(false)
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
+        } catch (error) {
+            console.error("완료 처리 실패:", error)
+        } finally {
+            setIsCompleting(false)
+        }
     }
 
     const handleDeleteClick = (e: React.MouseEvent) => {
@@ -100,6 +108,7 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
                     description={`"${project.company_name}" 프로젝트를 완료 처리하시겠습니까?`}
                     confirmLabel="완료 처리"
                     cancelLabel="취소"
+                    isLoading={isCompleting}
                 />
                 <DeleteProjectModal
                     open={isDeleteModalOpen}

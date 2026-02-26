@@ -153,9 +153,10 @@ export default function DraftPage({ params }: DraftPageProps) {
     const similarCases = ragSimilarCases.length > 0 ? ragSimilarCases : ((draftData?.similar_cases as ApprovalCase[]) ?? [])
     const regulations = ragRegulations.length > 0 ? ragRegulations : ((draftData?.domain_laws as Regulation[]) ?? [])
 
-    // 프로젝트 완료 처리 (status → 4)
+    // 프로젝트 완료 처리 (전체 저장 → status → 4)
     const handleProjectComplete = async () => {
         try {
+            await formSectionRef.current?.saveAll()
             await projectsApi.updateStatus(id, PROJECT_STATUS.COMPLETED)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             setCompleteModalOpen(false)

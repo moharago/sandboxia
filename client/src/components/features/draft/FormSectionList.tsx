@@ -254,18 +254,26 @@ export const FormSectionList = forwardRef<FormSectionListHandle, FormSectionList
         ref,
         () => ({
             saveAll: async () => {
+                const failedCards: string[] = []
                 await Promise.all(
-                    cardKeys.map((cardKey) =>
-                        agentsApi.updateDraftCard({
-                            project_id: projectId,
-                            card_key: cardKey,
-                            card_data: formValues[cardKey] || {},
-                        })
-                    )
+                    cardKeys.map(async (cardKey) => {
+                        try {
+                            await cardUpdateMutation.mutateAsync({
+                                project_id: projectId,
+                                card_key: cardKey,
+                                card_data: formValues[cardKey] || {},
+                            })
+                        } catch {
+                            failedCards.push(getCardName(formType, cardKey))
+                        }
+                    })
                 )
+                if (failedCards.length > 0) {
+                    throw new Error(`저장 실패: ${failedCards.join(", ")}`)
+                }
             },
         }),
-        [cardKeys, formValues, projectId]
+        [cardKeys, formValues, projectId, cardUpdateMutation, formType]
     )
 
     const handleSave = useCallback(
