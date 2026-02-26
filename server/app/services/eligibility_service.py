@@ -39,7 +39,7 @@ def get_project_for_eligibility(project_id: str) -> dict | None:
         .execute()
     )
 
-    return result.data if result else None
+    return result.data
 
 
 def get_eligibility_result(project_id: str) -> dict | None:
@@ -59,7 +59,7 @@ def get_eligibility_result(project_id: str) -> dict | None:
         .execute()
     )
 
-    return result.data if result else None
+    return result.data
 
 
 def save_eligibility_result(
@@ -93,10 +93,10 @@ def save_eligibility_result(
         .execute()
     )
 
-    return db_result.data[0] if db_result.data else None
+    return db_result.data[0]
 
 
-def update_project_after_eligibility(project_id: str) -> dict | None:
+def update_project_after_eligibility(project_id: str) -> dict:
     """대상성 판단 완료 후 프로젝트 업데이트
 
     - 항상 current_step을 2로 설정 (eligibility_evaluator 에이전트 완료)
@@ -118,12 +118,12 @@ def update_project_after_eligibility(project_id: str) -> dict | None:
         .execute()
     )
 
-    if result.data:
-        logger.info(f"[Eligibility] 프로젝트 {project_id}: current_step → 2")
-        return result.data[0]
-    else:
-        logger.warning(f"[Eligibility] 프로젝트 {project_id} 업데이트 실패: 데이터 없음")
-        return None
+    if not result.data:
+        raise EligibilityServiceError(
+            f"프로젝트를 찾을 수 없습니다: {project_id}",
+            status_code=404,
+        )
+    return result.data[0]
 
 
 def update_final_eligibility_label(

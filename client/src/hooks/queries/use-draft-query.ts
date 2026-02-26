@@ -16,8 +16,5 @@ export function useDraftQuery(projectId: string | undefined) {
         queryKey: draftKeys.byProject(projectId ?? ""),
         queryFn: () => draftApi.getByProjectId(projectId!),
         enabled: !!projectId,
-        staleTime: 1000 * 30, // 30초간 캐시 유지
-        refetchOnMount: "always", // 컴포넌트 마운트 시 항상 refetch
-        retry: 2,
     })
 }

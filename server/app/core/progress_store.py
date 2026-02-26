@@ -74,7 +74,7 @@ class ProgressStore:
 
     def start(self, project_id: str, agent_type: str) -> None:
         """에이전트 실행 시작"""
-        # 기존 상태가 있으면 구독자 목록 보존 (race condition 방지)
+        # 기존 상태가 있으면 구독자 목록 보존 (에이전트 시작 전에 SSE 구독이 먼저 올 수 있음)
         existing_subscribers: list[asyncio.Queue] = []
         if project_id in self._states:
             existing_subscribers = self._states[project_id].subscribers
@@ -171,15 +171,6 @@ class ProgressStore:
             )
 
         asyncio.create_task(self._broadcast(project_id, event))
-
-        # 잠시 후 상태 정리 (구독자들이 마지막 이벤트를 받을 시간 확보)
-        asyncio.create_task(self._cleanup_after_delay(project_id, delay=5.0))
-
-    async def _cleanup_after_delay(self, project_id: str, delay: float) -> None:
-        """일정 시간 후 상태 정리"""
-        await asyncio.sleep(delay)
-        if project_id in self._states:
-            del self._states[project_id]
 
     async def subscribe(self, project_id: str) -> AsyncGenerator[str, None]:
         """진행 상태 SSE 구독
