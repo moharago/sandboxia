@@ -148,6 +148,8 @@ async def evaluate_eligibility(
     try:
         save_eligibility_result(project_id, result)
         update_project_after_eligibility(project_id)
+    except EligibilityServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
     except Exception as e:
         logger.error(f"결과 저장 실패: {e}")
         raise HTTPException(

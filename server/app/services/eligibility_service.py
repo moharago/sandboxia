@@ -118,6 +118,11 @@ def update_project_after_eligibility(project_id: str) -> dict:
         .execute()
     )
 
+    if not result.data:
+        raise EligibilityServiceError(
+            f"프로젝트를 찾을 수 없습니다: {project_id}",
+            status_code=404,
+        )
     return result.data[0]
 
 
@@ -141,7 +146,7 @@ def update_final_eligibility_label(
         .execute()
     )
 
-    return result.data[0]
+    return result.data[0] if result.data else None
 
 
 async def run_eligibility(
