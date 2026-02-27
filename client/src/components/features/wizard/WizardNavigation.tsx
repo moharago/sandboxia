@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { AlertTriangle, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -14,6 +15,8 @@ interface WizardNavigationProps {
     onNext?: () => void
     /** 다음 버튼 라벨 */
     nextLabel?: string
+    /** 다음 버튼 툴팁 */
+    nextTooltip?: string
 
     /** AI 분석 + 다음 단계 핸들러 (분석 전 상태에서 사용) */
     onAnalyze?: () => void
@@ -37,6 +40,9 @@ interface WizardNavigationProps {
 
     /** 추가 버튼 (다운로드 등) - 다음 버튼 왼쪽에 렌더링 */
     extraButtons?: ReactNode
+
+    /** 추가 버튼 - 다음 버튼 오른쪽에 렌더링 */
+    rightExtraButtons?: ReactNode
 }
 
 export function WizardNavigation({
@@ -44,6 +50,7 @@ export function WizardNavigation({
     backLabel = "이전 단계",
     onNext,
     nextLabel = "다음 단계",
+    nextTooltip,
     onAnalyze,
     analyzeLabel = "AI 분석 및 다음 단계",
     onReanalyze,
@@ -52,6 +59,7 @@ export function WizardNavigation({
     isLoading = false,
     isAnalyzeDisabled = false,
     extraButtons,
+    rightExtraButtons,
 }: WizardNavigationProps) {
     return (
         <div className="flex flex-col gap-3">
@@ -88,11 +96,26 @@ export function WizardNavigation({
                                 </Button>
                             )}
                             {onNext && (
-                                <Button variant="default" onClick={onNext} disabled={isLoading} className="gap-2">
-                                    {nextLabel}
-                                    <ArrowRight className="h-4 w-4" />
-                                </Button>
+                                nextTooltip ? (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button variant="default" onClick={onNext} disabled={isLoading} className="gap-2">
+                                                    {nextLabel}
+                                                    <ArrowRight className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{nextTooltip}</TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                ) : (
+                                    <Button variant="default" onClick={onNext} disabled={isLoading} className="gap-2">
+                                        {nextLabel}
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                )
                             )}
+                            {rightExtraButtons}
                         </>
                     ) : (
                         /* 분석 전 상태: AI 분석 및 다음 단계 */
