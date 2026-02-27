@@ -18,7 +18,7 @@ export function createClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey, {
         auth: {
             // navigator.locks 교착상태 방지: 5초 timeout 후 lock 없이 실행
-            lock: async (name: string, acquireTimeout: number, fn: () => Promise<unknown>) => {
+            lock: async <R>(name: string, acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
                 if (typeof navigator === 'undefined' || !navigator.locks) {
                     return await fn()
                 }
