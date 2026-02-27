@@ -23,7 +23,7 @@ export function DeleteProjectModal({ open, onOpenChange, projectId, companyName 
 
     const { mutate: deleteProject, isPending: isDeleting } = useDeleteProjectMutation({
         onSuccess: () => {
-            handleClose()
+            onOpenChange(false)
         },
         onError: (err) => {
             setError(err.message || "삭제에 실패했습니다")
