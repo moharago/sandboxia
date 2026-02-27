@@ -245,12 +245,13 @@ def screen_node(state: EligibilityState) -> dict:
 
 
 def _search_regulations(screening) -> list[dict]:
-    """R1 규제제도 검색 (내부 함수)"""
-    keywords = screening.search_keywords if screening else []
+    """R1 규제제도 검색 (내부 함수)
 
-    keyword_part = " ".join(keywords[:3]) if keywords else ""
-    base_part = "규제샌드박스 신청 대상 요건 절차"
-    query = f"{keyword_part} {base_part}".strip() if keyword_part else base_part
+    Note: 서비스 키워드를 쿼리에 포함하면 임베딩 유사도가 떨어지므로
+    제도 관련 키워드만 사용하여 검색합니다.
+    """
+    # 서비스 키워드 제외, 제도 검색에 최적화된 쿼리 사용
+    query = "규제샌드박스 실증특례 임시허가 신청 요건 절차"
 
     result = search_regulation.invoke({"query": query, "top_k": 5})
 
