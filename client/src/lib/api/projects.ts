@@ -73,12 +73,9 @@ export const projectsApi = {
     createProject: async (request: CreateProjectRequest): Promise<ProjectResponse> => {
         const supabase = createClient()
 
-        const {
-            data: { user },
-            error: authError,
-        } = await supabase.auth.getUser()
-
-        if (authError || !user) {
+        // auth store에서 캐시된 유저 사용 (middleware가 토큰 갱신 담당)
+        const user = useAuthStore.getState().user
+        if (!user) {
             throw new Error("인증이 필요합니다. 로그인 후 다시 시도해주세요.")
         }
 
