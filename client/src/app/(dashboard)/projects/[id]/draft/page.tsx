@@ -8,6 +8,7 @@ import { WizardNavigation } from "@/components/features/wizard"
 import { Button } from "@/components/ui/button"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { NoResultsView } from "@/components/ui/no-results-view"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { PageLoader } from "@/components/ui/page-loader"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
@@ -50,6 +51,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
     // 모달 상태
     const [completeModalOpen, setCompleteModalOpen] = useState(false)
+    const [draftCompleteModalOpen, setDraftCompleteModalOpen] = useState(false) // 작성 완료 확인 모달
     const [regenerateModalOpen, setRegenerateModalOpen] = useState(false)
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
@@ -136,16 +138,22 @@ export default function DraftPage({ params }: DraftPageProps) {
         setRegenerateModalOpen(true)
     }
 
-    // 작성 완료 버튼 클릭 → 바로 대시보드로 이동
-    const handleCompleteClick = async () => {
+    // 작성 완료 버튼 클릭 → 확인 모달 표시
+    const handleCompleteClick = () => {
+        setDraftCompleteModalOpen(true)
+    }
+
+    // 작성 완료 확인 후 실행
+    const handleDraftComplete = async () => {
         if (isCompleting) return
         setIsCompleting(true)
         try {
             if (!formSectionRef.current) throw new Error("폼 데이터를 저장할 수 없습니다.")
             await formSectionRef.current.saveAll()
-            await projectsApi.updateStatus(id, 3, 4)
+            await projectsApi.updateStatus(id, PROJECT_STATUS.PENDING, 4)
             await queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(4)
+            setDraftCompleteModalOpen(false)
             router.push("/dashboard")
         } catch (error) {
             const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
@@ -274,6 +282,11 @@ export default function DraftPage({ params }: DraftPageProps) {
                             onNext={hasDraftData && !isTrackMismatch ? handleCompleteClick : undefined}
                             onAnalyze={!hasDraftData || isTrackMismatch ? runDraftGeneration : undefined}
                             nextLabel="작성 완료"
+                            nextTooltip={
+                                (project?.status === PROJECT_STATUS.PENDING || project?.status === PROJECT_STATUS.COMPLETED)
+                                    ? "신청서 작성을 완료하고 결과를 기다립니다"
+                                    : undefined
+                            }
                             analyzeLabel="AI 초안 생성"
                             isAnalyzed={hasDraftData && !isTrackMismatch}
                             isLoading={draftMutation.isPending}
@@ -295,13 +308,24 @@ export default function DraftPage({ params }: DraftPageProps) {
                                         <Download className="h-4 w-4" />
                                         다운로드
                                     </Button>
-                                    {hasDraftData && !isTrackMismatch && (
-                                        <Button onClick={() => setCompleteModalOpen(true)} className="gap-2">
-                                            프로젝트 완료
-                                            <CheckCircle2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
                                 </>
+                            }
+                            rightExtraButtons={
+                                hasDraftData && !isTrackMismatch && (project?.status === PROJECT_STATUS.PENDING || project?.status === PROJECT_STATUS.COMPLETED) && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button onClick={() => setCompleteModalOpen(true)} className="gap-2">
+                                                    프로젝트 완료
+                                                    <CheckCircle2 className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                결과 확인 후 프로젝트를 최종 종료합니다
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )
                             }
                         />
 
@@ -311,6 +335,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                                 onClose={() => setIsDownloadModalOpen(false)}
                                 formType={formType}
                                 projectId={id}
+                                formValues={draftData?.form_values as Record<string, unknown> | undefined}
                             />
                         )}
 
@@ -321,7 +346,19 @@ export default function DraftPage({ params }: DraftPageProps) {
                             onConfirm={handleProjectComplete}
                             title="프로젝트 완료"
                             description="프로젝트를 완료 처리하시겠습니까?"
-                            confirmLabel="완료 처리"
+                            confirmLabel="완료"
+                            cancelLabel="취소"
+                            isLoading={isCompleting}
+                        />
+
+                        {/* 작성 완료 확인 모달 */}
+                        <ConfirmModal
+                            isOpen={draftCompleteModalOpen}
+                            onClose={() => setDraftCompleteModalOpen(false)}
+                            onConfirm={handleDraftComplete}
+                            title="작성 완료"
+                            description="신청서 작성을 완료하시겠습니까?"
+                            confirmLabel="완료"
                             cancelLabel="취소"
                             isLoading={isCompleting}
                         />

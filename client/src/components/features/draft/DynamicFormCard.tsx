@@ -532,7 +532,6 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                             수정 후 저장 버튼을 클릭해야 변경사항이 반영됩니다
                         </span>
                         <Button
-                            variant="outline"
                             size="sm"
                             className="gap-2"
                             disabled={isSaving}
