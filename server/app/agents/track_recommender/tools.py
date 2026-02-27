@@ -154,68 +154,69 @@ def retrieve_similar_cases(
     service_description: str,
     track_keys: list[str],
     top_k: int = 3,
-    min_score: float = 0.3,
 ) -> dict[str, list[dict]]:
     """트랙별 유사 승인 사례 RAG 검색 (R2)
 
+    전체 사례에서 한번에 검색한 뒤 트랙별로 그룹핑합니다.
+    트랙 필터 없이 검색하므로 화장품 등 사례가 적은 도메인에서도 결과를 반환합니다.
+
     Args:
         service_description: 서비스 설명
-        track_keys: 검색할 트랙 키 목록
+        track_keys: 결과를 그룹핑할 트랙 키 목록
         top_k: 트랙별 반환할 최대 사례 수
-        min_score: 최소 유사도 임계값 (0~1, 기본값 0.3)
 
     Returns:
-        트랙별 유사 사례 목록 (min_score 이상만 포함)
+        트랙별 유사 사례 목록
     """
-    track_name_map = {
-        "demo": "실증특례",
-        "temp_permit": "임시허가",
-        "quick_check": "신속확인",
+    # 트랙명 → 키 역매핑 (결과 그룹핑용)
+    track_name_to_key = {
+        "실증특례": "demo",
+        "임시허가": "temp_permit",
+        "신속확인": "quick_check",
     }
 
-    results = {}
+    # 빈 결과 초기화
+    results: dict[str, list[dict]] = {k: [] for k in track_keys}
 
-    for track_key in track_keys:
-        track_name = track_name_map.get(track_key)
-        if not track_name:
-            results[track_key] = []
+    # 트랙 필터 없이 전체 사례에서 한번에 검색
+    fetch_count = top_k * len(track_keys)
+    search_result = search_case.invoke({
+        "query": service_description,
+        "top_k": fetch_count,
+        "deduplicate": True,
+    })
+
+    if not search_result or not search_result.results:
+        return results
+
+    for case in search_result.results:
+        # 사례의 트랙으로 해당 track_key 결정
+        case_track_key = track_name_to_key.get(case.track)
+        if not case_track_key or case_track_key not in results:
             continue
 
-        # R2 RAG 검색 (.invoke() 메서드 사용)
-        search_result = search_case.invoke({
-            "query": service_description,
-            "track": track_name,
-            "top_k": top_k,
-            "deduplicate": True,
+        # 트랙당 top_k 제한
+        if len(results[case_track_key]) >= top_k:
+            continue
+
+        # case_id에서 사례명 추출 (예: "실증특례_162_위비케어 컨소시엄" → "위비케어 컨소시엄")
+        case_name = ""
+        if case.case_id:
+            parts = case.case_id.split("_", 2)  # 최대 2번만 분리
+            if len(parts) >= 3:
+                case_name = parts[2]
+
+        results[case_track_key].append({
+            "case_id": case.case_id,
+            "case_name": case_name,
+            "company_name": case.company_name,
+            "service_name": case.service_name,
+            "track": case.track,
+            "service_description": case.service_description[:200] if case.service_description else "",
+            "special_provisions": case.special_provisions[:200] if case.special_provisions else "",
+            "relevance_score": case.relevance_score,
+            "source_url": case.source_url or "",
         })
-
-        cases = []
-        if search_result and search_result.results:
-            for case in search_result.results:
-                # 최소 유사도 임계값 필터링
-                if case.relevance_score is None or case.relevance_score < min_score:
-                    continue
-
-                # case_id에서 사례명 추출 (예: "실증특례_162_위비케어 컨소시엄" → "위비케어 컨소시엄")
-                case_name = ""
-                if case.case_id:
-                    parts = case.case_id.split("_", 2)  # 최대 2번만 분리
-                    if len(parts) >= 3:
-                        case_name = parts[2]
-
-                cases.append({
-                    "case_id": case.case_id,
-                    "case_name": case_name,  # 사례명 (컨소시엄명 포함)
-                    "company_name": case.company_name,
-                    "service_name": case.service_name,
-                    "track": case.track,
-                    "service_description": case.service_description[:200] if case.service_description else "",
-                    "special_provisions": case.special_provisions[:200] if case.special_provisions else "",
-                    "relevance_score": case.relevance_score,
-                    "source_url": case.source_url or "",
-                })
-
-        results[track_key] = cases
 
     return results
 
