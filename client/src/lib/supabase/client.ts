@@ -15,5 +15,24 @@ export function createClient() {
         throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY')
     }
 
-    return createBrowserClient(supabaseUrl, supabaseAnonKey)
+    return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+            // navigator.locks 교착상태 방지: 5초 timeout 후 lock 없이 실행
+            lock: async (name: string, acquireTimeout: number, fn: () => Promise<unknown>) => {
+                if (typeof navigator === 'undefined' || !navigator.locks) {
+                    return await fn()
+                }
+                const ac = new AbortController()
+                const timer = setTimeout(() => ac.abort(), acquireTimeout || 5000)
+                try {
+                    return await navigator.locks.request(name, { signal: ac.signal }, async () => {
+                        clearTimeout(timer)
+                        return await fn()
+                    })
+                } catch {
+                    return await fn()
+                }
+            },
+        },
+    })
 }

@@ -126,9 +126,8 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                     <div key={fieldKey} className="space-y-1.5">
                         <Label htmlFor={fieldKey} className="text-sm">
                             {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
                         </Label>
-                        <Input id={fieldKey} value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" />
+                        <Input id={fieldKey} value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" required={field.required} />
                     </div>
                 )
 
@@ -154,9 +153,8 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                     <div key={fieldKey} className="space-y-1.5">
                         <Label htmlFor={fieldKey} className="text-sm">
                             {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
                         </Label>
-                        <Input id={fieldKey} type="date" value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" />
+                        <Input id={fieldKey} type="date" value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" required={field.required} />
                     </div>
                 )
 

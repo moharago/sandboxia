@@ -176,6 +176,14 @@ select:disabled {
     }
 }
 
+/* required 필드 라벨에 빨간 별 자동 표시 */
+label:has(~ input:required)::after,
+label:has(~ textarea:required)::after,
+label:has(~ select:required)::after {
+    content: " *";
+    color: var(--destructive);
+}
+
 /* Tiptap 에디터 스타일 */
 .tiptap {
     outline: none;
