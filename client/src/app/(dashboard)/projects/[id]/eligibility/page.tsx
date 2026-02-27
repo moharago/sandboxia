@@ -474,9 +474,9 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                                                             <div className="flex-1 space-y-4">
                                                                 {categoryReasons.map((reason, idx) => (
                                                                     <div key={idx}>
-                                                                        <h4 className="font-medium">{reason.title}</h4>
+                                                                        <h4 className="text-[17px] font-medium">{reason.title}</h4>
                                                                         <p className="text-sm text-foreground mt-1">{reason.description}</p>
-                                                                        <p className="text-sm text-foreground/70 mt-2">
+                                                                        <p className="text-[13px] text-foreground/70 mt-2">
                                                                             근거:{" "}
                                                                             {reason.sourceUrl ? (
                                                                                 <a
@@ -526,9 +526,9 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                                                                 {CATEGORY_CONFIG.case.label}
                                                             </Badge>
                                                             <div className="flex-1">
-                                                                <h4 className="font-medium">{reason.title}</h4>
+                                                                <h4 className="text-[17px] font-medium">{reason.title}</h4>
                                                                 <p className="text-sm text-foreground mt-1">{reason.description}</p>
-                                                                <p className="text-sm text-foreground/70 mt-2">
+                                                                <p className="text-[13px] text-foreground/70 mt-2">
                                                                     근거:{" "}
                                                                     {reason.sourceUrl ? (
                                                                         <a
