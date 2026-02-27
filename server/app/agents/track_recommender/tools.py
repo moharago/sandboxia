@@ -178,6 +178,9 @@ def retrieve_similar_cases(
     # 빈 결과 초기화
     results: dict[str, list[dict]] = {k: [] for k in track_keys}
 
+    if not track_keys:
+        return results
+
     # 트랙 필터 없이 전체 사례에서 한번에 검색
     fetch_count = top_k * len(track_keys)
     search_result = search_case.invoke({
