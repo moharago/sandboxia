@@ -73,7 +73,6 @@ export const projectsApi = {
     createProject: async (request: CreateProjectRequest): Promise<ProjectResponse> => {
         const supabase = createClient()
 
-        // 인증된 사용자 정보 가져오기
         const {
             data: { user },
             error: authError,
@@ -83,17 +82,20 @@ export const projectsApi = {
             throw new Error("인증이 필요합니다. 로그인 후 다시 시도해주세요.")
         }
 
+        const insertData: Record<string, unknown> = {
+            user_id: user.id,
+            company_name: request.company_name,
+            service_name: request.service_name,
+            status: 1,
+            current_step: 1,
+        }
+        if (request.service_description) {
+            insertData.service_description = request.service_description
+        }
+
         const { data, error } = await supabase
             .from("projects")
-            .insert({
-                user_id: user.id,
-                company_name: request.company_name,
-                service_name: request.service_name,
-                service_description: request.service_description,
-                industry: request.industry,
-                status: 1,
-                current_step: 1,
-            })
+            .insert(insertData)
             .select()
             .single()
 
