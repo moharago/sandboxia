@@ -495,7 +495,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                                                             <li key={index} className="flex items-start gap-2 text-sm">
                                                                 {getReasonIcon(reason.type)}
                                                                 <div className="flex-1">
-                                                                    <p className="text-foreground">{reason.text}</p>
+                                                                    <p className="text-base text-foreground">{reason.text}</p>
                                                                     {reason.source && (
                                                                         <p className="text-muted-foreground/70 mt-1">
                                                                             근거:{" "}
