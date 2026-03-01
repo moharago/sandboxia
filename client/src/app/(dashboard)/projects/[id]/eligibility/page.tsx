@@ -1,8 +1,14 @@
 "use client"
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
-import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
+import dynamic from "next/dynamic"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(
+    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
+    { ssr: false }
+)
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"

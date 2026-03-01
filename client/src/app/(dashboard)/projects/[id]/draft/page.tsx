@@ -3,8 +3,14 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { DownloadModal } from "@/components/features/draft/DownloadModal"
 import { FormSectionList, type FormSectionListHandle } from "@/components/features/draft/FormSectionList"
-import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard"
+import dynamic from "next/dynamic"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(
+    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
+    { ssr: false }
+)
 import { Button } from "@/components/ui/button"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { NoResultsView } from "@/components/ui/no-results-view"
