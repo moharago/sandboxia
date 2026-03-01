@@ -97,6 +97,18 @@ body {
     font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* 클릭 가능한 요소에 pointer 커서 적용 */
+button,
+select,
+[role="button"] {
+    cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+    cursor: not-allowed;
+}
+
 /* 그라데이션 유틸리티 클래스 */
 .gradient-primary {
     background: var(--gradient-primary);
@@ -162,6 +174,14 @@ body {
     .container {
         max-width: 1536px;
     }
+}
+
+/* required 필드 라벨에 빨간 별 자동 표시 */
+label:has(+ input:required)::after,
+label:has(+ textarea:required)::after,
+label:has(+ select:required)::after {
+    content: " *";
+    color: var(--destructive);
 }
 
 /* Tiptap 에디터 스타일 */

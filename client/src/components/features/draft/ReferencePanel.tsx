@@ -19,12 +19,23 @@ export interface CaseData {
     link?: string
 }
 
-interface CaseItemProps {
-    caseData: ApprovalCase
-    index: number
+interface ReferenceItemData {
+    title: string
+    subtitle?: string
+    badge?: string
+    date?: string
+    summary: string
+    sourceUrl?: string | null
+    linkLabel?: string
 }
 
-function CaseItem({ caseData, index }: CaseItemProps) {
+interface ReferenceItemProps {
+    data: ReferenceItemData
+    index: number
+    idPrefix?: string
+}
+
+function ReferenceItem({ data, index, idPrefix = "ref" }: ReferenceItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
 
     const handleToggle = () => setIsExpanded(!isExpanded)
@@ -35,97 +46,60 @@ function CaseItem({ caseData, index }: CaseItemProps) {
         }
     }
 
+    const contentId = `${idPrefix}-content-${index}`
+
     return (
-        <div className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+        <div className="border border-border rounded-lg">
             <button
                 type="button"
-                className="w-full flex items-start justify-between gap-2 cursor-pointer text-left"
+                className="w-full p-3 gap-2 text-left hover:bg-muted/50 transition-colors"
                 onClick={handleToggle}
                 onKeyDown={handleKeyDown}
                 aria-expanded={isExpanded}
-                aria-controls={`case-content-${index}`}
+                aria-controls={contentId}
             >
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs shrink-0">
-                            {caseData.track}
-                        </Badge>
-                        {caseData.date && <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>}
+                <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                        {(data.badge || data.date) && (
+                            <div className="flex items-center gap-2 mb-1">
+                                {data.badge && (
+                                    <Badge variant="outline" className="text-xs shrink-0">
+                                        {data.badge}
+                                    </Badge>
+                                )}
+                                {data.date && <span className="text-xs text-muted-foreground">{formatDateIso(data.date)}</span>}
+                            </div>
+                        )}
+                        <h4 className="font-medium text-sm">{data.title}</h4>
+                        {data.subtitle && <p className="text-xs text-muted-foreground">{data.subtitle}</p>}
                     </div>
-                    <h4 className="font-medium text-sm">{caseData.title}</h4>
-                    <p className="text-xs text-muted-foreground">{caseData.company}</p>
+                    <div className="flex items-center">
+                        {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center">
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </div>
+
+                {isExpanded && (
+                    <div id={contentId} className="mt-3 ">
+                        <div className="pt-3 border-t border-border">
+                            <p className="text-sm text-muted-foreground">{data.summary}</p>
+                            {data.sourceUrl && (
+                                <a
+                                    href={data.sourceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-2 text-xs text-primary hover:text-primary/50 inline-flex items-center gap-1"
+                                >
+                                    {data.linkLabel ?? "상세보기"} <ExternalLink className="h-3 w-3" />
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
             </button>
-            {isExpanded && (
-                <div id={`case-content-${index}`} className="mt-3 pt-3 border-t border-border">
-                    <p className="text-sm text-muted-foreground">{caseData.summary}</p>
-                    {caseData.source_url && (
-                        <a
-                            href={caseData.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                            상세보기 <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
-            )}
-        </div>
-    )
-}
-
-interface RegulationItemProps {
-    regulation: Regulation
-    index: number
-}
-
-function RegulationItem({ regulation, index }: RegulationItemProps) {
-    const [isExpanded, setIsExpanded] = useState(false)
-
-    const handleToggle = () => setIsExpanded(!isExpanded)
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            handleToggle()
-        }
-    }
-
-    return (
-        <div className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors">
-            <button
-                type="button"
-                className="w-full flex items-start justify-between gap-2 cursor-pointer text-left"
-                onClick={handleToggle}
-                onKeyDown={handleKeyDown}
-                aria-expanded={isExpanded}
-                aria-controls={`reg-content-${index}`}
-            >
-                <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm">{regulation.title}</h4>
-                </div>
-                <div className="flex items-center">
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </div>
-            </button>
-            {isExpanded && (
-                <div id={`reg-content-${index}`} className="mt-3 pt-3 border-t border-border">
-                    <p className="text-sm text-muted-foreground">{regulation.summary}</p>
-                    {regulation.source_url && (
-                        <a
-                            href={regulation.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                            원문보기 <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
-            )}
         </div>
     )
 }
@@ -203,8 +177,18 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
 
                 <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
                     {regs.length > 0 ? (
-                        regs.map((regulation, index) => (
-                            <RegulationItem key={`${regulation.title}-${index}`} regulation={regulation} index={index} />
+                        regs.map((reg, index) => (
+                            <ReferenceItem
+                                key={reg.title}
+                                data={{
+                                    title: reg.title,
+                                    summary: reg.summary,
+                                    sourceUrl: reg.source_url,
+                                    linkLabel: "원문보기",
+                                }}
+                                index={index}
+                                idPrefix="reg"
+                            />
                         ))
                     ) : (
                         <div className="text-center py-8 text-muted-foreground text-sm">참고할 관련 법령이 없습니다.</div>
@@ -214,7 +198,19 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                 <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
                     {displayCases.length > 0 ? (
                         displayCases.map((caseData, index) => (
-                            <CaseItem key={`${caseData.title}-${caseData.company}-${index}`} caseData={caseData} index={index} />
+                            <ReferenceItem
+                                key={`${caseData.title}-${caseData.company}`}
+                                data={{
+                                    title: caseData.title,
+                                    subtitle: caseData.company,
+                                    badge: caseData.track,
+                                    date: caseData.date,
+                                    summary: caseData.summary,
+                                    sourceUrl: caseData.source_url,
+                                }}
+                                index={index}
+                                idPrefix="case"
+                            />
                         ))
                     ) : track === "quick_check" ? (
                         <div className="text-center py-8 text-muted-foreground text-sm">

@@ -1,9 +1,9 @@
 "use client"
 
-import * as React from "react"
-import { useDropzone, Accept, FileRejection } from "react-dropzone"
-import { Upload, X, File } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
+import { File, Upload, X } from "lucide-react"
+import * as React from "react"
+import { Accept, FileRejection, useDropzone } from "react-dropzone"
 import { Button } from "./button"
 
 export interface FileUploadProps {
@@ -107,7 +107,7 @@ export function FileUpload({
                         ) : (
                             <div className="text-muted-foreground">
                                 <p className="text-sm">{isDragActive ? "파일을 놓으세요" : "파일을 드래그하거나 클릭하여 업로드"}</p>
-                                <p className="text-xs">PDF, DOCX, HWP</p>
+                                <p className="text-xs">HWP</p>
                             </div>
                         )}
                     </div>

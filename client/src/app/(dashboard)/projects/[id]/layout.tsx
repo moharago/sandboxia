@@ -1,9 +1,10 @@
 "use client"
 
-import { use, useEffect, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import { StepNav } from "@/components/features/project/StepNav"
+import { PageLoader } from "@/components/ui/page-loader"
 import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { useRouter } from "next/navigation"
+import { use, useEffect, type ReactNode } from "react"
 
 interface ProjectLayoutProps {
     children: ReactNode
@@ -13,21 +14,20 @@ interface ProjectLayoutProps {
 export default function ProjectLayout({ children, params }: ProjectLayoutProps) {
     const { id } = use(params)
     const router = useRouter()
-    const { data: project, isLoading, error } = useProjectQuery(id)
+    const { data: project, isPending, error } = useProjectQuery(id)
 
+    // 에러 발생 시에만 not-found로 이동
     useEffect(() => {
-        if (!isLoading && (error || !project)) {
+        if (!isPending && error) {
             router.replace("/not-found")
         }
-    }, [isLoading, error, project, router])
+    }, [isPending, error, router])
 
-    if (isLoading || !project) {
+    if (isPending || !project) {
         return (
             <div className="flex flex-col h-full">
-                <div className="h-14 border-b bg-background" /> {/* StepNav placeholder */}
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
+                <StepNav projectId={id} company="" service="" />
+                <PageLoader className="flex-1" />
             </div>
         )
     }

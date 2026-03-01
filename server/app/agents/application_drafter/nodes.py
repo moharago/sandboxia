@@ -22,6 +22,7 @@ from app.agents.application_drafter.prompts import (
     TEMPORARY_PERMIT_REASON_PROMPT,
 )
 from app.agents.application_drafter.state import ApplicationDrafterState
+from app.core.config import settings
 from app.core.constants import TRACK_NAME_MAP
 from app.core.llm import get_llm
 from app.tools.shared.rag import (
@@ -714,8 +715,6 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
     similar_cases = state.get("similar_cases", [])
     domain_laws = state.get("domain_laws", [])
 
-    model_name = settings.LLM_MODEL
-
     # ==============================
     # Step 1: 폼 스키마 복사
     # ==============================
@@ -847,7 +846,6 @@ async def generate_draft_node(state: ApplicationDrafterState) -> dict:
 
     return {
         "application_draft": application_draft,
-        "model_name": model_name,
     }
 
 

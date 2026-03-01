@@ -5,7 +5,7 @@ track_results 테이블 CRUD 및 관련 데이터 조회
 
 from datetime import datetime
 
-from app.core.config import supabase
+from app.core.config import settings, supabase
 
 
 def get_project_canonical(project_id: str) -> dict | None:
@@ -58,8 +58,7 @@ def save_track_result(
     track_comparison: dict,
     similar_cases: list | None = None,
     domain_constraints: list | None = None,
-    model_name: str = "gpt-4o-mini",
-) -> dict | None:
+) -> dict:
     """트랙 추천 결과 저장
 
     Args:
@@ -70,10 +69,9 @@ def save_track_result(
         track_comparison: 트랙별 비교 데이터 (JSONB)
         similar_cases: 유사 승인 사례 목록 (JSONB)
         domain_constraints: 관련 법령 목록 (JSONB)
-        model_name: 사용된 LLM 모델명
 
     Returns:
-        생성된 track_results 레코드 또는 None (저장 실패 시)
+        생성된 track_results 레코드
     """
     result = supabase.table("track_results").upsert(
         {
@@ -84,18 +82,15 @@ def save_track_result(
             "track_comparison": track_comparison,
             "similar_cases": similar_cases or [],
             "domain_constraints": domain_constraints or [],
-            "model_name": model_name,
+            "model_name": settings.LLM_MODEL,
         },
         on_conflict="project_id",
     ).execute()
 
-    if not result.data:
-        return None
-
     return result.data[0]
 
 
-def update_project_track(project_id: str, track: str) -> dict | None:
+def update_project_track(project_id: str, track: str) -> dict:
     """프로젝트의 선택된 트랙 업데이트
 
     Args:
@@ -103,7 +98,7 @@ def update_project_track(project_id: str, track: str) -> dict | None:
         track: 선택된 트랙 ("demo" | "temp_permit" | "quick_check")
 
     Returns:
-        업데이트된 projects 레코드 또는 None (업데이트 실패 시)
+        업데이트된 projects 레코드
     """
     result = supabase.table("projects") \
         .update({
@@ -113,7 +108,29 @@ def update_project_track(project_id: str, track: str) -> dict | None:
         .eq("id", project_id) \
         .execute()
 
-    if not result.data:
-        return None
+    return result.data[0]
+
+
+def update_project_after_track(project_id: str) -> dict:
+    """트랙 추천 완료 후 프로젝트 업데이트
+
+    - 항상 current_step을 3으로 설정 (track_recommender 에이전트 완료)
+    - status: 1 (Step 1~3은 항상 status=1)
+
+    Args:
+        project_id: 프로젝트 UUID
+
+    Returns:
+        업데이트된 projects 레코드
+    """
+    result = (
+        supabase.table("projects")
+        .update({
+            "current_step": 3,  # track 에이전트 완료 → Step 3
+            "status": 1,  # Step 1~3은 항상 status=1
+        })
+        .eq("id", project_id)
+        .execute()
+    )
 
     return result.data[0]
