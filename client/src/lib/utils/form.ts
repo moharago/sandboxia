@@ -98,13 +98,23 @@ export function parseNumber(formattedValue: string): string {
     return formattedValue.replace(/,/g, "")
 }
 
+// js-cache-function-results: RegExp 패턴 캐싱으로 반복 생성 방지
+const arrayCountPatternCache = new Map<string, RegExp>()
+
 /**
  * flat key 패턴에서 배열 행 수를 계산
  * 예: "applicantOrganizations.0.name", "applicantOrganizations.1.name" → 2
  */
 export function getArrayCount(values: Record<string, string>, prefix: string): number {
     let maxIndex = -1
-    const pattern = new RegExp(`^${prefix}\\.(\\d+)\\.`)
+
+    // js-cache-function-results: 캐시된 RegExp 사용
+    let pattern = arrayCountPatternCache.get(prefix)
+    if (!pattern) {
+        pattern = new RegExp(`^${prefix}\\.(\\d+)\\.`)
+        arrayCountPatternCache.set(prefix, pattern)
+    }
+
     for (const key of Object.keys(values)) {
         const match = key.match(pattern)
         if (match) {
