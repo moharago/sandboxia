@@ -195,6 +195,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         try {
             // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
             await projectsApi.updateStatus(id, project.status, PAGE_STEP)
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
             queryClient.invalidateQueries({ queryKey: ["projects"] })
             runServiceAndEligibility()
         } catch (error) {
@@ -203,6 +204,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
             setErrorMessage(`서비스 분석 준비 중 오류가 발생했습니다: ${message}`)
             setErrorModalOpen(true)
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
             queryClient.invalidateQueries({ queryKey: ["projects"] })
         }
     }

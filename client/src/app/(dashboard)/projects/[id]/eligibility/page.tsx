@@ -237,19 +237,25 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
         try {
             // 사용자 최종 선택 저장
             const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
-            await eligibilityApi.updateFinalDecision(id, finalLabel)
-            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
             if (selectedDecision === "direct") {
-                await projectsApi.updateStatus(id, 4, 2)
+                // async-parallel: 독립적인 API 호출 병렬화
+                await Promise.all([
+                    eligibilityApi.updateFinalDecision(id, finalLabel),
+                    projectsApi.updateStatus(id, 4, 2),
+                ])
+                // invalidateQueries는 await 불필요 (백그라운드 실행)
+                queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
                 markStepComplete(2)
                 hideGlobalAILoader()
                 router.push("/dashboard")
             } else {
+                await eligibilityApi.updateFinalDecision(id, finalLabel)
+                queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                 trackProgress.subscribe()
                 await agentsApi.recommendTrack({ project_id: id })
-                // 트랙 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                // invalidateQueries는 await 불필요 (백그라운드 실행)
                 queryClient.invalidateQueries({ queryKey: ["track"] })
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
                 markStepComplete(2)
@@ -333,18 +339,25 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                         })
 
                         const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
-                        await eligibilityApi.updateFinalDecision(id, finalLabel)
 
                         if (mappedData.recommendation === "direct") {
-                            await projectsApi.updateStatus(id, 4, 2)
+                            // async-parallel: 독립적인 API 호출 병렬화
+                            await Promise.all([
+                                eligibilityApi.updateFinalDecision(id, finalLabel),
+                                projectsApi.updateStatus(id, 4, 2),
+                            ])
+                            // invalidateQueries는 await 불필요 (백그라운드 실행)
+                            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                             queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
                             hideGlobalAILoader()
                             router.push("/dashboard")
                         } else {
+                            await eligibilityApi.updateFinalDecision(id, finalLabel)
+                            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                             trackProgress.subscribe()
                             await agentsApi.recommendTrack({ project_id: id })
-                            // 트랙 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                            // invalidateQueries는 await 불필요 (백그라운드 실행)
                             queryClient.invalidateQueries({ queryKey: ["track"] })
                             queryClient.invalidateQueries({ queryKey: ["projects"] })
                             markStepComplete(2)
