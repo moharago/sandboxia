@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { formatDateIso } from "@/lib/utils/date"
 import { formatNumber, parseNumber, getArrayCount } from "@/lib/utils/form"
 import type { DraftFormProps } from "@/types/draft"
@@ -26,28 +26,20 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
         return formatDateIso(rawDate)
     }
 
-    // 동적 배열 행 수 관리
-    const [orgRowCount, setOrgRowCount] = useState(1)
-    const [submissionRowCount, setSubmissionRowCount] = useState(1)
-    const [personnelRowCount, setPersonnelRowCount] = useState(1)
+    // rerender-derived-state-no-effect: 사용자가 설정한 행 수만 상태로 관리 (0 = 서버 데이터 기준)
+    const [userOrgRowCount, setUserOrgRowCount] = useState(0)
+    const [userSubmissionRowCount, setUserSubmissionRowCount] = useState(0)
+    const [userPersonnelRowCount, setUserPersonnelRowCount] = useState(0)
 
     // values에서 실제 행 수 계산
     const computedOrgCount = useMemo(() => getArrayCount(values, "applicantOrganizations"), [values])
     const computedSubmissionCount = useMemo(() => getArrayCount(values, "submission"), [values])
     const computedPersonnelCount = useMemo(() => getArrayCount(values, "keyPersonnel"), [values])
 
-    // 서버 데이터 로드 시 행 수 동기화
-    useEffect(() => {
-        if (computedOrgCount > 0) setOrgRowCount(computedOrgCount)
-    }, [computedOrgCount])
-
-    useEffect(() => {
-        if (computedSubmissionCount > 0) setSubmissionRowCount(computedSubmissionCount)
-    }, [computedSubmissionCount])
-
-    useEffect(() => {
-        if (computedPersonnelCount > 0) setPersonnelRowCount(computedPersonnelCount)
-    }, [computedPersonnelCount])
+    // 렌더링 중 행 수 도출 (서버 데이터 vs 사용자 설정 중 큰 값)
+    const orgRowCount = Math.max(computedOrgCount || 1, userOrgRowCount || 1)
+    const submissionRowCount = Math.max(computedSubmissionCount || 1, userSubmissionRowCount || 1)
+    const personnelRowCount = Math.max(computedPersonnelCount || 1, userPersonnelRowCount || 1)
 
     // 신청기관 행 삭제 (데이터 shift + 마지막 행 초기화)
     const removeOrganization = (index: number) => {
@@ -63,7 +55,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
         for (const field of fields) {
             onValueChange(`applicantOrganizations.${orgRowCount - 1}.${field}`, "")
         }
-        setOrgRowCount((c) => c - 1)
+        setUserOrgRowCount(orgRowCount - 1)
     }
 
     // 핵심인력 행 삭제 (데이터 shift + 마지막 행 초기화)
@@ -80,7 +72,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
         for (const field of fields) {
             onValueChange(`keyPersonnel.${personnelRowCount - 1}.${field}`, "")
         }
-        setPersonnelRowCount((c) => c - 1)
+        setUserPersonnelRowCount(personnelRowCount - 1)
     }
 
     return (
@@ -124,7 +116,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
                                         variant="outline"
                                         size="sm"
                                         className="gap-1 h-6 text-xs px-2"
-                                        onClick={() => setOrgRowCount(prev => prev + 1)}
+                                        onClick={() => setUserOrgRowCount(orgRowCount + 1)}
                                     >
                                         <Plus className="h-3 w-3" />
                                     </Button>
@@ -266,7 +258,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
                         variant="outline"
                         size="sm"
                         className="gap-1 h-7 text-xs"
-                        onClick={() => setSubmissionRowCount(prev => prev + 1)}
+                        onClick={() => setUserSubmissionRowCount(submissionRowCount + 1)}
                     >
                         <Plus className="h-3.5 w-3.5" />
                         서명란 추가
@@ -589,7 +581,7 @@ export function TemporaryBusinessPlanForm({ values, onValueChange }: DraftFormPr
                             variant="outline"
                             size="sm"
                             className="gap-1 h-7 text-xs"
-                            onClick={() => setPersonnelRowCount(prev => prev + 1)}
+                            onClick={() => setUserPersonnelRowCount(personnelRowCount + 1)}
                         >
                             <Plus className="h-3.5 w-3.5" />
                             행 추가
