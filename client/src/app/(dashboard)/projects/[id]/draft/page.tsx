@@ -3,7 +3,7 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { DownloadModal } from "@/components/features/draft/DownloadModal"
 import { FormSectionList, type FormSectionListHandle } from "@/components/features/draft/FormSectionList"
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
 import dynamic from "next/dynamic"
 
 // async-suspense-boundaries: ReferencePanel lazy loading

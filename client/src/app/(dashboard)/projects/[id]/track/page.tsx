@@ -2,7 +2,7 @@
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import type { CaseData } from "@/components/features/draft/ReferencePanel"
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
 import dynamic from "next/dynamic"
 
 // async-suspense-boundaries: ReferencePanel lazy loading

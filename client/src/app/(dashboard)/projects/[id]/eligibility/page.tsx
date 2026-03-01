@@ -1,7 +1,7 @@
 "use client"
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
 import dynamic from "next/dynamic"
 
 // async-suspense-boundaries: ReferencePanel lazy loading

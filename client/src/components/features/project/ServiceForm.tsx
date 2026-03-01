@@ -1,6 +1,6 @@
 "use client"
 
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { FileUpload } from "@/components/ui/file-upload"
