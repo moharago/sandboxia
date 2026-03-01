@@ -2,7 +2,7 @@
 
 import { useAuthStore } from "@/stores/auth-store"
 import type { ReactNode } from "react"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 interface AuthProviderProps {
     children: ReactNode
@@ -10,14 +10,15 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
     const initialize = useAuthStore((state) => state.initialize)
-    const isInitialized = useAuthStore((state) => state.isInitialized)
+
+    // advanced-init-once: ref로 중복 호출 방지 (비동기 initialize의 Strict Mode 경쟁 조건 해결)
+    const initCalledRef = useRef(false)
 
     useEffect(() => {
-        // React Strict Mode에서 중복 실행 방지
-        if (!isInitialized) {
-            initialize()
-        }
-    }, [initialize, isInitialized])
+        if (initCalledRef.current) return
+        initCalledRef.current = true
+        initialize()
+    }, [initialize])
 
     return children
 }
