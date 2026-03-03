@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { ChevronDown, ChevronUp, Save, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,33 +58,28 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
         return counts
     }, [values, formSchema.sections])
 
-    // values 변경 시 listRowCounts 동기화
-    useEffect(() => {
-        setListRowCounts((prev) => {
-            const updated = { ...prev }
-            Object.entries(computedRowCounts).forEach(([key, count]) => {
-                // 기존 값보다 computed 값이 크면 업데이트
-                if (!updated[key] || updated[key] < count) {
-                    updated[key] = count
-                }
-            })
-            return updated
-        })
-    }, [computedRowCounts])
-
+    // rerender-derived-state-no-effect: useEffect 대신 렌더링 중 파생
+    // listRowCounts는 사용자가 추가한 빈 행만 추적
     const getRowCount = (sectionKey: string) => {
-        return listRowCounts[sectionKey] ?? computedRowCounts[sectionKey] ?? 1
+        const computed = computedRowCounts[sectionKey] ?? 1
+        const userSet = listRowCounts[sectionKey] ?? 0
+        return Math.max(computed, userSet)
     }
 
     const addRow = (sectionKey: string) => {
-        setListRowCounts((prev) => ({
-            ...prev,
-            [sectionKey]: (prev[sectionKey] ?? 1) + 1,
-        }))
+        setListRowCounts((prev) => {
+            const computed = computedRowCounts[sectionKey] ?? 1
+            const userSet = prev[sectionKey] ?? 0
+            const currentCount = Math.max(computed, userSet)
+            return {
+                ...prev,
+                [sectionKey]: currentCount + 1,
+            }
+        })
     }
 
     const removeRow = (sectionKey: string, rowIndex: number) => {
-        const currentCount = listRowCounts[sectionKey] ?? 1
+        const currentCount = getRowCount(sectionKey)
         if (currentCount <= 1) return
 
         // 삭제할 행 이후의 데이터를 한 칸씩 앞으로 이동

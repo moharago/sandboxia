@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { formatDateIso } from "@/lib/utils/date"
 import { formatNumber, parseNumber, getArrayCount } from "@/lib/utils/form"
 import type { DraftFormProps } from "@/types/draft"
@@ -16,35 +16,27 @@ export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps)
     const getValue = (key: string) => values[key] ?? ""
     const getDateValue = (key: string) => formatDateIso(values[key] ?? "")
 
-    // 배열 행 수 관리 (서버 데이터 기반 + 사용자 추가)
-    const [orgCount, setOrgCount] = useState(1)
-    const [sigCount, setSigCount] = useState(1)
-    const [personnelCount, setPersonnelCount] = useState(1)
+    // rerender-derived-state-no-effect: 사용자가 설정한 행 수만 상태로 관리 (0 = 서버 데이터 기준)
+    const [userOrgCount, setUserOrgCount] = useState(0)
+    const [userSigCount, setUserSigCount] = useState(0)
+    const [userPersonnelCount, setUserPersonnelCount] = useState(0)
 
     // values에서 실제 행 수 계산
     const computedOrgCount = useMemo(() => getArrayCount(values, "applicantOrganizations"), [values])
     const computedSigCount = useMemo(() => getArrayCount(values, "submission"), [values])
     const computedPersonnelCount = useMemo(() => getArrayCount(values, "keyPersonnel"), [values])
 
-    // 서버 데이터 로드 시 행 수 동기화
-    useEffect(() => {
-        if (computedOrgCount > 0) setOrgCount(computedOrgCount)
-    }, [computedOrgCount])
-
-    useEffect(() => {
-        if (computedSigCount > 0) setSigCount(computedSigCount)
-    }, [computedSigCount])
-
-    useEffect(() => {
-        if (computedPersonnelCount > 0) setPersonnelCount(computedPersonnelCount)
-    }, [computedPersonnelCount])
+    // 렌더링 중 행 수 도출 (서버 데이터 vs 사용자 설정 중 큰 값)
+    const orgCount = Math.max(computedOrgCount || 1, userOrgCount || 1)
+    const sigCount = Math.max(computedSigCount || 1, userSigCount || 1)
+    const personnelCount = Math.max(computedPersonnelCount || 1, userPersonnelCount || 1)
 
     // 신청기관 배열 - flat key 사용
     const getOrgValue = (index: number, field: string) => getValue(`applicantOrganizations.${index}.${field}`)
     const setOrgValue = (index: number, field: string, value: string) =>
         onValueChange(`applicantOrganizations.${index}.${field}`, value)
 
-    const addOrganization = () => setOrgCount((c) => c + 1)
+    const addOrganization = () => setUserOrgCount(orgCount + 1)
     const removeOrganization = (index: number) => {
         if (orgCount <= 1) return
         // 삭제된 행 이후의 데이터를 한 칸씩 앞으로 이동
@@ -59,7 +51,7 @@ export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps)
         for (const field of fields) {
             onValueChange(`applicantOrganizations.${orgCount - 1}.${field}`, "")
         }
-        setOrgCount((c) => c - 1)
+        setUserOrgCount(orgCount - 1)
     }
 
     // 서명자 배열 - flat key 사용
@@ -67,7 +59,7 @@ export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps)
     const setSigValue = (index: number, field: string, value: string) =>
         onValueChange(`submission.${index}.${field}`, value)
 
-    const addSignature = () => setSigCount((c) => c + 1)
+    const addSignature = () => setUserSigCount(sigCount + 1)
     const removeSignature = (index: number) => {
         if (sigCount <= 1) return
         const fields = ["organizationName", "name"]
@@ -80,7 +72,7 @@ export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps)
         for (const field of fields) {
             onValueChange(`submission.${sigCount - 1}.${field}`, "")
         }
-        setSigCount((c) => c - 1)
+        setUserSigCount(sigCount - 1)
     }
 
     // 주요인력 배열 - flat key 사용
@@ -88,7 +80,7 @@ export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps)
     const setPersonnelValue = (index: number, field: string, value: string) =>
         onValueChange(`keyPersonnel.${index}.${field}`, value)
 
-    const addPersonnel = () => setPersonnelCount((c) => c + 1)
+    const addPersonnel = () => setUserPersonnelCount(personnelCount + 1)
     const removePersonnel = (index: number) => {
         if (personnelCount <= 1) return
         const fields = ["name", "department", "position", "responsibilities", "qualificationsOrSkills", "experienceYears"]
@@ -101,7 +93,7 @@ export function DemonstrationPlanForm({ values, onValueChange }: DraftFormProps)
         for (const field of fields) {
             onValueChange(`keyPersonnel.${personnelCount - 1}.${field}`, "")
         }
-        setPersonnelCount((c) => c - 1)
+        setUserPersonnelCount(personnelCount - 1)
     }
 
     return (

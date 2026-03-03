@@ -16,7 +16,7 @@
  * ```
  */
 
-import { useAuthStore } from "@/stores/auth-store"
+import { getAuthToken } from "@/lib/supabase/client"
 import type { AgentNodesResponse, AgentType } from "@/types/api/agent-progress"
 import { useQuery } from "@tanstack/react-query"
 
@@ -24,11 +24,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 
 /** 에이전트 노드 목록 조회 */
 async function fetchAgentNodes(agentType: AgentType): Promise<AgentNodesResponse> {
-    const token = await useAuthStore.getState().getAccessToken()
-
-    if (!token) {
-        throw new Error("로그인이 필요합니다.")
-    }
+    const token = await getAuthToken()
 
     const response = await fetch(
         `${API_BASE}/api/v1/agents/progress/nodes/${agentType}`,
