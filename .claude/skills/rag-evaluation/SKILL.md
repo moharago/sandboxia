@@ -39,9 +39,9 @@ server/
 │   │           └── {날짜}_{변경요소}_{프리셋ID}.json
 │   └── r3/                         # R3: 도메인별 법령 RAG
 │       ├── configs/                # 실험 설정 프리셋
-│       │   ├── chunking.yaml       # 청킹 전략 (C0~C6)
-│       │   ├── embedding.yaml      # TODO
-│       │   └── vectordb.yaml       # TODO
+│       │   ├── chunking.yaml       # 청킹 전략 (C0~C13)
+│       │   ├── embedding.yaml      # 임베딩 모델 (E0~E5)
+│       │   └── hybrid.yaml         # Hybrid Search (H0~H7, Qdrant 전용)
 │       ├── datasets/
 │       │   └── evaluation_set.json
 │       ├── common.py
@@ -144,7 +144,36 @@ uv run python eval/r3/run_evaluation.py --top_k 10
 
 # 결과 파일명 지정
 uv run python eval/r3/run_evaluation.py --output 2024-01-15_embed_3-large
+
+# LLM 응답 포함 (Judge 없이 응답만 생성)
+uv run python eval/r3/run_evaluation.py --generate --output 2024-01-15_with_response
 ```
+
+### R3 Retrieval 평가 (Qdrant + Hybrid Search)
+
+Qdrant Vector DB를 사용하면 Dense + Sparse 하이브리드 검색이 가능합니다.
+
+```bash
+cd server
+
+# Qdrant 기본 (H0 프리셋)
+uv run python eval/r3/run_evaluation.py --vectordb qdrant
+
+# Hybrid 프리셋 지정
+uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1
+```
+
+**R3 전용 옵션:**
+
+| 옵션              | 설명                                     | 기본값     |
+| ----------------- | ---------------------------------------- | ---------- |
+| `--top_k N`       | Top-K 검색 개수                          | 5          |
+| `--output NAME`   | 결과 파일명                              | 타임스탬프 |
+| `--vectordb TYPE` | Vector DB 선택 (chroma/qdrant)           | chroma     |
+| `--hybrid H*`     | Hybrid Search 프리셋 (Qdrant 전용)       | H0         |
+| `--generate`      | LLM 응답 생성 포함 (Judge 평가 없이)     | 비활성화   |
+
+> Hybrid 프리셋 상세: `server/eval/r3/configs/hybrid.yaml` 참조
 
 ### R2 Retrieval 평가 (전략 비교)
 
@@ -529,6 +558,7 @@ uv run python scripts/collect_regulations.py --export-chunks # → data/r1_data/
 | `chunking.yaml`  | C0, C1, C2... | 청킹 전략 (chunk_unit, multi_granularity, prefix 등) |
 | `embedding.yaml` | E0, E1, E2... | 임베딩 모델 (model, dimension, batch_size 등)        |
 | `vectordb.yaml`  | V0, V1, V2... | Vector DB 설정 (distance_metric, index_type 등)      |
+| `hybrid.yaml`    | H0, H1, H2... | Hybrid Search 설정 (sparse_model, alpha) - Qdrant 전용 |
 
 **프리셋 사용법**:
 

@@ -192,10 +192,27 @@ RAG 시스템(R1, R2, R3)의 Retrieval 및 Generation 품질을 평가합니다.
 uv run python eval/r3/run_evaluation.py [옵션]
 ```
 
-| 옵션            | 설명            | 기본값     |
-| --------------- | --------------- | ---------- |
-| `--top_k N`     | Top-K 검색 개수 | 5          |
-| `--output NAME` | 결과 파일명     | 타임스탬프 |
+| 옵션              | 설명                          | 기본값     |
+| ----------------- | ----------------------------- | ---------- |
+| `--top_k N`       | Top-K 검색 개수               | 5          |
+| `--output NAME`   | 결과 파일명                   | 타임스탬프 |
+| `--vectordb TYPE` | Vector DB 선택 (chroma/qdrant) | chroma    |
+| `--hybrid H*`     | Hybrid Search 설정 (Qdrant 전용) | H0       |
+| `--generate`      | LLM 응답 생성 포함 (Judge 없음) | 비활성화  |
+
+> Hybrid 프리셋 상세: `server/eval/r3/configs/hybrid.yaml` 참조
+
+**예시**:
+```bash
+# 기본 Chroma (Dense)
+uv run python eval/r3/run_evaluation.py
+
+# Qdrant + Hybrid H1
+uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1
+
+# 검색 + LLM 답변 생성
+uv run python eval/r3/run_evaluation.py --generate
+```
 
 **평가 지표**: Must-Have Recall@K, Recall@K, MRR, Latency(P50/P95)
 
@@ -314,12 +331,15 @@ cd server && uv run python eval/r2/run_llm_evaluation.py [옵션]
 
 ## 자연어 → CLI 옵션 매핑 예시
 
-| 자연어 표현                                | CLI 옵션            |
-| ------------------------------------------ | ------------------- |
-| "top-k 10", "10개씩", "상위 10개"          | `--top_k 10`        |
-| "5개만 테스트", "limit 5"                  | `--limit 5`         |
-| "baseline으로 저장", "output을 v2로"       | `--output baseline` |
-| "LangSmith 추적", "trace 켜줘", "추적해줘" | `--trace`           |
+| 자연어 표현                                | CLI 옵션               |
+| ------------------------------------------ | ---------------------- |
+| "top-k 10", "10개씩", "상위 10개"          | `--top_k 10`           |
+| "5개만 테스트", "limit 5"                  | `--limit 5`            |
+| "baseline으로 저장", "output을 v2로"       | `--output baseline`    |
+| "LangSmith 추적", "trace 켜줘", "추적해줘" | `--trace`              |
+| "qdrant로", "벡터디비 qdrant"              | `--vectordb qdrant`    |
+| "H1으로", "alpha 0.5", "hybrid H1"         | `--hybrid H1`          |
+| "응답도 생성", "답변 포함", "generate"     | `--generate`           |
 
 ## 주의사항
 

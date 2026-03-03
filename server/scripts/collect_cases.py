@@ -6,9 +6,15 @@ R2. 승인 사례 RAG Tool용 데이터 수집
 
 실행:
     cd server
+
+    # 기본 실행 (E1 임베딩 + Qdrant + H3 Hybrid)
     uv run python scripts/collect_cases.py
+
+    # 전략 변경
     uv run python scripts/collect_cases.py --strategy hybrid
-    uv run python scripts/collect_cases.py --strategy fulltext
+
+    # Chroma 사용 (기존 방식)
+    uv run python scripts/collect_cases.py --vectordb chroma --embedding E0
 """
 
 import argparse
@@ -25,13 +31,13 @@ import gdown
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_CASES
 from app.db.export import save_chunks_json
+from app.db.vector import HybridSearchConfig, create_embeddings, create_vector_store
+from app.rag.config import load_embedding_config, load_hybrid_config
 
 # 다운로드된 JSON 캐싱 경로
 LOCAL_CACHE_FILE = Path(__file__).parent.parent / "data" / "r2_data" / "cases_structured.json"
@@ -199,7 +205,12 @@ def create_documents(
 
 
 def collect_and_store_cases(
-    reset: bool = True, strategy: str = "structured", export_chunks: bool = False
+    reset: bool = True,
+    strategy: str = "structured",
+    export_chunks: bool = False,
+    embedding_config: str | None = None,
+    vectordb_type: str = "qdrant",
+    hybrid_config_name: str | None = None,
 ):
     """승인 사례 데이터 수집 및 Vector DB 저장
 
@@ -207,6 +218,9 @@ def collect_and_store_cases(
         reset: True면 기존 컬렉션 삭제 후 새로 생성
         strategy: 데이터 전략 (structured / hybrid / fulltext)
         export_chunks: True면 청크 JSON도 함께 저장 (평가셋 작성용)
+        embedding_config: 임베딩 설정 이름 (E0, E1 등). None이면 RAG 기본값(E1) 사용
+        vectordb_type: Vector DB 타입 (qdrant 또는 chroma)
+        hybrid_config_name: Hybrid Search 설정 이름 (H0~H7). None이면 RAG 기본값(H3) 사용
     """
     print("=" * 60)
     print(f"승인 사례 데이터 수집 시작 (R2 RAG Tool) [전략: {strategy}]")
@@ -216,7 +230,7 @@ def collect_and_store_cases(
     try:
         data, source_path = load_json_data()
     except FileNotFoundError as e:
-        print(f"❌ {e}")
+        print(f"[ERROR] {e}")
         return
 
     print(f"\n[데이터 소스] {source_path}")
@@ -232,32 +246,63 @@ def collect_and_store_cases(
     for k, v in sorted(tracks.items()):
         print(f"  - {k}: {v}개")
 
-    # 임베딩 모델 초기화
-    embeddings = OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
-        api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
-    )
+    # 임베딩 모델 초기화 (기본값: E1)
+    if embedding_config:
+        try:
+            emb_config = load_embedding_config(embedding_config, rag_type="r3")
+        except FileNotFoundError:
+            print(f"\n[경고] 설정 '{embedding_config}'을 찾을 수 없습니다. 기본값(E1) 사용")
+            emb_config = load_embedding_config("E1", rag_type="r3")
+    else:
+        emb_config = load_embedding_config("E1", rag_type="r3")
 
-    # Chroma DB 초기화
-    persist_dir = Path(settings.CHROMA_PERSIST_DIR)
-    persist_dir.mkdir(parents=True, exist_ok=True)
+    print(f"\n[임베딩 설정] {emb_config.name}: {emb_config.description}")
+    print(f"  - 모델: {emb_config.model}")
+    print(f"  - Provider: {emb_config.provider}")
+    print(f"  - 차원: {emb_config.dimension}")
+
+    embeddings = create_embeddings(emb_config)
+
+    # Hybrid Search 설정 (기본값: H3)
+    hybrid_config = None
+    if vectordb_type == "qdrant":
+        h_cfg_name = hybrid_config_name or "H3"
+        try:
+            h_cfg = load_hybrid_config(h_cfg_name, rag_type="r3")
+        except FileNotFoundError:
+            print(f"\n[경고] Hybrid 설정 '{h_cfg_name}'을 찾을 수 없습니다. H3 사용")
+            h_cfg = load_hybrid_config("H3", rag_type="r3")
+        hybrid_config = HybridSearchConfig(
+            enabled=True,
+            alpha=h_cfg.alpha,
+            sparse_model=h_cfg.sparse_model,
+        )
+        print(f"\n[Hybrid 설정] {h_cfg.name}: {h_cfg.description}")
+        print(f"  - Sparse 모델: {hybrid_config.sparse_model}")
+        print(f"  - Alpha: {hybrid_config.alpha} (Dense {hybrid_config.alpha*100:.0f}%)")
 
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
-        import chromadb
-
-        client = chromadb.PersistentClient(path=str(persist_dir))
         try:
-            client.delete_collection(COLLECTION_CASES)
-            print(f"\n[OK] 기존 {COLLECTION_CASES} 컬렉션 삭제")
+            temp_store = create_vector_store(
+                collection_name=COLLECTION_CASES,
+                embeddings=embeddings,
+                vectordb_type=vectordb_type,
+                hybrid_config=hybrid_config,
+            )
+            temp_store.delete_collection()
+            print(f"\n[OK] 기존 컬렉션 '{COLLECTION_CASES}' 삭제")
         except Exception:
             pass
 
-    vectorstore = Chroma(
+    # VectorStore 생성
+    vectorstore = create_vector_store(
         collection_name=COLLECTION_CASES,
-        embedding_function=embeddings,
-        persist_directory=str(persist_dir),
+        embeddings=embeddings,
+        vectordb_type=vectordb_type,
+        hybrid_config=hybrid_config,
     )
+    print(f"\n[Vector DB] {vectordb_type.upper()}")
 
     # Document 생성
     documents, document_ids = create_documents(data, strategy=strategy)
@@ -276,29 +321,16 @@ def collect_and_store_cases(
         saved_count = save_chunks_json(documents, document_ids, chunks_json_path)
         print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
-    # 수집 결과 저장
-    result_file = persist_dir / "r2_collection_info.json"
-    with open(result_file, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "total_documents": len(documents),
-                "source": source_path,
-                "strategy": strategy,
-                "tracks": tracks,
-            },
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
-
-    print(f"\n수집 정보 저장: {result_file}")
     print("\n" + "=" * 60)
     print("수집 완료 요약:")
     print("=" * 60)
     print(f"  - 전략: {strategy}")
     print(f"  - 소스: {source_path}")
     print(f"  - 총 케이스 수: {len(documents)}개")
-    print(f"  - 저장 위치: {persist_dir}")
+    print(f"  - Vector DB: {vectordb_type.upper()}")
+    print(f"  - 임베딩: {emb_config.name} ({emb_config.model})")
+    if hybrid_config:
+        print(f"  - Hybrid: alpha={hybrid_config.alpha}, sparse={hybrid_config.sparse_model}")
     print(f"  - 컬렉션명: {COLLECTION_CASES}")
 
 
@@ -315,7 +347,30 @@ if __name__ == "__main__":
         action="store_true",
         help="청크 JSON도 함께 저장 (평가셋 작성용)",
     )
+    parser.add_argument(
+        "--embedding",
+        default=None,
+        help="임베딩 설정 (E0=OpenAI-small, E1=OpenAI-large). 미지정 시 E1 사용",
+    )
+    parser.add_argument(
+        "--vectordb",
+        type=str,
+        choices=["chroma", "qdrant"],
+        default="qdrant",
+        help="사용할 Vector DB (기본: qdrant)",
+    )
+    parser.add_argument(
+        "--hybrid",
+        type=str,
+        default=None,
+        help="Hybrid Search 설정 (H0~H7). 미지정 시 H3 사용. Qdrant 전용",
+    )
     args = parser.parse_args()
     collect_and_store_cases(
-        reset=True, strategy=args.strategy, export_chunks=args.export_chunks
+        reset=True,
+        strategy=args.strategy,
+        export_chunks=args.export_chunks,
+        embedding_config=args.embedding,
+        vectordb_type=args.vectordb,
+        hybrid_config_name=args.hybrid,
     )

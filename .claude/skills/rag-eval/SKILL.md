@@ -75,19 +75,23 @@ R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트
 | ---------- | --------------------------------------------------------------- | --------------------------- |
 | 평가 유형  | `--llm` 포함 여부                                               | retrieval / llm             |
 | RAG 타입   | "R1", "R2", "R3", "r1", "r2", "r3", "규제제도", "사례", "법령"  | r1 / r2 / r3 (기본: r3)     |
-| **프리셋** | "C1 적용", "C3 E1", "청킹 C2", "임베딩 E1" (모드 A+ 트리거)     | 프리셋 ID (C0~Cn, E0~En 등) |
+| **프리셋** | "C1 적용", "C3 E1", "청킹 C2", "임베딩 E1" (모드 A+ 트리거)     | 프리셋 ID (C0~Cn, E0~En, H0~Hn) |
 | strategy   | "strategy all", "전략 비교", "structured", "hybrid", "fulltext" | `--strategy {값}` (R2 전용) |
 | top_k      | "top-k 10", "10개씩", "상위 10개"                               | `--top_k 10`                |
 | output     | "~로 저장" (아래 파일명 생성 규칙 참조)                         | `--output {파일명}`         |
 | limit      | "5개만 테스트", "3개로 제한"                                    | `--limit 5`                 |
 | trace      | "LangSmith 추적", "trace 켜줘", "추적해줘"                      | `--trace`                   |
+| vectordb   | "qdrant로", "크로마", "벡터디비 qdrant"                         | `--vectordb qdrant`         |
+| hybrid     | "H1으로", "hybrid H0", "alpha 0.5"                              | `--hybrid H1` (Qdrant 전용) |
+| generate   | "응답도 생성", "답변 포함", "generate"                          | `--generate`                |
 
 **프리셋 감지 패턴** (모드 A+ 트리거 - 단일 프리셋):
 
 - "C1 적용", "C1으로 평가", "청킹 C1 적용해줘"
 - "E1 임베딩으로", "임베딩 E2 적용"
+- "H1 하이브리드로", "Hybrid H0", "alpha 0.5로" (Qdrant 전용)
 - "C3 E1", "C3 E1으로 평가" (청킹 + 임베딩 조합)
-- "V1 vectordb로"
+- "C5 H1 qdrant로" (청킹 + Hybrid + Qdrant 조합)
 
 **프리셋 범위/목록 패턴** (모드 B 트리거 - 순차 평가):
 
@@ -212,20 +216,31 @@ grep -l "^{프리셋ID}:" server/eval/{rag_type}/configs/*.yaml
 ```
 {파일명}.yaml → 변경요소: {파일명}
 
-chunking.yaml  → chunking
-embedding.yaml → embedding
+chunking.yaml  → chunking (C0~C13)
+embedding.yaml → embedding (E0~E5)
+hybrid.yaml    → hybrid (H0~H7, Qdrant 전용)
 vectordb.yaml  → vectordb
 reranker.yaml  → reranker  (새 파일 추가 시 자동 지원)
 ```
 
-**CLI 옵션**: 모두 `--config {프리셋ID}`로 통일
+**CLI 옵션**:
+- 청킹/임베딩: `--config {프리셋ID}`
+- Hybrid: `--hybrid {프리셋ID}` + `--vectordb qdrant`
 
 ```bash
---config C1   # chunking.yaml에서 찾음 → 변경요소: chunking
---config E1   # embedding.yaml에서 찾음 → 변경요소: embedding
+--config C1           # chunking.yaml에서 찾음 → 변경요소: chunking
+--config E1           # embedding.yaml에서 찾음 → 변경요소: embedding
+--hybrid H1           # hybrid.yaml에서 찾음 → alpha=0.5, SPLADE
+--vectordb qdrant     # Qdrant 사용 (Hybrid Search 기본 활성화)
 ```
 
-**현재**: chunking 프리셋(C0~Cn)만 지원. 새 yaml 파일 추가 시 자동 지원.
+**Hybrid 프리셋 (H0~H7)**:
+- H0: SPLADE + alpha=0.7 (기본)
+- H1: SPLADE + alpha=0.5 (균형)
+- H2: SPLADE + alpha=0.3 (키워드 중심)
+- H3: BM25 + alpha=0.7
+- H4: BM25 + alpha=0.5 (균형)
+- H5: BM25 + alpha=0.3 (키워드 중심)
 
 ### 3. 수집 스크립트 매핑
 
@@ -271,6 +286,27 @@ uv run python scripts/collect_laws.py --config C3 E1 --reset
 
 # 2단계: 평가 실행 (결과 파일: 2026-02-11_C3_E1.json)
 uv run python eval/r3/run_evaluation.py --output 2026-02-11_C3_E1
+```
+
+**예시 3** (`/rag-eval R3 C5 H1 qdrant로` - Qdrant + Hybrid Search):
+
+```bash
+cd server
+
+# 1단계: C5 청킹 + Qdrant에 데이터 수집 (H1은 alpha=0.5)
+uv run python scripts/collect_laws.py --config C5 H1 --vectordb qdrant --reset
+
+# 2단계: 평가 실행 (Hybrid Search 자동 적용)
+uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1 --output 2026-02-11_qdrant_H1
+```
+
+**예시 4** (`/rag-eval R3 응답도 생성해줘` - 검색 + LLM 답변 생성):
+
+```bash
+cd server
+
+# 검색 평가 + LLM 답변 생성 (LLM-as-Judge 없이 답변만 포함)
+uv run python eval/r3/run_evaluation.py --generate --output 2026-02-11_with_response
 ```
 
 ### 5. 결과 보고
@@ -385,13 +421,17 @@ Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
 | `/rag-eval baseline으로 저장`  | A    | R3 retrieval + 파일명 지정             | `2026-02-10_baseline`        |
 | `/rag-eval topk 10으로 저장`   | A    | R3 retrieval + 변경요소/값 파싱        | `2026-02-10_topk_10`         |
 | `/rag-eval --llm R3 5개만`     | A    | R3 LLM 평가 직접 실행                  | (타임스탬프)                 |
+| `/rag-eval --generate`         | A    | R3 retrieval + LLM 답변 생성 (Judge 없음) | (타임스탬프)              |
 | `/rag-eval R3 C1 적용해줘`     | A+   | **수집 + VectorDB + 평가** (청킹 C1)   | `2026-02-10_chunking_C1`     |
 | `/rag-eval R3 E1 평가`         | A+   | 수집 + VectorDB + 평가 (임베딩 E1)     | `2026-02-10_embedding_E1`    |
 | `/rag-eval R3 C3 E1 평가`      | A+   | **청킹 C3 + 임베딩 E1 조합** 평가      | `2026-02-10_C3_E1`           |
+| `/rag-eval R3 qdrant H1`       | A+   | **Qdrant + Hybrid H1** 평가            | `2026-02-10_qdrant_H1`       |
+| `/rag-eval R3 C5 H1 qdrant`    | A+   | 청킹 C5 + Qdrant Hybrid 조합           | `2026-02-10_C5_H1`           |
 | `/rag-eval R2 전략 비교`       | A    | R2 retrieval + strategy all            | `2026-02-10_strategy_all`    |
 | `/rag-eval R2 hybrid로 저장`   | A    | R2 retrieval + strategy hybrid         | `2026-02-10_strategy_hybrid` |
 | `/rag-eval top-k 5, 10 비교`   | B    | 서브에이전트 2개 **병렬** → 비교표     | -                            |
 | `/rag-eval R3 C1~C3 각각 평가` | B    | 프리셋별 수집+평가 **순차** → 비교표   | `chunking_C1~C3.json`        |
+| `/rag-eval R3 H0~H2 비교`      | B    | Hybrid 프리셋별 **순차** 평가 (Qdrant) | `hybrid_H0~H2.json`          |
 | `/rag-eval R3 E0~E1 비교`      | B    | 임베딩 프리셋별 **순차** 평가          | `embedding_E0~E1.json`       |
 | `/rag-eval R1, R2, R3 전체`    | C    | 서브에이전트 3개 병렬 → 종합 리포트    | -                            |
 | `/rag-eval 결과 분석`          | D    | 서브에이전트가 결과 파일 분석          | -                            |

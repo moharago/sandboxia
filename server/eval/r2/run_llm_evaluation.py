@@ -296,24 +296,16 @@ def retrieve_single_item(
     negative_ids = [n["case_id"] for n in negatives]
 
     start = time.perf_counter()
+    results = vectorstore.similarity_search(question, k=top_k)
     if threshold is not None:
-        results_with_scores = vectorstore.similarity_search_with_relevance_scores(
-            question, k=top_k
-        )
-        filtered = [
-            (doc, score)
-            for doc, score in results_with_scores
-            if score >= threshold
-        ]
-        results = [doc for doc, _ in filtered]
-        scores = [round(score, 4) for _, score in filtered]
+        results = [r for r in results if r.score >= threshold]
+        scores = [round(r.score, 4) for r in results]
     else:
-        results = vectorstore.similarity_search(question, k=top_k)
         scores = None
     latency = (time.perf_counter() - start) * 1000
 
     retrieved_ids = [extract_case_id_from_result(doc) for doc in results]
-    contexts = [doc.page_content for doc in results]
+    contexts = [doc.content for doc in results]
 
     metrics, negative_at_k = calculate_r2_metrics(
         retrieved_ids, gold_ids, must_have_ids, negative_ids, top_k
@@ -546,7 +538,7 @@ async def run_evaluation_async(
     # Vector Store 생성 (1회)
     print("\nVector Store 생성 중...")
     build_start = time.perf_counter()
-    vectorstore, client = create_temp_vector_store(
+    vectorstore = create_temp_vector_store(
         case_data, strategy, embedding_config=embedding_config
     )
     build_time = (time.perf_counter() - build_start) * 1000
@@ -786,7 +778,7 @@ async def run_evaluation_async(
 
     # 임시 컬렉션 삭제
     try:
-        client.delete_collection(TEMP_COLLECTION_NAME)
+        vectorstore.delete_collection()
     except Exception:
         pass
 
