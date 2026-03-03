@@ -98,9 +98,10 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
     })
 
     const eligibilityMutation = useEligibilityMutation({
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["projects"] })
-            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+        onSuccess: async () => {
+            // 캐시 갱신 완료를 기다린 후 페이지 이동 (stale 데이터 방지)
+            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            await queryClient.invalidateQueries({ queryKey: ["eligibility"] })
             setRunningAgent(null)
             // 전역 로더는 다음 페이지에서 숨김
             router.push(`/projects/${id}/eligibility`)
@@ -188,27 +189,14 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         files: getFiles(),
     })
 
-    // 서비스 분석만 실행 (재분석 - 페이지 이동 없음)
-    const runServiceOnly = async () => {
+    // 재분석: current_step 리셋 후 서비스 + eligibility 순차 실행 → eligibility 페이지로 이동
+    const runReanalyze = async () => {
         setReanalyzeModalOpen(false)
         try {
             // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
             await projectsApi.updateStatus(id, project.status, PAGE_STEP)
             queryClient.invalidateQueries({ queryKey: ["projects"] })
-            setRunningAgent("service")
-            serviceProgress.subscribe()
-            serviceMutation.mutate(getMutationPayload(), {
-                onSuccess: () => {
-                    setRunningAgent(null)
-                    hideGlobalAILoader() // 재분석 완료 시 로더 숨김
-                    queryClient.invalidateQueries({ queryKey: ["projects"] })
-                },
-                onError: () => {
-                    setRunningAgent(null)
-                    hideGlobalAILoader()
-                    queryClient.invalidateQueries({ queryKey: ["projects"] })
-                },
-            })
+            runServiceAndEligibility()
         } catch (error) {
             setRunningAgent(null)
             hideGlobalAILoader()
@@ -259,7 +247,7 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
             <ConfirmModal
                 isOpen={reanalyzeModalOpen}
                 onClose={() => setReanalyzeModalOpen(false)}
-                onConfirm={runServiceOnly}
+                onConfirm={runReanalyze}
                 title="서비스 분석 재실행"
                 description={[
                     "이미 서비스 분석이 완료된 상태입니다.",

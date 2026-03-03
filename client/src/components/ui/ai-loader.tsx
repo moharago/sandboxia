@@ -43,26 +43,31 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
             aria-label={message || "AI 분석 중"}
         >
             <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-8 shadow-lg border border-gray-200 min-w-[320px]">
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center">
                     <Sparkles className="text-primary w-5 h-5 animate-pulse" />
                     <p className="text-lg font-medium mt-2 text-foreground">
                         <span>AI 분석 중</span>
                     </p>
-                    <p className="text-sm text-muted-foreground">{message ? `${message}` : "잠시만 기다려주세요..."}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{message ? `${message}` : "잠시만 기다려주세요..."}</p>
+                    <p className="text-sm text-muted-foreground">약 1분 정도 소요됩니다...</p>
                 </div>
 
                 {/* 진행률 바 */}
-                {typeof progress === "number" && (() => {
-                    const normalizedProgress = Math.min(100, Math.max(0, Number(progress) || 0))
-                    return (
-                        <div className="w-full mt-2">
-                            <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary transition-all duration-300 ease-out" style={{ width: `${normalizedProgress}%` }} />
+                {typeof progress === "number" &&
+                    (() => {
+                        const normalizedProgress = Math.min(100, Math.max(0, Number(progress) || 0))
+                        return (
+                            <div className="w-full mt-2">
+                                <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary transition-all duration-300 ease-out"
+                                        style={{ width: `${normalizedProgress}%` }}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center mt-1">{normalizedProgress}%</p>
                             </div>
-                            <p className="text-xs text-muted-foreground text-center mt-1">{normalizedProgress}%</p>
-                        </div>
-                    )
-                })()}
+                        )
+                    })()}
 
                 {/* 노드 체크리스트 */}
                 {hasNodes && (

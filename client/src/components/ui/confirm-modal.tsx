@@ -39,7 +39,7 @@ export function ConfirmModal({
     const descriptions = Array.isArray(description) ? description : [description]
 
     return (
-        <Modal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Modal open={isOpen} onOpenChange={(open) => !open && !isLoading && onClose()}>
             <ModalContent>
                 <ModalHeader>
                     <div className="flex items-center gap-3">
@@ -61,7 +61,7 @@ export function ConfirmModal({
                         {cancelLabel}
                     </Button>
                     <Button variant={confirmVariant} onClick={onConfirm} disabled={isLoading}>
-                        {isLoading ? "처리 중..." : confirmLabel}
+                        {isLoading ? "완료 중..." : confirmLabel}
                     </Button>
                 </ModalFooter>
             </ModalContent>
