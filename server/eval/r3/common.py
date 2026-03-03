@@ -17,7 +17,6 @@ import json
 from enum import Enum
 from pathlib import Path
 
-from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings

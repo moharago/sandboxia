@@ -1,0 +1,93 @@
+# R1 RAG 청킹 전략 프리셋
+# 규제제도 & 절차 데이터용 (JSON 문서 기반)
+#
+# R1 데이터 특성:
+# - 148개 문서 (카테고리별 분류)
+# - 카테고리: 제도정의(54), 트랙정의(37), 절차(26), 제출요건(9) 등
+# - 트랙: 공통(44), 실증특례(52), 임시허가(30), 신속확인(22)
+#
+# R3(법령)와 달리 조/항/호 구조가 아닌 title+content 구조
+
+C0:
+  name: C0
+  description: "현재 기준점 - JSON 항목 = 1청크, prefix 없음"
+  chunk_unit: paragraph  # R1에서는 무시됨
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0
+
+C1:
+  name: C1
+  description: "prefix 강화 - 카테고리/트랙 정보 포함"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: law_and_article  # R1에서는 [카테고리][트랙] 형태로 해석
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0
+
+C2:
+  name: C2
+  description: "hybrid 청킹 - 긴 content 분할"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: true
+  min_tokens: 100
+  max_tokens: 800
+  overlap: 50
+
+C3:
+  name: C3
+  description: "prefix + hybrid 조합"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: law_and_article
+  top_k: 5
+  hybrid: true
+  min_tokens: 100
+  max_tokens: 800
+  overlap: 50
+
+C4:
+  name: C4
+  description: "top_k 증가 - 더 많은 후보 검색"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: law_and_article
+  top_k: 8
+  hybrid: true
+  min_tokens: 100
+  max_tokens: 800
+  overlap: 50
+
+C5:
+  name: C5
+  description: "overlap 증가 - 문맥 연속성 강화"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: law_and_article
+  top_k: 5
+  hybrid: true
+  min_tokens: 100
+  max_tokens: 600
+  overlap: 100
+
+C6:
+  name: C6
+  description: "large 임베딩 테스트 - 기본 청킹 + text-embedding-3-large"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0

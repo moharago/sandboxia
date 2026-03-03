@@ -37,13 +37,17 @@ export default function DashboardPage() {
         sortOrder,
     })
 
-    // 상태별 통계
-    const stats = {
-        1: projects.filter((p) => p.status === PROJECT_STATUS.CONSULTING).length,
-        2: projects.filter((p) => p.status === PROJECT_STATUS.DRAFTING).length,
-        3: projects.filter((p) => p.status === PROJECT_STATUS.PENDING).length,
-        4: projects.filter((p) => p.status === PROJECT_STATUS.COMPLETED || p.status === PROJECT_STATUS.DIRECT_LAUNCH).length,
-    }
+    // js-combine-iterations: 상태별 통계를 단일 루프로 계산
+    const stats = useMemo(() => {
+        const result = { 1: 0, 2: 0, 3: 0, 4: 0 }
+        for (const p of projects) {
+            if (p.status === PROJECT_STATUS.CONSULTING) result[1]++
+            else if (p.status === PROJECT_STATUS.DRAFTING) result[2]++
+            else if (p.status === PROJECT_STATUS.PENDING) result[3]++
+            else if (p.status === PROJECT_STATUS.COMPLETED || p.status === PROJECT_STATUS.DIRECT_LAUNCH) result[4]++
+        }
+        return result
+    }, [projects])
 
     const pipelineSteps = [
         { id: 1 as PipelineFilter, label: "기업상담", count: stats[1] },

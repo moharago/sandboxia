@@ -6,8 +6,6 @@
 import json
 from pathlib import Path
 
-from langchain_chroma import Chroma
-
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from app.db.export import save_chunks_json
@@ -110,7 +108,8 @@ async def collect_and_store_laws(
     chunker = LawChunker(config)
 
     collection_name = COLLECTION_LAWS + collection_suffix
-    persist_dir = Path(settings.CHROMA_PERSIST_DIR)
+    data_dir = Path(__file__).parent.parent.parent.parent / "data" / "r3_data"
+    data_dir.mkdir(parents=True, exist_ok=True)
 
     # HybridConfig → HybridSearchConfig 변환
     hybrid_search_config = None
@@ -134,22 +133,13 @@ async def collect_and_store_laws(
     if reset:
         print(f"\n[컬렉션 초기화] '{collection_name}' 삭제 중...")
         try:
-            if vectordb_type == "qdrant":
-                # Qdrant: 직접 클라이언트로 삭제 (컬렉션 없어도 에러 없음)
-                from qdrant_client import QdrantClient
-                qdrant_client = QdrantClient(
-                    host=settings.QDRANT_HOST, port=settings.QDRANT_PORT
-                )
-                qdrant_client.delete_collection(collection_name)
-            else:
-                # Chroma: VectorStore로 삭제
-                temp_store = create_vector_store(
-                    collection_name=collection_name,
-                    embeddings=embeddings,
-                    vectordb_type=vectordb_type,
-                    hybrid_config=hybrid_search_config,
-                )
-                temp_store.delete_collection()
+            temp_store = create_vector_store(
+                collection_name=collection_name,
+                embeddings=embeddings,
+                vectordb_type=vectordb_type,
+                hybrid_config=hybrid_search_config,
+            )
+            temp_store.delete_collection()
             print("  ✓ 기존 컬렉션 삭제 완료")
         except Exception:
             print("  - 기존 컬렉션 없음 (새로 생성)")
@@ -258,7 +248,7 @@ async def collect_and_store_laws(
         saved_count = save_chunks_json(documents, unique_ids, chunks_json_path)
         print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
-    result_file = persist_dir / "r3_collection_info.json"
+    result_file = data_dir / "r3_collection_info.json"
     with open(result_file, "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -290,4 +280,4 @@ async def collect_and_store_laws(
     for law in collected_laws:
         print(f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})")
     print(f"\n총 청크 수: {len(documents)}개")
-    print(f"저장 위치: {persist_dir}")
+    print(f"저장 위치: {vectordb_type.upper()} (collection: {collection_name})")

@@ -14,12 +14,13 @@ Hybrid Search:
 """
 
 import logging
+import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
-from typing import Any
+from typing import Any, Union
 
 import chromadb
 from langchain_core.documents import Document
@@ -65,7 +66,7 @@ class HybridSearchConfig:
 
     enabled: bool = False
     alpha: float = 0.7  # Dense 70%, Sparse 30%
-    sparse_model: str = "Qdrant/bm25"  # 기본 BM25 (한국어 지원)
+    sparse_model: str = "prithivida/Splade_PP_en_v1"  # H3: SPLADE (평가 채택)
 
 
 # =============================================================================
@@ -90,6 +91,42 @@ class SearchResult:
 
 
 # =============================================================================
+# DB-agnostic 필터 타입
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class Eq:
+    """field == value"""
+
+    field: str
+    value: str
+
+
+@dataclass(frozen=True)
+class Or:
+    """조건 중 하나라도 참"""
+
+    conditions: tuple["FilterExpr", ...]
+
+    def __init__(self, *conditions: "FilterExpr"):
+        object.__setattr__(self, "conditions", conditions)
+
+
+@dataclass(frozen=True)
+class And:
+    """조건 모두 참"""
+
+    conditions: tuple["FilterExpr", ...]
+
+    def __init__(self, *conditions: "FilterExpr"):
+        object.__setattr__(self, "conditions", conditions)
+
+
+FilterExpr = Union[Eq, Or, And]
+
+
+# =============================================================================
 # 추상 인터페이스
 # =============================================================================
 
@@ -108,7 +145,7 @@ class BaseVectorStore(ABC):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (Dense only)
 
@@ -126,7 +163,7 @@ class BaseVectorStore(ABC):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
         alpha: float | None = None,
     ) -> list[SearchResult]:
         """Hybrid Search (Dense + Sparse)
@@ -285,16 +322,27 @@ class ChromaVectorStore(BaseVectorStore):
             embedding_function=embeddings,
         )
 
+    @staticmethod
+    def _to_chroma_filter(expr: FilterExpr) -> dict[str, Any]:
+        """FilterExpr → ChromaDB 네이티브 필터 변환"""
+        if isinstance(expr, Eq):
+            return {expr.field: {"$eq": expr.value}}
+        if isinstance(expr, Or):
+            return {"$or": [ChromaVectorStore._to_chroma_filter(c) for c in expr.conditions]}
+        if isinstance(expr, And):
+            return {"$and": [ChromaVectorStore._to_chroma_filter(c) for c in expr.conditions]}
+        raise TypeError(f"Unknown filter type: {type(expr)}")
+
     def similarity_search(
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (relevance score 사용)"""
         search_kwargs: dict[str, Any] = {"k": k}
         if filter:
-            search_kwargs["filter"] = filter
+            search_kwargs["filter"] = self._to_chroma_filter(filter)
 
         # relevance_scores: 0~1 범위, 높을수록 유사
         docs_with_scores = self._client.similarity_search_with_relevance_scores(
@@ -308,7 +356,7 @@ class ChromaVectorStore(BaseVectorStore):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (distance score 사용, 낮을수록 유사)
 
@@ -317,7 +365,7 @@ class ChromaVectorStore(BaseVectorStore):
         """
         search_kwargs: dict[str, Any] = {"k": k}
         if filter:
-            search_kwargs["filter"] = filter
+            search_kwargs["filter"] = self._to_chroma_filter(filter)
 
         docs_with_scores = self._client.similarity_search_with_score(
             query,
@@ -330,7 +378,7 @@ class ChromaVectorStore(BaseVectorStore):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
         alpha: float | None = None,
     ) -> list[SearchResult]:
         """Hybrid Search (Chroma는 Dense only)
@@ -394,6 +442,7 @@ class QdrantVectorStore(BaseVectorStore):
         self._collection_name = collection_name
         self._embeddings = embeddings
         self._hybrid_config = hybrid_config or HybridSearchConfig()
+        self._mode_lock = threading.Lock()
 
         # Qdrant 클라이언트 생성
         if settings.QDRANT_API_KEY:
@@ -480,40 +529,43 @@ class QdrantVectorStore(BaseVectorStore):
             )
             logger.info(f"Qdrant 컬렉션 '{self._collection_name}' 생성 완료")
 
-    def _build_filter(self, filter: dict[str, Any] | None):
-        """dict filter를 Qdrant Filter로 변환"""
-        if not filter:
-            return None
-
+    @staticmethod
+    def _to_qdrant_filter(expr: FilterExpr):
+        """FilterExpr → Qdrant 네이티브 필터 변환"""
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-        conditions = []
-        for key, value in filter.items():
-            conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
-        return Filter(must=conditions)
+        if isinstance(expr, Eq):
+            return Filter(
+                must=[FieldCondition(key=f"metadata.{expr.field}", match=MatchValue(value=expr.value))]
+            )
+        if isinstance(expr, Or):
+            return Filter(should=[QdrantVectorStore._to_qdrant_filter(c) for c in expr.conditions])
+        if isinstance(expr, And):
+            return Filter(must=[QdrantVectorStore._to_qdrant_filter(c) for c in expr.conditions])
+        raise TypeError(f"Unknown filter type: {type(expr)}")
 
     def similarity_search(
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (Dense only)"""
         from langchain_qdrant import RetrievalMode
 
-        # Dense only 검색을 위해 임시로 retrieval_mode 변경
-        original_mode = self._client.retrieval_mode
-        self._client.retrieval_mode = RetrievalMode.DENSE
+        qdrant_filter = self._to_qdrant_filter(filter) if filter else None
 
-        qdrant_filter = self._build_filter(filter)
-        docs_with_scores = self._client.similarity_search_with_score(
-            query,
-            k=k,
-            filter=qdrant_filter,
-        )
-
-        # 원래 모드로 복원
-        self._client.retrieval_mode = original_mode
+        with self._mode_lock:
+            original_mode = self._client.retrieval_mode
+            self._client.retrieval_mode = RetrievalMode.DENSE
+            try:
+                docs_with_scores = self._client.similarity_search_with_score(
+                    query,
+                    k=k,
+                    filter=qdrant_filter,
+                )
+            finally:
+                self._client.retrieval_mode = original_mode
 
         return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
 
@@ -521,7 +573,7 @@ class QdrantVectorStore(BaseVectorStore):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
         alpha: float | None = None,
     ) -> list[SearchResult]:
         """Hybrid Search (Dense + Sparse)
@@ -540,16 +592,26 @@ class QdrantVectorStore(BaseVectorStore):
             return self.similarity_search(query, k, filter)
 
         from langchain_qdrant import RetrievalMode
+        from qdrant_client.models import Rrf, RrfQuery
 
-        # Hybrid 모드로 검색
-        self._client.retrieval_mode = RetrievalMode.HYBRID
+        qdrant_filter = self._to_qdrant_filter(filter) if filter else None
 
-        qdrant_filter = self._build_filter(filter)
-        docs_with_scores = self._client.similarity_search_with_score(
-            query,
-            k=k,
-            filter=qdrant_filter,
-        )
+        # alpha 가중치 적용: Dense(alpha) + Sparse(1-alpha)
+        effective_alpha = alpha if alpha is not None else self._hybrid_config.alpha
+        rrf_query = RrfQuery(rrf=Rrf(weights=[effective_alpha, 1.0 - effective_alpha]))
+
+        with self._mode_lock:
+            original_mode = self._client.retrieval_mode
+            self._client.retrieval_mode = RetrievalMode.HYBRID
+            try:
+                docs_with_scores = self._client.similarity_search_with_score(
+                    query,
+                    k=k,
+                    filter=qdrant_filter,
+                    hybrid_fusion=rrf_query,
+                )
+            finally:
+                self._client.retrieval_mode = original_mode
 
         return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
 
@@ -673,7 +735,7 @@ def create_embeddings(config: EmbeddingConfig) -> Embeddings:
 
 @lru_cache
 def get_embeddings() -> OpenAIEmbeddings:
-    """임베딩 모델 인스턴스 반환 (기본값: .env의 LLM_EMBEDDING_MODEL)"""
+    """임베딩 모델 인스턴스 반환 (.env LLM_EMBEDDING_MODEL 사용)"""
     return OpenAIEmbeddings(
         model=settings.LLM_EMBEDDING_MODEL,
         openai_api_key=settings.OPENAI_API_KEY,
@@ -687,37 +749,30 @@ _vectorstore_cache: dict[str, BaseVectorStore] = {}
 def create_vector_store(
     collection_name: str,
     embeddings: Embeddings | None = None,
-    vectordb_type: VectorDBType | str = VectorDBType.CHROMA,
+    vectordb_type: VectorDBType | str = VectorDBType.QDRANT,
     hybrid_config: HybridSearchConfig | None = None,
 ) -> BaseVectorStore:
     """VectorStore 인스턴스 생성 (Factory 함수)
 
-    기본 동작:
-    - Chroma: Dense Search (Hybrid 미지원)
-    - Qdrant: Hybrid Search (Dense + Sparse)
+    기본 동작 (Qdrant + E1 + H3):
+    - 임베딩: text-embedding-3-large (3072차원)
+    - Hybrid Search: SPLADE Dense 70% + Sparse 30%
 
     Args:
         collection_name: 컬렉션 이름
-        embeddings: 임베딩 모델 (None이면 기본값 사용)
-        vectordb_type: Vector DB 타입 (chroma 또는 qdrant)
-        hybrid_config: Hybrid Search 설정 (None이면 VectorDB별 기본값 사용)
+        embeddings: 임베딩 모델 (None이면 E1 사용)
+        vectordb_type: Vector DB 타입 (기본: qdrant)
+        hybrid_config: Hybrid Search 설정 (None이면 H3 사용)
 
     Returns:
         VectorStore 인스턴스
 
     Example:
-        # Chroma (Dense only)
+        # 기본 (Qdrant + E1 + H3)
         store = create_vector_store("my_collection")
 
-        # Qdrant (Hybrid 기본 활성화)
-        store = create_vector_store("my_collection", vectordb_type="qdrant")
-
-        # Qdrant + Hybrid 비활성화
-        store = create_vector_store(
-            "my_collection",
-            vectordb_type="qdrant",
-            hybrid_config=HybridSearchConfig(enabled=False),
-        )
+        # Chroma (Dense only)
+        store = create_vector_store("my_collection", vectordb_type="chroma")
     """
     if embeddings is None:
         embeddings = get_embeddings()
@@ -748,7 +803,7 @@ def create_vector_store(
 
 def get_vector_store(
     collection_name: str,
-    vectordb_type: VectorDBType | str = VectorDBType.CHROMA,
+    vectordb_type: VectorDBType | str = VectorDBType.QDRANT,
 ) -> BaseVectorStore:
     """VectorStore 인스턴스 반환 (캐시 사용)
 
@@ -759,7 +814,9 @@ def get_vector_store(
     Returns:
         VectorStore 인스턴스 (캐시됨)
     """
-    cache_key = f"{vectordb_type}:{collection_name}"
+    if isinstance(vectordb_type, str):
+        vectordb_type = VectorDBType(vectordb_type.lower())
+    cache_key = f"{vectordb_type.value}:{collection_name}"
     if cache_key not in _vectorstore_cache:
         _vectorstore_cache[cache_key] = create_vector_store(
             collection_name=collection_name,

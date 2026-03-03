@@ -3,20 +3,14 @@
 실행:
     cd server
 
-    # 기본 실행 (C0 청킹, .env 임베딩 모델)
-    uv run python scripts/collect_laws.py
+    # 기본 실행 (C8 청킹 + E1 임베딩 + H3 Hybrid + Qdrant)
+    uv run python scripts/collect_laws.py --reset
 
     # 청킹 설정 변경 (C*)
-    uv run python scripts/collect_laws.py --config C3 --reset
+    uv run python scripts/collect_laws.py --config C3 E1 H3 --reset
 
-    # 임베딩 설정 변경 (E*) - 청킹은 C0 기본값 사용
-    uv run python scripts/collect_laws.py --config E1 --reset
-
-    # 청킹 + 임베딩 조합 (C* E*)
-    uv run python scripts/collect_laws.py --config C3 E1 --reset
-
-    # Qdrant + Hybrid Search (H*)
-    uv run python scripts/collect_laws.py --config C5 H1 --vectordb qdrant --reset
+    # Chroma 사용 (기존 방식)
+    uv run python scripts/collect_laws.py --config C0 --vectordb chroma --reset
 
     # 사용 가능한 설정 목록 확인
     uv run python scripts/collect_laws.py --list-configs
@@ -43,20 +37,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 예제:
-  # 기본 실행 (C0 청킹, .env 임베딩 모델)
-  uv run python scripts/collect_laws.py
+  # 기본 실행 (C8 + E1 + H3, Qdrant)
+  uv run python scripts/collect_laws.py --reset
 
-  # 청킹 설정 변경
-  uv run python scripts/collect_laws.py --config C3 --reset
+  # 청킹만 변경 (임베딩/하이브리드는 기본값 E1/H3)
+  uv run python scripts/collect_laws.py --config C3 E1 H3 --reset
 
-  # 임베딩 설정 변경 (청킹은 C0 기본값 사용)
-  uv run python scripts/collect_laws.py --config E1 --reset
-
-  # 청킹 + 임베딩 조합
-  uv run python scripts/collect_laws.py --config C3 E1 --reset
-
-  # Qdrant + Hybrid Search (H*)
-  uv run python scripts/collect_laws.py --config C5 H1 --vectordb qdrant --reset
+  # Chroma 사용 (기존 방식, Hybrid 미지원)
+  uv run python scripts/collect_laws.py --config C0 --vectordb chroma --reset
 
   # 사용 가능한 설정 목록 확인
   uv run python scripts/collect_laws.py --list-configs
@@ -66,8 +54,8 @@ def main():
         "--config",
         type=str,
         nargs="+",
-        default=["C0"],
-        help="설정 이름. C*: 청킹, E*: 임베딩, H*: Hybrid. 조합 가능 (예: C3 E1 H1)",
+        default=["C8", "E1", "H3"],
+        help="설정 이름. C*: 청킹, E*: 임베딩, H*: Hybrid. 조합 가능 (기본: C8 E1 H3)",
     )
     parser.add_argument(
         "--list-configs",
@@ -94,8 +82,8 @@ def main():
         "--vectordb",
         type=str,
         choices=["chroma", "qdrant"],
-        default="chroma",
-        help="사용할 Vector DB (기본: chroma)",
+        default="qdrant",
+        help="사용할 Vector DB (기본: qdrant)",
     )
     args = parser.parse_args()
 

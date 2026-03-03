@@ -1,8 +1,15 @@
 "use client"
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
-import { ReferencePanel, type CaseData } from "@/components/features/draft/ReferencePanel"
-import { WizardNavigation } from "@/components/features/wizard"
+import type { CaseData } from "@/components/features/draft/ReferencePanel"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
+import dynamic from "next/dynamic"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(
+    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
+    { ssr: false }
+)
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -263,6 +270,7 @@ export default function TrackPage({ params }: TrackPageProps) {
             { projectId: id, track: apiTrackId },
             {
                 onSuccess: async () => {
+                    // invalidateQueries는 await 불필요 (백그라운드 실행)
                     queryClient.invalidateQueries({ queryKey: ["projects"] })
                     try {
                         await draftMutation.mutateAsync({ project_id: id })
@@ -273,7 +281,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                         setIsRunningDraftAgent(false)
                         return
                     }
-                    // 초안 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                    // invalidateQueries는 await 불필요 (백그라운드 실행)
                     queryClient.invalidateQueries({ queryKey: ["draft"] })
                     queryClient.invalidateQueries({ queryKey: ["projects"] })
                     markStepComplete(3)
@@ -292,7 +300,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     }
 
     // 다음 페이지로 이동만 (분석 없이)
-    const navigateToNext = async () => {
+    const navigateToNext = () => {
         if (!effectiveSelectedTrackId) return
         const apiTrackId = UI_TO_API_TRACK[effectiveSelectedTrackId]
         if (!apiTrackId) return
@@ -305,6 +313,7 @@ export default function TrackPage({ params }: TrackPageProps) {
             { projectId: id, track: apiTrackId },
             {
                 onSuccess: () => {
+                    // invalidateQueries는 await 불필요 (백그라운드 실행)
                     queryClient.invalidateQueries({ queryKey: ["projects"] })
                     markStepComplete(3)
                     setCurrentStep(4)

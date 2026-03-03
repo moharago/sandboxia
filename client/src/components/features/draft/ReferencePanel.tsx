@@ -85,7 +85,7 @@ function ReferenceItem({ data, index, idPrefix = "ref" }: ReferenceItemProps) {
                 {isExpanded && (
                     <div id={contentId} className="mt-3 ">
                         <div className="pt-3 border-t border-border">
-                            <p className="text-sm text-muted-foreground">{data.summary}</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">{data.summary}</p>
                             {data.sourceUrl && (
                                 <a
                                     href={data.sourceUrl}

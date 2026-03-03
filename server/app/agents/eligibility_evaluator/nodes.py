@@ -51,20 +51,31 @@ def clean_rag_content(text: str, max_length: int = 200) -> str:
     if not text:
         return ""
 
-    # 마크다운 테이블 제거 (|---|---| 패턴)
-    text = re.sub(r"\|[-]+\|[-|]+\|?", "", text)
-    # 테이블 셀 구분자를 쉼표로 변환
+    # 이스케이프된 줄바꿈을 실제 줄바꿈으로 변환
+    text = text.replace("\\n", "\n")
+
+    # 마크다운 코드블록 백틱 제거
+    text = re.sub(r"```\w*", "", text)
+    text = text.replace("`", "")
+
+    # 마크다운 테이블 구분선 제거 (|---|---|)
+    text = re.sub(r"\|[-:]+\|[-:|]+\|?", "", text)
+    # 빈 테이블 행 제거 (||, | |)
+    text = re.sub(r"^\s*\|\s*\|\s*$", "", text, flags=re.MULTILINE)
+    # 각 줄의 시작/끝 파이프 제거
+    text = re.sub(r"^\s*\|\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"\s*\|\s*$", "", text, flags=re.MULTILINE)
+    # 중간 파이프는 쉼표로 변환
     text = re.sub(r"\s*\|\s*", ", ", text)
-    # 앞뒤 쉼표 정리
-    text = re.sub(r"^,\s*|,\s*$", "", text)
-    text = re.sub(r",\s*,", ",", text)
+    # 빈 줄 정리 (연속 빈 줄 → 하나로)
+    text = re.sub(r"\n\s*\n+", "\n", text)
 
     # 연속 중복 문자 제거 (① ① → ①, 1. 1. → 1.)
     text = re.sub(r"([①-⑳㉠-㉻])\s*\1", r"\1", text)
     text = re.sub(r"(\d+\.)\s*\1", r"\1", text)
 
-    # 연속 공백 정리
-    text = re.sub(r"\s+", " ", text)
+    # 연속 공백 정리 (줄바꿈은 유지)
+    text = re.sub(r"[ \t]+", " ", text)
 
     # 톤 완화: 단정적 표현 → 검토 가능성 표현
     # "적용됩니다" → "검토될 수 있습니다"
@@ -245,12 +256,13 @@ def screen_node(state: EligibilityState) -> dict:
 
 
 def _search_regulations(screening) -> list[dict]:
-    """R1 규제제도 검색 (내부 함수)"""
-    keywords = screening.search_keywords if screening else []
+    """R1 규제제도 검색 (내부 함수)
 
-    keyword_part = " ".join(keywords[:3]) if keywords else ""
-    base_part = "규제샌드박스 신청 대상 요건 절차"
-    query = f"{keyword_part} {base_part}".strip() if keyword_part else base_part
+    Note: 서비스 키워드를 쿼리에 포함하면 임베딩 유사도가 떨어지므로
+    제도 관련 키워드만 사용하여 검색합니다.
+    """
+    # 서비스 키워드 제외, 제도 검색에 최적화된 쿼리 사용
+    query = "규제샌드박스 실증특례 임시허가 신청 요건 절차"
 
     result = search_regulation.invoke({"query": query, "top_k": 5})
 
@@ -693,11 +705,16 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     for reg in regulations[:3]:
         track = reg.get("track", "참고")
         category = "공통" if track == "all" else track
+        section_title = reg.get("section_title", reg.get("document_title", ""))
+        content = reg.get("content", "")
+        # content 시작 부분의 [section_title] 제거 (중복 방지)
+        if section_title and content.startswith(f"[{section_title}]"):
+            content = content[len(f"[{section_title}]"):].lstrip()
         regulation_list.append(
             Regulation(
                 category=category,
-                title=reg.get("section_title", reg.get("document_title", "")),
-                summary=clean_rag_content(reg.get("content", ""), max_length=300),
+                title=section_title,
+                summary=clean_rag_content(content, max_length=300),
                 source_url=reg.get("source_url"),
             )
         )
