@@ -20,6 +20,7 @@
     --strategy structured|hybrid|fulltext|all  (기본: structured)
     --embedding E0|E1|E4|E5|all                (임베딩 프리셋, eval/r2/configs/embedding.yaml)
     --top_k 10                                 (기본: 5)
+    --threshold 0.3                            (score threshold, 기본: None = 필터 없음)
     --output result                            (결과 파일명, 기본: 자동 생성)
     --change-factor strategy                   (이번 실험에서 바꾼 변수)
     --change-value structured                  (해당 변수의 값)
@@ -60,6 +61,7 @@ def evaluate_single_item(
     vectorstore,
     item: dict,
     top_k: int = 5,
+    threshold: float | None = None,
 ) -> tuple[RetrievalMetrics, float, float, dict]:
     """단일 평가 항목 평가
 
@@ -67,6 +69,7 @@ def evaluate_single_item(
         vectorstore: Chroma Vector Store
         item: 평가 항목
         top_k: Top-K 값
+        threshold: Score threshold (None이면 필터 없음)
 
     Returns:
         (metrics, negative_at_k, latency_ms, detail_info)
@@ -81,7 +84,20 @@ def evaluate_single_item(
 
     # 검색 실행 (시간 측정)
     start_time = time.perf_counter()
-    results = vectorstore.similarity_search(question, k=top_k)
+    if threshold is not None:
+        results_with_scores = vectorstore.similarity_search_with_relevance_scores(
+            question, k=top_k
+        )
+        filtered = [
+            (doc, score)
+            for doc, score in results_with_scores
+            if score >= threshold
+        ]
+        results = [doc for doc, _ in filtered]
+        scores = [round(score, 4) for _, score in filtered]
+    else:
+        results = vectorstore.similarity_search(question, k=top_k)
+        scores = None
     end_time = time.perf_counter()
 
     latency_ms = (end_time - start_time) * 1000
@@ -109,6 +125,8 @@ def evaluate_single_item(
         "must_have_ids": must_have_ids,
         "negative_ids": negative_ids,
         "retrieved_ids": retrieved_ids[:top_k],
+        "scores": scores,
+        "actual_k": len(retrieved_ids),
         "recall_at_k": metrics.recall_at_k,
         "must_have_recall_at_k": metrics.must_have_recall_at_k,
         "mrr": metrics.mrr,
@@ -126,6 +144,7 @@ def run_single_strategy(
     eval_items: list[dict],
     top_k: int = 5,
     embedding_config: EmbeddingConfig | None = None,
+    threshold: float | None = None,
 ) -> dict:
     """단일 전략 평가 실행
 
@@ -140,8 +159,9 @@ def run_single_strategy(
         전략 평가 결과 dict
     """
     emb_label = embedding_config.name if embedding_config else "default"
+    threshold_label = f" | threshold: {threshold}" if threshold is not None else ""
     print(f"\n{'─' * 60}")
-    print(f"전략: {strategy} | 임베딩: {emb_label}")
+    print(f"전략: {strategy} | 임베딩: {emb_label}{threshold_label}")
     print(f"{'─' * 60}")
 
     # 임시 Vector Store 생성
@@ -164,7 +184,7 @@ def run_single_strategy(
 
     for i, item in enumerate(eval_items, 1):
         metrics, neg_at_k, latency, detail = evaluate_single_item(
-            vectorstore, item, top_k
+            vectorstore, item, top_k, threshold
         )
         all_metrics.append(metrics)
         all_negatives.append(neg_at_k)
@@ -287,6 +307,7 @@ def build_experiment_json(
     tags: list[str],
     description: str,
     embedding_config: EmbeddingConfig | None = None,
+    threshold: float | None = None,
 ) -> dict:
     """단일 실험 결과를 새 JSON 포맷으로 구성
 
@@ -328,6 +349,7 @@ def build_experiment_json(
             "strategy": result["strategy"],
             "embedding_model": embedding_model_name,
             "top_k": top_k,
+            "threshold": threshold,
             "num_cases": num_cases,
             "num_eval_items": num_eval_items,
             "data_version": data_version,
@@ -375,6 +397,7 @@ def run_evaluation(
     tags: list[str] | None = None,
     description: str = "",
     embedding: str | None = None,
+    threshold: float | None = None,
 ):
     """전체 평가 실행
 
@@ -398,6 +421,8 @@ def run_evaluation(
     items = eval_set.get("evaluation_items", [])
     print(f"\n평가셋: {len(items)}개 항목")
     print(f"Top-K: {top_k}")
+    if threshold is not None:
+        print(f"Threshold: {threshold}")
 
     # 임베딩 설정 목록 구성
     if embedding == "all":
@@ -440,7 +465,7 @@ def run_evaluation(
     for emb_config in embedding_configs:
         for strat in strategies:
             result = run_single_strategy(
-                strat, case_data, items, top_k, emb_config
+                strat, case_data, items, top_k, emb_config, threshold
             )
             all_results.append((result, emb_config))
 
@@ -476,6 +501,7 @@ def run_evaluation(
             tags=tags,
             description=desc,
             embedding_config=emb_config,
+            threshold=threshold,
         )
 
         out = output_name if len(all_results) == 1 else None
@@ -507,6 +533,12 @@ def main():
     )
     parser.add_argument(
         "--top_k", type=int, default=5, help="Top-K 값 (기본: 5)"
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="Score threshold (기본: None = 필터 없음, 예: 0.3)",
     )
     parser.add_argument(
         "--output", type=str, default=None, help="결과 파일명 (단일 전략만)"
@@ -556,6 +588,7 @@ def main():
         tags=tags,
         description=args.description,
         embedding=args.embedding,
+        threshold=args.threshold,
     )
 
 
