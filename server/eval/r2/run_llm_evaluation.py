@@ -296,19 +296,11 @@ def retrieve_single_item(
     negative_ids = [n["case_id"] for n in negatives]
 
     start = time.perf_counter()
+    results = vectorstore.similarity_search(question, k=top_k)
     if threshold is not None:
-        results_with_scores = vectorstore.similarity_search_with_relevance_scores(
-            question, k=top_k
-        )
-        filtered = [
-            (doc, score)
-            for doc, score in results_with_scores
-            if score >= threshold
-        ]
-        results = [doc for doc, _ in filtered]
-        scores = [round(score, 4) for _, score in filtered]
+        results = [r for r in results if r.score >= threshold]
+        scores = [round(r.score, 4) for r in results]
     else:
-        results = vectorstore.similarity_search(question, k=top_k)
         scores = None
     latency = (time.perf_counter() - start) * 1000
 

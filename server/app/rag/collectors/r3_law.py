@@ -280,4 +280,4 @@ async def collect_and_store_laws(
     for law in collected_laws:
         print(f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})")
     print(f"\n총 청크 수: {len(documents)}개")
-    print(f"저장 위치: Qdrant (collection: {collection_name})")
+    print(f"저장 위치: {vectordb_type.upper()} (collection: {collection_name})")
