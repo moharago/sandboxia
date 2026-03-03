@@ -15,15 +15,13 @@ import json
 import sys
 from pathlib import Path
 
-import chromadb
-from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.config import settings
-from app.db.vector import create_embeddings
+from app.db.vector import BaseVectorStore, create_embeddings, create_vector_store
 from app.rag.config import EmbeddingConfig, load_embedding_config
 from eval.metrics import RetrievalMetrics
 
@@ -68,8 +66,8 @@ def create_temp_vector_store(
     strategy: str,
     collection_name: str = TEMP_COLLECTION_NAME,
     embedding_config: EmbeddingConfig | None = None,
-) -> tuple[Chroma, chromadb.ClientAPI]:
-    """전략별 임시 Vector Store 생성 (EphemeralClient)
+) -> BaseVectorStore:
+    """전략별 임시 Vector Store 생성
 
     Args:
         data: 원본 케이스 데이터
@@ -78,15 +76,13 @@ def create_temp_vector_store(
         embedding_config: 임베딩 설정 (None이면 기본 모델 사용)
 
     Returns:
-        (vectorstore, chroma_client) - 평가 후 client로 컬렉션 삭제 가능
+        BaseVectorStore - 평가 후 delete_collection()으로 삭제
     """
     from scripts.collect_cases import create_documents
 
     # Document 생성 (collect_cases.py의 로직 재사용)
     documents, doc_ids = create_documents(data, strategy=strategy)
 
-    # EphemeralClient로 임시 컬렉션 생성
-    client = chromadb.EphemeralClient()
     if embedding_config:
         embeddings = create_embeddings(embedding_config)
     else:
@@ -95,16 +91,15 @@ def create_temp_vector_store(
             api_key=settings.OPENAI_API_KEY,  # type: ignore[arg-type]
         )
 
-    vectorstore = Chroma(
-        client=client,
+    vectorstore = create_vector_store(
         collection_name=collection_name,
-        embedding_function=embeddings,
+        embeddings=embeddings,
     )
 
     # 문서 추가
     vectorstore.add_documents(documents, ids=doc_ids)
 
-    return vectorstore, client
+    return vectorstore
 
 
 def build_gold_case_ids(

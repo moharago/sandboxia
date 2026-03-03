@@ -3,17 +3,14 @@
 실행:
     cd server
 
-    # 기본 실행 (C0 청킹, .env 임베딩 모델)
-    uv run python scripts/collect_laws.py
+    # 기본 실행 (C8 청킹 + E1 임베딩 + H3 Hybrid + Qdrant)
+    uv run python scripts/collect_laws.py --reset
 
     # 청킹 설정 변경 (C*)
-    uv run python scripts/collect_laws.py --config C3 --reset
+    uv run python scripts/collect_laws.py --config C3 E1 H3 --reset
 
-    # 임베딩 설정 변경 (E*) - 청킹은 C0 기본값 사용
-    uv run python scripts/collect_laws.py --config E1 --reset
-
-    # 청킹 + 임베딩 조합 (C* E*)
-    uv run python scripts/collect_laws.py --config C3 E1 --reset
+    # Chroma 사용 (기존 방식)
+    uv run python scripts/collect_laws.py --config C0 --vectordb chroma --reset
 
     # 사용 가능한 설정 목록 확인
     uv run python scripts/collect_laws.py --list-configs
@@ -30,7 +27,7 @@ from pathlib import Path
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.rag import list_configs, load_chunking_config, load_embedding_config
+from app.rag import list_configs, load_chunking_config, load_embedding_config, load_hybrid_config
 from app.rag.collectors import collect_and_store_laws
 
 
@@ -40,17 +37,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 예제:
-  # 기본 실행 (C0 청킹, .env 임베딩 모델)
-  uv run python scripts/collect_laws.py
+  # 기본 실행 (C8 + E1 + H3, Qdrant)
+  uv run python scripts/collect_laws.py --reset
 
-  # 청킹 설정 변경
-  uv run python scripts/collect_laws.py --config C3 --reset
+  # 청킹만 변경 (임베딩/하이브리드는 기본값 E1/H3)
+  uv run python scripts/collect_laws.py --config C3 E1 H3 --reset
 
-  # 임베딩 설정 변경 (청킹은 C0 기본값 사용)
-  uv run python scripts/collect_laws.py --config E1 --reset
-
-  # 청킹 + 임베딩 조합
-  uv run python scripts/collect_laws.py --config C3 E1 --reset
+  # Chroma 사용 (기존 방식, Hybrid 미지원)
+  uv run python scripts/collect_laws.py --config C0 --vectordb chroma --reset
 
   # 사용 가능한 설정 목록 확인
   uv run python scripts/collect_laws.py --list-configs
@@ -60,8 +54,8 @@ def main():
         "--config",
         type=str,
         nargs="+",
-        default=["C0"],
-        help="설정 이름. C*: 청킹, E*: 임베딩. 조합 가능 (예: C3 E1)",
+        default=["C8", "E1", "H3"],
+        help="설정 이름. C*: 청킹, E*: 임베딩, H*: Hybrid. 조합 가능 (기본: C8 E1 H3)",
     )
     parser.add_argument(
         "--list-configs",
@@ -84,6 +78,13 @@ def main():
         action="store_true",
         help="기존 컬렉션 삭제 후 새로 생성 (프리셋 변경 시 권장)",
     )
+    parser.add_argument(
+        "--vectordb",
+        type=str,
+        choices=["chroma", "qdrant"],
+        default="qdrant",
+        help="사용할 Vector DB (기본: qdrant)",
+    )
     args = parser.parse_args()
 
     if args.list_configs:
@@ -103,11 +104,20 @@ def main():
                 print(f"  - {config_name}: {cfg.description} ({cfg.model})")
             except Exception as e:
                 print(f"  - {config_name}: (로드 실패: {e})")
+
+        print("\n사용 가능한 Hybrid 설정 (H*) - Qdrant 전용:")
+        for config_name in all_configs.get("hybrid", []):
+            try:
+                cfg = load_hybrid_config(config_name)
+                print(f"  - {config_name}: {cfg.description} (alpha={cfg.alpha})")
+            except Exception as e:
+                print(f"  - {config_name}: (로드 실패: {e})")
         sys.exit(0)
 
-    # 설정 파싱: C*는 청킹, E*는 임베딩
+    # 설정 파싱: C*는 청킹, E*는 임베딩, H*는 Hybrid
     chunking_config = None
     embedding_config = None
+    hybrid_config = None
 
     for cfg_name in args.config:
         cfg_name = cfg_name.upper()  # 대소문자 무시
@@ -127,13 +137,25 @@ def main():
                 all_configs = list_configs()
                 print(f"사용 가능한 청킹 설정: {all_configs['chunking']}")
                 sys.exit(1)
+        elif cfg_name.startswith("H"):
+            try:
+                hybrid_config = load_hybrid_config(cfg_name)
+            except FileNotFoundError as e:
+                print(f"오류: {e}")
+                all_configs = list_configs()
+                print(f"사용 가능한 Hybrid 설정: {all_configs.get('hybrid', [])}")
+                sys.exit(1)
         else:
-            print(f"오류: 알 수 없는 설정 '{cfg_name}'. C* 또는 E*로 시작해야 합니다.")
+            print(f"오류: 알 수 없는 설정 '{cfg_name}'. C*, E*, 또는 H*로 시작해야 합니다.")
             sys.exit(1)
 
     # 청킹 설정 기본값
     if chunking_config is None:
         chunking_config = load_chunking_config("C0")
+
+    # Hybrid 설정은 Qdrant에서만 사용
+    if hybrid_config and args.vectordb != "qdrant":
+        print(f"경고: Hybrid 설정 '{hybrid_config.name}'은 Qdrant에서만 사용됩니다. --vectordb qdrant 옵션을 추가하세요.")
 
     asyncio.run(
         collect_and_store_laws(
@@ -142,6 +164,8 @@ def main():
             collection_suffix=args.collection_suffix,
             reset=args.reset,
             embedding_config=embedding_config,
+            vectordb_type=args.vectordb,
+            hybrid_config=hybrid_config,
         )
     )
 

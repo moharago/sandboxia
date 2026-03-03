@@ -11,11 +11,13 @@ import asyncio
 import concurrent.futures
 from dataclasses import dataclass
 
+from langchain_openai import OpenAIEmbeddings as LangChainOpenAIEmbeddings
 from openai import AsyncOpenAI
 from ragas.dataset_schema import SingleTurnSample
-from ragas.embeddings import OpenAIEmbeddings as RagasOpenAIEmbeddings
 from ragas.llms import llm_factory
 from ragas.metrics import Faithfulness, ResponseRelevancy
+
+from app.core.config import settings
 
 
 @dataclass
@@ -46,14 +48,14 @@ class RAGASEvaluator:
     def __init__(
         self,
         model: str = "gpt-4.1",
-        embedding_model: str = "text-embedding-3-small",
+        embedding_model: str | None = None,
         api_key: str | None = None,
     ):
         """RAGAS 평가기 초기화
 
         Args:
             model: 평가에 사용할 LLM 모델 (기본: gpt-4.1)
-            embedding_model: 임베딩 모델 (기본: text-embedding-3-small)
+            embedding_model: 임베딩 모델 (None이면 .env LLM_EMBEDDING_MODEL 사용)
             api_key: OpenAI API 키 (없으면 환경변수 사용)
         """
         self.model = model
@@ -66,17 +68,15 @@ class RAGASEvaluator:
 
         # RAGAS LLM 초기화 + max_tokens 증가 (한국어 긴 응답 대응)
         self.llm = llm_factory(
-            model=model,
-            provider="openai",
-            client=self.async_client,
+            model=model, provider="openai", client=self.async_client,
             max_tokens=8192,
         )
 
-        # RAGAS 네이티브 OpenAIEmbeddings 사용 (0.4.x)
-        self.embeddings = RagasOpenAIEmbeddings(
-            client=self.async_client,
-            model=embedding_model,
-        )
+        # LangChain 호환 Embeddings (ResponseRelevancy가 embed_query 사용)
+        emb_kwargs = {"model": embedding_model or settings.LLM_EMBEDDING_MODEL}
+        if api_key:
+            emb_kwargs["api_key"] = api_key
+        self.embeddings = LangChainOpenAIEmbeddings(**emb_kwargs)
 
         # 메트릭 초기화
         self.faithfulness_scorer = Faithfulness(llm=self.llm)

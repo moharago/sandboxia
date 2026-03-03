@@ -13,7 +13,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from app.core.constants import COLLECTION_CASES
-from app.db.vector import get_vector_store
+from app.db.vector import Eq, FilterExpr, get_vector_store
 
 # 데이터 경로
 DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "r2_data"
@@ -162,15 +162,15 @@ def search_case(
     fetch_count = top_k * 3 if deduplicate else top_k
 
     # 필터 조건
-    filter_dict: dict[str, Any] | None = None
+    filter_expr: FilterExpr | None = None
     if track:
-        filter_dict = {"track": track}
+        filter_expr = Eq("track", track)
 
     # 유사도 검색 (추상화된 인터페이스 사용)
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=query,
         k=fetch_count,
-        filter=filter_dict,
+        filter=filter_expr,
     )
 
     results = []
