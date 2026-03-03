@@ -592,8 +592,13 @@ class QdrantVectorStore(BaseVectorStore):
             return self.similarity_search(query, k, filter)
 
         from langchain_qdrant import RetrievalMode
+        from qdrant_client.models import Rrf, RrfQuery
 
         qdrant_filter = self._to_qdrant_filter(filter) if filter else None
+
+        # alpha 가중치 적용: Dense(alpha) + Sparse(1-alpha)
+        effective_alpha = alpha if alpha is not None else self._hybrid_config.alpha
+        rrf_query = RrfQuery(rrf=Rrf(weights=[effective_alpha, 1.0 - effective_alpha]))
 
         with self._mode_lock:
             original_mode = self._client.retrieval_mode
@@ -603,6 +608,7 @@ class QdrantVectorStore(BaseVectorStore):
                     query,
                     k=k,
                     filter=qdrant_filter,
+                    hybrid_fusion=rrf_query,
                 )
             finally:
                 self._client.retrieval_mode = original_mode
