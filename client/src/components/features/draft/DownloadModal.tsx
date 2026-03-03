@@ -5,6 +5,7 @@ import { Download, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getAuthToken } from "@/lib/supabase/client"
 import type { FormType } from "@/stores/wizard-store"
 import { FORM_TYPE_LABELS } from "@/stores/wizard-store"
 import formData from "@/data/formData.json"
@@ -23,7 +24,10 @@ interface DownloadModalProps {
 type FileFormat = "docx" | "pdf"
 
 async function downloadFile(url: string, fallbackFilename: string) {
-    const response = await fetch(url)
+    const token = await getAuthToken()
+    const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+    })
     if (!response.ok) {
         const error = await response.json()
         throw new Error(error.detail || "다운로드에 실패했습니다.")

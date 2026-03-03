@@ -31,7 +31,7 @@ export const getProject = cache(async (id: string): Promise<ProjectResponse | nu
             return null
         }
         console.error("프로젝트 조회 오류:", error)
-        return null
+        throw error
     }
 
     return data as ProjectResponse

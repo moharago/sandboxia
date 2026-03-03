@@ -222,11 +222,12 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
         try {
             await eligibilityMutation.mutateAsync({ project_id: id })
+            hideGlobalAILoader() // 재분석 완료 시 로더 숨김
         } catch {
-            return // hook-level onError에서 이미 에러 UI 처리됨
+            // hook-level onError에서 이미 에러 UI 처리됨
+        } finally {
+            eligibilityProgress.unsubscribe()
         }
-
-        hideGlobalAILoader() // 재분석 완료 시 로더 숨김
     }
 
     // 트랙 에이전트 실행 후 이동
@@ -384,6 +385,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
             setErrorMessage(`처리 중 오류가 발생했습니다: ${message}`)
             setErrorModalOpen(true)
         } finally {
+            eligibilityProgress.unsubscribe()
             trackProgress.unsubscribe()
             hideGlobalAILoader()
             setIsRunningTrackAgent(false)
