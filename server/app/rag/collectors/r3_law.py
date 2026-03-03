@@ -110,7 +110,8 @@ async def collect_and_store_laws(
     chunker = LawChunker(config)
 
     collection_name = COLLECTION_LAWS + collection_suffix
-    persist_dir = Path(settings.CHROMA_PERSIST_DIR)
+    data_dir = Path(__file__).parent.parent.parent.parent / "data" / "r3_data"
+    data_dir.mkdir(parents=True, exist_ok=True)
 
     # HybridConfig → HybridSearchConfig 변환
     hybrid_search_config = None
@@ -258,7 +259,7 @@ async def collect_and_store_laws(
         saved_count = save_chunks_json(documents, unique_ids, chunks_json_path)
         print(f"[OK] 청크 JSON 저장 완료: {chunks_json_path} ({saved_count}개)")
 
-    result_file = persist_dir / "r3_collection_info.json"
+    result_file = data_dir / "r3_collection_info.json"
     with open(result_file, "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -290,4 +291,4 @@ async def collect_and_store_laws(
     for law in collected_laws:
         print(f"  - {law['name']}: {law['article_count']}개 조문 → {law['chunk_count']}개 청크 ({law['domain']})")
     print(f"\n총 청크 수: {len(documents)}개")
-    print(f"저장 위치: {persist_dir}")
+    print(f"저장 위치: Qdrant (collection: {collection_name})")

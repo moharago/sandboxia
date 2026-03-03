@@ -481,16 +481,51 @@ class QdrantVectorStore(BaseVectorStore):
             logger.info(f"Qdrant 컬렉션 '{self._collection_name}' 생성 완료")
 
     def _build_filter(self, filter: dict[str, Any] | None):
-        """dict filter를 Qdrant Filter로 변환"""
+        """dict filter를 Qdrant Filter로 변환
+
+        ChromaDB 스타일 필터를 Qdrant 네이티브 필터로 변환합니다.
+
+        지원 형식:
+        - 단순: {"domain": "healthcare"}
+        - $eq:  {"track": {"$eq": "실증특례"}}
+        - $or:  {"$or": [{"track": {"$eq": "실증특례"}}, {"track": {"$eq": "all"}}]}
+        - $and: {"$and": [condition1, condition2]}
+        - 중첩: {"$and": [{"$or": [...]}, {"category": {"$eq": "requirement"}}]}
+        """
         if not filter:
             return None
 
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-        conditions = []
-        for key, value in filter.items():
-            conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
-        return Filter(must=conditions)
+        def _convert(node: dict) -> Filter:
+            """재귀적으로 dict → Qdrant Filter 변환"""
+            if "$and" in node:
+                sub_filters = [_convert(sub) for sub in node["$and"]]
+                # 각 sub_filter의 must 조건들을 펼침
+                must_conditions = []
+                for sf in sub_filters:
+                    must_conditions.append(sf)
+                return Filter(must=must_conditions)
+
+            if "$or" in node:
+                sub_filters = [_convert(sub) for sub in node["$or"]]
+                return Filter(should=sub_filters)
+
+            # 단일 필드 조건: {"key": value} 또는 {"key": {"$eq": value}}
+            conditions = []
+            for key, value in node.items():
+                field_key = f"metadata.{key}"
+                if isinstance(value, dict) and "$eq" in value:
+                    conditions.append(
+                        FieldCondition(key=field_key, match=MatchValue(value=value["$eq"]))
+                    )
+                else:
+                    conditions.append(
+                        FieldCondition(key=field_key, match=MatchValue(value=value))
+                    )
+            return Filter(must=conditions)
+
+        return _convert(filter)
 
     def similarity_search(
         self,
@@ -673,9 +708,9 @@ def create_embeddings(config: EmbeddingConfig) -> Embeddings:
 
 @lru_cache
 def get_embeddings() -> OpenAIEmbeddings:
-    """임베딩 모델 인스턴스 반환 (E1: text-embedding-3-large)"""
+    """임베딩 모델 인스턴스 반환 (.env LLM_EMBEDDING_MODEL 사용)"""
     return OpenAIEmbeddings(
-        model="text-embedding-3-large",
+        model=settings.LLM_EMBEDDING_MODEL,
         openai_api_key=settings.OPENAI_API_KEY,
     )
 
