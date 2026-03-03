@@ -9,7 +9,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from app.core.constants import COLLECTION_LAWS
-from app.db.vector import SearchResult, get_vector_store
+from app.db.vector import Eq, FilterExpr, SearchResult, get_vector_store
 
 
 class DomainLawResult(BaseModel):
@@ -127,15 +127,15 @@ def search_domain_law(
     normalized_domain = normalize_domain(domain)
 
     # 필터 조건 설정
-    filter_dict = None
+    filter_expr: FilterExpr | None = None
     if normalized_domain:
-        filter_dict = {"domain": normalized_domain}
+        filter_expr = Eq("domain", normalized_domain)
 
     # Hybrid Search (E1 + H3: Dense 70% + Sparse 30%)
     search_results = vector_store.hybrid_search(
         query=query,
         k=top_k,
-        filter=filter_dict,
+        filter=filter_expr,
     )
 
     results = [_build_domain_law_result(result) for result in search_results]

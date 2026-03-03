@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
-from typing import Any
+from typing import Any, Union
 
 import chromadb
 from langchain_core.documents import Document
@@ -90,6 +90,42 @@ class SearchResult:
 
 
 # =============================================================================
+# DB-agnostic 필터 타입
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class Eq:
+    """field == value"""
+
+    field: str
+    value: str
+
+
+@dataclass(frozen=True)
+class Or:
+    """조건 중 하나라도 참"""
+
+    conditions: tuple["FilterExpr", ...]
+
+    def __init__(self, *conditions: "FilterExpr"):
+        object.__setattr__(self, "conditions", conditions)
+
+
+@dataclass(frozen=True)
+class And:
+    """조건 모두 참"""
+
+    conditions: tuple["FilterExpr", ...]
+
+    def __init__(self, *conditions: "FilterExpr"):
+        object.__setattr__(self, "conditions", conditions)
+
+
+FilterExpr = Union[Eq, Or, And]
+
+
+# =============================================================================
 # 추상 인터페이스
 # =============================================================================
 
@@ -108,7 +144,7 @@ class BaseVectorStore(ABC):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (Dense only)
 
@@ -126,7 +162,7 @@ class BaseVectorStore(ABC):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
         alpha: float | None = None,
     ) -> list[SearchResult]:
         """Hybrid Search (Dense + Sparse)
@@ -285,16 +321,27 @@ class ChromaVectorStore(BaseVectorStore):
             embedding_function=embeddings,
         )
 
+    @staticmethod
+    def _to_chroma_filter(expr: FilterExpr) -> dict[str, Any]:
+        """FilterExpr → ChromaDB 네이티브 필터 변환"""
+        if isinstance(expr, Eq):
+            return {expr.field: {"$eq": expr.value}}
+        if isinstance(expr, Or):
+            return {"$or": [ChromaVectorStore._to_chroma_filter(c) for c in expr.conditions]}
+        if isinstance(expr, And):
+            return {"$and": [ChromaVectorStore._to_chroma_filter(c) for c in expr.conditions]}
+        raise TypeError(f"Unknown filter type: {type(expr)}")
+
     def similarity_search(
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (relevance score 사용)"""
         search_kwargs: dict[str, Any] = {"k": k}
         if filter:
-            search_kwargs["filter"] = filter
+            search_kwargs["filter"] = self._to_chroma_filter(filter)
 
         # relevance_scores: 0~1 범위, 높을수록 유사
         docs_with_scores = self._client.similarity_search_with_relevance_scores(
@@ -308,7 +355,7 @@ class ChromaVectorStore(BaseVectorStore):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (distance score 사용, 낮을수록 유사)
 
@@ -317,7 +364,7 @@ class ChromaVectorStore(BaseVectorStore):
         """
         search_kwargs: dict[str, Any] = {"k": k}
         if filter:
-            search_kwargs["filter"] = filter
+            search_kwargs["filter"] = self._to_chroma_filter(filter)
 
         docs_with_scores = self._client.similarity_search_with_score(
             query,
@@ -330,7 +377,7 @@ class ChromaVectorStore(BaseVectorStore):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
         alpha: float | None = None,
     ) -> list[SearchResult]:
         """Hybrid Search (Chroma는 Dense only)
@@ -480,58 +527,26 @@ class QdrantVectorStore(BaseVectorStore):
             )
             logger.info(f"Qdrant 컬렉션 '{self._collection_name}' 생성 완료")
 
-    def _build_filter(self, filter: dict[str, Any] | None):
-        """dict filter를 Qdrant Filter로 변환
-
-        ChromaDB 스타일 필터를 Qdrant 네이티브 필터로 변환합니다.
-
-        지원 형식:
-        - 단순: {"domain": "healthcare"}
-        - $eq:  {"track": {"$eq": "실증특례"}}
-        - $or:  {"$or": [{"track": {"$eq": "실증특례"}}, {"track": {"$eq": "all"}}]}
-        - $and: {"$and": [condition1, condition2]}
-        - 중첩: {"$and": [{"$or": [...]}, {"category": {"$eq": "requirement"}}]}
-        """
-        if not filter:
-            return None
-
+    @staticmethod
+    def _to_qdrant_filter(expr: FilterExpr):
+        """FilterExpr → Qdrant 네이티브 필터 변환"""
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-        def _convert(node: dict) -> Filter:
-            """재귀적으로 dict → Qdrant Filter 변환"""
-            if "$and" in node:
-                sub_filters = [_convert(sub) for sub in node["$and"]]
-                # 각 sub_filter의 must 조건들을 펼침
-                must_conditions = []
-                for sf in sub_filters:
-                    must_conditions.append(sf)
-                return Filter(must=must_conditions)
-
-            if "$or" in node:
-                sub_filters = [_convert(sub) for sub in node["$or"]]
-                return Filter(should=sub_filters)
-
-            # 단일 필드 조건: {"key": value} 또는 {"key": {"$eq": value}}
-            conditions = []
-            for key, value in node.items():
-                field_key = f"metadata.{key}"
-                if isinstance(value, dict) and "$eq" in value:
-                    conditions.append(
-                        FieldCondition(key=field_key, match=MatchValue(value=value["$eq"]))
-                    )
-                else:
-                    conditions.append(
-                        FieldCondition(key=field_key, match=MatchValue(value=value))
-                    )
-            return Filter(must=conditions)
-
-        return _convert(filter)
+        if isinstance(expr, Eq):
+            return Filter(
+                must=[FieldCondition(key=f"metadata.{expr.field}", match=MatchValue(value=expr.value))]
+            )
+        if isinstance(expr, Or):
+            return Filter(should=[QdrantVectorStore._to_qdrant_filter(c) for c in expr.conditions])
+        if isinstance(expr, And):
+            return Filter(must=[QdrantVectorStore._to_qdrant_filter(c) for c in expr.conditions])
+        raise TypeError(f"Unknown filter type: {type(expr)}")
 
     def similarity_search(
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
     ) -> list[SearchResult]:
         """유사도 검색 (Dense only)"""
         from langchain_qdrant import RetrievalMode
@@ -540,7 +555,7 @@ class QdrantVectorStore(BaseVectorStore):
         original_mode = self._client.retrieval_mode
         self._client.retrieval_mode = RetrievalMode.DENSE
 
-        qdrant_filter = self._build_filter(filter)
+        qdrant_filter = self._to_qdrant_filter(filter) if filter else None
         docs_with_scores = self._client.similarity_search_with_score(
             query,
             k=k,
@@ -556,7 +571,7 @@ class QdrantVectorStore(BaseVectorStore):
         self,
         query: str,
         k: int = 5,
-        filter: dict[str, Any] | None = None,
+        filter: FilterExpr | None = None,
         alpha: float | None = None,
     ) -> list[SearchResult]:
         """Hybrid Search (Dense + Sparse)
@@ -579,7 +594,7 @@ class QdrantVectorStore(BaseVectorStore):
         # Hybrid 모드로 검색
         self._client.retrieval_mode = RetrievalMode.HYBRID
 
-        qdrant_filter = self._build_filter(filter)
+        qdrant_filter = self._to_qdrant_filter(filter) if filter else None
         docs_with_scores = self._client.similarity_search_with_score(
             query,
             k=k,

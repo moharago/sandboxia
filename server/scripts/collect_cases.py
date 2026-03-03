@@ -283,26 +283,17 @@ def collect_and_store_cases(
 
     # 기존 컬렉션 삭제 (reset=True인 경우)
     if reset:
-        if vectordb_type == "qdrant":
-            from qdrant_client import QdrantClient
-
-            try:
-                client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
-                client.delete_collection(COLLECTION_CASES)
-                print(f"\n[OK] 기존 Qdrant 컬렉션 '{COLLECTION_CASES}' 삭제")
-            except Exception:
-                pass
-        else:
-            import chromadb
-
-            persist_dir = Path(settings.CHROMA_PERSIST_DIR)
-            persist_dir.mkdir(parents=True, exist_ok=True)
-            try:
-                client = chromadb.PersistentClient(path=str(persist_dir))
-                client.delete_collection(COLLECTION_CASES)
-                print(f"\n[OK] 기존 Chroma 컬렉션 '{COLLECTION_CASES}' 삭제")
-            except Exception:
-                pass
+        try:
+            temp_store = create_vector_store(
+                collection_name=COLLECTION_CASES,
+                embeddings=embeddings,
+                vectordb_type=vectordb_type,
+                hybrid_config=hybrid_config,
+            )
+            temp_store.delete_collection()
+            print(f"\n[OK] 기존 컬렉션 '{COLLECTION_CASES}' 삭제")
+        except Exception:
+            pass
 
     # VectorStore 생성
     vectorstore = create_vector_store(

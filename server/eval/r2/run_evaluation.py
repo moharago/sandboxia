@@ -149,7 +149,7 @@ def run_single_strategy(
     collection_name = f"r2_eval_{strategy}_{emb_label}"
 
     build_start = time.perf_counter()
-    vectorstore, client = create_temp_vector_store(
+    vectorstore = create_temp_vector_store(
         case_data, strategy, collection_name, embedding_config
     )
     build_time = (time.perf_counter() - build_start) * 1000
@@ -208,7 +208,7 @@ def run_single_strategy(
 
     # 임시 컬렉션 삭제
     try:
-        client.delete_collection(collection_name)
+        vectorstore.delete_collection()
     except Exception:
         pass
 
