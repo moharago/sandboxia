@@ -22,8 +22,8 @@ from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
-from app.db.vector import create_embeddings
-from app.rag.config import EmbeddingConfig
+from app.db.vector import create_embeddings, create_vector_store, HybridSearchConfig
+from app.rag.config import EmbeddingConfig, HybridConfig
 from eval.metrics import RetrievalMetrics
 
 
@@ -50,7 +50,9 @@ def load_evaluation_set() -> dict:
 def get_vector_store(
     embedding_config: EmbeddingConfig | None = None,
     collection_suffix: str = "",
-) -> Chroma:
+    vectordb_type: str = "chroma",
+    hybrid_config: HybridConfig | None = None,
+):
     """Vector Store 연결
 
     기존 Vector Store에 연결하여 검색 수행.
@@ -59,26 +61,36 @@ def get_vector_store(
     Args:
         embedding_config: 임베딩 설정 (None이면 .env의 LLM_EMBEDDING_MODEL 사용)
         collection_suffix: 컬렉션 이름에 붙일 접미사
+        vectordb_type: 사용할 Vector DB (chroma 또는 qdrant)
+        hybrid_config: Hybrid Search 설정 (Qdrant 전용)
 
     Returns:
-        Chroma Vector Store
+        BaseVectorStore 인스턴스
     """
     if embedding_config is None:
-        # 프리셋 없으면 .env의 LLM_EMBEDDING_MODEL 사용
         embeddings = OpenAIEmbeddings(
             model=settings.LLM_EMBEDDING_MODEL,
             openai_api_key=settings.OPENAI_API_KEY,
         )
     else:
-        # 프리셋 있으면 프리셋 사용
         embeddings = create_embeddings(embedding_config)
 
     collection_name = COLLECTION_LAWS + collection_suffix
 
-    return Chroma(
+    # HybridConfig → HybridSearchConfig 변환
+    hybrid_search_config = None
+    if hybrid_config and vectordb_type == "qdrant":
+        hybrid_search_config = HybridSearchConfig(
+            enabled=True,
+            alpha=hybrid_config.alpha,
+            sparse_model=hybrid_config.sparse_model,
+        )
+
+    return create_vector_store(
         collection_name=collection_name,
-        embedding_function=embeddings,
-        persist_directory=str(settings.CHROMA_PERSIST_DIR),
+        embeddings=embeddings,
+        vectordb_type=vectordb_type,
+        hybrid_config=hybrid_search_config,
     )
 
 
@@ -292,8 +304,12 @@ def format_chunk_ids(chunk_ids: list[dict]) -> list[str]:
     return [format_chunk_id(cid) for cid in chunk_ids]
 
 
-def get_chunk_statistics(vector_store: Chroma) -> dict:
+def get_chunk_statistics(vector_store) -> dict:
     """Vector Store에서 청크 통계 조회
+
+    Note:
+        추상화된 VectorStore에서는 직접 통계 조회가 지원되지 않을 수 있음.
+        ChromaDB의 .get() 메서드는 추상화 레이어에 포함되지 않음.
 
     Returns:
         {
@@ -301,25 +317,42 @@ def get_chunk_statistics(vector_store: Chroma) -> dict:
             "avg_chunk_length": float,
         }
     """
-    # ChromaDB 공용 API를 사용하여 모든 문서 조회
-    result = vector_store.get(include=["documents"])
+    try:
+        # ChromaDB의 경우 내부 collection에 직접 접근 시도
+        if hasattr(vector_store, "_collection"):
+            result = vector_store._collection.get(include=["documents"])
+            documents = result.get("documents", [])
+        elif hasattr(vector_store, "get"):
+            result = vector_store.get(include=["documents"])
+            documents = result.get("documents", [])
+        else:
+            # 지원되지 않는 VectorStore - 기본값 반환
+            return {
+                "total_chunks": -1,  # 알 수 없음
+                "avg_chunk_length": -1.0,
+            }
 
-    documents = result.get("documents", [])
-    # None/empty 문서 필터링
-    filtered_documents = [doc for doc in documents if doc]
-    total_chunks = len(filtered_documents)
+        # None/empty 문서 필터링
+        filtered_documents = [doc for doc in documents if doc]
+        total_chunks = len(filtered_documents)
 
-    if total_chunks == 0:
+        if total_chunks == 0:
+            return {
+                "total_chunks": 0,
+                "avg_chunk_length": 0.0,
+            }
+
+        # 평균 청크 길이 계산 (문자 수 기준)
+        total_length = sum(len(doc) for doc in filtered_documents)
+        avg_length = total_length / total_chunks
+
         return {
-            "total_chunks": 0,
-            "avg_chunk_length": 0.0,
+            "total_chunks": total_chunks,
+            "avg_chunk_length": round(avg_length, 1),
         }
-
-    # 평균 청크 길이 계산 (문자 수 기준)
-    total_length = sum(len(doc) for doc in filtered_documents)
-    avg_length = total_length / total_chunks
-
-    return {
-        "total_chunks": total_chunks,
-        "avg_chunk_length": round(avg_length, 1),
-    }
+    except Exception:
+        # 오류 발생 시 기본값 반환
+        return {
+            "total_chunks": -1,
+            "avg_chunk_length": -1.0,
+        }

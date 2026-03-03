@@ -32,10 +32,15 @@ class Settings(BaseSettings):
     LAW_API_OC: str
 
     # Vector DB 설정
+    VECTORDB_TYPE: str = "chroma"  # chroma | qdrant
     CHROMA_MODE: str = "persistent"  # persistent | http | ephemeral
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
     CHROMA_PERSIST_DIR: str = "./data/chroma"  # persistent 모드 시 사용
+    # Qdrant 설정
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_API_KEY: str | None = None  # Cloud 사용 시 필요
 
     # LLM 설정
     LLM_MODEL: str
