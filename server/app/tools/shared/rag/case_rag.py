@@ -167,7 +167,7 @@ def search_case(
         filter_dict = {"track": track}
 
     # 유사도 검색 (추상화된 인터페이스 사용)
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=query,
         k=fetch_count,
         filter=filter_dict,

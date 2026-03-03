@@ -131,8 +131,8 @@ def search_domain_law(
     if normalized_domain:
         filter_dict = {"domain": normalized_domain}
 
-    # 유사도 검색 (추상화된 인터페이스 사용)
-    search_results = vector_store.similarity_search(
+    # Hybrid Search (E1 + H3: Dense 70% + Sparse 30%)
+    search_results = vector_store.hybrid_search(
         query=query,
         k=top_k,
         filter=filter_dict,

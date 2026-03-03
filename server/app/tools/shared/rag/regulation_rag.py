@@ -222,7 +222,7 @@ def search_regulation(
     )
 
     # 유사도 검색 (추상화된 인터페이스 사용)
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=query,
         k=top_k,
         filter=filter_dict,
@@ -276,7 +276,7 @@ def get_track_definition(track: str) -> list[RegulationResult]:
     }
 
     # 트랙 정의 문서 검색
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=f"{normalized_track} 정의 요건 절차",
         k=10,
         filter=filter_dict,
@@ -318,7 +318,7 @@ def get_application_requirements(track: str | None = None) -> list[RegulationRes
     else:
         filter_dict = {"category": {"$eq": "requirement"}}
 
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=f"신청 요건 제출 서류 {track or ''}",
         k=10,
         filter=filter_dict,
@@ -360,7 +360,7 @@ def get_review_criteria(track: str | None = None) -> list[RegulationResult]:
     else:
         filter_dict = {"category": {"$eq": "criteria"}}
 
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=f"심사 기준 평가 항목 {track or ''}",
         k=10,
         filter=filter_dict,
@@ -381,7 +381,7 @@ def compare_tracks() -> list[RegulationResult]:
     """
     vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query="신속확인 실증특례 임시허가 비교 차이점",
         k=10,
         filter={"category": {"$eq": "comparison"}},

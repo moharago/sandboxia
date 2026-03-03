@@ -1,5 +1,5 @@
 # =============================================================================
-# Docker Compose - FastAPI + ChromaDB
+# Docker Compose - FastAPI + Qdrant
 # =============================================================================
 
 services:
@@ -17,18 +17,15 @@ services:
     env_file:
       - .env
     environment:
-      - CHROMA_MODE=http
-      - CHROMA_HOST=chroma
-      - CHROMA_PORT=8000
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
     depends_on:
-      chroma:
-        condition: service_started
+      qdrant:
+        condition: service_healthy
     restart: always
     networks:
       - sandbox-network
     healthcheck:
-      # /health가 없을 수도 있어서 더 보수적으로 체크:
-      # 1) /health 시도 -> 실패하면 2) /docs 시도
       test: [
           "CMD-SHELL",
           "python -c \"import urllib.request; import sys; \
@@ -45,30 +42,25 @@ services:
       start_period: 20s
 
   # ---------------------------------------------------------------------------
-  # ChromaDB (Vector Database)
+  # Qdrant (Vector Database) - Hybrid Search (Dense + Sparse)
   # ---------------------------------------------------------------------------
-  chroma:
-    image: chromadb/chroma:1.4.1
-    container_name: sandbox-chroma
+  qdrant:
+    image: qdrant/qdrant:v1.13.6
+    container_name: sandbox-qdrant
     ports:
-      - "8001:8000" # 호스트 8001 → 컨테이너 8000
-    environment:
-      - IS_PERSISTENT=TRUE
-      - ANONYMIZED_TELEMETRY=FALSE
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
     volumes:
-      - ./data/chroma:/data # ChromaDB 데이터는 ./data/chroma에 bind mount됨
+      - ./data/qdrant:/qdrant/storage
     restart: always
     networks:
       - sandbox-network
-    # ⚠️ 초기 배포에서는 healthcheck로 막히는 경우가 많아서 일단 제거 추천.
-    # Chroma가 실제로 뜨면 API가 붙고, 붙는 과정에서 문제를 확인하는 게 더 빠릅니다.
-    #
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/heartbeat >/dev/null || curl -fsS http://localhost:8000/api/v2/heartbeat >/dev/null || curl -fsS http://localhost:8000/ >/dev/null"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 5
-    #   start_period: 20s
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 # =============================================================================
 # Networks

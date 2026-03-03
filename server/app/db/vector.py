@@ -65,7 +65,7 @@ class HybridSearchConfig:
 
     enabled: bool = False
     alpha: float = 0.7  # Dense 70%, Sparse 30%
-    sparse_model: str = "Qdrant/bm25"  # 기본 BM25 (한국어 지원)
+    sparse_model: str = "prithivida/Splade_PP_en_v1"  # H3: SPLADE (평가 채택)
 
 
 # =============================================================================
@@ -673,9 +673,9 @@ def create_embeddings(config: EmbeddingConfig) -> Embeddings:
 
 @lru_cache
 def get_embeddings() -> OpenAIEmbeddings:
-    """임베딩 모델 인스턴스 반환 (기본값: .env의 LLM_EMBEDDING_MODEL)"""
+    """임베딩 모델 인스턴스 반환 (E1: text-embedding-3-large)"""
     return OpenAIEmbeddings(
-        model=settings.LLM_EMBEDDING_MODEL,
+        model="text-embedding-3-large",
         openai_api_key=settings.OPENAI_API_KEY,
     )
 
@@ -687,37 +687,30 @@ _vectorstore_cache: dict[str, BaseVectorStore] = {}
 def create_vector_store(
     collection_name: str,
     embeddings: Embeddings | None = None,
-    vectordb_type: VectorDBType | str = VectorDBType.CHROMA,
+    vectordb_type: VectorDBType | str = VectorDBType.QDRANT,
     hybrid_config: HybridSearchConfig | None = None,
 ) -> BaseVectorStore:
     """VectorStore 인스턴스 생성 (Factory 함수)
 
-    기본 동작:
-    - Chroma: Dense Search (Hybrid 미지원)
-    - Qdrant: Hybrid Search (Dense + Sparse)
+    기본 동작 (Qdrant + E1 + H3):
+    - 임베딩: text-embedding-3-large (3072차원)
+    - Hybrid Search: SPLADE Dense 70% + Sparse 30%
 
     Args:
         collection_name: 컬렉션 이름
-        embeddings: 임베딩 모델 (None이면 기본값 사용)
-        vectordb_type: Vector DB 타입 (chroma 또는 qdrant)
-        hybrid_config: Hybrid Search 설정 (None이면 VectorDB별 기본값 사용)
+        embeddings: 임베딩 모델 (None이면 E1 사용)
+        vectordb_type: Vector DB 타입 (기본: qdrant)
+        hybrid_config: Hybrid Search 설정 (None이면 H3 사용)
 
     Returns:
         VectorStore 인스턴스
 
     Example:
-        # Chroma (Dense only)
+        # 기본 (Qdrant + E1 + H3)
         store = create_vector_store("my_collection")
 
-        # Qdrant (Hybrid 기본 활성화)
-        store = create_vector_store("my_collection", vectordb_type="qdrant")
-
-        # Qdrant + Hybrid 비활성화
-        store = create_vector_store(
-            "my_collection",
-            vectordb_type="qdrant",
-            hybrid_config=HybridSearchConfig(enabled=False),
-        )
+        # Chroma (Dense only)
+        store = create_vector_store("my_collection", vectordb_type="chroma")
     """
     if embeddings is None:
         embeddings = get_embeddings()
@@ -748,7 +741,7 @@ def create_vector_store(
 
 def get_vector_store(
     collection_name: str,
-    vectordb_type: VectorDBType | str = VectorDBType.CHROMA,
+    vectordb_type: VectorDBType | str = VectorDBType.QDRANT,
 ) -> BaseVectorStore:
     """VectorStore 인스턴스 반환 (캐시 사용)
 
