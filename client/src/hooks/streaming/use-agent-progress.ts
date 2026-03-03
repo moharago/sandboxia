@@ -19,7 +19,7 @@
  * ```
  */
 
-import { useAuthStore } from "@/stores/auth-store"
+import { getAuthToken } from "@/lib/supabase/client"
 import { useUIStore } from "@/stores/ui-store"
 import type { AgentProgressEvent, NodeInfo, SSEConnectionStatus } from "@/types/api/agent-progress"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -119,8 +119,10 @@ export function useAgentProgress(options: UseAgentProgressOptions): UseAgentProg
         }
 
         // 인증 토큰 가져오기
-        const token = await useAuthStore.getState().getAccessToken()
-        if (!token) {
+        let token: string
+        try {
+            token = await getAuthToken()
+        } catch {
             setStatus("error")
             setError("로그인이 필요합니다.")
             if (useGlobalLoader) {
