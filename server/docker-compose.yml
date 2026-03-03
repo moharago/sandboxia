@@ -57,7 +57,7 @@ services:
     networks:
       - sandbox-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:6333/healthz || exit 1"]
+      test: ["CMD-SHELL", "perl -e 'use IO::Socket::INET; exit(IO::Socket::INET->new(q(localhost:6333)) ? 0 : 1)'"]
       interval: 10s
       timeout: 5s
       retries: 3
