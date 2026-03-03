@@ -1,6 +1,6 @@
 "use client"
 
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { FileUpload } from "@/components/ui/file-upload"
@@ -189,43 +189,53 @@ export function ServiceForm({ project, id }: ServiceFormProps) {
         files: getFiles(),
     })
 
+    // 서비스 + eligibility 순차 실행 후 이동 (mutateAsync로 안정적 순차 실행)
+    const runServiceAndEligibility = async () => {
+        setRunningAgent("service")
+        serviceProgress.subscribe()
+
+        try {
+            await serviceMutation.mutateAsync(getMutationPayload())
+        } catch {
+            return // hook-level onError에서 이미 에러 UI 처리됨
+        }
+
+        // 서비스 성공 → eligibility 시작
+        setRunningAgent("eligibility")
+        showGlobalAILoader({
+            message: "서비스 규제 현황 분석 중...",
+            nodes: eligibilityNodes?.nodes,
+            progress: 0,
+            completedNodes: [],
+            currentNodeId: null,
+        })
+        eligibilityProgress.subscribe()
+
+        try {
+            await eligibilityMutation.mutateAsync({ project_id: id })
+        } catch {
+            return // hook-level onError에서 이미 에러 UI 처리됨
+        }
+    }
+
     // 재분석: current_step 리셋 후 서비스 + eligibility 순차 실행 → eligibility 페이지로 이동
     const runReanalyze = async () => {
         setReanalyzeModalOpen(false)
         try {
             // 재분석 시 current_step을 현재 페이지 단계(1)로 업데이트
             await projectsApi.updateStatus(id, project.status, PAGE_STEP)
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
             queryClient.invalidateQueries({ queryKey: ["projects"] })
-            runServiceAndEligibility()
+            await runServiceAndEligibility()
         } catch (error) {
             setRunningAgent(null)
             hideGlobalAILoader()
             const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
             setErrorMessage(`서비스 분석 준비 중 오류가 발생했습니다: ${message}`)
             setErrorModalOpen(true)
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
             queryClient.invalidateQueries({ queryKey: ["projects"] })
         }
-    }
-
-    // 서비스 + eligibility 순차 실행 후 이동
-    const runServiceAndEligibility = () => {
-        setRunningAgent("service")
-        serviceProgress.subscribe()
-        serviceMutation.mutate(getMutationPayload(), {
-            onSuccess: () => {
-                setRunningAgent("eligibility")
-                // 전역 로더 메시지/노드 업데이트
-                showGlobalAILoader({
-                    message: "서비스 규제 현황 분석 중...",
-                    nodes: eligibilityNodes?.nodes,
-                    progress: 0,
-                    completedNodes: [],
-                    currentNodeId: null,
-                })
-                eligibilityProgress.subscribe()
-                eligibilityMutation.mutate({ project_id: id })
-            },
-        })
     }
 
     // 다음 단계 버튼 클릭 (current_step > PAGE_STEP인 경우: 분석 없이 이동만)
