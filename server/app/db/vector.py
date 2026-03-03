@@ -14,6 +14,7 @@ Hybrid Search:
 """
 
 import logging
+import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -441,6 +442,7 @@ class QdrantVectorStore(BaseVectorStore):
         self._collection_name = collection_name
         self._embeddings = embeddings
         self._hybrid_config = hybrid_config or HybridSearchConfig()
+        self._mode_lock = threading.Lock()
 
         # Qdrant 클라이언트 생성
         if settings.QDRANT_API_KEY:
@@ -551,19 +553,19 @@ class QdrantVectorStore(BaseVectorStore):
         """유사도 검색 (Dense only)"""
         from langchain_qdrant import RetrievalMode
 
-        # Dense only 검색을 위해 임시로 retrieval_mode 변경
-        original_mode = self._client.retrieval_mode
-        self._client.retrieval_mode = RetrievalMode.DENSE
-
         qdrant_filter = self._to_qdrant_filter(filter) if filter else None
-        docs_with_scores = self._client.similarity_search_with_score(
-            query,
-            k=k,
-            filter=qdrant_filter,
-        )
 
-        # 원래 모드로 복원
-        self._client.retrieval_mode = original_mode
+        with self._mode_lock:
+            original_mode = self._client.retrieval_mode
+            self._client.retrieval_mode = RetrievalMode.DENSE
+            try:
+                docs_with_scores = self._client.similarity_search_with_score(
+                    query,
+                    k=k,
+                    filter=qdrant_filter,
+                )
+            finally:
+                self._client.retrieval_mode = original_mode
 
         return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
 
@@ -591,15 +593,19 @@ class QdrantVectorStore(BaseVectorStore):
 
         from langchain_qdrant import RetrievalMode
 
-        # Hybrid 모드로 검색
-        self._client.retrieval_mode = RetrievalMode.HYBRID
-
         qdrant_filter = self._to_qdrant_filter(filter) if filter else None
-        docs_with_scores = self._client.similarity_search_with_score(
-            query,
-            k=k,
-            filter=qdrant_filter,
-        )
+
+        with self._mode_lock:
+            original_mode = self._client.retrieval_mode
+            self._client.retrieval_mode = RetrievalMode.HYBRID
+            try:
+                docs_with_scores = self._client.similarity_search_with_score(
+                    query,
+                    k=k,
+                    filter=qdrant_filter,
+                )
+            finally:
+                self._client.retrieval_mode = original_mode
 
         return [SearchResult(document=doc, score=score) for doc, score in docs_with_scores]
 
@@ -802,7 +808,9 @@ def get_vector_store(
     Returns:
         VectorStore 인스턴스 (캐시됨)
     """
-    cache_key = f"{vectordb_type}:{collection_name}"
+    if isinstance(vectordb_type, str):
+        vectordb_type = VectorDBType(vectordb_type.lower())
+    cache_key = f"{vectordb_type.value}:{collection_name}"
     if cache_key not in _vectorstore_cache:
         _vectorstore_cache[cache_key] = create_vector_store(
             collection_name=collection_name,
