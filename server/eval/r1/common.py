@@ -11,6 +11,7 @@ run_evaluation.py와 run_llm_evaluation.py에서 공유하는 함수들.
 - Retrieval 지표 계산
 """
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -34,9 +35,21 @@ R1_DATA_PATH = Path(__file__).parent.parent.parent / "data" / "r1_data" / "r1_ra
 
 
 def load_evaluation_set() -> dict:
-    """평가셋 로드"""
+    """평가셋 로드 및 검증"""
     with open(EVALUATION_SET_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    # gold_chunks와 negatives 간 충돌 검증
+    for q in data.get("questions", []):
+        gold_ids = {c["chunk_id"] for c in q.get("gold_chunks", [])}
+        neg_ids = set(q.get("negatives", []))
+        overlap = gold_ids & neg_ids
+        if overlap:
+            raise ValueError(
+                f"평가셋 오류: {q['id']}에서 gold_chunks와 negatives 충돌 - {overlap}"
+            )
+
+    return data
 
 
 def get_vector_store(
@@ -270,14 +283,14 @@ class HybridRetriever:
 
         # BM25 결과 점수
         for rank, doc in enumerate(bm25_results):
-            doc_id = doc.metadata.get("document_id", doc.page_content[:50])
+            doc_id = doc.metadata.get("document_id") or hashlib.md5(doc.page_content.encode()).hexdigest()[:16]
             rrf_score = self.bm25_weight / (self.rrf_k + rank + 1)
             doc_scores[doc_id] = doc_scores.get(doc_id, 0) + rrf_score
             doc_map[doc_id] = doc
 
         # Vector 결과 점수
         for rank, doc in enumerate(vector_results):
-            doc_id = doc.metadata.get("document_id", doc.page_content[:50])
+            doc_id = doc.metadata.get("document_id") or hashlib.md5(doc.page_content.encode()).hexdigest()[:16]
             rrf_score = self.vector_weight / (self.rrf_k + rank + 1)
             doc_scores[doc_id] = doc_scores.get(doc_id, 0) + rrf_score
             if doc_id not in doc_map:

@@ -199,9 +199,11 @@ def load_json_data() -> tuple[list[dict], str]:
         data = []
         for chunk in chunks_data.get("chunks", []):
             meta = chunk.get("metadata", {})
+            # chunk_id (고유 ID) 우선, 없으면 document_id fallback
+            chunk_id = chunk.get("chunk_id", meta.get("document_id", ""))
             data.append(
                 {
-                    "id": meta.get("document_id", ""),
+                    "id": chunk_id,
                     "title": meta.get("document_title", ""),
                     "content": chunk.get("content", ""),
                     "category": meta.get("category_label", "일반"),
@@ -281,9 +283,14 @@ def create_documents(data: list[dict]) -> tuple[list[Document], list[str]]:
                 "citation": citation,
             },
         )
-        # ID 생성: reg_{document_id} 또는 reg_{index}
+        # ID 생성: 이미 reg_ prefix 있으면 그대로, 없으면 추가
         source_id = item.get("id", "")
-        doc_id = f"reg_{source_id}" if source_id else f"reg_{idx}"
+        if source_id.startswith("reg_"):
+            doc_id = source_id
+        elif source_id:
+            doc_id = f"reg_{source_id}"
+        else:
+            doc_id = f"reg_{idx}"
         documents.append(doc)
         doc_ids.append(doc_id)
 

@@ -21,7 +21,7 @@ class RerankedResult:
     document: str
     original_rank: int
     new_rank: int
-    score: float
+    score: float | None = None
     metadata: dict = None
 
 
@@ -51,7 +51,7 @@ class BGEReranker:
         documents: list[str],
         top_k: int = 5,
         return_scores: bool = True
-    ) -> list[RerankedResult]:
+    ) -> tuple[list[RerankedResult], float]:
         """문서 재정렬
 
         Args:
@@ -61,10 +61,10 @@ class BGEReranker:
             return_scores: 점수 포함 여부
 
         Returns:
-            재정렬된 문서 리스트
+            (재정렬된 문서 리스트, latency_ms)
         """
         if not documents:
-            return []
+            return [], 0.0
 
         # Query-Document 쌍 생성
         pairs = [[query, doc] for doc in documents]
@@ -85,7 +85,7 @@ class BGEReranker:
                 document=doc,
                 original_rank=original_rank,
                 new_rank=new_rank,
-                score=float(score)
+                score=float(score) if return_scores else None,
             ))
 
         return results, latency_ms
