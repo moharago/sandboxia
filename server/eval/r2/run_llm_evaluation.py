@@ -21,6 +21,7 @@
     --embedding E0                 임베딩 프리셋 (기본: .env 기본값)
     --data-version enriched        데이터 버전 (기본: enriched)
     --top_k 5                      Top-K (기본: 5)
+    --threshold 0.3                Score threshold (기본: None = 필터 없음)
     --limit 3                      평가 항목 수 제한 (테스트용)
     --output result                결과 파일명 (단일 모델만)
     --change-factor generation_model  이번 실험에서 바꾼 변수
@@ -274,8 +275,15 @@ def retrieve_single_item(
     vectorstore,
     item: dict,
     top_k: int = 5,
+    threshold: float | None = None,
 ) -> dict:
     """단일 항목 검색 (생성 모델 무관)
+
+    Args:
+        vectorstore: Chroma Vector Store
+        item: 평가 항목
+        top_k: Top-K 값
+        threshold: Score threshold (None이면 필터 없음)
 
     Returns:
         검색 결과 딕셔너리 (contexts, retrieved_ids, metrics 등)
@@ -288,7 +296,20 @@ def retrieve_single_item(
     negative_ids = [n["case_id"] for n in negatives]
 
     start = time.perf_counter()
-    results = vectorstore.similarity_search(question, k=top_k)
+    if threshold is not None:
+        results_with_scores = vectorstore.similarity_search_with_relevance_scores(
+            question, k=top_k
+        )
+        filtered = [
+            (doc, score)
+            for doc, score in results_with_scores
+            if score >= threshold
+        ]
+        results = [doc for doc, _ in filtered]
+        scores = [round(score, 4) for _, score in filtered]
+    else:
+        results = vectorstore.similarity_search(question, k=top_k)
+        scores = None
     latency = (time.perf_counter() - start) * 1000
 
     retrieved_ids = [extract_case_id_from_result(doc) for doc in results]
@@ -307,6 +328,8 @@ def retrieve_single_item(
         "retrieval_metrics": metrics,
         "negative_at_k": negative_at_k,
         "retrieval_latency_ms": round(latency, 2),
+        "scores": scores,
+        "actual_k": len(results),
     }
 
 
@@ -483,6 +506,7 @@ async def run_evaluation_async(
     tags: list[str] | None = None,
     description: str = "",
     bullet_judge_enabled: bool = True,
+    threshold: float | None = None,
 ):
     """전체 평가 실행 (비동기)
 
@@ -510,6 +534,8 @@ async def run_evaluation_async(
 
     print(f"\n평가셋: {len(items)}개 항목")
     print(f"Top-K: {top_k}")
+    if threshold is not None:
+        print(f"Threshold: {threshold}")
     print(f"데이터: {data_version} ({len(case_data)}건)")
     print(f"전략: {strategy}")
     print(f"임베딩: {emb_model_name}")
@@ -537,7 +563,7 @@ async def run_evaluation_async(
     all_ret_latencies: list[float] = []
 
     for i, item in enumerate(items, 1):
-        ret = retrieve_single_item(vectorstore, item, top_k)
+        ret = retrieve_single_item(vectorstore, item, top_k, threshold)
         retrieval_cache[item["id"]] = ret
         all_retrieval_metrics.append(ret["retrieval_metrics"])
         all_negatives.append(ret["negative_at_k"])
@@ -721,6 +747,7 @@ async def run_evaluation_async(
                 "strategy": strategy,
                 "embedding_model": emb_model_name,
                 "top_k": top_k,
+                "threshold": threshold,
                 "num_cases": len(case_data),
                 "num_eval_items": len(items),
                 "data_version": data_version,
@@ -797,6 +824,12 @@ def main():
     )
     parser.add_argument("--top_k", type=int, default=5, help="Top-K (기본: 5)")
     parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="Score threshold (기본: None = 필터 없음, 예: 0.3)",
+    )
+    parser.add_argument(
         "--output", type=str, default=None, help="결과 파일명 (단일 모델만)"
     )
     parser.add_argument(
@@ -854,6 +887,7 @@ def main():
         tags=tags,
         description=args.description or "",
         bullet_judge_enabled=not args.no_bullet_judge,
+        threshold=args.threshold,
     )
 
 

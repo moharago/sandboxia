@@ -130,29 +130,106 @@ uv run python eval/r2/run_llm_evaluation.py --model all --tags stage3
 
 ### 4단계: 구성 튜닝
 
-확정된 조합 위에서, 검색→생성 파이프라인 구성을 바꿔가며 최적화.
+확정된 조합(structured + enriched + E0 + gpt-4o) 위에서, 검색→생성 파이프라인 구성을 바꿔가며 최적화.
 
-| 구성 | 범위 |
-|---|---|
-| Top-k 개수 | 3, 5, 7, 10 |
-| Score threshold | 0.25, 0.30, 0.35, 0.40, 0.45 |
-| 중복 제거 (deduplicate) | on / off |
-| Chunk ordering | score순 / 날짜순 |
-| 요약 후 전달 vs 원문 전달 | summary / raw |
+#### 실험 범위
 
-### 5단계: 최종 확정 및 안정 구간 기록
+| 구성 | 범위 | 결과 |
+|---|---|---|
+| **Top-k 개수** | 3, 5, 7, 10 | **5 확정** (아래 참고) |
+| **Score threshold** | 0.2, 0.25, 0.3 | **불필요** (score 분포가 너무 좁음) |
+| 중복 제거 (deduplicate) | — | 해당 없음 (임시 컬렉션에 중복 없음) |
+| Chunk ordering | — | 해당 없음 (R2는 청킹 없음) |
+| 요약 vs 원문 | — | 5단계에서 고려 |
 
-최적 조건만 찾지 않고, 성능이 안정적으로 유지되는 구간을 같이 기록.
+#### 4단계-1: Top-k Retrieval 비교 (2026-03-03, 30항목)
+
+| 지표 | k=3 | **k=5** | k=7 | k=10 |
+|---|---|---|---|---|
+| MH-Recall@K | 0.7167 | **0.8667** | 0.9333 | 0.9500 |
+| Recall@K | 0.6717 | **0.8581** | 0.8860 | 0.9019 |
+| MRR | 0.9500 | **0.9500** | 0.9556 | 0.9556 |
+| Negative@K | 0.0833 | **0.2000** | 0.2333 | 0.3167 |
+| Latency P50 | 131ms | 121ms | 130ms | 134ms |
+
+> k 증가 시 Recall 상승 + Negative 상승 트레이드오프 관찰. k=5→7에서 MH-R +6.7%p / Neg +3.3%p, k=7→10에서 MH-R +1.7%p / Neg +8.3%p.
+
+#### 4단계-2: Score Threshold 실험 (k=7 고정)
+
+| 지표 | threshold 없음 | 0.2 | 0.25 | 0.3 |
+|---|---|---|---|---|
+| MH-Recall@7 | **0.9333** | 0.8833 | 0.7500 | 0.6167 |
+| Recall@7 | **0.8860** | 0.8249 | 0.7057 | 0.5472 |
+| MRR | **0.9556** | 0.9222 | 0.8889 | 0.7222 |
+| Negative@7 | 0.2333 | 0.2167 | 0.1667 | **0.1000** |
+
+> **Score 분포**: min=0.076, median=0.297, max=0.584 (범위 너무 좁음). threshold=0.3에서 결과의 52%가 필터링됨. Negative 감소 효과보다 Recall 손실이 훨씬 큼 → **threshold 불필요**.
+
+#### 4단계-3: LLM 생성 비교 (k=5 vs k=7, gpt-4o)
+
+| 지표 | **k=5** (3단계 baseline) | k=7 |
+|---|---|---|
+| MH-Recall | 0.8667 | **0.9333** |
+| Faithfulness | **0.9749** | 0.9718 |
+| Answer Relevancy | **0.7177** | 0.6337 |
+| MI Coverage | 0.9833 | **1.0000** |
+| Bullet Coverage | **0.8167** | 0.7944 |
+| Gen Latency P50 | **2,947ms** | 4,847ms |
+
+> k=7은 검색 품질 향상(MH-R +6.7%p)에도 불구하고 생성 품질이 하락. Answer Relevancy −8.4%p, Bullet Coverage −2.2%p, Latency +64%. 추가 context가 노이즈로 작용하여 응답 집중도가 떨어짐.
+
+#### 4단계 결론
+
+> **top_k=5, threshold 없음 확정**. 검색 품질과 생성 품질의 균형점이 k=5. k=7 이상은 retrieval 지표만 올리고 실제 답변 품질은 악화. Score threshold는 이 데이터의 score 분포(0.08~0.58)에서 효과 없음.
+
+### 5단계: 최종 확정 및 안정 구간 기록 (2026-03-03)
+
+#### 최종 확정 구성
 
 ```
-현재까지 확정:
-- 데이터 전략: structured + enriched (1단계)
-- 임베딩 모델: E0 text-embedding-3-small (2단계)
-- 생성 모델: gpt-4o (3단계)
-- 청킹: 없음 (1건=1문서)
+데이터 전략:   structured + enriched (1단계)
+임베딩 모델:   E0 text-embedding-3-small (2단계)
+생성 모델:     gpt-4o (3단계)
+청킹:          없음 (1건=1문서, max 1,211자)
+top_k:         5 (4단계)
+score threshold: 없음 (4단계)
 ```
 
-확정 후 `collect_cases.py --strategy {승자}`로 production ChromaDB 구축, `chunks.json` 생성.
+#### 안정 구간 정리
+
+| 구성 요소 | 최적값 | 안정 구간 | 근거 |
+|---|---|---|---|
+| **데이터 전략** | structured + enriched | structured 계열 전체 | enriched가 전 지표 소폭 우위(MRR +0.04, R +0.07). fulltext는 큰 폭 하락 |
+| **임베딩 모델** | E0 (3-small) | E0, E1, E4 모두 유사 | 절대 차이 ~2.5%p. E0이 MRR 최강 + API 전용 운영 이점 |
+| **생성 모델** | gpt-4o | gpt-4o 단독 | Faith 0.975, Rel 0.718, Latency P50 2.9s로 전 지표 1위. 차순위 gpt-4o-mini는 Latency 3배 |
+| **top_k** | 5 | **5~7 안정** | k=5: MH-R 0.867, k=7: 0.933. 단, k=7은 생성 시 Answer Relevancy −8.4%p 하락 → 검색+생성 균형은 k=5 |
+| **threshold** | 없음 | **항상 없음** | Score 분포(0.08~0.58)가 너무 좁아 어떤 값이든 gold 결과를 먼저 필터링 |
+
+#### 전 단계 성능 요약 (확정 구성 기준)
+
+| 지표 | 값 | 단계 |
+|---|---|---|
+| MH-Recall@5 | 0.867 | 4단계 |
+| Recall@5 | 0.858 | 4단계 |
+| MRR | 0.950 | 4단계 |
+| Negative@5 | 0.200 | 4단계 |
+| Faithfulness | 0.975 | 3단계 |
+| Answer Relevancy | 0.718 | 3단계 |
+| MI Coverage | 0.983 | 3단계 |
+| Bullet Coverage | 0.817 | 3단계 |
+| Gen Latency P50 | 2,947ms | 3단계 |
+
+#### Production ChromaDB 구축
+
+Google Drive의 `cases_structured.json`을 enriched 데이터로 교체 후 실행:
+
+```bash
+cd server
+uv run python scripts/collect_cases.py --strategy structured
+```
+
+- 컬렉션: `rag_cases` (281문서)
+- Drive 파일이 enriched 내용이므로 별도 옵션 불필요
 
 ---
 
@@ -343,8 +420,7 @@ server/
 │   └── collect_cases.py              # --strategy 파라미터 (structured/hybrid/fulltext)
 └── data/
     └── r2_data/
-        ├── cases_structured.json     # 원본 데이터 (1개)
-        └── chunks.json               # 최종 확정 전략의 chunks (1개)
+        └── cases_structured.json     # enriched 데이터 (Google Drive에서 다운로드)
 ```
 
 ---
@@ -353,15 +429,15 @@ server/
 
 ### 0단계: 평가셋
 
-- [ ] R2 평가셋 30개 작성
-- [ ] gold_cases case_id 검증
+- [x] R2 평가셋 30개 작성
+- [x] gold_cases case_id 검증
 
 ### 1단계: 데이터 전략
 
 - [x] collect_cases.py에 --strategy 파라미터 추가 + conditions 필드 baseline 포함
-- [ ] run_evaluation.py에 --strategy all 구현
-- [ ] `uv run python eval/r2/run_evaluation.py --strategy all` 실행
-- [ ] 1등 데이터 전략 확정
+- [x] run_evaluation.py에 --strategy all 구현
+- [x] `uv run python eval/r2/run_evaluation.py --strategy all` 실행
+- [x] 1등 데이터 전략 확정 → **structured + enriched**
 
 ### 2단계: 임베딩 모델
 
@@ -381,11 +457,16 @@ server/
 
 ### 4단계: 구성 튜닝
 
-- [ ] Top-k / threshold / 중복제거 등 조합 테스트
-- [ ] 최적 조건 확정
+- [x] Top-k 비교 (3, 5, 7, 10) → k=5 확정
+- [x] Score threshold 실험 (0.2, 0.25, 0.3) → 불필요 확정
+- [x] k=7 LLM 생성 비교 → k=5가 생성 품질 우위
+- [x] `run_evaluation.py`에 `--threshold` 옵션 추가
+- [x] `run_llm_evaluation.py`에 `--threshold` 옵션 추가
+- [x] 최적 조건 확정: **top_k=5, threshold 없음**
 
 ### 5단계: 마무리
 
-- [ ] 안정 구간 정리
-- [ ] collect_cases.py --strategy {승자}로 production ChromaDB 구축
-- [ ] 결과 문서화
+- [x] 안정 구간 정리
+- [x] Google Drive `cases_structured.json`을 enriched 데이터로 교체
+- [x] `collect_cases.py --strategy structured`로 production ChromaDB 구축 (281문서)
+- [x] 결과 문서화
