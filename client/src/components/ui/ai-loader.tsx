@@ -31,8 +31,11 @@ interface AILoaderProps {
 export function AILoader({ message, nodes, completedNodes = [], currentNodeId, progress }: AILoaderProps) {
     const hasNodes = nodes && nodes.length > 0
 
+    // js-set-map-lookups: Set으로 O(1) lookup 최적화
+    const completedSet = new Set(completedNodes)
+
     // 진행 중인 노드 자동 판단: currentNodeId가 없으면 완료되지 않은 첫 번째 노드를 진행 중으로 표시
-    const runningNodeId = currentNodeId ?? (hasNodes ? nodes.find((n) => !completedNodes.includes(n.id))?.id : null)
+    const runningNodeId = currentNodeId ?? (hasNodes ? nodes.find((n) => !completedSet.has(n.id))?.id : null)
 
     return (
         <div
@@ -73,7 +76,7 @@ export function AILoader({ message, nodes, completedNodes = [], currentNodeId, p
                 {hasNodes && (
                     <div className="w-full mt-2">
                         {nodes.map((node) => {
-                            const isCompleted = completedNodes.includes(node.id)
+                            const isCompleted = completedSet.has(node.id)
                             const isRunning = runningNodeId === node.id
                             const isPending = !isCompleted && !isRunning
 

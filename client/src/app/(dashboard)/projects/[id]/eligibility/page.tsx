@@ -1,8 +1,14 @@
 "use client"
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
-import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
+import dynamic from "next/dynamic"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(
+    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
+    { ssr: false }
+)
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
@@ -210,14 +216,18 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     }
 
     // eligibility 분석만 실행 (재분석 - 페이지 이동 없음)
-    const runEligibilityOnly = () => {
+    const runEligibilityOnly = async () => {
         setReanalyzeModalOpen(false)
         eligibilityProgress.subscribe()
-        eligibilityMutation.mutate({ project_id: id }, {
-            onSuccess: () => {
-                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
-            },
-        })
+
+        try {
+            await eligibilityMutation.mutateAsync({ project_id: id })
+            hideGlobalAILoader() // 재분석 완료 시 로더 숨김
+        } catch {
+            // hook-level onError에서 이미 에러 UI 처리됨
+        } finally {
+            eligibilityProgress.unsubscribe()
+        }
     }
 
     // 트랙 에이전트 실행 후 이동
@@ -237,19 +247,25 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
         try {
             // 사용자 최종 선택 저장
             const finalLabel = selectedDecision === "direct" ? "not_required" : "required"
-            await eligibilityApi.updateFinalDecision(id, finalLabel)
-            queryClient.invalidateQueries({ queryKey: ["eligibility"] })
 
             if (selectedDecision === "direct") {
-                await projectsApi.updateStatus(id, 4, 2)
+                // async-parallel: 독립적인 API 호출 병렬화
+                await Promise.all([
+                    eligibilityApi.updateFinalDecision(id, finalLabel),
+                    projectsApi.updateStatus(id, 4, 2),
+                ])
+                // invalidateQueries는 await 불필요 (백그라운드 실행)
+                queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
                 markStepComplete(2)
                 hideGlobalAILoader()
                 router.push("/dashboard")
             } else {
+                await eligibilityApi.updateFinalDecision(id, finalLabel)
+                queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                 trackProgress.subscribe()
                 await agentsApi.recommendTrack({ project_id: id })
-                // 트랙 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
+                // invalidateQueries는 await 불필요 (백그라운드 실행)
                 queryClient.invalidateQueries({ queryKey: ["track"] })
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
                 markStepComplete(2)
@@ -301,70 +317,79 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
         }
     }
 
-    // 분석 + 다음 단계 (한 번에)
-    const handleAnalyzeAndNext = () => {
+    // 분석 + 다음 단계 (한 번에, mutateAsync로 안정적 순차 실행)
+    const handleAnalyzeAndNext = async () => {
         if (isAnalyzed) {
             handleNext()
             return
         }
         eligibilityProgress.subscribe()
-        eligibilityMutation.mutate(
-            { project_id: id },
-            {
-                onSuccess: async (data) => {
-                    const mappedData = mapResponseToAnalysisData(data)
 
-                    try {
-                        // sandbox인 경우 전역 로더 메시지/노드 업데이트
-                        if (mappedData.recommendation === "sandbox") {
-                            setIsRunningTrackAgent(true)
-                            showGlobalAILoader({
-                                message: "최적의 트랙 추천 중...",
-                                nodes: trackNodes?.nodes,
-                                progress: 0,
-                                completedNodes: [],
-                                currentNodeId: null,
-                            })
-                        }
+        let data: EligibilityResponse
+        try {
+            data = await eligibilityMutation.mutateAsync({ project_id: id })
+        } catch {
+            return // hook-level onError에서 이미 에러 UI 처리됨
+        }
 
-                        setMarketAnalysis({
-                            decision: mappedData.recommendation,
-                            aiRecommendation: mappedData.recommendation,
-                        })
+        const mappedData = mapResponseToAnalysisData(data)
 
-                        const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
-                        await eligibilityApi.updateFinalDecision(id, finalLabel)
-
-                        if (mappedData.recommendation === "direct") {
-                            await projectsApi.updateStatus(id, 4, 2)
-                            queryClient.invalidateQueries({ queryKey: ["projects"] })
-                            markStepComplete(2)
-                            hideGlobalAILoader()
-                            router.push("/dashboard")
-                        } else {
-                            trackProgress.subscribe()
-                            await agentsApi.recommendTrack({ project_id: id })
-                            // 트랙 결과 쿼리 invalidate (페이지 이동 후 마운트 시 refetch)
-                            queryClient.invalidateQueries({ queryKey: ["track"] })
-                            queryClient.invalidateQueries({ queryKey: ["projects"] })
-                            markStepComplete(2)
-                            setCurrentStep(3)
-                            // 전역 로더는 다음 페이지에서 숨김
-                            router.push(`/projects/${id}/track`)
-                        }
-                    } catch (error) {
-                        console.error("분석 후 처리 실패:", error)
-                        const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
-                        setErrorMessage(`처리 중 오류가 발생했습니다: ${message}`)
-                        setErrorModalOpen(true)
-                    } finally {
-                        trackProgress.unsubscribe()
-                        hideGlobalAILoader()
-                        setIsRunningTrackAgent(false)
-                    }
-                },
+        try {
+            // sandbox인 경우 전역 로더 메시지/노드 업데이트
+            if (mappedData.recommendation === "sandbox") {
+                setIsRunningTrackAgent(true)
+                showGlobalAILoader({
+                    message: "최적의 트랙 추천 중...",
+                    nodes: trackNodes?.nodes,
+                    progress: 0,
+                    completedNodes: [],
+                    currentNodeId: null,
+                })
             }
-        )
+
+            setMarketAnalysis({
+                decision: mappedData.recommendation,
+                aiRecommendation: mappedData.recommendation,
+            })
+
+            const finalLabel = mappedData.recommendation === "direct" ? "not_required" : "required"
+
+            if (mappedData.recommendation === "direct") {
+                // async-parallel: 독립적인 API 호출 병렬화
+                await Promise.all([
+                    eligibilityApi.updateFinalDecision(id, finalLabel),
+                    projectsApi.updateStatus(id, 4, 2),
+                ])
+                // invalidateQueries는 await 불필요 (백그라운드 실행)
+                queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+                queryClient.invalidateQueries({ queryKey: ["projects"] })
+                markStepComplete(2)
+                hideGlobalAILoader()
+                router.push("/dashboard")
+            } else {
+                await eligibilityApi.updateFinalDecision(id, finalLabel)
+                queryClient.invalidateQueries({ queryKey: ["eligibility"] })
+                trackProgress.subscribe()
+                await agentsApi.recommendTrack({ project_id: id })
+                // invalidateQueries는 await 불필요 (백그라운드 실행)
+                queryClient.invalidateQueries({ queryKey: ["track"] })
+                queryClient.invalidateQueries({ queryKey: ["projects"] })
+                markStepComplete(2)
+                setCurrentStep(3)
+                // 전역 로더는 다음 페이지에서 숨김
+                router.push(`/projects/${id}/track`)
+            }
+        } catch (error) {
+            console.error("분석 후 처리 실패:", error)
+            const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+            setErrorMessage(`처리 중 오류가 발생했습니다: ${message}`)
+            setErrorModalOpen(true)
+        } finally {
+            eligibilityProgress.unsubscribe()
+            trackProgress.unsubscribe()
+            hideGlobalAILoader()
+            setIsRunningTrackAgent(false)
+        }
     }
 
     const isQueryLoading = isLoadingExisting || isLoadingProject

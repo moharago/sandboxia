@@ -3,8 +3,14 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { DownloadModal } from "@/components/features/draft/DownloadModal"
 import { FormSectionList, type FormSectionListHandle } from "@/components/features/draft/FormSectionList"
-import { ReferencePanel } from "@/components/features/draft/ReferencePanel"
-import { WizardNavigation } from "@/components/features/wizard"
+import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
+import dynamic from "next/dynamic"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(
+    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
+    { ssr: false }
+)
 import { Button } from "@/components/ui/button"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { NoResultsView } from "@/components/ui/no-results-view"
@@ -120,7 +126,7 @@ export default function DraftPage({ params }: DraftPageProps) {
             // RAG 결과를 state에 저장 (바로 표시)
             setRagSimilarCases(result.similar_cases ?? [])
             setRagRegulations(result.domain_laws ?? [])
-            // 성공 시 draft query invalidate하여 새 데이터 로드
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
             queryClient.invalidateQueries({ queryKey: draftKeys.byProject(id) })
             queryClient.invalidateQueries({ queryKey: ["projects"] })
         } catch (error) {
@@ -151,7 +157,8 @@ export default function DraftPage({ params }: DraftPageProps) {
             if (!formSectionRef.current) throw new Error("폼 데이터를 저장할 수 없습니다.")
             await formSectionRef.current.saveAll()
             await projectsApi.updateStatus(id, PROJECT_STATUS.PENDING, 4)
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
             markStepComplete(4)
             setDraftCompleteModalOpen(false)
             router.push("/dashboard")
@@ -176,7 +183,8 @@ export default function DraftPage({ params }: DraftPageProps) {
             if (!formSectionRef.current) throw new Error("폼 데이터를 저장할 수 없습니다.")
             await formSectionRef.current.saveAll()
             await projectsApi.updateStatus(id, PROJECT_STATUS.COMPLETED)
-            await queryClient.invalidateQueries({ queryKey: ["projects"] })
+            // invalidateQueries는 await 불필요 (백그라운드 실행)
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
             setCompleteModalOpen(false)
             router.push("/dashboard")
         } catch (error) {
