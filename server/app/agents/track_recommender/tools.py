@@ -266,8 +266,8 @@ def retrieve_domain_constraints(
 
     try:
         domain_results = search_domain_law.invoke({"query": query, "top_k": top_k})
-        if domain_results:
-            for r in domain_results:
+        if domain_results and hasattr(domain_results, "results"):
+            for r in domain_results.results:
                 constraint = {
                     "content": r.content,
                     "source": getattr(r, "citation", ""),

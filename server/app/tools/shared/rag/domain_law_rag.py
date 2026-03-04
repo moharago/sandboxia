@@ -140,6 +140,17 @@ def search_domain_law(
 
     results = [_build_domain_law_result(result) for result in search_results]
 
+    # DEBUG: 에이전트 실행 중 RAG 검색 결과 확인
+    print(f"\n{'='*60}")
+    print(f"[R3 도메인법령 RAG] query='{query}', domain={normalized_domain}, top_k={top_k}")
+    print(f"{'='*60}")
+    for i, r in enumerate(results, 1):
+        print(f"{'-'*60}")
+        print(f"  {i}. [{r.citation}] (점수: {r.relevance_score})")
+        print(f"     도메인: {r.domain_label}")
+        print(f"     내용: {r.content[:150]}...")
+    print(f"{'='*60}\n")
+
     return DomainLawSearchOutput(
         results=results,
         total_count=len(results),
