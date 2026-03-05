@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     QDRANT_API_KEY: str | None = None  # Cloud 사용 시 필요
+    QDRANT_PERSIST_DIR: str = "./data/qdrant"  # 로컬 embedded 모드 시 저장 경로
+    QDRANT_MODE: str = "local"  # server | local (local = Docker 불필요)
 
     # LLM 설정
     LLM_MODEL: str

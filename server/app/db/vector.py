@@ -419,6 +419,37 @@ class ChromaVectorStore(BaseVectorStore):
 # Qdrant 구현체
 # =============================================================================
 
+# 로컬 모드 QdrantClient 싱글톤 (같은 디렉토리에 하나의 클라이언트만 허용)
+_qdrant_local_client: Any = None
+_qdrant_local_path: str | None = None
+
+
+def _get_qdrant_client():
+    """QdrantClient 인스턴스 반환 (로컬 모드에서는 싱글톤으로 재사용)"""
+    global _qdrant_local_client, _qdrant_local_path
+    from qdrant_client import QdrantClient
+
+    if settings.QDRANT_API_KEY:
+        logger.info(f"Qdrant Cloud 모드: {settings.QDRANT_HOST}")
+        return QdrantClient(
+            host=settings.QDRANT_HOST,
+            port=settings.QDRANT_PORT,
+            api_key=settings.QDRANT_API_KEY,
+            https=True,
+        )
+    elif getattr(settings, "QDRANT_MODE", "server") == "local":
+        persist_dir = getattr(settings, "QDRANT_PERSIST_DIR", "./data/qdrant")
+        if _qdrant_local_client is not None and _qdrant_local_path == persist_dir:
+            logger.debug(f"Qdrant embedded 모드 (재사용): {persist_dir}")
+            return _qdrant_local_client
+        logger.info(f"Qdrant embedded 모드 (로컬): {persist_dir}")
+        _qdrant_local_client = QdrantClient(path=persist_dir)
+        _qdrant_local_path = persist_dir
+        return _qdrant_local_client
+    else:
+        logger.info(f"Qdrant 서버 모드: {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+        return QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+
 
 class QdrantVectorStore(BaseVectorStore):
     """Qdrant 구현체 (Docker/Cloud 지원, Hybrid Search 지원)
@@ -437,25 +468,14 @@ class QdrantVectorStore(BaseVectorStore):
     ):
         from langchain_qdrant import QdrantVectorStore as LangchainQdrant
         from langchain_qdrant import RetrievalMode
-        from qdrant_client import QdrantClient
 
         self._collection_name = collection_name
         self._embeddings = embeddings
         self._hybrid_config = hybrid_config or HybridSearchConfig()
         self._mode_lock = threading.Lock()
 
-        # Qdrant 클라이언트 생성
-        if settings.QDRANT_API_KEY:
-            logger.info(f"Qdrant Cloud 모드: {settings.QDRANT_HOST}")
-            client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT,
-                api_key=settings.QDRANT_API_KEY,
-                https=True,
-            )
-        else:
-            logger.info(f"Qdrant 로컬 모드: {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
-            client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        # Qdrant 클라이언트 생성 (로컬 모드 싱글톤)
+        client = _get_qdrant_client()
 
         self._qdrant_client = client
 

@@ -119,6 +119,4 @@ server/eval/r2/results/
 retrospective.md
 
 # Doc folder: only share Presentation_Mid and Presentation_Final
-doc/*
-!doc/Presentation_Mid/
-!doc/Presentation_Final/
+doc/TH_portfolio
