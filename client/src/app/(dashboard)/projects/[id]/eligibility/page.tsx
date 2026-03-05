@@ -24,7 +24,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, CheckCircle2, ExternalLink, Scale } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useState } from "react"
+import { use, useEffect, useRef, useState } from "react"
 
 // async-suspense-boundaries: ReferencePanel lazy loading
 const ReferencePanel = dynamic(() => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel), { ssr: false })
@@ -151,14 +151,16 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+    const staleModalOpenedRef = useRef(false)
 
     // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
-    // isFetching을 사용하여 background refetch 완료 후에만 판단 (stale 캐시로 인한 오탐 방지)
+    // isLoading(초기 로드)을 사용하여 background refetch로 인한 모달 재오픈 방지
     useEffect(() => {
-        if (!isFetchingExisting && !isFetchingProject && isBehindCurrentStep && hasExistingResult) {
+        if (!isLoadingExisting && !isLoadingProject && isBehindCurrentStep && hasExistingResult && !staleModalOpenedRef.current) {
+            staleModalOpenedRef.current = true
             setStaleDataModalOpen(true)
         }
-    }, [isFetchingExisting, isFetchingProject, isBehindCurrentStep, hasExistingResult])
+    }, [isLoadingExisting, isLoadingProject, isBehindCurrentStep, hasExistingResult])
 
     // Mutation
     const eligibilityMutation = useEligibilityMutation({

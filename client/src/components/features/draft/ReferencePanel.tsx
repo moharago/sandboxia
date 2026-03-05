@@ -88,7 +88,7 @@ function ReferenceItem({ data, index, idPrefix = "ref" }: ReferenceItemProps) {
                     <div id={contentId} className="mt-3 ">
                         <div className="pt-3 border-t border-border">
                             <div className="text-sm text-muted-foreground whitespace-pre-line prose prose-sm prose-neutral max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:text-foreground prose-headings:text-sm prose-headings:mt-2 prose-headings:mb-1 prose-a:text-primary">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.summary.replace(/\[[^\]]*\]\s*/g, "")}</ReactMarkdown>
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.summary.replace(/\[\s*\d+\s*\]\s*/g, "")}</ReactMarkdown>
                             </div>
                             {data.sourceUrl && (
                                 <a

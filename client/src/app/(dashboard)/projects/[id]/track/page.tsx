@@ -27,7 +27,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, CheckCircle2, ExternalLink, Info, XCircle } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useMemo, useState } from "react"
+import { use, useEffect, useMemo, useRef, useState } from "react"
 
 // async-suspense-boundaries: ReferencePanel lazy loading
 const ReferencePanel = dynamic(() => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel), { ssr: false })
@@ -168,12 +168,14 @@ export default function TrackPage({ params }: TrackPageProps) {
     const hasExistingResult = !!trackResult
 
     // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
-    // isFetching을 사용하여 background refetch 완료 후에만 판단 (stale 캐시로 인한 오탐 방지)
+    // isLoading(초기 로드)을 사용하여 background refetch로 인한 모달 재오픈 방지
+    const staleModalOpenedRef = useRef(false)
     useEffect(() => {
-        if (!isFetchingTrack && !isFetchingProject && isBehindCurrentStep && hasExistingResult) {
+        if (!isLoadingTrack && !isLoadingProject && isBehindCurrentStep && hasExistingResult && !staleModalOpenedRef.current) {
+            staleModalOpenedRef.current = true
             setStaleDataModalOpen(true)
         }
-    }, [isFetchingTrack, isFetchingProject, isBehindCurrentStep, hasExistingResult])
+    }, [isLoadingTrack, isLoadingProject, isBehindCurrentStep, hasExistingResult])
 
     // 결과 변환
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
