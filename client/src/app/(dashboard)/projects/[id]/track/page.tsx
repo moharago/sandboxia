@@ -3,13 +3,6 @@
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import type { CaseData } from "@/components/features/draft/ReferencePanel"
 import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
-import dynamic from "next/dynamic"
-
-// async-suspense-boundaries: ReferencePanel lazy loading
-const ReferencePanel = dynamic(
-    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
-    { ssr: false }
-)
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -32,8 +25,12 @@ import type { Regulation } from "@/types/api/eligibility"
 import type { RecommendableTrack, TrackComparisonItem, TrackRecommendResponse } from "@/types/api/track"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, CheckCircle2, ExternalLink, Info, XCircle } from "lucide-react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useMemo, useState } from "react"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(() => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel), { ssr: false })
 
 interface TrackPageProps {
     params: Promise<{ id: string }>
@@ -133,8 +130,8 @@ export default function TrackPage({ params }: TrackPageProps) {
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
 
     // 프로젝트 정보 조회 (refetchOnMount: "always"로 자동 refetch)
-    const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
-    const { data: trackResult, isPending: isLoadingTrack } = useTrackQuery(id)
+    const { data: project, isPending: isLoadingProject, isFetching: isFetchingProject } = useProjectQuery(id)
+    const { data: trackResult, isPending: isLoadingTrack, isFetching: isFetchingTrack } = useTrackQuery(id)
 
     const { data: trackNodes } = useAgentNodesQuery("track_recommender")
     const { data: draftNodes } = useAgentNodesQuery("application_drafter")
@@ -171,11 +168,12 @@ export default function TrackPage({ params }: TrackPageProps) {
     const hasExistingResult = !!trackResult
 
     // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
+    // isFetching을 사용하여 background refetch 완료 후에만 판단 (stale 캐시로 인한 오탐 방지)
     useEffect(() => {
-        if (!isLoadingTrack && !isLoadingProject && isBehindCurrentStep && hasExistingResult) {
+        if (!isFetchingTrack && !isFetchingProject && isBehindCurrentStep && hasExistingResult) {
             setStaleDataModalOpen(true)
         }
-    }, [isLoadingTrack, isLoadingProject, isBehindCurrentStep, hasExistingResult])
+    }, [isFetchingTrack, isFetchingProject, isBehindCurrentStep, hasExistingResult])
 
     // 결과 변환
     const analysisResult = trackResult ? transformApiResponse(trackResult) : null
@@ -234,16 +232,19 @@ export default function TrackPage({ params }: TrackPageProps) {
     const runTrackOnly = () => {
         setReanalyzeModalOpen(false)
         trackProgress.subscribe()
-        recommendMutation.mutate({ project_id: id }, {
-            onSuccess: () => {
-                trackProgress.unsubscribe()
-                hideGlobalAILoader() // 재분석 완료 시 로더 숨김
-            },
-            onError: () => {
-                trackProgress.unsubscribe()
-                hideGlobalAILoader()
-            },
-        })
+        recommendMutation.mutate(
+            { project_id: id },
+            {
+                onSuccess: () => {
+                    trackProgress.unsubscribe()
+                    hideGlobalAILoader() // 재분석 완료 시 로더 숨김
+                },
+                onError: () => {
+                    trackProgress.unsubscribe()
+                    hideGlobalAILoader()
+                },
+            }
+        )
     }
 
     // 초안 생성 후 이동
@@ -546,7 +547,7 @@ export default function TrackPage({ params }: TrackPageProps) {
                         </div>
 
                         <div className={isReferencePanelOpen ? "flex-1" : ""}>
-                            <div className="sticky top-16">
+                            <div className="sticky top-24">
                                 <ReferencePanel
                                     isOpen={isReferencePanelOpen}
                                     onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
