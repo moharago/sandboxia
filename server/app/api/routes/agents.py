@@ -23,9 +23,9 @@ from app.agents.eligibility_evaluator.schemas import (
     Regulation,
 )
 from app.agents.track_recommender import run_track_recommender
-from app.core.config import settings
 from app.api.deps import AuthUser, get_auth_user
 from app.api.schemas.agents import StructureResponse
+from app.core.config import settings
 from app.services.draft_service import (
     DraftServiceError,
     run_draft,
@@ -455,7 +455,7 @@ async def generate_draft(
         application_draft=application_draft,
         track=track,
         similar_cases=[c.model_dump() for c in similar_cases],
-        domain_laws=[l.model_dump() for l in domain_laws],
+        domain_laws=[law.model_dump() for law in domain_laws],
     )
     update_project_after_draft(project_id)
 

@@ -189,8 +189,6 @@ class HWPParser:
         Returns:
             추출된 텍스트
         """
-        texts = []
-
         # PrvText와 BodyText 모두 추출하여 더 긴 것 사용
         prvtext = self._extract_from_prvtext()
         bodytext = self._extract_from_bodytext()

@@ -1,8 +1,11 @@
 """Track Recommender Agent 노드 함수"""
 
 import json
+import logging
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from app.agents.eligibility_evaluator.schemas import ApprovalCase, Regulation
 from app.agents.track_recommender.prompts import (
@@ -14,14 +17,13 @@ from app.agents.track_recommender.tools import (
     calculate_ranks_and_status,
     retrieve_domain_constraints,
     retrieve_similar_cases,
-    retrieve_track_definitions,
     score_track,
 )
 from app.core.constants import TRACK_NAME_MAP
 from app.core.llm import get_llm
 from app.tools.shared.rag import (
     compare_tracks,
-    search_domain_law,
+    get_track_definition,
 )
 
 
@@ -124,13 +126,26 @@ def extract_service_info(canonical: dict) -> str:
 
 
 def _build_combined_context(
-    canonical: dict,
     similar_cases: dict,
-) -> str:
-    """R1(트랙 정의), R2(유사 사례), R3(도메인 규제) 컨텍스트 통합 생성"""
-    context_parts = []
+    domain_constraints: dict,
+) -> tuple[str, list[dict]]:
+    """R1(트랙 정의), R2(유사 사례), R3(도메인 규제) 컨텍스트 통합 생성
 
-    # R1: 트랙 비교 정보 조회
+    R3는 retrieve_domain_constraints 결과를 재사용합니다 (중복 검색 방지).
+
+    Returns:
+        (컨텍스트 문자열, track_definitions 리스트)
+    """
+    context_parts = []
+    track_definitions = []
+
+    track_name_map = {
+        "demo": "실증특례",
+        "temp_permit": "임시허가",
+        "quick_check": "신속확인",
+    }
+
+    # R1-1: 트랙 비교 정보 조회
     try:
         track_comparison_results = compare_tracks.invoke({})
         if track_comparison_results:
@@ -138,26 +153,41 @@ def _build_combined_context(
             context_parts.append(
                 "[R1. 트랙 정의/요건]\n" + "\n".join(r1_texts)
             )
-    except Exception:
-        pass  # RAG 실패 시 무시
+            for r in track_comparison_results:
+                track_definitions.append({
+                    "type": "comparison",
+                    "content": r.content,
+                    "source": r.citation,
+                    "source_url": r.source_url,
+                })
+    except Exception as e:
+        logger.warning(f"[R1-1] compare_tracks 실패: {e}", exc_info=True)
 
-    # R3: 도메인 규제 조회 (canonical의 관련 규제 기반)
-    regulatory = canonical.get("regulatory") or canonical.get("regulatoryInfo") or {}
-    related_regulations = get_field(
-        regulatory, "related_regulations", "relatedRegulations", []
-    )
-    if related_regulations:
+    # R1-2: 트랙별 정의 검색
+    for track_key, track_name in track_name_map.items():
         try:
-            # 관련 규제를 쿼리로 사용하여 도메인 법령 검색
-            query = ", ".join(related_regulations) if isinstance(related_regulations, list) else str(related_regulations)
-            domain_law_results = search_domain_law.invoke({"query": query, "top_k": 3})
-            if domain_law_results:
-                r3_texts = [r.content for r in domain_law_results[:3]]
-                context_parts.append(
-                    "[R3. 도메인 규제/법령]\n" + "\n".join(r3_texts)
-                )
-        except Exception:
-            pass  # RAG 실패 시 무시
+            definition_results = get_track_definition.invoke({"track": track_name})
+            if definition_results:
+                for r in definition_results[:3]:
+                    track_definitions.append({
+                        "type": "definition",
+                        "track": track_key,
+                        "track_name": track_name,
+                        "content": r.content,
+                        "source": r.citation,
+                        "source_url": r.source_url,
+                    })
+        except Exception as e:
+            logger.warning(f"[R1-2] get_track_definition 실패 (track={track_name}): {e}", exc_info=True)
+
+    # R3: retrieve_domain_constraints 결과 재사용 (중복 검색 제거)
+    constraints = domain_constraints.get("constraints", [])
+    if constraints:
+        r3_texts = [c.get("content", "") for c in constraints[:3] if c.get("content")]
+        if r3_texts:
+            context_parts.append(
+                "[R3. 도메인 규제/법령]\n" + "\n".join(r3_texts)
+            )
 
     # R2: 유사 사례 요약 (이미 조회된 결과 활용)
     r2_parts = []
@@ -170,7 +200,7 @@ def _build_combined_context(
             "[R2. 유사 승인 사례]\n" + "\n".join(r2_parts)
         )
 
-    return "\n\n".join(context_parts)
+    return "\n\n".join(context_parts), track_definitions
 
 
 def score_all_tracks_node(state: TrackRecommenderState) -> dict:
@@ -194,8 +224,9 @@ def score_all_tracks_node(state: TrackRecommenderState) -> dict:
         "top_k": 5,
     })
 
-    # R1/R2/R3 통합 컨텍스트 생성
-    combined_context = _build_combined_context(canonical, similar_cases)
+    # R1/R2/R3 통합 컨텍스트 생성 + track_definitions 수집
+    # R3는 위에서 조회한 domain_constraints 결과를 재사용
+    combined_context, track_definitions = _build_combined_context(similar_cases, domain_constraints)
 
     # 컨설턴트 메모와 통합 컨텍스트 결합
     additional_notes = consultant_memo
@@ -223,18 +254,11 @@ def score_all_tracks_node(state: TrackRecommenderState) -> dict:
     # 순위 및 상태 계산 (R3 도메인 제약 반영)
     track_scores = calculate_ranks_and_status(track_scores, domain_constraints)
 
-    return {"track_scores": track_scores, "domain_constraints": domain_constraints}
-
-
-def retrieve_definitions_node(state: TrackRecommenderState) -> dict:
-    """트랙 정의/요건 RAG 검색 노드"""
-    track_keys = ["demo", "temp_permit", "quick_check"]
-
-    definitions = retrieve_track_definitions.invoke({
-        "track_keys": track_keys,
-    })
-
-    return {"track_definitions": definitions}
+    return {
+        "track_scores": track_scores,
+        "domain_constraints": domain_constraints,
+        "track_definitions": track_definitions,
+    }
 
 
 def retrieve_cases_node(state: TrackRecommenderState) -> dict:

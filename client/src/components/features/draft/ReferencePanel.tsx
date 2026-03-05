@@ -7,6 +7,8 @@ import { formatDateIso } from "@/lib/utils/date"
 import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { BookOpen, ChevronDown, ChevronUp, ExternalLink, PanelLeft, PanelRight, Scale } from "lucide-react"
 import { useState } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export interface CaseData {
     id: string | number
@@ -85,7 +87,9 @@ function ReferenceItem({ data, index, idPrefix = "ref" }: ReferenceItemProps) {
                 {isExpanded && (
                     <div id={contentId} className="mt-3 ">
                         <div className="pt-3 border-t border-border">
-                            <p className="text-sm text-muted-foreground whitespace-pre-line">{data.summary}</p>
+                            <div className="text-sm text-muted-foreground whitespace-pre-line prose prose-sm prose-neutral max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:text-foreground prose-headings:text-sm prose-headings:mt-2 prose-headings:mb-1 prose-a:text-primary">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.summary.replace(/\[\s*\d+\s*\]\s*/g, "")}</ReactMarkdown>
+                            </div>
                             {data.sourceUrl && (
                                 <a
                                     href={data.sourceUrl}
