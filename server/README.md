@@ -466,3 +466,255 @@ rm -rf data/chroma
 uv run python scripts/collect_regulations.py
 uv run python scripts/collect_laws.py
 ```
+
+## Deployment
+
+### AWS EC2 + Docker Compose 배포
+
+#### 배포 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        AWS EC2 Instance                              │
+│                     (Ubuntu 22.04 / t3.medium)                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │                     Docker Compose                             │ │
+│  │                                                                │ │
+│  │  ┌─────────────────────────┐  ┌─────────────────────────────┐ │ │
+│  │  │     sandbox-api         │  │      sandbox-chroma         │ │ │
+│  │  │     (FastAPI)           │  │      (ChromaDB)             │ │ │
+│  │  │                         │  │                             │ │ │
+│  │  │  Port: 8000             │  │  Port: 8001 (internal)      │ │ │
+│  │  │  Image: ghcr.io/...     │  │  Image: chromadb/chroma     │ │ │
+│  │  │                         │  │                             │ │ │
+│  │  │  Depends: chroma        │◀─│  Volume: ./data/chroma      │ │ │
+│  │  └─────────────────────────┘  └─────────────────────────────┘ │ │
+│  │                                                                │ │
+│  │  Network: sandbox-network (bridge)                             │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │  Volumes:                                                      │ │
+│  │  • ./data/chroma → /data (ChromaDB persistence)               │ │
+│  │  • .env → environment variables                                │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+         │
+         │ HTTPS (Port 443) - Nginx/Caddy Reverse Proxy
+         ▼
+    ┌─────────┐
+    │ Internet│
+    └─────────┘
+```
+
+#### 1. EC2 인스턴스 설정
+
+**권장 사양:**
+| 항목 | 권장 값 |
+|------|---------|
+| Instance Type | t3.medium (2 vCPU, 4GB RAM) |
+| OS | Ubuntu 22.04 LTS |
+| Storage | 30GB+ (SSD) |
+| Security Group | 22 (SSH), 80 (HTTP), 443 (HTTPS), 8000 (API) |
+
+**초기 설정:**
+```bash
+# 1. 시스템 업데이트
+sudo apt update && sudo apt upgrade -y
+
+# 2. Docker 설치
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker ubuntu
+newgrp docker
+
+# 3. Docker Compose 설치 (최신 버전)
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# 4. 버전 확인
+docker --version
+docker-compose --version
+```
+
+#### 2. 애플리케이션 배포
+
+```bash
+# 1. 저장소 클론
+git clone https://github.com/KernelAcademy-AICamp/2nd-pj-SandboxIA.git
+cd 2nd-pj-SandboxIA/server
+
+# 2. 환경 변수 설정
+cp .env.example .env
+nano .env  # 환경 변수 편집
+
+# 3. Docker 이미지 Pull & 실행
+docker-compose pull
+docker-compose up -d
+
+# 4. 상태 확인
+docker-compose ps
+docker-compose logs -f api
+```
+
+#### 3. docker-compose.yml 서비스 구성
+
+| 서비스 | 컨테이너명 | 이미지 | 포트 | 설명 |
+|--------|-----------|--------|------|------|
+| `api` | sandbox-api | ghcr.io/kernelacademy-aicamp/server-api:latest | 8000:8000 | FastAPI 서버 |
+| `chroma` | sandbox-chroma | chromadb/chroma:1.4.1 | 8001:8000 | Vector DB |
+
+**네트워크:**
+- `sandbox-network` (bridge): 컨테이너 간 내부 통신
+- API에서 ChromaDB 접근: `http://chroma:8000`
+
+#### 4. 환경 변수 (.env)
+
+```env
+# OpenAI
+OPENAI_API_KEY=sk-...
+
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+
+# ChromaDB (Docker 내부 통신)
+CHROMA_MODE=http
+CHROMA_HOST=chroma
+CHROMA_PORT=8000
+
+# CORS (Vercel 도메인 추가)
+CORS_ORIGINS=https://your-domain.vercel.app,https://your-custom-domain.com
+
+# LLM
+LLM_MODEL=gpt-4o-mini
+LLM_EMBEDDING_MODEL=text-embedding-3-large
+```
+
+#### 5. HTTPS 설정 (Caddy)
+
+```bash
+# Caddy 설치
+sudo apt install -y caddy
+
+# Caddyfile 설정
+sudo nano /etc/caddy/Caddyfile
+```
+
+```
+api.your-domain.com {
+    reverse_proxy localhost:8000
+}
+```
+
+```bash
+# Caddy 재시작 (자동 SSL 발급)
+sudo systemctl restart caddy
+```
+
+#### 6. 운영 명령어
+
+```bash
+# 서비스 상태 확인
+docker-compose ps
+
+# 로그 확인
+docker-compose logs -f api      # API 로그
+docker-compose logs -f chroma   # ChromaDB 로그
+
+# 서비스 재시작
+docker-compose restart api
+
+# 이미지 업데이트 & 재배포
+docker-compose pull
+docker-compose up -d
+
+# 서비스 중지
+docker-compose down
+
+# 볼륨 포함 완전 삭제 (주의!)
+docker-compose down -v
+```
+
+#### 7. CI/CD (GitHub Actions)
+
+`.github/workflows/deploy.yml`:
+```yaml
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/2nd-pj-SandboxIA/server
+            git pull origin main
+            docker-compose pull
+            docker-compose up -d
+```
+
+#### 8. 모니터링 & 헬스체크
+
+```bash
+# API 헬스체크
+curl http://localhost:8000/health
+
+# ChromaDB 헬스체크
+curl http://localhost:8001/api/v1/heartbeat
+
+# 컨테이너 리소스 사용량
+docker stats
+```
+
+#### 9. 트러블슈팅
+
+**컨테이너 시작 실패:**
+```bash
+# 로그 확인
+docker-compose logs api
+
+# 컨테이너 내부 접속
+docker exec -it sandbox-api /bin/bash
+```
+
+**ChromaDB 연결 오류:**
+```bash
+# ChromaDB 상태 확인
+docker-compose logs chroma
+
+# 네트워크 확인
+docker network inspect sandbox-network
+```
+
+**디스크 공간 부족:**
+```bash
+# Docker 정리
+docker system prune -a
+
+# 사용하지 않는 볼륨 삭제
+docker volume prune
+```
+
+#### 10. 백업
+
+```bash
+# ChromaDB 데이터 백업
+tar -czvf chroma_backup_$(date +%Y%m%d).tar.gz ./data/chroma
+
+# S3로 업로드 (선택)
+aws s3 cp chroma_backup_*.tar.gz s3://your-bucket/backups/
+```

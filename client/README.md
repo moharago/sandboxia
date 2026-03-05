@@ -370,3 +370,115 @@ async rewrites() {
 | `pnpm run build` | 프로덕션 빌드 |
 | `pnpm run start` | 프로덕션 서버 |
 | `pnpm run lint` | ESLint 실행 |
+
+## Deployment
+
+### Vercel 배포
+
+#### 1. Vercel CLI 배포
+
+```bash
+# Vercel CLI 설치
+npm i -g vercel
+
+# 로그인
+vercel login
+
+# 프로덕션 배포
+cd client
+vercel --prod
+```
+
+#### 2. GitHub 연동 (권장)
+
+1. [Vercel Dashboard](https://vercel.com/dashboard)에서 "New Project" 클릭
+2. GitHub 저장소 연결
+3. Root Directory를 `client`로 설정
+4. 환경 변수 설정 후 Deploy
+
+**빌드 설정:**
+| 설정 | 값 |
+|------|-----|
+| Framework Preset | Next.js |
+| Root Directory | `client` |
+| Build Command | `pnpm run build` |
+| Output Directory | `.next` |
+| Install Command | `pnpm install` |
+
+#### 환경 변수 (Vercel Dashboard)
+
+```env
+# Backend API
+NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+#### 배포 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Vercel Platform                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                   Edge Network (CDN)                 │   │
+│  │        Global distribution for static assets         │   │
+│  └───────────────────────┬─────────────────────────────┘   │
+│                          │                                  │
+│  ┌───────────────────────▼─────────────────────────────┐   │
+│  │                  Next.js Runtime                     │   │
+│  │   ┌─────────────┐  ┌─────────────┐  ┌───────────┐   │   │
+│  │   │ Static Gen  │  │    SSR      │  │   ISR     │   │   │
+│  │   │  (pages)    │  │ (dynamic)   │  │ (revalid) │   │   │
+│  │   └─────────────┘  └─────────────┘  └───────────┘   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  Features:                                                  │
+│  • Automatic HTTPS                                          │
+│  • Preview Deployments (PR별 자동 배포)                      │
+│  • Analytics & Web Vitals                                   │
+│  • Edge Functions                                           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+           │
+           │ API Requests (HTTPS)
+           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   AWS EC2 (Backend)                          │
+│                   FastAPI + ChromaDB                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Preview Deployments
+
+GitHub PR 생성 시 자동으로 Preview URL 생성:
+- `https://sandboxia-<branch>-<team>.vercel.app`
+- PR 머지 전 기능 테스트 가능
+- PR 코멘트에 자동으로 Preview URL 추가
+
+#### 도메인 설정
+
+```bash
+# 커스텀 도메인 추가
+vercel domains add your-domain.com
+
+# DNS 설정 후 SSL 자동 발급
+```
+
+#### 트러블슈팅
+
+**빌드 실패 시:**
+```bash
+# 로컬에서 빌드 테스트
+pnpm run build
+
+# 환경 변수 확인
+vercel env ls
+```
+
+**API 연결 오류 시:**
+- `NEXT_PUBLIC_API_BASE_URL`이 올바르게 설정되었는지 확인
+- Backend CORS 설정에 Vercel 도메인 추가 필요

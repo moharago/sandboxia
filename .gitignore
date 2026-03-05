@@ -120,5 +120,7 @@ server/eval/r2/results/
 # Personal notes
 retrospective.md
 
-# Presentation files
-doc/Presentation_Mid/
+# Doc folder: only share Presentation_Mid and Presentation_Final
+doc/*
+!doc/Presentation_Mid/
+!doc/Presentation_Final/
