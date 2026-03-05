@@ -452,7 +452,7 @@
           <p class="dim" style="font-size:14px;">4-Step 파이프라인 &middot; Step 1~4 상세</p>
         </div>
       </div>
-      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(9)">
+      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(10)">
         <div class="num" style="background:var(--cyan); width:36px; height:36px; font-size:16px;">5</div>
         <div>
           <p style="font-weight:600; font-size:16px;">기능 구현 기술</p>
@@ -461,35 +461,35 @@
       </div>
     </div>
     <div class="flex flex-col gap-14">
-      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(10)">
+      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(11)">
         <div class="num" style="background:var(--green); width:36px; height:36px; font-size:16px;">6</div>
         <div>
-          <p style="font-weight:600; font-size:16px;">RAG 툴</p>
-          <p class="dim" style="font-size:14px;">3-RAG 구성 &middot; 평가 방법 &middot; 결과</p>
+          <p style="font-weight:600; font-size:16px;">RAG 평가</p>
+          <p class="dim" style="font-size:14px;">R1 &middot; R2 &middot; R3 성능 평가</p>
         </div>
       </div>
-      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(13)">
+      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(15)">
         <div class="num" style="background:var(--green); width:36px; height:36px; font-size:16px;">7</div>
         <div>
           <p style="font-weight:600; font-size:16px;">Agent 아키텍처</p>
           <p class="dim" style="font-size:14px;">LangGraph 멀티 에이전트 파이프라인</p>
         </div>
       </div>
-      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(14)">
+      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(16)">
         <div class="num" style="background:var(--amber); width:36px; height:36px; font-size:16px;">8</div>
         <div>
           <p style="font-weight:600; font-size:16px;">서비스 완성</p>
           <p class="dim" style="font-size:14px;">시연 &middot; 핵심 이슈 해결</p>
         </div>
       </div>
-      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(15)">
+      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(17)">
         <div class="num" style="background:var(--amber); width:36px; height:36px; font-size:16px;">9</div>
         <div>
           <p style="font-weight:600; font-size:16px;">배포</p>
           <p class="dim" style="font-size:14px;">Docker &middot; CI/CD &middot; 협업</p>
         </div>
       </div>
-      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(16)">
+      <div class="card flex items-center gap-16" style="cursor:pointer; padding:14px 18px;" onclick="showSlide(20)">
         <div class="num" style="background:var(--amber); width:36px; height:36px; font-size:16px;">10</div>
         <div>
           <p style="font-weight:600; font-size:16px;">회고 &middot; 한계</p>
@@ -1240,19 +1240,202 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 13: R3 RAG 평가 — 데이터 수집부터 최종 조합까지 ==================== -->
+<!-- ==================== SLIDE 13: R1 RAG 평가 ==================== -->
 <div class="slide wide" id="slide-14">
-  <div class="section-label">06 &mdash; R3 RAG Evaluation</div>
-  <h2>R3 법령 RAG 성능 평가 &mdash; 실험 설계와 최적화 과정</h2>
-  <p class="dim" style="font-size:14px; margin-top:-14px; margin-bottom:8px;">국가법령정보센터 API에서 11개 법률을 수집하고, 청킹 &rarr; 임베딩 &rarr; 벡터DB/Hybrid 3단계 실험을 설계하여 체계적으로 최적 조합을 도출했습니다.</p>
+  <div class="section-label">06 &mdash; R1 RAG Evaluation</div>
+  <h2>R1 규제제도·절차 RAG 성능 평가</h2>
+  <p class="dim" style="font-size:14px; margin-top:-14px; margin-bottom:8px;">147개 청크(평균 763자), 30개 질의-정답 쌍 기반 단계별 최적화</p>
 
-  <!-- 3단계 파이프라인 -->
   <div class="flex gap-12 items-center" style="margin-bottom:10px;">
     <div class="pipeline-step" style="border-color:var(--accent); padding:10px 14px;">
-      <div class="step-num" style="background:var(--accent-glow); color:var(--accent2); width:32px; height:32px; font-size:14px;">0</div>
-      <div><p style="font-weight:600; font-size:14px;">데이터 수집/정제</p><p class="dim" style="font-size:10px;">11개 법률 &rarr; 1,188 청크</p></div>
+      <div class="step-num" style="background:var(--accent-glow); color:var(--accent2); width:32px; height:32px; font-size:14px;">1</div>
+      <div><p style="font-weight:600; font-size:14px;">임베딩 모델</p><p class="dim" style="font-size:10px;">3종 비교</p></div>
     </div>
     <span class="arrow">&#8594;</span>
+    <div class="pipeline-step" style="border-color:var(--cyan); padding:10px 14px;">
+      <div class="step-num" style="background:var(--cyan-dim); color:var(--cyan); width:32px; height:32px; font-size:14px;">2</div>
+      <div><p style="font-weight:600; font-size:14px;">검색 전략</p><p class="dim" style="font-size:10px;">Vector / Hybrid / Reranking</p></div>
+    </div>
+    <span class="arrow">&#8594;</span>
+    <div class="pipeline-step" style="border-color:var(--green); padding:10px 14px;">
+      <div class="step-num" style="background:var(--green-dim); color:var(--green); width:32px; height:32px; font-size:14px;">3</div>
+      <div><p style="font-weight:600; font-size:14px;">생성 모델</p><p class="dim" style="font-size:10px;">Faithfulness 검증</p></div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; flex:1;">
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">데이터 &amp; 평가셋</h3>
+      <div class="flex flex-col gap-4" style="font-size:13px;">
+        <div class="flex gap-6 items-center"><div class="highlight-bar accent" style="height:20px;"></div><span><strong>데이터</strong>: 규제제도·절차 문서 &rarr; 147개 청크 (평균 763자)</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar accent" style="height:20px;"></div><span><strong>도메인</strong>: 트랙 정의, 절차, 요건, 심사 포인트</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar green" style="height:20px;"></div><span><strong>평가셋</strong>: 30개 질의-정답 쌍 &times; gold_citations + must_have 근거</span></div>
+      </div>
+      <div class="flex gap-8 wrap" style="margin-top:auto;">
+        <span class="tag tag-accent" style="font-size:10px;">MH-Recall</span>
+        <span class="tag tag-accent" style="font-size:10px;">Recall</span>
+        <span class="tag tag-accent" style="font-size:10px;">MRR</span>
+        <span class="tag tag-accent" style="font-size:10px;">Latency</span>
+      </div>
+    </div>
+
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">1단계: 임베딩 모델 비교 (3종)</h3>
+      <div class="table-wrap">
+        <table style="font-size:13px;">
+          <tr><th>모델</th><th>차원</th><th>MH-R</th><th>MRR</th><th>Latency</th></tr>
+          <tr><td>E0 3-small</td><td class="dim">1536</td><td>66.7%</td><td>72.2%</td><td>197ms</td></tr>
+          <tr class="winner"><td><strong>E1 3-large</strong></td><td class="dim">3072</td><td><strong>73.3%</strong></td><td><strong>88.3%</strong></td><td style="color:var(--green);">151ms</td></tr>
+          <tr><td>E2 Solar</td><td class="dim">4096</td><td>71.7%</td><td>74.8%</td><td style="color:var(--red);">603ms</td></tr>
+        </table>
+      </div>
+      <p class="dim small"><strong>핵심</strong>: E1이 성능·속도 모두 1위. 규제 전문 용어에 고차원 임베딩이 효과적.</p>
+      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">E1 (text-embedding-3-large) 채택</div>
+    </div>
+
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">2단계: 검색 전략 비교</h3>
+      <div class="table-wrap">
+        <table style="font-size:13px;">
+          <tr><th>전략</th><th>MH-R</th><th>MRR</th><th>비고</th></tr>
+          <tr class="winner"><td><strong>Vector Search</strong></td><td><strong>73.3%</strong></td><td><strong>88.3%</strong></td><td class="dim">기본</td></tr>
+          <tr><td>Hybrid (50/50)</td><td>65.0%</td><td>66.7%</td><td style="color:var(--red);">&minus;21.6%p</td></tr>
+          <tr><td>Hybrid (80/20)</td><td>68.3%</td><td>78.3%</td><td style="color:var(--red);">&minus;10.0%p</td></tr>
+          <tr><td>+ Query Rewriting</td><td>73.3%</td><td>85.8%</td><td class="dim">효과 미미</td></tr>
+          <tr><td>+ Reranking</td><td style="color:var(--green);">90.0%</td><td>&mdash;</td><td style="color:var(--red);">19.6s</td></tr>
+        </table>
+      </div>
+      <p class="dim small"><strong>핵심</strong>: Hybrid/Rewriting 효과 없음. Reranking +16.7%p이나 <strong style="color:var(--red);">129배 지연</strong>으로 실시간 부적합.</p>
+      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">Vector Search 단독 채택</div>
+    </div>
+
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">3단계: 생성 품질 &amp; 최종 확정</h3>
+      <div class="flex flex-col gap-6" style="font-size:13px;">
+        <div class="flex gap-6 items-center"><div class="highlight-bar green" style="height:20px;"></div><span><strong>Faithfulness</strong>: <strong style="color:var(--green);">98.67%</strong> (gpt-4o-mini)</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar green" style="height:20px;"></div><span><strong>Track Prefix</strong>: MH-R 73.3% &rarr; 88.3% (<strong style="color:var(--green);">+15%p</strong>)</span></div>
+      </div>
+      <div class="card card-sm card-accent" style="text-align:center; margin-top:auto; padding:10px;">
+        <p style="font-size:13px; font-weight:600; color:var(--accent); margin-bottom:6px;">R1 최종 확정: E1 + Vector Search + gpt-4o-mini</p>
+        <div class="flex gap-12 center">
+          <span style="font-size:14px; font-weight:700; color:var(--green);">MH-R 73.3%</span>
+          <span style="font-size:14px; font-weight:700; color:var(--cyan);">MRR 88.3%</span>
+          <span style="font-size:14px; font-weight:700; color:var(--accent);">Faith 98.7%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 14: R2 RAG 평가 ==================== -->
+<div class="slide wide" id="slide-15">
+  <div class="section-label">06 &mdash; R2 RAG Evaluation</div>
+  <h2>R2 승인 사례 RAG 성능 평가</h2>
+  <p class="dim" style="font-size:14px; margin-top:-14px; margin-bottom:8px;">승인 사례 281건(1건=1문서, 청킹 없음)을 대상으로 데이터 전략부터 구성 튜닝까지 4단계 최적화</p>
+
+  <div class="flex gap-12 items-center" style="margin-bottom:10px;">
+    <div class="pipeline-step" style="border-color:var(--accent); padding:10px 14px;">
+      <div class="step-num" style="background:var(--accent-glow); color:var(--accent2); width:32px; height:32px; font-size:14px;">1</div>
+      <div><p style="font-weight:600; font-size:14px;">데이터 전략</p><p class="dim" style="font-size:10px;">structured / enriched / hybrid</p></div>
+    </div>
+    <span class="arrow">&#8594;</span>
+    <div class="pipeline-step" style="border-color:var(--cyan); padding:10px 14px;">
+      <div class="step-num" style="background:var(--cyan-dim); color:var(--cyan); width:32px; height:32px; font-size:14px;">2</div>
+      <div><p style="font-weight:600; font-size:14px;">임베딩 모델</p><p class="dim" style="font-size:10px;">4종 (API 2 + Local 2)</p></div>
+    </div>
+    <span class="arrow">&#8594;</span>
+    <div class="pipeline-step" style="border-color:var(--green); padding:10px 14px;">
+      <div class="step-num" style="background:var(--green-dim); color:var(--green); width:32px; height:32px; font-size:14px;">3</div>
+      <div><p style="font-weight:600; font-size:14px;">생성 모델</p><p class="dim" style="font-size:10px;">4종 RAGAS 비교</p></div>
+    </div>
+    <span class="arrow">&#8594;</span>
+    <div class="pipeline-step" style="border-color:var(--amber); padding:10px 14px;">
+      <div class="step-num" style="background:var(--amber-dim); color:var(--amber); width:32px; height:32px; font-size:14px;">4</div>
+      <div><p style="font-weight:600; font-size:14px;">구성 튜닝</p><p class="dim" style="font-size:10px;">top_k &amp; threshold</p></div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; flex:1;">
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">1단계: 데이터 전략 비교 (281건)</h3>
+      <p class="dim" style="font-size:11px; margin-top:-4px;">structured: 정형 필드 / enriched: GPT-4o 보강 / hybrid: 원문+정형</p>
+      <div class="bar-row">
+        <div class="bar-label dim">structured</div>
+        <div class="bar-track"><div class="bar-fill" style="width:79%; background:var(--text-dim);">0.786</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label" style="color:var(--green); font-weight:600;">enriched</div>
+        <div class="bar-track"><div class="bar-fill" style="width:86%; background:var(--green);">0.858</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label dim">hybrid</div>
+        <div class="bar-track"><div class="bar-fill" style="width:83%; background:var(--text-dim);">0.830</div></div>
+      </div>
+      <p class="dim small"><strong style="color:var(--green);">enriched</strong>: GPT-4o가 핵심 정보 추출하여 보강. Recall <strong style="color:var(--green);">+7.3%p</strong></p>
+      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">enriched structured 채택</div>
+    </div>
+
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">2단계: 임베딩 모델 비교 (4종)</h3>
+      <div class="table-wrap">
+        <table style="font-size:13px;">
+          <tr><th>모델</th><th>MH-R</th><th>MRR</th><th>Neg</th></tr>
+          <tr class="winner"><td><strong>E0 3-small</strong></td><td>0.867</td><td><strong>0.950</strong></td><td style="color:var(--green);">0.200</td></tr>
+          <tr><td>E1 3-large</td><td>0.867</td><td>0.928</td><td>0.217</td></tr>
+          <tr><td>E4 BGE-M3</td><td><strong>0.883</strong></td><td>0.933</td><td>0.200</td></tr>
+          <tr><td>E5 KURE-v1</td><td>0.850</td><td>0.917</td><td>0.233</td></tr>
+        </table>
+      </div>
+      <p class="dim small"><strong>핵심</strong>: 모델 간 차이 ~2.5%p 소폭. E0가 MRR 0.950 1위 &mdash; 1건=1문서라 경량 모델로 충분.</p>
+      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">E0 (text-embedding-3-small) 채택</div>
+    </div>
+
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">3단계: 생성 모델 비교 (RAGAS)</h3>
+      <div class="table-wrap">
+        <table style="font-size:13px;">
+          <tr><th>모델</th><th>Faith.</th><th>Relev.</th><th>Bullet</th><th>P50</th></tr>
+          <tr class="winner"><td><strong>gpt-4o</strong></td><td><strong>0.975</strong></td><td><strong>0.718</strong></td><td>0.817</td><td><strong>2.9s</strong></td></tr>
+          <tr><td>gpt-4o-mini</td><td>0.957</td><td>0.715</td><td>0.789</td><td>9.0s</td></tr>
+          <tr><td>gpt-4.1</td><td>0.942</td><td>0.627</td><td><strong>0.844</strong></td><td>3.6s</td></tr>
+          <tr><td>gpt-4.1-mini</td><td>0.919</td><td>0.653</td><td>0.828</td><td>4.2s</td></tr>
+        </table>
+      </div>
+      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">gpt-4o 채택 (Faith·Relev·P50 1위)</div>
+    </div>
+
+    <div class="card flex flex-col gap-8" style="padding:12px;">
+      <h3 style="font-size:14px; margin-bottom:0;">4단계: 구성 튜닝 &mdash; top_k &amp; threshold</h3>
+      <div class="table-wrap">
+        <table style="font-size:13px;">
+          <tr><th>top_k</th><th>MH-R</th><th>Neg</th><th>Ans.Rel</th></tr>
+          <tr><td>k=3</td><td>0.717</td><td style="color:var(--green);">0.083</td><td>&mdash;</td></tr>
+          <tr class="winner"><td><strong>k=5</strong></td><td><strong>0.867</strong></td><td>0.200</td><td><strong>0.718</strong></td></tr>
+          <tr><td>k=7</td><td>0.933</td><td>0.233</td><td style="color:var(--red);">0.634</td></tr>
+          <tr><td>k=10</td><td>0.950</td><td style="color:var(--red);">0.317</td><td>&mdash;</td></tr>
+        </table>
+      </div>
+      <p class="dim small">Score threshold: 분포(0.08~0.58) 너무 좁아 <strong>불필요</strong> 확정</p>
+      <div class="card card-sm card-accent" style="text-align:center; margin-top:auto; padding:10px;">
+        <p style="font-size:13px; font-weight:600; color:var(--accent); margin-bottom:6px;">R2 최종 확정</p>
+        <div class="flex gap-8 wrap center">
+          <span class="tag tag-accent" style="font-size:10px;">enriched</span>
+          <span class="tag tag-cyan" style="font-size:10px;">E0</span>
+          <span class="tag tag-green" style="font-size:10px;">gpt-4o</span>
+          <span class="tag tag-amber" style="font-size:10px;">top_k=5</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 15: R3 RAG 평가 ==================== -->
+<div class="slide wide" id="slide-16">
+  <div class="section-label">06 &mdash; R3 RAG Evaluation</div>
+  <h2>R3 법령 RAG 성능 평가</h2>
+  <p class="dim" style="font-size:14px; margin-top:-14px; margin-bottom:8px;">국가법령정보센터 API에서 11개 법률 수집, 청킹 &rarr; 임베딩 &rarr; 벡터DB/Hybrid 3단계 최적화</p>
+
+  <div class="flex gap-12 items-center" style="margin-bottom:10px;">
     <div class="pipeline-step" style="border-color:var(--cyan); padding:10px 14px;">
       <div class="step-num" style="background:var(--cyan-dim); color:var(--cyan); width:32px; height:32px; font-size:14px;">1</div>
       <div><p style="font-weight:600; font-size:14px;">청킹 전략</p><p class="dim" style="font-size:10px;">9개 조합 (C0~C8)</p></div>
@@ -1270,24 +1453,22 @@
   </div>
 
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; flex:1;">
-    <!-- 왼쪽 상단: 데이터 수집 + 평가셋 -->
     <div class="card flex flex-col gap-8" style="padding:12px;">
       <h3 style="font-size:14px; margin-bottom:0;">데이터 수집 &rarr; 정제 &rarr; 평가셋</h3>
       <div class="flex flex-col gap-4" style="font-size:13px;">
-        <div class="flex gap-6 items-center"><div class="highlight-bar cyan" style="height:20px;"></div><span><strong>수집</strong>: 국가법령정보센터 Open API &rarr; 6개 도메인 &times; 11개 법률 (의료법, 전자금융거래법 등)</span></div>
-        <div class="flex gap-6 items-center"><div class="highlight-bar cyan" style="height:20px;"></div><span><strong>정제</strong>: 조(article) 단위로 구조 파싱 &rarr; law_name, article_no, paragraph_no 메타데이터 부착</span></div>
-        <div class="flex gap-6 items-center"><div class="highlight-bar cyan" style="height:20px;"></div><span><strong>청킹</strong>: 조 단위 기본, hybrid 보정(min 100 / max 800 토큰) &rarr; 1,188 청크 (평균 480자)</span></div>
-        <div class="flex gap-6 items-center"><div class="highlight-bar green" style="height:20px;"></div><span><strong>평가셋</strong>: 30개 질의 &times; gold_citations(조항 매칭) + negatives(오답 조항) + must_have 필수 근거 구분</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar cyan" style="height:20px;"></div><span><strong>수집</strong>: 국가법령정보센터 Open API &rarr; 6개 도메인 &times; 11개 법률</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar cyan" style="height:20px;"></div><span><strong>정제</strong>: 조(article) 단위 파싱 &rarr; law_name, article_no 메타데이터</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar cyan" style="height:20px;"></div><span><strong>청킹</strong>: 조 단위 + hybrid 보정 &rarr; 1,188 청크 (평균 480자)</span></div>
+        <div class="flex gap-6 items-center"><div class="highlight-bar green" style="height:20px;"></div><span><strong>평가셋</strong>: 30개 질의 &times; gold_citations + negatives + must_have</span></div>
       </div>
       <div class="flex gap-8 wrap" style="margin-top:auto;">
-        <span class="tag tag-cyan" style="font-size:10px;">MH-Recall (필수 근거)</span>
-        <span class="tag tag-cyan" style="font-size:10px;">Recall (전체 커버리지)</span>
-        <span class="tag tag-cyan" style="font-size:10px;">MRR (상위 노출)</span>
+        <span class="tag tag-cyan" style="font-size:10px;">MH-Recall</span>
+        <span class="tag tag-cyan" style="font-size:10px;">Recall</span>
+        <span class="tag tag-cyan" style="font-size:10px;">MRR</span>
         <span class="tag tag-cyan" style="font-size:10px;">P95 Latency</span>
       </div>
     </div>
 
-    <!-- 오른쪽 상단: 1단계 청킹 결과 -->
     <div class="card flex flex-col gap-8" style="padding:12px;">
       <h3 style="font-size:14px; margin-bottom:0;">1단계: 청킹 전략 비교 (9개 조합)</h3>
       <div class="table-wrap">
@@ -1299,11 +1480,10 @@
           <tr class="winner"><td><strong>C8</strong></td><td style="color:var(--cyan);">조</td><td class="dim small">+prefix+작은 청크</td><td><strong>0.867</strong></td><td><strong>0.833</strong></td><td>1,188</td></tr>
         </table>
       </div>
-      <p class="dim small"><strong>핵심 발견</strong>: 조 단위가 항 단위보다 <strong style="color:var(--green);">MH-R +13%p</strong>. 같은 조의 항들이 경쟁하지 않아 누락 감소. 멀티 그래뉼러리티/Top-k 확장은 효과 없음.</p>
+      <p class="dim small"><strong>핵심</strong>: 조 단위가 항 단위보다 <strong style="color:var(--green);">MH-R +13%p</strong>. 같은 조의 항 경쟁 제거.</p>
       <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">C8 (조 단위 + prefix + 작은 청크) 채택</div>
     </div>
 
-    <!-- 왼쪽 하단: 2단계 임베딩 결과 -->
     <div class="card flex flex-col gap-8" style="padding:12px;">
       <h3 style="font-size:14px; margin-bottom:0;">2단계: 임베딩 모델 비교 (6종)</h3>
       <div class="table-wrap">
@@ -1316,11 +1496,10 @@
           <tr><td>E5 KURE-v1</td><td class="dim">1024</td><td>0.933</td><td>0.851</td><td style="color:var(--green);">96ms</td><td>무료</td></tr>
         </table>
       </div>
-      <p class="dim small"><strong>핵심 발견</strong>: E1이 E0 대비 <strong style="color:var(--green);">MH-R +10%p</strong>. 법령 조문은 의미 밀도가 높아 고차원 임베딩 효과 극대화.</p>
+      <p class="dim small"><strong>핵심</strong>: E1이 E0 대비 <strong style="color:var(--green);">MH-R +10%p</strong>. 법령 의미 밀도가 높아 고차원 임베딩 효과적.</p>
       <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">E1 (text-embedding-3-large) 채택</div>
     </div>
 
-    <!-- 오른쪽 하단: 3단계 Hybrid + 최종 결과 -->
     <div class="card flex flex-col gap-8" style="padding:12px;">
       <h3 style="font-size:14px; margin-bottom:0;">3단계: 벡터DB &amp; Hybrid Search</h3>
       <div class="table-wrap">
@@ -1331,8 +1510,7 @@
           <tr class="winner"><td><strong>Qdrant+SPLADE</strong></td><td style="color:var(--cyan);">SPLADE</td><td><strong>0.967</strong></td><td><strong>0.828</strong></td><td>254ms</td></tr>
         </table>
       </div>
-      <p class="dim small"><strong>핵심 발견</strong>: SPLADE가 BM25보다 <strong style="color:var(--green);">+8~13%p MRR</strong>. WordPiece 토크나이저가 한국어 서브워드를 일관 분해하여 토큰 매칭에 효과적. BM25는 띄어쓰기 기반 토큰화로 한국어에 부적합.</p>
-      <!-- 최종 결과 바 -->
+      <p class="dim small"><strong>핵심</strong>: SPLADE WordPiece가 한국어 서브워드 일관 분해. BM25 대비 <strong style="color:var(--green);">+8~13%p MRR</strong>.</p>
       <div class="card card-sm card-cyan" style="text-align:center; margin-top:auto; padding:10px;">
         <p style="font-size:13px; font-weight:600; color:var(--cyan); margin-bottom:6px;">R3 최종 확정: C8 + E1 + Qdrant SPLADE</p>
         <div class="flex gap-12 center">
@@ -1345,175 +1523,78 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 14: RAG 평가 결과 상세 ==================== -->
-<div class="slide wide" id="slide-15">
-  <div class="section-label">06 &mdash; RAG Results</div>
-  <h2>RAG 평가 결과 &mdash; R2 승인 사례 + Generation</h2>
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1;">
-    <!-- R2: Data Strategy -->
-    <div class="card flex flex-col gap-10">
-      <h3 style="font-size:14px;">R2 데이터 전략 비교 (281건 승인 사례)</h3>
-      <p class="dim" style="font-size:13px; margin-top:-4px;">structured: 정형 필드만 사용 / enriched: GPT-4o로 누락 필드 50건 보강 / hybrid: 원문+정형 혼합</p>
-      <div class="bar-row">
-        <div class="bar-label dim">structured</div>
-        <div class="bar-track"><div class="bar-fill" style="width:79%; background:var(--text-dim);">0.786</div></div>
-      </div>
-      <div class="bar-row">
-        <div class="bar-label" style="color:var(--green); font-weight:600;">enriched</div>
-        <div class="bar-track"><div class="bar-fill" style="width:86%; background:var(--green);">0.858</div></div>
-      </div>
-      <div class="bar-row">
-        <div class="bar-label dim">hybrid</div>
-        <div class="bar-track"><div class="bar-fill" style="width:83%; background:var(--text-dim);">0.830</div></div>
-      </div>
-      <p class="dim small"><strong>structured</strong>: 정형 필드(서비스명, 트랙, 조건)만으로 문서 구성. 간결하지만 맥락 부족</p>
-      <p class="dim small"><strong style="color:var(--green);">enriched</strong>: GPT-4o가 원문에서 핵심 정보(기술, 규제쟁점) 추출하여 정형 필드 보강. Recall <strong style="color:var(--green);">+7.3%p</strong></p>
-      <div class="tag tag-green" style="align-self:flex-start; font-size:13px;">enriched structured 채택</div>
-    </div>
-
-    <!-- R2: Generation Model -->
-    <div class="card flex flex-col gap-10">
-      <h3 style="font-size:14px;">생성 모델 비교 (RAGAS)</h3>
-      <div class="table-wrap">
-        <table style="font-size:14px;">
-          <tr><th>모델</th><th>Faith.</th><th>Relev.</th><th>P50</th></tr>
-          <tr class="winner">
-            <td>gpt-4o</td><td><strong>0.975</strong></td><td><strong>0.718</strong></td><td><strong>2.9s</strong></td>
-          </tr>
-          <tr><td>gpt-4o-mini</td><td>0.957</td><td>0.715</td><td>9.0s</td></tr>
-          <tr><td>gpt-4.1</td><td>0.942</td><td>0.627</td><td>3.6s</td></tr>
-          <tr><td>gpt-4.1-mini</td><td>0.919</td><td>0.653</td><td>4.2s</td></tr>
-        </table>
-      </div>
-      <div class="tag tag-green" style="align-self:flex-start; font-size:13px;">gpt-4o 채택 (3개 지표 1위)</div>
-    </div>
-
-    <!-- R2: Top-K Tuning -->
-    <div class="card flex flex-col gap-10">
-      <h3 style="font-size:14px;">구성 튜닝 &mdash; top_k & threshold</h3>
-      <div class="table-wrap">
-        <table style="font-size:14px;">
-          <tr><th>top_k</th><th>MH-R</th><th>Neg</th><th>Ans.Rel</th></tr>
-          <tr><td>k=3</td><td>0.717</td><td style="color:var(--green);">0.083</td><td>&mdash;</td></tr>
-          <tr class="winner">
-            <td><strong>k=5</strong></td><td><strong>0.867</strong></td><td>0.200</td><td><strong>0.718</strong></td>
-          </tr>
-          <tr><td>k=7</td><td>0.933</td><td>0.233</td><td style="color:var(--red);">0.634</td></tr>
-          <tr><td>k=10</td><td>0.950</td><td style="color:var(--red);">0.317</td><td>&mdash;</td></tr>
-        </table>
-      </div>
-      <p class="dim small">Score threshold: 분포(0.08~0.58) 너무 좁아 <strong>불필요</strong> 확정</p>
-      <div class="tag tag-green" style="align-self:flex-start; font-size:13px;">top_k=5 채택 (검색+생성 균형)</div>
-    </div>
-
-    <!-- R2: Embedding Model -->
-    <div class="card flex flex-col gap-10">
-      <h3 style="font-size:14px;">R2 임베딩 모델 비교 (4종)</h3>
-      <div class="table-wrap">
-        <table style="font-size:14px;">
-          <tr><th>모델</th><th>MH-R</th><th>MRR</th><th>Neg</th></tr>
-          <tr class="winner">
-            <td><strong>E0 3-small</strong></td><td>0.867</td><td><strong>0.950</strong></td><td style="color:var(--green);">0.200</td>
-          </tr>
-          <tr><td>E1 3-large</td><td>0.867</td><td>0.928</td><td>0.217</td></tr>
-          <tr><td>E4 BGE-M3</td><td><strong>0.883</strong></td><td>0.933</td><td>0.200</td></tr>
-          <tr><td>E5 KURE-v1</td><td>0.850</td><td>0.917</td><td>0.233</td></tr>
-        </table>
-      </div>
-      <p class="dim small"><strong>핵심 발견</strong>: 모델 간 차이 <strong>~2.5%p</strong>로 소폭. E0가 <strong style="color:var(--green);">MRR 0.950</strong> 1위 &mdash; 1건=1문서 구조라 경량 모델로 충분.</p>
-      <div class="tag tag-green" style="align-self:flex-start; font-size:13px;">E0 (text-embedding-3-small) 채택</div>
-    </div>
-  </div>
-
-  <!-- 최종 확정 바 -->
-  <div class="card flex items-center gap-24" style="margin-top:8px; padding:10px 16px;">
-    <div style="flex-shrink:0;">
-      <p style="font-size:14px; font-weight:600; color:var(--accent2);">R2 최종 확정</p>
-    </div>
-    <div class="flex gap-8 wrap" style="flex:1;">
-      <span class="tag tag-accent" style="font-size:11px;">enriched structured</span>
-      <span class="tag tag-cyan" style="font-size:11px;">E0 3-small</span>
-      <span class="tag tag-green" style="font-size:11px;">gpt-4o</span>
-      <span class="tag tag-amber" style="font-size:11px;">top_k=5</span>
-    </div>
-    <div class="flex gap-16">
-      <div class="metric"><div class="metric-value" style="color:var(--green); font-size:18px;">0.975</div><div class="metric-label">Faithfulness</div></div>
-      <div class="metric"><div class="metric-value" style="color:var(--cyan); font-size:18px;">0.950</div><div class="metric-label">MRR</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== SLIDE 15: Agent 아키텍처 ==================== -->
-<div class="slide wide" id="slide-16">
+<!-- ==================== SLIDE 16: Agent 아키텍처 ==================== -->
+<div class="slide wide" id="slide-17" style="padding:28px 24px;">
   <div class="section-label">07 &mdash; Agent Architecture</div>
   <h2>LangGraph 멀티 에이전트 파이프라인</h2>
 
+  <div class="flex flex-col gap-10 grow" style="justify-content:center;">
   <!-- 상단: 4 Agent 순차 플로우 -->
-  <div class="flex gap-12 grow" style="margin-bottom:10px;">
+  <div class="flex gap-14">
     <!-- Agent 1 -->
     <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
-      <div class="flex items-center gap-6">
-        <div class="num" style="background:var(--accent); width:22px; height:22px; font-size:11px;">1</div>
-        <strong style="font-size:13px;">Service Structurer</strong>
+      <div class="flex items-center gap-8">
+        <div class="num" style="background:var(--accent); width:26px; height:26px; font-size:13px;">1</div>
+        <strong style="font-size:15px;">Service Structurer</strong>
       </div>
-      <div class="flex flex-col gap-3" style="flex:1;">
-        <div class="box box-accent" style="font-size:11px; padding:5px 10px; text-align:center;">HWP/PDF 파싱<br><span class="dim" style="font-size:10px;">olefile + zlib</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box box-accent" style="font-size:11px; padding:5px 10px; text-align:center;">문서 병합<br><span class="dim" style="font-size:10px;">8그룹 first-win</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--accent); background:var(--accent-glow); font-weight:600;">Canonical Structure<br><span class="dim" style="font-size:10px; font-weight:400;">통일 JSON &rarr; 전 Agent 공유</span></div>
+      <div class="flex flex-col gap-4">
+        <div class="box box-accent" style="font-size:15px; padding:8px 12px; text-align:center;">HWP/PDF 파싱<br><span class="dim" style="font-size:13px;">olefile + zlib</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box box-accent" style="font-size:15px; padding:8px 12px; text-align:center;">문서 병합<br><span class="dim" style="font-size:13px;">8그룹 first-win</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:15px; padding:8px 12px; text-align:center; border-color:var(--accent); background:var(--accent-glow); font-weight:600;">Canonical Structure<br><span class="dim" style="font-size:13px; font-weight:400;">통일 JSON &rarr; 전 Agent 공유</span></div>
       </div>
-      <div class="flex gap-4 wrap"><span class="tag tag-accent" style="font-size:10px;">HWP Parser</span></div>
+      <div class="flex gap-4 wrap"><span class="tag tag-accent" style="font-size:11px;">HWP Parser</span></div>
     </div>
     <!-- Agent 2 -->
     <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
-      <div class="flex items-center gap-6">
-        <div class="num" style="background:var(--green); width:22px; height:22px; font-size:11px;">2</div>
-        <strong style="font-size:13px;">Eligibility Evaluator</strong>
+      <div class="flex items-center gap-8">
+        <div class="num" style="background:var(--green); width:26px; height:26px; font-size:13px;">2</div>
+        <strong style="font-size:15px;">Eligibility Evaluator</strong>
       </div>
-      <div class="flex flex-col gap-3" style="flex:1;">
-        <div class="box box-green" style="font-size:11px; padding:5px 10px; text-align:center;">키워드 스크리닝<br><span class="dim" style="font-size:10px;">5개 도메인 매칭</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box box-green" style="font-size:11px; padding:5px 10px; text-align:center;">R1+R2+R3 병렬 검색<br><span class="dim" style="font-size:10px;">ThreadPoolExecutor</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--green); background:var(--green-dim); font-weight:600;">대상성 판정 + 근거<br><span class="dim" style="font-size:10px; font-weight:400;">9개 병렬 LLM 생성</span></div>
+      <div class="flex flex-col gap-4">
+        <div class="box box-green" style="font-size:15px; padding:8px 12px; text-align:center;">키워드 스크리닝<br><span class="dim" style="font-size:13px;">5개 도메인 매칭</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box box-green" style="font-size:15px; padding:8px 12px; text-align:center;">R1+R2+R3 병렬 검색<br><span class="dim" style="font-size:13px;">ThreadPoolExecutor</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:15px; padding:8px 12px; text-align:center; border-color:var(--green); background:var(--green-dim); font-weight:600;">대상성 판정 + 근거<br><span class="dim" style="font-size:13px; font-weight:400;">9개 병렬 LLM 생성</span></div>
       </div>
-      <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:10px;">R1</span><span class="tag tag-green" style="font-size:10px;">R2</span><span class="tag tag-green" style="font-size:10px;">R3</span></div>
+      <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:11px;">R1</span><span class="tag tag-green" style="font-size:11px;">R2</span><span class="tag tag-green" style="font-size:11px;">R3</span></div>
     </div>
     <!-- Agent 3 -->
     <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
-      <div class="flex items-center gap-6">
-        <div class="num" style="background:var(--cyan); width:22px; height:22px; font-size:11px;">3</div>
-        <strong style="font-size:13px;">Track Recommender</strong>
+      <div class="flex items-center gap-8">
+        <div class="num" style="background:var(--cyan); width:26px; height:26px; font-size:13px;">3</div>
+        <strong style="font-size:15px;">Track Recommender</strong>
       </div>
-      <div class="flex flex-col gap-3" style="flex:1;">
-        <div class="box box-cyan" style="font-size:11px; padding:5px 10px; text-align:center;">유사 사례 검색<br><span class="dim" style="font-size:10px;">R2 의미 기반</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box box-cyan" style="font-size:11px; padding:5px 10px; text-align:center;">체크리스트 스코어링<br><span class="dim" style="font-size:10px;">트랙별 0~100점</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--cyan); background:var(--cyan-dim); font-weight:600;">추천 순위 + 사유<br><span class="dim" style="font-size:10px; font-weight:400;">R3 페널티 최대 -30점</span></div>
+      <div class="flex flex-col gap-4">
+        <div class="box box-cyan" style="font-size:15px; padding:8px 12px; text-align:center;">유사 사례 검색<br><span class="dim" style="font-size:13px;">R2 의미 기반</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box box-cyan" style="font-size:15px; padding:8px 12px; text-align:center;">체크리스트 스코어링<br><span class="dim" style="font-size:13px;">트랙별 0~100점</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:15px; padding:8px 12px; text-align:center; border-color:var(--cyan); background:var(--cyan-dim); font-weight:600;">추천 순위 + 사유<br><span class="dim" style="font-size:13px; font-weight:400;">R3 페널티 최대 -30점</span></div>
       </div>
-      <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:10px;">R1</span><span class="tag tag-green" style="font-size:10px;">R2</span><span class="tag tag-green" style="font-size:10px;">R3</span></div>
+      <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:11px;">R1</span><span class="tag tag-green" style="font-size:11px;">R2</span><span class="tag tag-green" style="font-size:11px;">R3</span></div>
     </div>
     <!-- Agent 4 -->
     <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
-      <div class="flex items-center gap-6">
-        <div class="num" style="background:var(--amber); width:22px; height:22px; font-size:11px;">4</div>
-        <strong style="font-size:13px;">Application Drafter</strong>
+      <div class="flex items-center gap-8">
+        <div class="num" style="background:var(--amber); width:26px; height:26px; font-size:13px;">4</div>
+        <strong style="font-size:15px;">Application Drafter</strong>
       </div>
-      <div class="flex flex-col gap-3" style="flex:1;">
-        <div class="box box-amber" style="font-size:11px; padding:5px 10px; text-align:center;">양식 스키마 로드<br><span class="dim" style="font-size:10px;">트랙별 JSON</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box box-amber" style="font-size:11px; padding:5px 10px; text-align:center;">R1+R2 컨텍스트 검색<br><span class="dim" style="font-size:10px;">가이드 + 사례</span></div>
-        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
-        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--amber); background:var(--amber-dim); font-weight:600;">초안 생성 + 편집<br><span class="dim" style="font-size:10px; font-weight:400;">Tiptap &rarr; DOCX</span></div>
+      <div class="flex flex-col gap-4">
+        <div class="box box-amber" style="font-size:15px; padding:8px 12px; text-align:center;">양식 스키마 로드<br><span class="dim" style="font-size:13px;">트랙별 JSON</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box box-amber" style="font-size:15px; padding:8px 12px; text-align:center;">R1+R2 컨텍스트 검색<br><span class="dim" style="font-size:13px;">가이드 + 사례</span></div>
+        <div style="text-align:center; color:var(--border); font-size:16px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:15px; padding:8px 12px; text-align:center; border-color:var(--amber); background:var(--amber-dim); font-weight:600;">초안 생성 + 편집<br><span class="dim" style="font-size:13px; font-weight:400;">Tiptap &rarr; DOCX</span></div>
       </div>
-      <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:10px;">R1</span><span class="tag tag-green" style="font-size:10px;">R2</span><span class="tag tag-amber" style="font-size:10px;">docxtpl</span></div>
+      <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:11px;">R1</span><span class="tag tag-green" style="font-size:11px;">R2</span><span class="tag tag-amber" style="font-size:11px;">docxtpl</span></div>
     </div>
   </div>
 
   <!-- 하단: 파이프라인 시각화 -->
-  <div class="card" style="background:var(--surface2); padding:18px 24px; margin-top:12px;">
+  <div class="card" style="background:var(--surface2); padding:18px 24px;">
     <h3 style="font-size:14px; margin:0 0 14px 0;">End-to-End Pipeline Flow</h3>
     <div class="flex items-center gap-10" style="justify-content:center;">
       <div class="box box-accent" style="font-size:14px; padding:10px 16px;">
@@ -1540,14 +1621,15 @@
       </div>
     </div>
   </div>
+  </div>
 </div>
 
-<!-- ==================== SLIDE 16: 서비스 완성 (Demo) ==================== -->
-<div class="slide wide" id="slide-17">
+<!-- ==================== SLIDE 17: 서비스 완성 (Demo) ==================== -->
+<div class="slide wide" id="slide-18">
   <div class="section-label">08 &mdash; Service Completion</div>
   <h2>서비스 완성</h2>
-  <div class="flex flex-col gap-16 grow">
-    <div class="card" style="background:var(--surface2); text-align:center;">
+  <div class="flex flex-col gap-16 grow" style="justify-content:center;">
+    <div class="card" style="background:var(--surface2); text-align:center; width:100%;">
       <p class="dim small" style="margin-bottom:12px;">시연 영상</p>
       <div class="flex gap-12 wrap center" style="margin-bottom:10px;">
         <div class="card card-sm flex items-center gap-8" style="min-width:160px;">
@@ -1571,12 +1653,12 @@
           <span style="font-size:14px;">신청서 초안 + 다운로드</span>
         </div>
       </div>
-      <div style="width:100%; height:160px; border:2px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.06);">
+      <div style="width:100%; height:320px; border:2px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.12);">
         <p class="dim" style="font-size:16px;">&#9654;&nbsp; 시연 영상 재생</p>
       </div>
     </div>
 
-    <div class="card card-sm" style="background:var(--surface2);">
+    <div class="card card-sm" style="background:var(--surface2); width:100%;">
       <div class="flex gap-24 center" style="font-size:14px;">
         <div class="flex items-center gap-8"><span class="dim">AI Agent</span><span class="mono" style="color:var(--green); font-weight:600;">4개</span></div>
         <div class="flex items-center gap-8"><span class="dim">RAG 시스템</span><span class="mono" style="color:var(--green); font-weight:600;">3개</span></div>
@@ -1587,8 +1669,8 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 17: 배포 ==================== -->
-<div class="slide" id="slide-18">
+<!-- ==================== SLIDE 18: 배포 ==================== -->
+<div class="slide" id="slide-19">
   <div class="section-label">09 &mdash; Deployment</div>
   <h2>배포 & 운영 구성</h2>
   <div class="two-col grow">
@@ -1676,8 +1758,8 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 18: 핵심 개발 이슈 1 — RAG 데이터 & 평가 ==================== -->
-<div class="slide wide" id="slide-19">
+<!-- ==================== SLIDE 19: 핵심 개발 이슈 1 — RAG 데이터 & 평가 ==================== -->
+<div class="slide wide" id="slide-20">
   <div class="section-label">10 &mdash; Dev Issues (1/2)</div>
   <h2>핵심 개발 이슈 & 해결 (1)</h2>
   <div class="two-col grow">
@@ -1710,7 +1792,7 @@
     <!-- 우: 도메인 데이터 수집 + 공통 교훈 -->
     <div class="flex flex-col gap-10">
       <div class="card flex flex-col gap-10">
-        <h3 style="font-size:14px;">규제 도메인 데이터 수집 & 정제</h3>
+        <h3 style="font-size:14px;">R2 규제 도메인 데이터 수집 & 정제</h3>
         <div class="flex flex-col gap-8" style="font-size:14px;">
           <div class="flex gap-8 items-start">
             <span class="tag" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.3); font-size:10px; flex-shrink:0;">Problem</span>
@@ -1734,8 +1816,8 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 19: 핵심 개발 이슈 2 — 기술 이슈 해결 ==================== -->
-<div class="slide wide" id="slide-20">
+<!-- ==================== SLIDE 20: 핵심 개발 이슈 2 — 기술 이슈 해결 ==================== -->
+<div class="slide wide" id="slide-21">
   <div class="section-label">10 &mdash; Dev Issues (2/2)</div>
   <h2>핵심 개발 이슈 & 해결 (2)</h2>
   <div class="two-col grow">
@@ -1817,8 +1899,8 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 20: Lesson Learned 3 — 회고 + 향후 ==================== -->
-<div class="slide wide" id="slide-21">
+<!-- ==================== SLIDE 21: Lesson Learned — 회고 + 향후 ==================== -->
+<div class="slide wide" id="slide-22">
   <div class="section-label">10 &mdash; Retrospective</div>
   <h2>프로젝트 회고 & 향후 과제</h2>
   <div class="two-col grow">
@@ -1936,8 +2018,8 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 21: Q&A ==================== -->
-<div class="slide" id="slide-22">
+<!-- ==================== SLIDE 22: Q&A ==================== -->
+<div class="slide" id="slide-23">
   <div class="cover-grid"></div>
   <div class="cover-dots"></div>
   <div class="flex flex-col center grow" style="position:relative; z-index:1;">
