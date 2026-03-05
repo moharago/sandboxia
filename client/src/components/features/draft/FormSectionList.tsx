@@ -1,11 +1,10 @@
 "use client"
 
 import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
-import { agentsApi } from "@/lib/api/agents"
 import { formatDateIso, getTodayIso } from "@/lib/utils/date"
 import type { FormType } from "@/stores/wizard-store"
 import type { FormSchema } from "@/types/draft"
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react"
 import { DynamicFormCard } from "./DynamicFormCard"
 
 type FormData = Record<string, FormSchema>
@@ -163,7 +162,7 @@ export const FormSectionList = forwardRef<FormSectionListHandle, FormSectionList
     ref
 ) {
     const [formValues, setFormValues] = useState<Record<string, Record<string, string>>>({})
-    const prevInitialValuesRef = useRef<Record<string, unknown> | undefined>(undefined)
+    const [prevInitialValues, setPrevInitialValues] = useState<Record<string, unknown> | undefined>(undefined)
 
     // initialValues를 카드별 flat 구조로 변환
     const flattenedInitialValues = useMemo(() => {
@@ -202,22 +201,11 @@ export const FormSectionList = forwardRef<FormSectionListHandle, FormSectionList
     }, [initialValues])
 
     // initialValues가 변경되면 formValues 업데이트 (새로운 AI 초안 생성 시 반영)
-    // deep equality 비교로 실제 데이터 변경 시에만 덮어쓰기 (사용자 입력 보호)
-    useEffect(() => {
-        if (!initialValues) return
-
-        const prevJson = JSON.stringify(prevInitialValuesRef.current)
-        const currentJson = JSON.stringify(initialValues)
-
-        // Fast Refresh 등으로 formValues가 초기화된 경우도 처리
-        const isFormValuesEmpty = Object.keys(formValues).length === 0
-        const hasFlattenedData = Object.keys(flattenedInitialValues).length > 0
-
-        if (prevJson !== currentJson || (isFormValuesEmpty && hasFlattenedData)) {
-            prevInitialValuesRef.current = initialValues
-            setFormValues(flattenedInitialValues)
-        }
-    }, [initialValues, flattenedInitialValues, formValues])
+    // React 19 권장 패턴: 렌더 중 prop 변경 감지 → setState (useEffect 대신)
+    if (initialValues && JSON.stringify(prevInitialValues) !== JSON.stringify(initialValues)) {
+        setPrevInitialValues(initialValues)
+        setFormValues(flattenedInitialValues)
+    }
     const [savedMessage, setSavedMessage] = useState<string | null>(null)
     const [saveError, setSaveError] = useState<string | null>(null)
     const [savingCardKey, setSavingCardKey] = useState<string | null>(null)
