@@ -48,8 +48,8 @@ REGULATION_KEYWORDS = {
         "알고리즘", "프로파일링",
     ],
     "telecom": [
-        "통신", "주파수", "전파", "방송", "인터넷", "5G", "6G",
-        "IoT", "사물인터넷", "네트워크", "전기통신",
+        "전기통신", "이동통신", "통신사업", "주파수", "전파", "방송", "5G", "6G",
+        "IoT", "사물인터넷",
     ],
 }
 
@@ -89,6 +89,7 @@ def rule_screener(service_description: str, service_name: str = "") -> Screening
     for domain, keywords in REGULATION_KEYWORDS.items():
         for keyword in keywords:
             if keyword in text:
+                print(f"[DEBUG] rule_screener: 키워드 '{keyword}' 감지 → 도메인 '{domain}'")
                 if domain not in detected_domains:
                     detected_domains.append(domain)
                 if keyword not in search_keywords:

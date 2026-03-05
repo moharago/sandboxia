@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.tools.shared.rag.case_rag import search_case
-from app.tools.shared.rag.domain_law_rag import search_domain_law
+from app.tools.shared.rag.domain_law_rag import DOMAIN_MAPPING, search_domain_law
 from app.tools.shared.rag.regulation_rag import search_regulation
 
 from .prompts import (
@@ -365,25 +365,23 @@ def search_cases_node(state: EligibilityState) -> dict:
     return {"case_results": cases}
 
 
-def search_laws_node(state: EligibilityState) -> dict:
-    """도메인별 법령 검색 노드 (R3)
+def _search_laws(screening) -> list[dict]:
+    """R3 도메인별 법령 검색 (내부 함수)
 
-    스크리닝에서 탐지된 도메인으로 법령 검색
-    도메인이 없는 경우에도 최소 1회 R3 검색 수행
+    DOMAIN_MAPPING에 있는 도메인만 검색, 없으면 빈 결과 반환
     """
-    print("[Step 4/5] R3 법령 검색 시작...")
-    screening = state["screening_result"]
     domains = screening.detected_domains if screening else []
     keywords = screening.search_keywords if screening else []
 
-    # 도메인이 없으면 fallback 도메인 사용 (최소 1회 R3 검색 보장)
-    if not domains:
-        domains = ["data"]  # 기본 도메인 (DOMAIN_MAPPING에 정의됨)
+    # DOMAIN_MAPPING에 있는 도메인만 필터링 (매핑 안 된 도메인은 검색 안 함)
+    valid_domains = [d for d in domains if d.lower() in DOMAIN_MAPPING]
+    print(f"[DEBUG] _search_laws: detected_domains={domains}, valid_domains={valid_domains}")
+
+    if not valid_domains:
+        return []
 
     laws = []
-
-    # 도메인별 검색
-    for domain in domains[:3]:  # 최대 3개 도메인
+    for domain in valid_domains[:3]:
         query = " ".join(keywords[:3]) if keywords else domain
         result = search_domain_law.invoke({
             "query": query,
