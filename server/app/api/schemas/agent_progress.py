@@ -61,8 +61,7 @@ AGENT_NODES: dict[str, list[NodeInfo]] = {
     ],
     "track_recommender": [
         NodeInfo(id="retrieve_cases", label="사례 검색", description="유사 승인 사례를 검색합니다"),
-        NodeInfo(id="score_all_tracks", label="트랙 평가", description="각 트랙의 적합도를 평가합니다"),
-        NodeInfo(id="retrieve_definitions", label="정의 검색", description="트랙 정의와 요건을 검색합니다"),
+        NodeInfo(id="score_all_tracks", label="트랙 평가", description="트랙 정의/요건 검색 및 적합도를 평가합니다"),
         NodeInfo(id="generate_recommendation", label="추천 생성", description="최적의 트랙을 추천합니다"),
     ],
     "application_drafter": [
