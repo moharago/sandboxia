@@ -1,8 +1,11 @@
 """Track Recommender Agent 노드 함수"""
 
 import json
+import logging
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from app.agents.eligibility_evaluator.schemas import ApprovalCase, Regulation
 from app.agents.track_recommender.prompts import (
@@ -157,12 +160,12 @@ def _build_combined_context(
                     "source": r.citation,
                     "source_url": r.source_url,
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[R1-1] compare_tracks 실패: {e}", exc_info=True)
 
     # R1-2: 트랙별 정의 검색
-    try:
-        for track_key, track_name in track_name_map.items():
+    for track_key, track_name in track_name_map.items():
+        try:
             definition_results = get_track_definition.invoke({"track": track_name})
             if definition_results:
                 for r in definition_results[:3]:
@@ -174,8 +177,8 @@ def _build_combined_context(
                         "source": r.citation,
                         "source_url": r.source_url,
                     })
-    except Exception:
-        pass
+        except Exception as e:
+            logger.warning(f"[R1-2] get_track_definition 실패 (track={track_name}): {e}", exc_info=True)
 
     # R3: retrieve_domain_constraints 결과 재사용 (중복 검색 제거)
     constraints = domain_constraints.get("constraints", [])
