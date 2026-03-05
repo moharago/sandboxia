@@ -17,10 +17,13 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel, Field
 
 from app.agents.eligibility_evaluator.schemas import (
+    ApprovalCase,
     EligibilityRequest,
     EligibilityResponse,
+    Regulation,
 )
 from app.agents.track_recommender import run_track_recommender
+from app.core.config import settings
 from app.api.deps import AuthUser, get_auth_user
 from app.api.schemas.agents import StructureResponse
 from app.services.draft_service import (
@@ -28,6 +31,7 @@ from app.services.draft_service import (
     run_draft,
     save_draft_result,
     update_draft_card,
+    update_project_after_draft,
 )
 from app.services.eligibility_service import (
     EligibilityServiceError,
@@ -41,6 +45,7 @@ from app.services.structure_service import StructureService, StructureServiceErr
 from app.services.track_service import (
     get_track_result,
     save_track_result,
+    update_project_after_track,
 )
 
 logger = logging.getLogger(__name__)
@@ -143,6 +148,8 @@ async def evaluate_eligibility(
     try:
         save_eligibility_result(project_id, result)
         update_project_after_eligibility(project_id)
+    except EligibilityServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
     except Exception as e:
         logger.error(f"결과 저장 실패: {e}")
         raise HTTPException(
@@ -209,7 +216,8 @@ class TrackRecommendResponse(BaseModel):
     confidence_score: float
     result_summary: str
     track_comparison: dict
-    similar_cases: dict = Field(default_factory=dict)  # {track_key: [case_dict, ...]}
+    similar_cases: list[ApprovalCase] = Field(default_factory=list)  # 유사 승인 사례
+    domain_constraints: list[Regulation] = Field(default_factory=list)  # 관련 법령
 
 
 @router.get(
@@ -237,7 +245,8 @@ async def get_track_recommendation(
         confidence_score=result["confidence_score"],
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
-        similar_cases=result.get("similar_cases", {}),
+        similar_cases=result.get("similar_cases", []),
+        domain_constraints=result.get("domain_constraints", []),
     )
 
 
@@ -298,22 +307,18 @@ async def recommend_track(
         )
 
     # 3. 결과 저장
-    similar_cases = result.get("similar_cases", {})
-    try:
-        save_track_result(
-            project_id=project_id,
-            recommended_track=result["recommended_track"],
-            confidence_score=result["confidence_score"],
-            result_summary=result["result_summary"],
-            track_comparison=result["track_comparison"],
-            similar_cases=similar_cases,
-        )
-    except Exception as e:
-        logger.warning("track_results 저장 실패: %s", str(e))
-        # 저장 실패해도 응답은 반환
-
-    # similar_cases 추출
-    similar_cases = result.get("similar_cases", {})
+    similar_cases = result.get("similar_cases", [])
+    domain_constraints = result.get("domain_constraints", [])
+    save_track_result(
+        project_id=project_id,
+        recommended_track=result["recommended_track"],
+        confidence_score=result["confidence_score"],
+        result_summary=result["result_summary"],
+        track_comparison=result["track_comparison"],
+        similar_cases=similar_cases,
+        domain_constraints=domain_constraints,
+    )
+    update_project_after_track(project_id)
 
     return TrackRecommendResponse(
         project_id=project_id,
@@ -322,6 +327,7 @@ async def recommend_track(
         result_summary=result["result_summary"],
         track_comparison=result["track_comparison"],
         similar_cases=similar_cases,
+        domain_constraints=domain_constraints,
     )
 
 
@@ -343,6 +349,8 @@ class DraftGenerateResponse(BaseModel):
     track: str
     application_draft: dict
     model_name: str
+    similar_cases: list[ApprovalCase] = Field(default_factory=list)
+    domain_laws: list[Regulation] = Field(default_factory=list)
 
 
 @router.post(
@@ -411,22 +419,53 @@ async def generate_draft(
 
     # 3. 결과 저장
     application_draft = result.get("application_draft", {})
-    model_name = result.get("model_name", "")
 
-    try:
-        save_draft_result(
-            project_id=project_id,
-            application_draft=application_draft,
-            model_name=model_name,
-        )
-    except Exception as e:
-        logger.warning("application_draft 저장 실패: %s", str(e))
+    # 4. RAG 결과를 ReferencePanel 형식으로 변환
+    similar_cases: list[ApprovalCase] = []
+    for case in result.get("similar_cases", []):
+        # title: service_name 우선, 없으면 company_name 사용
+        title = case.get("service_name", "") or case.get("company_name", "") or "승인 사례"
+        similar_cases.append(ApprovalCase(
+            track=case.get("track", ""),
+            date=case.get("designation_date", ""),
+            similarity=0,
+            title=title,
+            company=case.get("company_name", ""),
+            summary=case.get("service_description", "") or case.get("content", "")[:200],
+            source_url=case.get("source_url"),
+        ))
+
+    domain_laws: list[Regulation] = []
+    for law in result.get("domain_laws", []):
+        metadata = law.get("metadata", {})
+        # citation 우선 (예: "의료법 제34조 제1항"), 없으면 law_name
+        title = metadata.get("citation", "") or metadata.get("law_name", "") or "관련 법령"
+        # source_url 직접 사용
+        source_url = metadata.get("source_url")
+        domain_laws.append(Regulation(
+            category=metadata.get("domain_label", "법령"),
+            title=title,
+            summary=law.get("content", "")[:300],
+            source_url=source_url,
+        ))
+
+    # 5. 결과 저장 (RAG 결과 포함) - Pydantic 모델을 dict로 변환
+    save_draft_result(
+        project_id=project_id,
+        application_draft=application_draft,
+        track=track,
+        similar_cases=[c.model_dump() for c in similar_cases],
+        domain_laws=[l.model_dump() for l in domain_laws],
+    )
+    update_project_after_draft(project_id)
 
     return DraftGenerateResponse(
         project_id=project_id,
         track=track,
         application_draft=application_draft,
-        model_name=model_name,
+        model_name=settings.LLM_MODEL,
+        similar_cases=similar_cases,
+        domain_laws=domain_laws,
     )
 
 

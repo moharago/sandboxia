@@ -6,16 +6,14 @@ ICT 규제샌드박스(과학기술정보통신부) 관련 정보만 제공합�
 주 사용처: 2(대상성 판단), 3(트랙 추천), 4(신청서 작성), 6(체크리스트) 에이전트
 """
 
-from typing import Any
-
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from app.core.constants import COLLECTION_REGULATIONS
-from app.db.vector import SearchResult, get_vector_store
+from app.db.vector import And, Eq, FilterExpr, Or, SearchResult, get_vector_store
 
 # 관련도 임계값: 이 값 미만의 결과는 반환하지 않음
-RELEVANCE_THRESHOLD = 0.32
+RELEVANCE_THRESHOLD = 0.25
 
 
 class RegulationResult(BaseModel):
@@ -125,41 +123,26 @@ def _build_filter(
     track: str | None = None,
     category: str | None = None,
     ministry: str | None = None,
-) -> dict[str, Any] | None:
+) -> FilterExpr | None:
     """필터 조건 구성"""
-    filter_conditions = []
+    conditions: list[FilterExpr] = []
 
     if track:
-        # track이 특정 값이거나 "all"인 경우 모두 포함
-        filter_conditions.append(
-            {
-                "$or": [
-                    {"track": {"$eq": track}},
-                    {"track": {"$eq": "all"}},
-                ]
-            }
-        )
+        conditions.append(Or(Eq("track", track), Eq("track", "all")))
 
     if category:
-        filter_conditions.append({"category": {"$eq": category}})
+        conditions.append(Eq("category", category))
 
     if ministry:
-        filter_conditions.append(
-            {
-                "$or": [
-                    {"ministry": {"$eq": ministry}},
-                    {"ministry": {"$eq": "all"}},
-                ]
-            }
-        )
+        conditions.append(Or(Eq("ministry", ministry), Eq("ministry", "all")))
 
-    if not filter_conditions:
+    if not conditions:
         return None
 
-    if len(filter_conditions) == 1:
-        return filter_conditions[0]
+    if len(conditions) == 1:
+        return conditions[0]
 
-    return {"$and": filter_conditions}
+    return And(*conditions)
 
 
 def _build_regulation_result(result: SearchResult, score_override: float | None = None) -> RegulationResult:
@@ -222,7 +205,7 @@ def search_regulation(
     )
 
     # 유사도 검색 (추상화된 인터페이스 사용)
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=query,
         k=top_k,
         filter=filter_dict,
@@ -263,23 +246,16 @@ def get_track_definition(track: str) -> list[RegulationResult]:
         return []
 
     # 필터 구성
-    filter_dict = {
-        "$and": [
-            {"category": {"$eq": "definition"}},
-            {
-                "$or": [
-                    {"track": {"$eq": normalized_track}},
-                    {"track": {"$eq": "all"}},
-                ]
-            },
-        ]
-    }
+    filter_expr = And(
+        Eq("category", "definition"),
+        Or(Eq("track", normalized_track), Eq("track", "all")),
+    )
 
     # 트랙 정의 문서 검색
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=f"{normalized_track} 정의 요건 절차",
         k=10,
-        filter=filter_dict,
+        filter=filter_expr,
     )
 
     if not search_results:
@@ -304,24 +280,17 @@ def get_application_requirements(track: str | None = None) -> list[RegulationRes
 
     # 필터 구성
     if normalized_track:
-        filter_dict: dict[str, Any] = {
-            "$and": [
-                {"category": {"$eq": "requirement"}},
-                {
-                    "$or": [
-                        {"track": {"$eq": normalized_track}},
-                        {"track": {"$eq": "all"}},
-                    ]
-                },
-            ]
-        }
+        filter_expr: FilterExpr = And(
+            Eq("category", "requirement"),
+            Or(Eq("track", normalized_track), Eq("track", "all")),
+        )
     else:
-        filter_dict = {"category": {"$eq": "requirement"}}
+        filter_expr = Eq("category", "requirement")
 
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=f"신청 요건 제출 서류 {track or ''}",
         k=10,
-        filter=filter_dict,
+        filter=filter_expr,
     )
 
     if not search_results:
@@ -346,24 +315,17 @@ def get_review_criteria(track: str | None = None) -> list[RegulationResult]:
 
     # 필터 구성
     if normalized_track:
-        filter_dict: dict[str, Any] = {
-            "$and": [
-                {"category": {"$eq": "criteria"}},
-                {
-                    "$or": [
-                        {"track": {"$eq": normalized_track}},
-                        {"track": {"$eq": "all"}},
-                    ]
-                },
-            ]
-        }
+        filter_expr: FilterExpr = And(
+            Eq("category", "criteria"),
+            Or(Eq("track", normalized_track), Eq("track", "all")),
+        )
     else:
-        filter_dict = {"category": {"$eq": "criteria"}}
+        filter_expr = Eq("category", "criteria")
 
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query=f"심사 기준 평가 항목 {track or ''}",
         k=10,
-        filter=filter_dict,
+        filter=filter_expr,
     )
 
     if not search_results:
@@ -381,10 +343,10 @@ def compare_tracks() -> list[RegulationResult]:
     """
     vector_store = get_vector_store(COLLECTION_REGULATIONS)
 
-    search_results = vector_store.similarity_search(
+    search_results = vector_store.hybrid_search(
         query="신속확인 실증특례 임시허가 비교 차이점",
         k=10,
-        filter={"category": {"$eq": "comparison"}},
+        filter=Eq("category", "comparison"),
     )
 
     if not search_results:

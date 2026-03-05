@@ -3,13 +3,14 @@
 import { Pipeline, type PipelineFilter } from "@/components/features/dashboard/PipelineStep"
 import { ProjectCard } from "@/components/features/dashboard/ProjectCard"
 import { Button } from "@/components/ui/button"
+import { PageLoader } from "@/components/ui/page-loader"
 import { Pagination } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useProjectsQuery } from "@/hooks/queries/use-projects-query"
 import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/stores/ui-store"
 import { PROJECT_STATUS, PROJECT_STATUS_LABELS, matchesStatusFilter } from "@/types/data/project"
-import { LayoutGrid, List, Loader2, Plus, Search } from "lucide-react"
+import { LayoutGrid, List, Plus, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 
 type SortOrder = "newest" | "oldest"
@@ -36,13 +37,17 @@ export default function DashboardPage() {
         sortOrder,
     })
 
-    // 상태별 통계
-    const stats = {
-        1: projects.filter((p) => p.status === PROJECT_STATUS.CONSULTING).length,
-        2: projects.filter((p) => p.status === PROJECT_STATUS.DRAFTING).length,
-        3: projects.filter((p) => p.status === PROJECT_STATUS.PENDING).length,
-        4: projects.filter((p) => p.status === PROJECT_STATUS.COMPLETED || p.status === PROJECT_STATUS.DIRECT_LAUNCH).length,
-    }
+    // js-combine-iterations: 상태별 통계를 단일 루프로 계산
+    const stats = useMemo(() => {
+        const result = { 1: 0, 2: 0, 3: 0, 4: 0 }
+        for (const p of projects) {
+            if (p.status === PROJECT_STATUS.CONSULTING) result[1]++
+            else if (p.status === PROJECT_STATUS.DRAFTING) result[2]++
+            else if (p.status === PROJECT_STATUS.PENDING) result[3]++
+            else if (p.status === PROJECT_STATUS.COMPLETED || p.status === PROJECT_STATUS.DIRECT_LAUNCH) result[4]++
+        }
+        return result
+    }, [projects])
 
     const pipelineSteps = [
         { id: 1 as PipelineFilter, label: "기업상담", count: stats[1] },
@@ -95,8 +100,8 @@ export default function DashboardPage() {
     if (isLoading) {
         return (
             <div className="py-6">
-                <div className="container flex items-center justify-center min-h-[400px]">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className="container">
+                    <PageLoader />
                 </div>
             </div>
         )

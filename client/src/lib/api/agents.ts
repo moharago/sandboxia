@@ -4,7 +4,7 @@
  * AI 에이전트 관련 API 호출 함수
  */
 
-import { useAuthStore } from "@/stores/auth-store"
+import { getAuthToken } from "@/lib/supabase/client"
 import type { EligibilityRequest, EligibilityResponse } from "@/types/api/eligibility"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
 import type { DraftGenerateRequest, DraftGenerateResponse, DraftCardUpdateRequest, DraftCardUpdateResponse } from "@/types/api/draft"
@@ -13,13 +13,6 @@ import type { TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/
 // 프로덕션: 비워두면 상대경로로 요청 → Vercel rewrites가 EC2로 프록시
 // 개발: http://localhost:8000 설정
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
-
-/**
- * auth-store에서 인증 토큰 가져오기
- */
-async function getAuthToken(): Promise<string | null> {
-    return useAuthStore.getState().getAccessToken()
-}
 
 export const agentsApi = {
     /**
@@ -30,10 +23,6 @@ export const agentsApi = {
      */
     parseService: async (request: ServiceParseRequest): Promise<ServiceParseResponse> => {
         const token = await getAuthToken()
-
-        if (!token) {
-            throw new Error("로그인이 필요합니다.")
-        }
 
         const formData = new FormData()
         formData.append("session_id", request.sessionId)
@@ -69,10 +58,6 @@ export const agentsApi = {
     evaluateEligibility: async (request: EligibilityRequest): Promise<EligibilityResponse> => {
         const token = await getAuthToken()
 
-        if (!token) {
-            throw new Error("로그인이 필요합니다.")
-        }
-
         const response = await fetch(`${API_BASE}/api/v1/agents/eligibility`, {
             method: "POST",
             headers: {
@@ -102,7 +87,7 @@ export const agentsApi = {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                Authorization: `Bearer ${token}`,
             },
         })
 
@@ -132,7 +117,7 @@ export const agentsApi = {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(request),
         })
@@ -157,7 +142,7 @@ export const agentsApi = {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(request),
         })
@@ -177,10 +162,6 @@ export const agentsApi = {
      */
     updateDraftCard: async (request: DraftCardUpdateRequest): Promise<DraftCardUpdateResponse> => {
         const token = await getAuthToken()
-
-        if (!token) {
-            throw new Error("로그인이 필요합니다.")
-        }
 
         const response = await fetch(`${API_BASE}/api/v1/agents/draft/${request.project_id}`, {
             method: "PATCH",

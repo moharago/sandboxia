@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.agents import router as agents_router
+from app.api.routes.agent_progress import router as agent_progress_router
+from app.api.routes.documents import router as documents_router
+from app.api.routes.files import router as files_router
 from app.api.routes.users import router as users_router
 from app.core.config import settings
 
@@ -30,10 +33,14 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["Content-Disposition"],
     )
 
     # 라우터 등록
     app.include_router(agents_router, prefix="/api/v1", tags=["AI Agents"])
+    app.include_router(agent_progress_router, prefix="/api/v1", tags=["Agent Progress"])
+    app.include_router(documents_router, prefix="/api/v1", tags=["Documents"])
+    app.include_router(files_router, tags=["Files"])
     app.include_router(users_router, prefix="/api", tags=["Users"])
 
     return app

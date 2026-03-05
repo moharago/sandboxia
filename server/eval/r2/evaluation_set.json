@@ -1,0 +1,1496 @@
+{
+  "version": "1.0",
+  "description": "R2 승인 사례 RAG 평가셋",
+  "total_count": 30,
+  "evaluation_items": [
+    {
+      "id": "R2-0001",
+      "category": "mobility",
+      "query_type": "similar_case",
+      "question": "자율주행 배달 로봇 서비스를 시작하려는데, 비슷한 승인 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_26_언맨드솔루션",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "자율주행 배달 로봇"
+        },
+        {
+          "case_id": "실증특례_39_우아한형제들",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "실내‧외 자율주행 배달로봇"
+        },
+        {
+          "case_id": "실증특례_62_뉴빌리티",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "실내‧외 자율주행 배달 로봇"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_25_만도",
+          "reason": "자율주행이지만 순찰 로봇으로 배달 서비스가 아님"
+        },
+        {
+          "case_id": "실증특례_54_모빌테크",
+          "reason": "자율주행 관련이지만 3D 정밀지도 제작으로 로봇 서비스 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "자율주행 배달로봇 관련 실증특례 사례가 다수 존재",
+        "카메라·센서 기반 자율주행으로 음식/택배 배달",
+        "관제센터에서 원격제어 및 모니터링 병행"
+      ],
+      "must_include": [
+        "자율주행",
+        "배달",
+        "실증특례"
+      ],
+      "must_not_include": [
+        "승인 사례 없음"
+      ],
+      "notes": "자율주행 배달로봇 클러스터. 우아한형제들(배민), 뉴빌리티, 언맨드솔루션 등 다수.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0002",
+      "category": "mobility",
+      "query_type": "similar_case",
+      "question": "택시 요금을 탑승 전에 미리 결제하는 서비스를 만들려는데, 유사 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_27_스타릭스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "탑승 전 선결제 택시 플랫폼"
+        },
+        {
+          "case_id": "실증특례_45_카카오모빌리티",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "요금 선결제 가맹 택시 서비스"
+        },
+        {
+          "case_id": "실증특례_44_브이씨엔씨",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "가맹택시 탄력요금제"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_8_코나투스",
+          "reason": "택시이지만 동승 중개 서비스로 요금제와 무관"
+        },
+        {
+          "case_id": "실증특례_31_카카오모빌리티·KM솔루션",
+          "reason": "택시이지만 차고지 밖 교대 서비스로 요금 관련 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "택시 요금 선결제 관련 실증특례 사례 존재",
+        "앱미터기 기반 사전 요금 확정 후 선결제",
+        "가맹택시 탄력요금제와 연계"
+      ],
+      "must_include": [
+        "선결제",
+        "택시"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "택시 선결제/탄력요금제 클러스터.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0003",
+      "category": "mobility",
+      "query_type": "condition_pattern",
+      "question": "수요응답형(DRT) 버스 서비스의 실증 부가조건은 어떤 것들이 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_17_현대자동차‧KST모빌리티",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "수요응답 기반 커뮤니티형 대형승합택시"
+        },
+        {
+          "case_id": "실증특례_64_스튜디오갈릴레이",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "수요응답기반(DRT방식)의 버스 운행 서비스"
+        },
+        {
+          "case_id": "실증특례_35_현대자동차‧KST모빌리티",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "수요응답 기반 커뮤니티형 대형승합택시(지정조건 변경)"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_95_스쿨버스",
+          "reason": "버스이지만 스쿨버스 플랫폼으로 DRT 방식 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "서비스 지역 반경 제한 (예: 2km 내외)",
+        "승객 수 및 운행 차량 대수 제한",
+        "대중교통 사각지역 한정 운행"
+      ],
+      "must_include": [
+        "수요응답",
+        "지역"
+      ],
+      "must_not_include": [
+        "조건 없음"
+      ],
+      "notes": "DRT 버스 부가조건 패턴. 현대차·KST, 스튜디오갈릴레이.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0004",
+      "category": "mobility",
+      "query_type": "condition_pattern",
+      "question": "이동약자를 위한 특화 모빌리티 서비스의 실증 조건이 어떻게 되나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_28_파파모빌리티",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "교통약자 특화 모빌리티 플랫폼"
+        },
+        {
+          "case_id": "실증특례_49_힐빙케어",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "이동약자 맞춤 모빌리티 서비스"
+        },
+        {
+          "case_id": "실증특례_60_안녕",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "이동약자 맞춤 모빌리티 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_67_인커머스",
+          "reason": "병원 이동약자 모빌리티이지만 의료연계 플랫폼 성격"
+        },
+        {
+          "case_id": "실증특례_8_코나투스",
+          "reason": "택시 동승 중개로 이동약자 특화 서비스가 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "특수개조 차량을 이용한 이동약자 운송",
+        "운행 지역 및 차량 대수 제한",
+        "기사 자격(택시운전자격증 등) 관리 의무"
+      ],
+      "must_include": [
+        "이동약자",
+        "차량"
+      ],
+      "must_not_include": [
+        "조건 없음"
+      ],
+      "notes": "이동약자 모빌리티 부가조건. 파파모빌리티, 힐빙케어, 안녕.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0005",
+      "category": "mobility",
+      "query_type": "track_specific",
+      "question": "자율주행 순찰 로봇으로 실증특례를 받은 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_25_만도",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "자율주행 순찰 로봇"
+        },
+        {
+          "case_id": "실증특례_72_한라대산학협력단_컨소시엄",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "자율주행 순찰로봇"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_26_언맨드솔루션",
+          "reason": "자율주행 로봇이지만 배달용으로 순찰 아님"
+        },
+        {
+          "case_id": "실증특례_165_우아한형제들",
+          "reason": "자율주행이지만 배달로봇 시스템 고도화"
+        }
+      ],
+      "expected_answer_bullets": [
+        "공원·산책로 등에서 자율주행 순찰 로봇 실증",
+        "카메라·센서 기반 위치·경로 인식",
+        "중앙관제센터에서 원격제어 및 모니터링"
+      ],
+      "must_include": [
+        "순찰",
+        "자율주행",
+        "실증특례"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "자율주행 순찰로봇. 배달로봇과 구분.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0006",
+      "category": "healthcare",
+      "query_type": "similar_case",
+      "question": "반려동물의 생체 정보를 활용해서 동물등록을 하는 서비스인데, 유사한 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_79_아이싸이랩",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "비문인식 기반 반려동물 등록 서비스"
+        },
+        {
+          "case_id": "실증특례_88_펫스니즈",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "비문리더기를 활용한 반려동물 등록 서비스"
+        },
+        {
+          "case_id": "실증특례_53_블록펫",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "동물 안면인식 기술을 활용한 반려동물 등록 서비스"
+        },
+        {
+          "case_id": "실증특례_121_펫나우",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "스마트폰으로 반려견의 비문(8056 000))을 촬영하고, 특정정보를 추출하여 개체를 식별하여 동물보호관리시스템에 등록하는 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_100_에이아이포펫",
+          "reason": "반려동물이지만 건강 모니터링으로 등록 서비스 아님"
+        },
+        {
+          "case_id": "실증특례_201_베텍코리아",
+          "reason": "반려동물이지만 의약품 구매·관리 서비스"
+        }
+      ],
+      "expected_answer_bullets": [
+        "비문(코 무늬) 인식 기반 반려동물 등록 사례 다수",
+        "안면인식 기술 활용 등록 사례도 존재",
+        "동물보호관리시스템에 등록하는 방식"
+      ],
+      "must_include": [
+        "반려동물",
+        "등록"
+      ],
+      "must_not_include": [
+        "등록 사례 없음"
+      ],
+      "notes": "반려동물 생체인식 등록 클러스터. 비문·안면·복정맥 등 다양한 방식.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0007",
+      "category": "healthcare",
+      "query_type": "similar_case",
+      "question": "AI를 활용해 반려동물 건강을 비대면으로 모니터링하는 서비스인데, 비슷한 승인 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_100_에이아이포펫",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "AI를 활용한 수의사의 반려동물 건강상태 모니터링 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_79_아이싸이랩",
+          "reason": "반려동물이지만 비문인식 등록 서비스"
+        },
+        {
+          "case_id": "실증특례_2_휴이노",
+          "reason": "건강 모니터링이지만 사람 대상 심전도 장치"
+        }
+      ],
+      "expected_answer_bullets": [
+        "AI 기반 반려동물 비대면 모니터링 실증특례 사례 존재",
+        "수의사가 앱을 통해 진료 및 상담",
+        "수의사법상 직접 진료 규제가 쟁점"
+      ],
+      "must_include": [
+        "반려동물",
+        "비대면",
+        "모니터링"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "에이아이포펫 단일 사례. 반려동물 비대면 진료는 아직 사례가 적음.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0008",
+      "category": "healthcare",
+      "query_type": "regulation_issue",
+      "question": "비대면으로 환자를 진료하는 서비스를 하려는데, 관련 규제 샌드박스 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_69_에이치로보틱스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "비대면 재활훈련 및 상담서비스"
+        },
+        {
+          "case_id": "임시허가_36_퍼즐에이아이",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "재외국민 대상 비대면 진료 서비스"
+        },
+        {
+          "case_id": "임시허가_46_케이더봄",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "재외국민 대상 비대면 진료서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_100_에이아이포펫",
+          "reason": "비대면이지만 동물 대상 서비스"
+        },
+        {
+          "case_id": "실증특례_162_위버케어_컨소시엄",
+          "reason": "진료정보 조회 서비스로 비대면 진료 자체가 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "비대면 재활훈련 및 상담 서비스 실증특례 존재",
+        "재외국민 대상 비대면 진료 임시허가 존재",
+        "의료법상 원격의료 규제가 핵심 쟁점"
+      ],
+      "must_include": [
+        "비대면",
+        "진료"
+      ],
+      "must_not_include": [
+        "비대면 진료 사례 없음"
+      ],
+      "notes": "비대면 진료 규제 쟁점. 에이치로보틱스(재활), 퍼즐에이아이(재외국민).",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0009",
+      "category": "healthcare",
+      "query_type": "regulation_issue",
+      "question": "의료 데이터를 활용한 연구 플랫폼을 만들려는데, 개인정보 관련 규제 샌드박스 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_149_서울대학교병원",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "서물대병원에서 연구목적으로 구축하는 의료데이터(가명처리) 플랫폼을"
+        },
+        {
+          "case_id": "실증특례_211_서울대학교병원",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "SNUH-Mayo Clinic Platform"
+        },
+        {
+          "case_id": "실증특례_162_위버케어_컨소시엄",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "환자 연계정보 활용 진료정보차트 조회서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_69_에이치로보틱스",
+          "reason": "의료이지만 비대면 재활훈련으로 데이터 플랫폼 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "서울대병원 의료데이터 가명처리 플랫폼 실증특례 존재",
+        "SNUH-Mayo Clinic 국제 의료데이터 플랫폼 사례",
+        "가명처리·비식별화를 통한 개인정보 보호가 핵심 조건"
+      ],
+      "must_include": [
+        "의료데이터",
+        "가명"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "의료데이터 플랫폼. 서울대병원 가명처리 플랫폼 2건 + 위버케어 진료정보.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0010",
+      "category": "healthcare",
+      "query_type": "condition_pattern",
+      "question": "손목시계형 심전도 장치로 건강관리 서비스를 하려는데, 실증 조건이 어떻게 되나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_2_휴이노",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "손목시계형 심전도 장치를 활용한 심장 관리서비스"
+        },
+        {
+          "case_id": "실증특례_20_아이티아이씨앤씨",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "생체신호를 이용한 위험감지 서비스"
+        },
+        {
+          "case_id": "실증특례_24_LG전자·서울대병원",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "손목형 심전도 측정기 활용 부정맥 상태 확인 및 내원안내 서비스"
+        },
+        {
+          "case_id": "실증특례_23_LG전자·에임메드",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "홈케어 건강관리서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_69_에이치로보틱스",
+          "reason": "의료기기이지만 재활로봇으로 심전도 장치 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "손목시계형 심전도 장치 활용 심장 관리 서비스 실증특례",
+        "의료기기 관련 규제 특례 부여",
+        "생체신호 기반 건강관리 서비스 사례도 존재"
+      ],
+      "must_include": [
+        "심전도",
+        "의료기기"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "웨어러블 의료기기 실증 조건. 휴이노(심전도), 아이티아이씨앤씨(생체신호).",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0011",
+      "category": "fintech",
+      "query_type": "similar_case",
+      "question": "행정기관 고지서를 모바일 앱으로 전달하는 서비스를 시작하려는데, 비슷한 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "임시허가_1_카카오페이",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "메신저·문자 기반 행정‧공공기관 고지서 모바일 전자고지 서비스"
+        },
+        {
+          "case_id": "임시허가_12_네이버",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "행정‧공공기관 고지서 모바일 전자고지"
+        },
+        {
+          "case_id": "임시허가_14_KT",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "민간기관 등의 고지서 모바일 전자고지"
+        },
+        {
+          "case_id": "임시허가_30_엔에이치엔페이코",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "행정‧공공‧민간기관 모바일 전자고지 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "임시허가_13_삼성전자·한국정보인증",
+          "reason": "모바일 서비스이지만 운전면허 확인으로 전자고지 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "모바일 전자고지 관련 임시허가 사례 다수",
+        "카카오페이·네이버·KT·페이코 등 대형사업자 참여",
+        "공공기관 연계 및 주민번호 처리가 규제 쟁점"
+      ],
+      "must_include": [
+        "전자고지",
+        "모바일"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "모바일 전자고지 클러스터. 대부분 임시허가 트랙.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0012",
+      "category": "fintech",
+      "query_type": "similar_case",
+      "question": "모바일로 운전면허를 확인하는 서비스를 만들려는데, 유사 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "임시허가_13_삼성전자·한국정보인증",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "모바일 운전면허 확인서비스"
+        },
+        {
+          "case_id": "임시허가_18_카카오·카카오뱅크",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "모바일 운전면허 확인 서비스"
+        },
+        {
+          "case_id": "임시허가_32_코인플러그",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "안면인식 기반 모바일 운전면허 확인 서비스"
+        },
+        {
+          "case_id": "임시허가_27_아이콘루프",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "모바일 운전면허 확인 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "임시허가_1_카카오페이",
+          "reason": "모바일 서비스이지만 전자고지로 운전면허 무관"
+        },
+        {
+          "case_id": "임시허가_8_티머니",
+          "reason": "모바일이지만 택시 앱미터기"
+        }
+      ],
+      "expected_answer_bullets": [
+        "모바일 운전면허 확인 서비스 임시허가 다수",
+        "삼성전자, 카카오뱅크, 코인플러그 등 참여",
+        "운전면허증과 동등한 효력 부여가 핵심"
+      ],
+      "must_include": [
+        "모바일",
+        "운전면허"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "모바일 운전면허 확인 클러스터. 임시허가_27(아이콘루프)은 FT_ONLY.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0013",
+      "category": "fintech",
+      "query_type": "track_specific",
+      "question": "QR코드 기반 결제 서비스로 임시허가를 받은 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "임시허가_4_인스타페이",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "QR코드 기반 O2O 결제 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_12_캐시멜로",
+          "reason": "핀테크이지만 모바일 환전 서비스로 결제 아님"
+        },
+        {
+          "case_id": "임시허가_12_네이버",
+          "reason": "임시허가이지만 전자고지 서비스로 결제 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "QR코드 기반 O2O 결제 서비스 임시허가 사례 존재",
+        "오프라인 매장에서 QR코드로 간편결제"
+      ],
+      "must_include": [
+        "QR코드",
+        "결제",
+        "임시허가"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "인스타페이 QR결제. 임시허가 트랙 지정 질문.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0014",
+      "category": "fintech",
+      "query_type": "regulation_issue",
+      "question": "택시에 GPS 기반 앱 미터기를 도입하려는데, 관련 규제 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_30_KST모빌리티",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "GPS 기반 앱 미터기, (실증특례) 요금 선결제 가맹 택시 서비스"
+        },
+        {
+          "case_id": "임시허가_8_티머니",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "택시 앱 미터기"
+        },
+        {
+          "case_id": "임시허가_23_브이씨엔씨",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "GPS 기반 앱 미터기"
+        },
+        {
+          "case_id": "임시허가_31_코나아이",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "GPS 기반 앱미터기"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_27_스타릭스",
+          "reason": "택시이지만 요금 선결제로 앱미터기 자체가 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "GPS 기반 앱미터기 실증특례 및 임시허가 사례 다수",
+        "기존 기계식 미터기를 스마트폰 앱으로 대체",
+        "정확한 이동거리 측정 및 요금 산정이 핵심"
+      ],
+      "must_include": [
+        "앱미터기",
+        "GPS"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "앱미터기 규제. 실증특례+임시허가 모두 존재.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0015",
+      "category": "fintech",
+      "query_type": "similar_case",
+      "question": "비대면으로 이동통신에 가입할 수 있는 서비스를 만들려는데, 유사 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "임시허가_16_스테이지파이브_컨소시엄",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "비대면 이동통신 가입 서비스"
+        },
+        {
+          "case_id": "임시허가_33_KT엠모바일‧네이버",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "비대면 이동통신 가입 서비스"
+        },
+        {
+          "case_id": "임시허가_28_국민은행",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "인증서 활용 비대면 이동통신 가입서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "임시허가_13_삼성전자·한국정보인증",
+          "reason": "비대면이지만 운전면허 확인 서비스"
+        }
+      ],
+      "expected_answer_bullets": [
+        "비대면 이동통신 가입 서비스 임시허가 사례 존재",
+        "알뜰폰(MVNO) 채널을 이용한 비대면 가입",
+        "인증서 활용 본인확인이 핵심 기술"
+      ],
+      "must_include": [
+        "비대면",
+        "이동통신",
+        "가입"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "비대면 통신가입. 스테이지파이브·KT엠모바일·국민은행.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0016",
+      "category": "platform",
+      "query_type": "similar_case",
+      "question": "개인 소유 캠핑카를 빌려주는 중개 플랫폼을 만들려는데, 비슷한 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_81_YONGHA",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_104_진캠핑",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_82_디테크게엠베하",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_102_웨이즈플랜",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "등록된 개인 소유의 캠핑카를 웹기반 플랫폼(모행)을 통해 중개해 주는 서비스 기술ㆍ서비스"
+        },
+        {
+          "case_id": "실증특례_103_어썸플랜",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_114",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴 캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_117_한솔네트웍스_주",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "유휴캠핑카 대여사업 중개 플랫폼"
+        },
+        {
+          "case_id": "실증특례_127_엠제이이노베이션_주식회사",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "캠핑카 공유 중개 서비스"
+        },
+        {
+          "case_id": "실증특례_105_지에스렌트카",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "캠핑카 대여 중개 플랫폼"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_113_블루카멜",
+          "reason": "차량 대여 중개이지만 장애인 특장차로 캠핑카 아님"
+        },
+        {
+          "case_id": "실증특례_46_레인포컴퍼니",
+          "reason": "렌터카 서비스이지만 구독형으로 P2P 중개 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "유휴 캠핑카 대여 중개 플랫폼 실증특례 다수",
+        "개인 소유 캠핑카를 웹/모바일 플랫폼으로 중개",
+        "자동차대여사업법 규제가 핵심 쟁점"
+      ],
+      "must_include": [
+        "캠핑카",
+        "중개"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "캠핑카 중개 클러스터 (9건). 보강 후 5건 추가.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0017",
+      "category": "platform",
+      "query_type": "similar_case",
+      "question": "아파트 재건축 조합 총회를 전자적으로 진행하려는데, 관련 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_101_이제이엠컴퍼니",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_89_레디포스트",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "주거정비 총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_133_오투웹스_주식회사",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "주거정비 총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_186_넥스타우스_주",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "주거정비 총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_150_주식회사_이보팅",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "주거정비 총회 전자적 의결 서비스"
+        },
+        {
+          "case_id": "실증특례_174_리빌드엑스",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도시정비사업 총회 전자적 개최 서비스"
+        },
+        {
+          "case_id": "실증특례_157_이제이엠컴퍼니",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도시정비 총회 전자적 개최 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_120",
+          "reason": "전자적 서비스이지만 블록체인 전자공증으로 총회 아님"
+        },
+        {
+          "case_id": "실증특례_148",
+          "reason": "도시정비이지만 전자서명 동의서로 총회 의결 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "주거정비 총회 전자의결 서비스 실증특례 다수",
+        "재건축·재개발 조합 총회를 전자적 방식으로 개최",
+        "현장 총회 개최를 병행하면서 전자투표 보조 활용"
+      ],
+      "must_include": [
+        "총회",
+        "전자"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "총회 전자의결 클러스터 (7건). 보강 후 3건 추가.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0018",
+      "category": "platform",
+      "query_type": "condition_pattern",
+      "question": "블록체인 기반 전자공증 서비스를 하려면 어떤 실증 조건이 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_120",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "블록체인 기반 전자공증시스템 고도화"
+        },
+        {
+          "case_id": "실증특례_183_에이투지시스템",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "블록체인 기반 전자공중시스템 고도화"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_89_레디포스트",
+          "reason": "전자적 서비스이지만 총회 의결로 공증 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "블록체인 기반 전자공증 시스템 실증특례 존재",
+        "재외국민·원거리 주민의 비대면 공증 목적",
+        "시간·장소 제약 없이 비대면 공증 가능"
+      ],
+      "must_include": [
+        "블록체인",
+        "전자공증"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "블록체인 전자공증. 실증특례_120, 실증특례_183.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0019",
+      "category": "platform",
+      "query_type": "regulation_issue",
+      "question": "장애인 전용 차량을 대여해주는 플랫폼을 만들려는데, 규제 쟁점이 있는 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_113_블루카멜",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "장애인 차량 대여사업 중개 플랫폼"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_81_YONGHA",
+          "reason": "차량 대여 중개이지만 캠핑카로 장애인 특화 아님"
+        },
+        {
+          "case_id": "실증특례_48_타운즈",
+          "reason": "차량 대여 중개이지만 아파트 단지 내로 장애인 특화 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "장애인 특장차 및 운전보조장치 차량 대여 중개 실증특례",
+        "개인 소유 장애인 차량을 플랫폼으로 중개",
+        "자동차대여사업법 규제가 쟁점"
+      ],
+      "must_include": [
+        "장애인",
+        "차량",
+        "대여"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "장애인 차량 대여 규제. 블루카멜 단일 사례.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0020",
+      "category": "platform",
+      "query_type": "track_specific",
+      "question": "아파트 단지 내에서 차량 공유 서비스를 실증특례로 승인받은 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_48_타운즈",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "아파트(오피스텔 포함)의 단지 내 자동차대여사업 중개 플랫폼"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_81_YONGHA",
+          "reason": "차량 공유이지만 캠핑카 중개로 아파트 단지 서비스 아님"
+        },
+        {
+          "case_id": "실증특례_46_레인포컴퍼니",
+          "reason": "차량이지만 렌터카 구독형으로 단지 내 서비스 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "아파트·오피스텔 단지 내 자동차대여 중개 실증특례 존재",
+        "대중교통 미비한 신도시 입주민 대상",
+        "자동차대여사업법 규제 특례"
+      ],
+      "must_include": [
+        "아파트",
+        "차량"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "타운즈. 아파트 단지 내 카셰어링.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0021",
+      "category": "energy",
+      "query_type": "similar_case",
+      "question": "전기차나 전기버스를 무선으로 충전하는 서비스를 만들려는데, 비슷한 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_66_현대자동차",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "전기차 무선충전 서비스"
+        },
+        {
+          "case_id": "실증특례_38_와이파워원",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "85KHz 활용 전기버스 무선충전 서비스"
+        },
+        {
+          "case_id": "실증특례_84_SKC",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "전동킥보드 무선충전 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_34_워프솔루션",
+          "reason": "무선충전이지만 IT기기용으로 전기차 아님"
+        },
+        {
+          "case_id": "임시허가_2_스타코프",
+          "reason": "전기차 충전이지만 콘센트(유선) 방식"
+        }
+      ],
+      "expected_answer_bullets": [
+        "전기차·전기버스 무선충전 실증특례 다수",
+        "주차면/정류장에 송신부 설치, 차량에 수신부 장착",
+        "85KHz 등 특정 주파수 활용 무선전력전송"
+      ],
+      "must_include": [
+        "무선충전",
+        "전기"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "전기차/버스 무선충전 클러스터. 현대차, 와이파워원, SKC.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0022",
+      "category": "energy",
+      "query_type": "regulation_issue",
+      "question": "누전차단기를 원격으로 제어하는 시스템을 만들려는데, 관련 규제 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_13_한결네트웍스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "원격제어 누전차단기를 통한 스마트전원제어시스템"
+        },
+        {
+          "case_id": "임시허가_26_금성계전",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "자동복구 누전차단기를 활용한 원격 전원 관리 시스템"
+        },
+        {
+          "case_id": "임시허가_35_삼현씨앤에스",
+          "must_have": false,
+          "track": "임시허가",
+          "service_name": "자동복구누전차단기를 활용한 원격 전원 관리 시스템"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "임시허가_3_텔라움",
+          "reason": "원격 전원관리이지만 통신 기지국 전용"
+        },
+        {
+          "case_id": "실증특례_34_워프솔루션",
+          "reason": "전기 관련이지만 무선충전 스탠드로 원격제어 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "원격제어 누전차단기 실증특례 및 임시허가 존재",
+        "IoT 기반 전원상태 모니터링·원격제어",
+        "전기용품안전법 관련 규제가 쟁점"
+      ],
+      "must_include": [
+        "누전차단기",
+        "원격"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "누전차단기 원격관리. 실증특례+임시허가.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0023",
+      "category": "energy",
+      "query_type": "condition_pattern",
+      "question": "전동킥보드 충전·주차 스테이션을 설치하려는데, 실증 조건이 어떻게 되나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_83_포인테크_(공고 2022-0918호) ICT 규제샌드박스 승인 공고_포인테크",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션"
+        },
+        {
+          "case_id": "실증특례_83_포인테크_(실증특례)개인형 이동장치 및 전기자전거 충전·주차 스테이션(220916)",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션",
+          "note": "ID variant of 실증특례_83_포인테크 canonical entry. must_have=false to avoid double-counting."
+        },
+        {
+          "case_id": "실증특례_78_LG전자",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "개인형 이동장치 및 전기자전거 충전·주차 스테이션"
+        },
+        {
+          "case_id": "실증특례_65_SKC",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "전동킥보드 무선충전 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_66_현대자동차",
+          "reason": "충전이지만 전기차 무선충전으로 킥보드 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "개인형 이동장치(PM) 및 전기자전거 충전·주차 스테이션 실증특례",
+        "보도 위에 스테이션 설치, QR코드 인식 방식",
+        "도로·보행 관련 규제가 쟁점"
+      ],
+      "must_include": [
+        "충전",
+        "스테이션"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "PM 충전·주차 스테이션. 포인테크 case_id 중복(2건). 보강 후 LG전자, SKC 추가.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0024",
+      "category": "energy",
+      "query_type": "regulation_issue",
+      "question": "태양광 발전 모니터링 서비스 관련 규제 샌드박스 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "임시허가_5_대한케이불",
+          "must_have": true,
+          "track": "임시허가",
+          "service_name": "태양광 발전 모니터링 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_130_서울도시가스_컨소시엄",
+          "reason": "에너지 모니터링이지만 도시가스로 태양광 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "태양광 발전 모니터링 서비스 임시허가 사례 존재",
+        "케이블TV 인프라를 활용한 태양광 모니터링"
+      ],
+      "must_include": [
+        "태양광",
+        "모니터링"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "태양광 발전 모니터링. 대한케이불 임시허가 단일 사례.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0025",
+      "category": "logistics",
+      "query_type": "similar_case",
+      "question": "중고차 폐차를 모바일로 간편하게 할 수 있는 서비스인데, 유사 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_4_조인스오토",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "모바일 기반 폐차 견적 비교 서비스"
+        },
+        {
+          "case_id": "실증특례_168_피알앤디컴퍼니",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "지정 대상 (BM) 헤이딜러 중고차 SASS 이용한 간편하고 신속한 폐차 서비스"
+        },
+        {
+          "case_id": "실증특례_108_에이티나인랩스",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "모바일 폐차 중개 플랫폼"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_96_A모터스",
+          "reason": "차량 관련이지만 택배차 대여 서비스로 폐차 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "모바일 기반 폐차 견적 비교 서비스 실증특례 존재",
+        "헤이딜러 등 중고차 플랫폼 활용 폐차 서비스",
+        "자동차관리법 관련 규제가 쟁점"
+      ],
+      "must_include": [
+        "폐차",
+        "모바일"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "모바일 폐차. 조인스오토, 헤이딜러(피알앤디). 실증특례_108은 FT_ONLY.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0026",
+      "category": "logistics",
+      "query_type": "condition_pattern",
+      "question": "택배 차량이 사고났을 때 대체 차량을 빌려주는 서비스의 실증 조건은 어떤가요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_96_A모터스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "택배차 사고, 고장시 차량대여 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_4_조인스오토",
+          "reason": "차량 관련이지만 폐차 서비스"
+        },
+        {
+          "case_id": "실증특례_81_YONGHA",
+          "reason": "차량 대여이지만 캠핑카 중개"
+        }
+      ],
+      "expected_answer_bullets": [
+        "택배차 사고·고장 시 예비 화물차량 단기 대여 실증특례",
+        "동급 자가용 화물차량 대여",
+        "화물자동차법 관련 규제가 쟁점"
+      ],
+      "must_include": [
+        "택배",
+        "차량",
+        "대여"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "A모터스. 택배차 사고 시 차량대여.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0027",
+      "category": "logistics",
+      "query_type": "track_specific",
+      "question": "화물자동차 운송사업자 간 차량 임대 중개 플랫폼으로 실증특례를 받은 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_119",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "개인화물자동차 운송사업자 간 화물자동차 임대 중개 플랫폼"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_96_A모터스",
+          "reason": "화물차이지만 택배차 대여로 사업자 간 임대 아님"
+        },
+        {
+          "case_id": "실증특례_85_이노션",
+          "reason": "화물차이지만 디지털 사이니지 광고"
+        }
+      ],
+      "expected_answer_bullets": [
+        "개인화물자동차 운송사업자 간 화물차 임대 중개 플랫폼 실증특례",
+        "화물자동차법 관련 규제 특례"
+      ],
+      "must_include": [
+        "화물자동차",
+        "임대"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "화물차 임대 중개. 실증특례_119(FT_ONLY) → data_quality 테스트.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0028",
+      "category": "etc",
+      "query_type": "similar_case",
+      "question": "도심에서 개인 물품을 보관해주는 스마트 보관함 서비스를 만들려는데, 비슷한 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_110_세컨신드롬",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_135_메이크스페이스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_137_큐비즈코리아",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_159_비즈하이브",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_190_형동",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_194_메타솔루션",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_152_슈가맨",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 셀프 스토리지 서비스"
+        },
+        {
+          "case_id": "실증특례_160_에이블",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        },
+        {
+          "case_id": "실증특례_161_미니창고가방",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "도심형 스마트 보관 편의 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_197_주식회사_에치와이",
+          "reason": "무인 서비스이지만 우편 접수 키오스크로 보관 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "도심형 스마트 보관 편의 서비스 실증특례 다수 (30건 이상)",
+        "도심지 건물 내 공간을 물품 보관 목적으로 대여",
+        "건축법 관련 용도 변경 규제가 쟁점"
+      ],
+      "must_include": [
+        "보관",
+        "도심"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "스마트 보관 서비스 클러스터 (9건). 보강 후 6건 추가.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0029",
+      "category": "etc",
+      "query_type": "track_specific",
+      "question": "AI 기반 보이스피싱 탐지 서비스로 실증특례를 받은 사례가 있나요?",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_164_케이티·국립과학수사연구원",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "실시간 통화 기반 보이스피싱 탐지 서비스"
+        },
+        {
+          "case_id": "실증특례_206_㈜_엘지유플러스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "실시간 톰화기반 보이스피싱 탐지 서비스"
+        },
+        {
+          "case_id": "실증특례_210_SK_텔레콤",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "(G8) 실시간 톰화기반 보이스피싱 탐지 서비스"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_20_아이티아이씨앤씨",
+          "reason": "위험감지이지만 생체신호 기반으로 보이스피싱 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "실시간 통화 기반 보이스피싱 탐지 서비스 실증특례 존재",
+        "KT, LGU+, SKT 등 대형 통신사 참여",
+        "통화 음성에서 성문 정보 추출해 유사도 측정"
+      ],
+      "must_include": [
+        "보이스피싱",
+        "탐지"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "보이스피싱 탐지. 3대 통신사 모두 참여.",
+      "data_quality": "normal"
+    },
+    {
+      "id": "R2-0030",
+      "category": "etc",
+      "query_type": "track_specific",
+      "question": "공유주방 서비스로 실증특례를 받은 사례를 알려주세요.",
+      "gold_cases": [
+        {
+          "case_id": "실증특례_33_칠링키친",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "푸드트럭 공유주방 서비스"
+        },
+        {
+          "case_id": "실증특례_36_키친엑스",
+          "must_have": true,
+          "track": "실증특례",
+          "service_name": "배달 전문 공유주방 서비스"
+        },
+        {
+          "case_id": "실증특례_9_심플프로젝트컴퍼니",
+          "must_have": false,
+          "track": "실증특례",
+          "service_name": "공유주방 기반 요식업(F&B) 비즈니스 플랫폼"
+        }
+      ],
+      "negatives": [
+        {
+          "case_id": "실증특례_47_에이앤드에이_엔터테인먼트",
+          "reason": "오락센터 서비스로 공유주방 아님"
+        }
+      ],
+      "expected_answer_bullets": [
+        "공유주방 서비스 실증특례 다수 존재",
+        "푸드트럭 사업자 대상 공유주방 / 배달 전문 공유주방 등",
+        "식품위생법 관련 규제가 쟁점"
+      ],
+      "must_include": [
+        "공유주방",
+        "실증특례"
+      ],
+      "must_not_include": [
+        "사례 없음"
+      ],
+      "notes": "공유주방 클러스터. 칠링키친, 키친엑스, 심플프로젝트 등.",
+      "data_quality": "normal"
+    }
+  ]
+}

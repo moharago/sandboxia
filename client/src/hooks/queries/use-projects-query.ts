@@ -36,7 +36,6 @@ export function useProjectsQuery() {
             const response = await projectsApi.getMyProjects()
             return response.map(toProject)
         },
-        staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
     })
 }
 
@@ -50,7 +49,7 @@ export function useProjectQuery(id: string) {
             const response = await projectsApi.getProject(id)
             return toProject(response)
         },
-        staleTime: 1000 * 60 * 5,
+        enabled: !!id,
     })
 }
 
@@ -61,6 +60,6 @@ export function useProjectFilesQuery(projectId: string) {
     return useQuery<ProjectFile[], Error>({
         queryKey: projectKeys.files(projectId),
         queryFn: () => projectsApi.getProjectFiles(projectId),
-        staleTime: 1000 * 60 * 5,
+        enabled: !!projectId,
     })
 }

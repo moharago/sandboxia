@@ -27,8 +27,10 @@ from typing import Any
 import olefile
 
 from app.services.parsers.hwp_patterns import (
+    DEMONSTRATION_REASON_CHECKBOX_PATTERNS,
     LAW_LIST_PATTERNS,
     TECHNOLOGY_LIST_PATTERNS,
+    TEMPORARY_REASON_CHECKBOX_PATTERNS,
     DocumentCategory,
     DocumentSubtype,
     get_patterns_for_subtype,
@@ -182,26 +184,32 @@ class HWPParser:
             pass
 
     def _extract_text(self) -> str:
-        """텍스트 추출 (여러 방법 시도)
+        """텍스트 추출 (여러 방법 병합)
 
         Returns:
             추출된 텍스트
         """
-        text = ""
+        texts = []
 
-        # 방법 1: PrvText 스트림 (미리보기 텍스트)
-        text = self._extract_from_prvtext()
-        if text.strip():
-            return text
+        # PrvText와 BodyText 모두 추출하여 더 긴 것 사용
+        prvtext = self._extract_from_prvtext()
+        bodytext = self._extract_from_bodytext()
 
-        # 방법 2: BodyText 섹션 (압축 해제 필요)
-        text = self._extract_from_bodytext()
-        if text.strip():
-            return text
+        # 둘 다 있으면 더 긴 것 선택 (더 완전한 내용일 가능성)
+        if prvtext and bodytext:
+            if len(bodytext) > len(prvtext):
+                return bodytext
+            else:
+                # PrvText가 더 길면 PrvText 사용하되, BodyText에만 있는 내용 추가
+                # 간단히 더 긴 것 반환
+                return prvtext
+        elif bodytext:
+            return bodytext
+        elif prvtext:
+            return prvtext
 
-        # 방법 3: 모든 스트림에서 텍스트 추출 시도
+        # 둘 다 없으면 모든 스트림에서 시도
         text = self._extract_from_all_streams()
-
         return text
 
     def _extract_from_prvtext(self) -> str:
@@ -241,14 +249,15 @@ class HWPParser:
             for stream_path in sorted(section_streams):
                 stream_name = "/".join(stream_path)
                 try:
-                    data = self.ole.openstream(stream_name).read()
+                    raw_data = self.ole.openstream(stream_name).read()
 
-                    # 압축 해제 시도
-                    if self.document.is_compressed:
-                        try:
-                            data = zlib.decompress(data, -15)
-                        except zlib.error:
-                            pass
+                    # 압축 해제 시도 (항상 시도 - 플래그와 무관하게)
+                    data = raw_data
+                    try:
+                        decompressed = zlib.decompress(raw_data, -15)
+                        data = decompressed  # 압축 해제 성공
+                    except zlib.error:
+                        pass  # 압축 안 된 데이터, 원본 사용
 
                     # 레코드 파싱하여 텍스트 추출
                     section_text = self._parse_body_records(data)
@@ -433,8 +442,15 @@ class HWPParser:
         # 문서 타입별 패턴 가져오기
         type_patterns = get_patterns_for_subtype(self.document.document_subtype)
 
+        # submission_signatures 특별 처리 (여러 그룹 캡처, 다중 매칭)
+        self._extract_submission_signatures(cleaned_text, type_patterns)
+
         # 단일 값 필드 추출
         for field_name, patterns in type_patterns.items():
+            # submission_signatures는 위에서 별도 처리
+            if field_name == "submission_signatures":
+                continue
+
             for pattern in patterns:
                 match = re.search(
                     pattern, cleaned_text, re.IGNORECASE | re.MULTILINE | re.DOTALL
@@ -447,13 +463,34 @@ class HWPParser:
                         # 그룹이 없는 경우 (체크박스 패턴 등)
                         value = "checked"
 
-                    # 값 정제
-                    value = self._clean_field_value(value)
+                    # 섹션 텍스트 필드는 안내 텍스트 제거 적용
+                    section_text_fields = {
+                        # 임시허가/실증특례 공통
+                        "detailed_description", "market_status", "regulation_details",
+                        "necessity_and_request", "objectives_and_scope", "business_content",
+                        "execution_method", "schedule", "operation_plan",
+                        "expected_quantitative", "expected_qualitative", "expansion_plan",
+                        "restoration_plan", "organization_structure", "budget",
+                        "safety_verification", "user_protection_plan", "risk_and_response",
+                        "stakeholder_conflict", "justification",
+                        # 신속확인 전용
+                        "technology_service_details", "legal_issues", "additional_questions",
+                        "regulatory_issues",
+                        # 신청서 주요내용 (여러 줄 보존)
+                        "service_description",
+                        # 신청기관 현황자료 (멀티라인 보존)
+                        "main_business", "licenses_and_permits", "technologies_and_patents",
+                    }
+
+                    if field_name in section_text_fields:
+                        # 섹션 텍스트: 안내 텍스트 제거 후 정제
+                        value = self._clean_section_text(value)
+                    else:
+                        # 일반 필드: 기존 정제
+                        value = self._clean_field_value(value)
+
                     if value and len(value) > 1:
                         self.document.extracted_fields[field_name] = value
-                        # DEBUG: service_type 파싱 로그
-                        if field_name == "service_type":
-                            print(f"[DEBUG HWP] service_type 매칭: pattern={pattern[:50]}..., value={value}")
                         break
 
         # 기술 요소 리스트 추출 (설명서/계획서 문서에서)
@@ -471,6 +508,12 @@ class HWPParser:
         related_laws = self._extract_law_list(cleaned_text)
         if related_laws:
             self.document.extracted_fields["related_laws"] = related_laws
+
+        # 체크박스 상태 추출 (실증특례/임시허가 신청서)
+        # Note: 원본 text 사용 (angle bracket 패턴 매칭을 위해 cleaned_text 대신)
+        checkbox_states = self._extract_checkboxes(text)
+        if checkbox_states:
+            self.document.extracted_fields["checkbox_states"] = checkbox_states
 
         # 문서 메타데이터 추가
         self.document.metadata["document_category"] = (
@@ -554,6 +597,211 @@ class HWPParser:
 
         return laws
 
+    def _extract_checkboxes(self, text: str) -> dict[str, dict[str, bool]]:
+        """체크박스 상태 추출
+
+        HWP 문서에서 체크박스의 선택 상태를 추출합니다.
+        실증특례/임시허가 신청서의 신청 사유 체크박스를 파싱합니다.
+
+        Args:
+            text: 원본 텍스트 (angle bracket 패턴 매칭을 위해 정제 전 텍스트 사용)
+
+        Returns:
+            체크박스 상태 딕셔너리
+            예: {"demonstrationReason": {"impossibleToApplyPermit": True, "unclearOrUnreasonableCriteria": False}}
+        """
+        result: dict[str, dict[str, bool]] = {}
+        subtype = self.document.document_subtype
+
+        # 실증특례 신청서 (demonstration-1) 또는 신청사유서 (demonstration-3)
+        if subtype in (DocumentSubtype.DEMONSTRATION_APPLICATION, DocumentSubtype.DEMONSTRATION_JUSTIFICATION):
+            demo_reason = self._extract_checkbox_states(
+                text, DEMONSTRATION_REASON_CHECKBOX_PATTERNS
+            )
+            if demo_reason:
+                result["demonstrationReason"] = demo_reason
+                print(f"[DEBUG HWP] demonstrationReason 체크박스 추출 ({subtype.value}): {demo_reason}")
+
+        # 임시허가 신청서 (temporary-1) 또는 신청사유서 (temporary-3)
+        elif subtype in (DocumentSubtype.TEMPORARY_APPLICATION, DocumentSubtype.TEMPORARY_JUSTIFICATION):
+            temp_reason = self._extract_checkbox_states(
+                text, TEMPORARY_REASON_CHECKBOX_PATTERNS
+            )
+            if temp_reason:
+                result["temporaryPermitReason"] = temp_reason
+                print(f"[DEBUG HWP] temporaryPermitReason 체크박스 추출 ({subtype.value}): {temp_reason}")
+
+        return result
+
+    def _extract_checkbox_states(
+        self, text: str, patterns: dict[str, dict[str, str]]
+    ) -> dict[str, bool]:
+        """패턴을 사용하여 체크박스 상태 추출
+
+        HWP 체크박스 형식:
+        - TABLE 형식 (해당여부 컬럼): "불가능한 경우(제1호)\t\tO" (O가 있으면 체크)
+        - 텍스트 뒤에 체크박스: "불가능한 경우(제1호) [√]" 또는 "불가능한 경우(제1호) [ ]"
+        - 텍스트 앞에 체크박스: "√ 불가능한 경우" 또는 "□ 불가능한 경우"
+
+        Args:
+            text: 정제된 텍스트
+            patterns: 체크박스 패턴 딕셔너리
+
+        Returns:
+            각 체크박스의 선택 상태
+        """
+        states: dict[str, bool] = {}
+
+        # DEBUG: 체크박스 관련 텍스트 샘플 출력
+        for keyword in ["불가능", "불합리", "불명확", "없는 경우"]:
+            idx = text.find(keyword)
+            if idx != -1:
+                start = max(0, idx - 30)
+                end = min(len(text), idx + 50)
+                sample = text[start:end].replace('\n', '\\n')
+                print(f"[DEBUG HWP] '{keyword}' 주변 텍스트: ...{sample}...")
+
+        for key, pattern_set in patterns.items():
+            is_checked = False
+            found = False
+
+            # 방법 0-1: 꺾쇠 괄호 형식 (HWP 테이블 추출 시 자주 나타남) - 최우선
+            # 예: "<불가능한 경우><O>" 또는 "<불가능한 경우><>"
+            angle_checked = re.search(
+                pattern_set.get("angle_bracket_checked", "(?!x)x"),  # 없으면 매칭 안되는 패턴
+                text,
+                re.IGNORECASE | re.MULTILINE,
+            )
+            angle_unchecked = re.search(
+                pattern_set.get("angle_bracket_unchecked", "(?!x)x"),
+                text,
+                re.IGNORECASE | re.MULTILINE,
+            )
+
+            if angle_checked:
+                is_checked = True
+                found = True
+                print(f"[DEBUG HWP] '{key}': angle_bracket_checked 매칭 - {angle_checked.group()[:80]}")
+            elif angle_unchecked:
+                is_checked = False
+                found = True
+                print(f"[DEBUG HWP] '{key}': angle_bracket_unchecked 매칭 - {angle_unchecked.group()[:80]}")
+
+            # 방법 0-2: TABLE 형식 (해당여부 컬럼에 O 표시)
+            # 예: "불가능한 경우(제1호)\t\tO" 또는 "불가능한 경우(제1호)  O"
+            if not found:
+                table_checked = re.search(
+                    pattern_set.get("table_checked", "(?!x)x"),  # 없으면 매칭 안되는 패턴
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+                table_unchecked = re.search(
+                    pattern_set.get("table_unchecked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+
+                if table_checked:
+                    is_checked = True
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': table_checked 매칭 - {table_checked.group()[:80]}")
+                elif table_unchecked:
+                    is_checked = False
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': table_unchecked 매칭 - {table_unchecked.group()[:80]}")
+
+            # 방법 1: 텍스트 뒤에 체크박스가 있는 경우 (괄호 형식)
+            # 예: "불가능한 경우(제1호) [√]"
+            if not found:
+                after_checked = re.search(
+                    pattern_set.get("after_text_checked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+                after_unchecked = re.search(
+                    pattern_set.get("after_text_unchecked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+
+                if after_checked:
+                    is_checked = True
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': after_text_checked 매칭 - {after_checked.group()}")
+                elif after_unchecked:
+                    is_checked = False
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': after_text_unchecked 매칭 - {after_unchecked.group()}")
+
+            # 방법 2: 텍스트 앞에 체크박스가 있는 경우 (fallback)
+            # 예: "√ 불가능한 경우"
+            if not found:
+                before_checked = re.search(
+                    pattern_set.get("before_text_checked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+                before_unchecked = re.search(
+                    pattern_set.get("before_text_unchecked", "(?!x)x"),
+                    text,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+
+                if before_checked:
+                    is_checked = True
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': before_text_checked 매칭 - {before_checked.group()}")
+                elif before_unchecked:
+                    is_checked = False
+                    found = True
+                    print(f"[DEBUG HWP] '{key}': before_text_unchecked 매칭 - {before_unchecked.group()}")
+
+            if not found:
+                print(f"[DEBUG HWP] '{key}': 체크박스 패턴 매칭 실패")
+
+            states[key] = is_checked
+            print(f"[DEBUG HWP] 체크박스 '{key}': checked={is_checked}")
+
+        return states
+
+    def _extract_submission_signatures(
+        self, text: str, type_patterns: dict[str, list[str]]
+    ) -> None:
+        """제출 서명 정보 추출 (여러 서명 지원)
+
+        HWP 형식: (기관명) OOO 주식회사 (성명)홍길동 (인)
+
+        Args:
+            text: 정제된 텍스트
+            type_patterns: 필드 패턴 딕셔너리
+        """
+        if "submission_signatures" not in type_patterns:
+            return
+
+        signatures: list[dict[str, str]] = []
+
+        for pattern in type_patterns["submission_signatures"]:
+            # finditer로 모든 매칭 찾기
+            for match in re.finditer(
+                pattern, text, re.IGNORECASE | re.MULTILINE | re.DOTALL
+            ):
+                if match.lastindex and match.lastindex >= 2:
+                    org_name = self._clean_field_value(match.group(1).strip())
+                    signer_name = self._clean_field_value(match.group(2).strip())
+
+                    if org_name and signer_name:
+                        signatures.append({
+                            "organization_name": org_name,
+                            "signer_name": signer_name,
+                        })
+                        print(
+                            f"[DEBUG HWP] submission_signatures 매칭: "
+                            f"org={org_name}, signer={signer_name}"
+                        )
+
+        if signatures:
+            self.document.extracted_fields["submission_signatures"] = signatures
+
     def _clean_hwp_text(self, text: str) -> str:
         """HWP 제어 문자 정리
 
@@ -575,6 +823,87 @@ class HWPParser:
         text = re.sub(r"\n{3,}", "\n\n", text)
 
         return text.strip()
+
+    def _clean_section_text(self, text: str) -> str:
+        """섹션 텍스트에서 안내 텍스트 제거
+
+        HWP 양식의 "작성 방법", "<...>", "ㅇ ..." 안내 텍스트를 제거하고
+        실제 내용만 추출합니다.
+
+        Args:
+            text: 원본 섹션 텍스트
+
+        Returns:
+            안내 텍스트가 제거된 실제 내용
+        """
+        if not text:
+            return ""
+
+        lines = text.split("\n")
+        result_lines = []
+        skip_mode = False  # 안내 텍스트 블록 스킵 모드
+        pending_blank = False  # 빈 줄 후 내용이 오면 skip_mode 해제
+
+        for line in lines:
+            stripped = line.strip()
+
+            # 빈 줄 처리
+            if not stripped:
+                if skip_mode:
+                    # 스킵 모드에서 빈 줄은 경계로 인식
+                    pending_blank = True
+                elif result_lines:
+                    # 이미 실제 내용이 시작됐으면 빈 줄도 유지
+                    result_lines.append("")
+                continue
+
+            # 안내 텍스트 패턴 감지 (false positive 방지를 위해 길이 제한 적용)
+            is_guide_text = (
+                stripped == "작성 방법" or
+                stripped.startswith("<") and stripped.endswith(">") or
+                stripped.startswith("ㅇ ") or
+                stripped.startswith("- ") and len(stripped) < 100 and "작성" in stripped or
+                "구체적으로 작성" in stripped and len(stripped) < 80 or
+                "제시" in stripped and len(stripped) < 40 or
+                "포함하여 작성" in stripped and len(stripped) < 80 or
+                # HWP 테이블의 컬럼 헤더 제거 (예: "기술서비스 제목, 기술서비스 내용")
+                re.match(r'^기술[·‧\s]*서비스\s*(제목|내용)[,\s]*(기술[·‧\s]*서비스\s*)?(제목|내용)?$', stripped)
+            )
+
+            if is_guide_text:
+                skip_mode = True
+                continue
+
+            # 실제 내용으로 판단되면 스킵 모드 해제하고 추가
+            # 실제 내용: 길이가 길거나, 특정 키워드로 시작하거나
+            if skip_mode:
+                # 실제 내용 시작 패턴 감지
+                is_real_content = (
+                    len(stripped) > 50 or  # 긴 문장
+                    re.match(r'^[가-힣]+[·\s]*[가-힣]+\s*(제목|내용|현황|계획|방안|효과)', stripped) or  # 소제목
+                    re.match(r'^본\s', stripped) or  # "본 서비스는...", "본 사업은..."
+                    re.match(r'^[①②③④⑤⑥⑦⑧⑨⑩]', stripped) or  # 번호 목록
+                    re.match(r'^[0-9]+[.)]', stripped) or  # 숫자 목록
+                    re.match(r'^[\w가-힣\s]+:\s*\S+', stripped)  # "사업 기간: 12개월" 등 key:value
+                )
+
+                # 빈 줄 후 내용이 오면 skip_mode 해제
+                if pending_blank:
+                    skip_mode = False
+                    pending_blank = False
+                elif is_real_content:
+                    skip_mode = False
+
+            if not skip_mode:
+                result_lines.append(line)
+
+        result = "\n".join(result_lines).strip()
+
+        # 결과가 너무 짧으면 (안내 텍스트만 있었던 경우) 빈 문자열 반환
+        if len(result) < 10:
+            return ""
+
+        return result
 
     def _clean_field_value(self, value: str) -> str:
         """필드 값 정리
@@ -628,6 +957,55 @@ def parse_hwp_file(
     return parser.parse()
 
 
+def _detect_subtype_from_filename(file_path: str | Path) -> DocumentSubtype:
+    """파일명에서 문서 서브타입 자동 감지
+
+    파일명에 포함된 키워드를 기반으로 문서 유형을 추론합니다.
+
+    Args:
+        file_path: HWP 파일 경로
+
+    Returns:
+        감지된 DocumentSubtype (감지 실패 시 UNKNOWN)
+    """
+    filename = Path(file_path).stem.lower()  # 확장자 제외한 파일명
+
+    # 실증특례 (demonstration)
+    if "규제특례" in filename or "실증특례" in filename or "실증" in filename:
+        if "신청사유" in filename or "소명" in filename:
+            return DocumentSubtype.DEMONSTRATION_JUSTIFICATION  # demonstration-3
+        elif "이용자보호" in filename or "보호방안" in filename:
+            return DocumentSubtype.DEMONSTRATION_PROTECTION  # demonstration-4
+        elif "실증계획" in filename or "계획서" in filename or "사업계획" in filename:
+            return DocumentSubtype.DEMONSTRATION_PLAN  # demonstration-2
+        elif "신청서" in filename:
+            return DocumentSubtype.DEMONSTRATION_APPLICATION  # demonstration-1
+
+    # 임시허가 (temporary)
+    if "임시허가" in filename:
+        if "신청사유" in filename or "소명" in filename:
+            return DocumentSubtype.TEMPORARY_JUSTIFICATION  # temporary-3
+        elif "이용자보호" in filename or "보호방안" in filename or "안전성" in filename:
+            return DocumentSubtype.TEMPORARY_PROTECTION  # temporary-4
+        elif "사업계획" in filename or "계획서" in filename:
+            return DocumentSubtype.TEMPORARY_BUSINESS_PLAN  # temporary-2
+        elif "신청서" in filename:
+            return DocumentSubtype.TEMPORARY_APPLICATION  # temporary-1
+
+    # 신속확인 (fastcheck)
+    if "신속확인" in filename:
+        if "설명서" in filename or "기술서비스" in filename:
+            return DocumentSubtype.FASTCHECK_DESCRIPTION  # fastcheck-2
+        elif "신청서" in filename:
+            return DocumentSubtype.FASTCHECK_APPLICATION  # fastcheck-1
+
+    # 상담신청 (counseling)
+    if "상담" in filename or "사전상담" in filename:
+        return DocumentSubtype.COUNSELING_APPLICATION  # counseling-1
+
+    return DocumentSubtype.UNKNOWN
+
+
 def parse_hwp_files(
     file_paths: list[str | Path],
     subtypes: list[str] | None = None,
@@ -650,6 +1028,13 @@ def parse_hwp_files(
                 subtype = DocumentSubtype(subtypes[idx])
             except ValueError:
                 pass
+
+        # subtype이 UNKNOWN이면 파일명에서 자동 감지 시도
+        if subtype == DocumentSubtype.UNKNOWN:
+            subtype = _detect_subtype_from_filename(fp)
+            if subtype != DocumentSubtype.UNKNOWN:
+                print(f"[HWP Parser] 파일명에서 서브타입 자동 감지: {Path(fp).name} → {subtype.value}")
+
         results.append(parse_hwp_file(fp, subtype))
     return results
 
@@ -673,6 +1058,12 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
         "business_plan": {},
         "safety_and_protection": {},
         "justification": {},
+        "form_selections": {},  # 체크박스/라디오 선택 상태
+        "applicants": {  # 신청인/서명 정보
+            "signatures": [],
+            "application_date": None,
+            "submission_date": None,
+        },
         "metadata": {
             "source_files": [],
             "document_category": None,
@@ -693,7 +1084,7 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
 
         fields = doc.extracted_fields
 
-        # 회사 정보 매핑
+        # 회사 정보 매핑 (붙임 1. 신청기관 현황자료 포함)
         company_fields = [
             "company_name",
             "representative",
@@ -703,6 +1094,10 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
             "email",
             "position",
             "name",
+            # 붙임 1. 신청기관 현황자료
+            "establishment_date",
+            "main_business",
+            "licenses_and_permits",
         ]
         for f in company_fields:
             if f in fields and f not in merged["company_info"]:
@@ -780,6 +1175,42 @@ def merge_parsed_documents(documents: list[HWPDocument]) -> dict[str, Any]:
         for f in safety_fields:
             if f in fields and f not in merged["safety_and_protection"]:
                 merged["safety_and_protection"][f] = fields[f]
+
+        # 체크박스/폼 선택 상태 매핑
+        # 신청사유서(demonstration-3, temporary-3)가 신청사유 체크박스의 source of truth
+        if "checkbox_states" in fields:
+            checkbox_states = fields["checkbox_states"]
+            for selection_key, selection_value in checkbox_states.items():
+                # 신청사유서(demonstration-3/temporary-3)의 demonstrationReason/temporaryPermitReason은
+                # 항상 우선권을 가짐 (신청서에서 먼저 파싱되어도 덮어씀)
+                is_justification_doc = doc.document_subtype in (
+                    DocumentSubtype.DEMONSTRATION_JUSTIFICATION,
+                    DocumentSubtype.TEMPORARY_JUSTIFICATION,
+                )
+                is_reason_key = selection_key in ("demonstrationReason", "temporaryPermitReason")
+
+                if selection_key not in merged["form_selections"]:
+                    merged["form_selections"][selection_key] = selection_value
+                    print(f"[DEBUG merge] form_selections[{selection_key}] = {selection_value}")
+                elif is_justification_doc and is_reason_key:
+                    # 신청사유서의 사유 체크박스는 기존 값을 덮어씀
+                    merged["form_selections"][selection_key] = selection_value
+                    print(f"[DEBUG merge] form_selections[{selection_key}] = {selection_value} (신청사유서 우선)")
+
+        # 제출 서명 매핑
+        if "submission_signatures" in fields:
+            sigs = fields["submission_signatures"]
+            if isinstance(sigs, list):
+                merged["applicants"]["signatures"].extend(sigs)
+                print(f"[DEBUG merge] applicants.signatures 추가: {sigs}")
+
+        # 신청일자/제출일자 매핑
+        if "application_date" in fields and not merged["applicants"].get("application_date"):
+            merged["applicants"]["application_date"] = fields["application_date"]
+            print(f"[DEBUG merge] applicants.application_date = {fields['application_date']}")
+        if "submission_date" in fields and not merged["applicants"].get("submission_date"):
+            merged["applicants"]["submission_date"] = fields["submission_date"]
+            print(f"[DEBUG merge] applicants.submission_date = {fields['submission_date']}")
 
     # 빈 딕셔너리 제거
     return {k: v for k, v in merged.items() if v}

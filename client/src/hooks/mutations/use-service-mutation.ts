@@ -7,12 +7,8 @@
 import { agentsApi } from "@/lib/api/agents"
 import { projectKeys } from "@/hooks/queries/use-projects-query"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
+import type { MutationOptions } from "@/types/hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-interface UseServiceMutationOptions {
-    onSuccess?: (data: ServiceParseResponse) => void
-    onError?: (error: Error) => void
-}
 
 /**
  * 서비스 정보 파싱 mutation 훅
@@ -41,7 +37,7 @@ interface UseServiceMutationOptions {
  * })
  * ```
  */
-export function useServiceMutation(options?: UseServiceMutationOptions) {
+export function useServiceMutation(options?: MutationOptions<ServiceParseResponse>) {
     const queryClient = useQueryClient()
 
     return useMutation<ServiceParseResponse, Error, ServiceParseRequest>({

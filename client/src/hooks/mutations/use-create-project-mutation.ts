@@ -6,12 +6,8 @@
 
 import { projectsApi } from "@/lib/api/projects"
 import type { CreateProjectRequest, ProjectResponse } from "@/types/api/project"
+import type { MutationOptions } from "@/types/hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-interface UseCreateProjectMutationOptions {
-    onSuccess?: (data: ProjectResponse) => void
-    onError?: (error: Error) => void
-}
 
 /**
  * 프로젝트 생성 mutation 훅
@@ -37,15 +33,14 @@ interface UseCreateProjectMutationOptions {
  * })
  * ```
  */
-export function useCreateProjectMutation(options?: UseCreateProjectMutationOptions) {
+export function useCreateProjectMutation(options?: MutationOptions<ProjectResponse>) {
     const queryClient = useQueryClient()
 
     return useMutation<ProjectResponse, Error, CreateProjectRequest>({
         mutationFn: projectsApi.createProject,
         onSuccess: (data) => {
-            // 프로젝트 목록 캐시 무효화
-            queryClient.invalidateQueries({ queryKey: ["projects"] })
-            console.log("프로젝트 생성 완료:", data)
+            // 캐시만 stale 표시 (백그라운드 refetch 안 함) → 대시보드 복귀 시 자동 갱신
+            queryClient.invalidateQueries({ queryKey: ["projects"], refetchType: "none" })
             options?.onSuccess?.(data)
         },
         onError: (error) => {

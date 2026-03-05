@@ -8,6 +8,7 @@ from supabase import create_client
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
     TAVILY_API_KEY: str
+    UPSTAGE_API_KEY: str | None = None  # Upstage Solar Embedding용
     CORS_ORIGINS: str = ""
     CORS_ORIGIN_REGEX: str | None = None  # Preview 도메인용 정규식 패턴
 
@@ -21,10 +22,7 @@ class Settings(BaseSettings):
             re.compile(v)
             return v
         except re.error as e:
-            raise ValueError(
-                f"CORS_ORIGIN_REGEX가 유효한 정규식이 아닙니다: '{v}'. "
-                f"오류: {e.msg}"
-            ) from e
+            raise ValueError(f"CORS_ORIGIN_REGEX가 유효한 정규식이 아닙니다: '{v}'. " f"오류: {e.msg}") from e
 
     # 디버그 설정
     ENABLE_DEBUG_PII_LOGS: bool = True
@@ -34,10 +32,15 @@ class Settings(BaseSettings):
     LAW_API_OC: str
 
     # Vector DB 설정
+    VECTORDB_TYPE: str = "chroma"  # chroma | qdrant
     CHROMA_MODE: str = "persistent"  # persistent | http | ephemeral
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
     CHROMA_PERSIST_DIR: str = "./data/chroma"  # persistent 모드 시 사용
+    # Qdrant 설정
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_API_KEY: str | None = None  # Cloud 사용 시 필요
 
     # LLM 설정
     LLM_MODEL: str
@@ -47,6 +50,9 @@ class Settings(BaseSettings):
     GOOGLE_DRIVE_URL: str = "https://drive.google.com/drive/folders/"
     R1_DATA_ID: str | None = None
     R2_DATA_ID: str | None = None
+    DRAFT_TEMPLATE_FASTCHECK_ID: str | None = None
+    DRAFT_TEMPLATE_TEMPORARY_ID: str | None = None
+    DRAFT_TEMPLATE_DEMONSTRATION_ID: str | None = None
 
     # Supabase 설정 (pydantic 필드로 변경)
     SUPABASE_URL: str

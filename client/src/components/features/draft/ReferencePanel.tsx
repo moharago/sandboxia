@@ -1,72 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { BookOpen, Scale, ChevronDown, ChevronUp, ExternalLink, PanelLeft, PanelRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils/cn"
-import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { formatDateIso } from "@/lib/utils/date"
-
-// 더미 승인사례 데이터 (props 없을 때 사용)
-const dummyApprovedCases: ApprovalCase[] = [
-    {
-        track: "실증특례",
-        date: "2023-06-15",
-        similarity: 92,
-        title: "자율주행 배달로봇 실증특례",
-        company: "뉴빌리티",
-        summary: "보도 위 자율주행 배달로봇 운행을 위한 도로교통법 특례 승인",
-        source_url: "https://www.sandbox.or.kr/board/designated_case_edit.do?bdSeq=723",
-    },
-    {
-        track: "임시허가",
-        date: "2023-04-20",
-        similarity: 85,
-        title: "드론 배송 서비스 임시허가",
-        company: "마켓컬리",
-        summary: "도심 내 드론을 활용한 신선식품 배송 서비스 임시허가",
-        source_url: "https://www.sandbox.or.kr/board/designated_case_edit.do?bdSeq=927",
-    },
-    {
-        track: "실증특례",
-        date: "2022-11-10",
-        similarity: 78,
-        title: "전동킥보드 공유서비스 실증특례",
-        company: "킥고잉",
-        summary: "전동킥보드 공유 서비스의 도로교통법 특례 승인",
-        source_url: "https://www.sandbox.or.kr/board/designated_case_edit.do?bdSeq=605",
-    },
-]
-
-// 더미 법령/제도 데이터 (props 없을 때 사용)
-const dummyRegulations: Regulation[] = [
-    {
-        category: "실증특례",
-        title: "정보통신융합법 제36조",
-        summary: "신규 정보통신융합등 기술·서비스의 실증을 위한 규제특례",
-        source_url: "https://www.law.go.kr/법령/정보통신진흥및융합활성화등에관한특별법/(20240716,19693,20230718)/제36조",
-    },
-    {
-        category: "임시허가",
-        title: "정보통신융합법 제37조",
-        summary: "신규 정보통신융합등 기술·서비스에 대한 임시허가",
-        source_url: "https://www.law.go.kr/법령/정보통신진흥및융합활성화등에관한특별법/(20240716,19693,20230718)/제37조",
-    },
-    {
-        category: "절차",
-        title: "규제샌드박스 운영지침",
-        summary: "규제샌드박스 신청 절차 및 심사 기준 안내",
-        source_url: "https://www.sandbox.or.kr/intro/sandbox_intro.do",
-    },
-    {
-        category: "참고",
-        title: "ICT 규제샌드박스 FAQ",
-        summary: "자주 묻는 질문과 답변 모음",
-        source_url: "https://www.sandbox.or.kr/board/faq.do",
-    },
-]
+import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
+import { BookOpen, ChevronDown, ChevronUp, ExternalLink, PanelLeft, PanelRight, Scale } from "lucide-react"
+import { useState } from "react"
 
 export interface CaseData {
     id: string | number
@@ -79,12 +19,23 @@ export interface CaseData {
     link?: string
 }
 
-interface CaseItemProps {
-    caseData: ApprovalCase
-    index: number
+interface ReferenceItemData {
+    title: string
+    subtitle?: string
+    badge?: string
+    date?: string
+    summary: string
+    sourceUrl?: string | null
+    linkLabel?: string
 }
 
-function CaseItem({ caseData, index }: CaseItemProps) {
+interface ReferenceItemProps {
+    data: ReferenceItemData
+    index: number
+    idPrefix?: string
+}
+
+function ReferenceItem({ data, index, idPrefix = "ref" }: ReferenceItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
 
     const handleToggle = () => setIsExpanded(!isExpanded)
@@ -95,92 +46,60 @@ function CaseItem({ caseData, index }: CaseItemProps) {
         }
     }
 
+    const contentId = `${idPrefix}-content-${index}`
+
     return (
-        <div className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+        <div className="border border-border rounded-lg">
             <button
                 type="button"
-                className="w-full flex items-start justify-between gap-2 cursor-pointer text-left"
+                className="w-full p-3 gap-2 text-left hover:bg-muted/50 transition-colors"
                 onClick={handleToggle}
                 onKeyDown={handleKeyDown}
                 aria-expanded={isExpanded}
-                aria-controls={`case-content-${index}`}
+                aria-controls={contentId}
             >
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs shrink-0">
-                            {caseData.track}
-                        </Badge>
-                        {caseData.date && <span className="text-xs text-muted-foreground">{formatDateIso(caseData.date)}</span>}
+                <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                        {(data.badge || data.date) && (
+                            <div className="flex items-center gap-2 mb-1">
+                                {data.badge && (
+                                    <Badge variant="outline" className="text-xs shrink-0">
+                                        {data.badge}
+                                    </Badge>
+                                )}
+                                {data.date && <span className="text-xs text-muted-foreground">{formatDateIso(data.date)}</span>}
+                            </div>
+                        )}
+                        <h4 className="font-medium text-sm">{data.title}</h4>
+                        {data.subtitle && <p className="text-xs text-muted-foreground">{data.subtitle}</p>}
                     </div>
-                    <h4 className="font-medium text-sm truncate">{caseData.title}</h4>
-                    <p className="text-xs text-muted-foreground">{caseData.company}</p>
+                    <div className="flex items-center">
+                        {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                    </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                    {caseData.similarity != null && (
-                        <Badge variant="success" className="text-xs">
-                            {caseData.similarity}% 유사
-                        </Badge>
-                    )}
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </div>
+
+                {isExpanded && (
+                    <div id={contentId} className="mt-3 ">
+                        <div className="pt-3 border-t border-border">
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">{data.summary}</p>
+                            {data.sourceUrl && (
+                                <a
+                                    href={data.sourceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-2 text-xs text-primary hover:text-primary/50 inline-flex items-center gap-1"
+                                >
+                                    {data.linkLabel ?? "상세보기"} <ExternalLink className="h-3 w-3" />
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
             </button>
-            {isExpanded && (
-                <div id={`case-content-${index}`} className="mt-3 pt-3 border-t border-border">
-                    <p className="text-sm text-muted-foreground">{caseData.summary}</p>
-                    {caseData.source_url && (
-                        <a href={caseData.source_url} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-primary hover:underline flex items-center gap-1">
-                            상세보기 <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
-            )}
-        </div>
-    )
-}
-
-interface RegulationItemProps {
-    regulation: Regulation
-    index: number
-}
-
-function RegulationItem({ regulation, index }: RegulationItemProps) {
-    const [isExpanded, setIsExpanded] = useState(false)
-
-    const handleToggle = () => setIsExpanded(!isExpanded)
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            handleToggle()
-        }
-    }
-
-    return (
-        <div className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors">
-            <button
-                type="button"
-                className="w-full flex items-start justify-between gap-2 cursor-pointer text-left"
-                onClick={handleToggle}
-                onKeyDown={handleKeyDown}
-                aria-expanded={isExpanded}
-                aria-controls={`reg-content-${index}`}
-            >
-                <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm">{regulation.title}</h4>
-                </div>
-                <div className="flex items-center">
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </div>
-            </button>
-            {isExpanded && (
-                <div id={`reg-content-${index}`} className="mt-3 pt-3 border-t border-border">
-                    <p className="text-sm text-muted-foreground">{regulation.summary}</p>
-                    {regulation.source_url && (
-                        <a href={regulation.source_url} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-primary hover:underline flex items-center gap-1">
-                            원문보기 <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
-            )}
         </div>
     )
 }
@@ -190,24 +109,25 @@ interface ReferencePanelProps {
     onToggle: () => void
     approvalCases?: ApprovalCase[]
     regulations?: Regulation[]
-    cases?: CaseData[]  // track 페이지 호환용
+    cases?: CaseData[] // track 페이지 호환용
+    track?: string // 트랙 정보 (신속확인 메시지용)
 }
 
-export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, cases }: ReferencePanelProps) {
+export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, cases, track }: ReferencePanelProps) {
     // cases (CaseData[])를 ApprovalCase[]로 변환
-    const convertedCases: ApprovalCase[] | undefined = cases?.map(c => ({
+    const convertedCases: ApprovalCase[] | undefined = cases?.map((c) => ({
         track: c.track,
         date: c.approvedDate || "",
-        similarity: c.relevance,  // undefined면 배지 숨김
+        similarity: c.relevance,
         title: c.title,
         company: c.company,
         summary: c.summary,
         source_url: c.link || null,
     }))
 
-    // props가 없으면 더미 데이터 사용
-    const displayCases = approvalCases ?? convertedCases ?? dummyApprovedCases
-    const regs = regulations ?? dummyRegulations
+    // 실제 데이터만 사용 (더미 데이터 없음)
+    const displayCases = approvalCases ?? convertedCases ?? []
+    const regs = regulations ?? []
 
     // 닫힌 상태: 토글 버튼만 표시
     if (!isOpen) {
@@ -224,21 +144,24 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
         )
     }
 
+    // 법령/제도 탭을 기본으로
+    const defaultTab = "regulations"
+
     return (
-        <div className="space-y-4">
-            <Tabs defaultValue="cases" className="w-full">
+        <div className="space-y-4 min-w-0">
+            <Tabs defaultValue={defaultTab} className="w-full">
                 <div className="flex items-center gap-3">
                     <TabsList className="h-8 flex-1 grid grid-cols-2 py-0 px-0.5 bg-gray-100">
-                        <TabsTrigger value="cases" className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black">
-                            <BookOpen className="h-3.5 w-3.5" />
-                            승인사례
-                        </TabsTrigger>
                         <TabsTrigger
                             value="regulations"
                             className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black"
                         >
                             <Scale className="h-3.5 w-3.5" />
                             법령·제도
+                        </TabsTrigger>
+                        <TabsTrigger value="cases" className="h-7 gap-1.5 text-xs px-2 data-[state=active]:bg-white data-[state=active]:text-black">
+                            <BookOpen className="h-3.5 w-3.5" />
+                            승인사례
                         </TabsTrigger>
                     </TabsList>
                     <Button
@@ -252,16 +175,52 @@ export function ReferencePanel({ isOpen, onToggle, approvalCases, regulations, c
                     </Button>
                 </div>
 
-                <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
-                    {displayCases.map((caseData, index) => (
-                        <CaseItem key={index} caseData={caseData} index={index} />
-                    ))}
+                <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
+                    {regs.length > 0 ? (
+                        regs.map((reg, index) => (
+                            <ReferenceItem
+                                key={reg.title}
+                                data={{
+                                    title: reg.title,
+                                    summary: reg.summary,
+                                    sourceUrl: reg.source_url,
+                                    linkLabel: "원문보기",
+                                }}
+                                index={index}
+                                idPrefix="reg"
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">참고할 관련 법령이 없습니다.</div>
+                    )}
                 </TabsContent>
 
-                <TabsContent value="regulations" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
-                    {regs.map((regulation, index) => (
-                        <RegulationItem key={index} regulation={regulation} index={index} />
-                    ))}
+                <TabsContent value="cases" className="mt-3 max-h-[calc(100vh-200px)] overflow-y-auto space-y-3">
+                    {displayCases.length > 0 ? (
+                        displayCases.map((caseData, index) => (
+                            <ReferenceItem
+                                key={`${caseData.title}-${caseData.company}`}
+                                data={{
+                                    title: caseData.title,
+                                    subtitle: caseData.company,
+                                    badge: caseData.track,
+                                    date: caseData.date,
+                                    summary: caseData.summary,
+                                    sourceUrl: caseData.source_url,
+                                }}
+                                index={index}
+                                idPrefix="case"
+                            />
+                        ))
+                    ) : track === "quick_check" ? (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                            신속확인은 트랙 판단을 위한 절차로,
+                            <br />
+                            참고할 유사 승인사례가 없습니다.
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">참고할 유사 승인사례가 없습니다.</div>
+                    )}
                 </TabsContent>
             </Tabs>
         </div>

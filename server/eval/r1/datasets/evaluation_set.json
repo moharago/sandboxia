@@ -1,0 +1,692 @@
+{
+  "version": "1.0",
+  "description": "R1 규제제도 & 절차 RAG 평가셋 - 규제샌드박스 제도, 트랙 정의, 절차, 심사기준 검색 품질 평가",
+  "created_at": "2026-02-12",
+  "metrics": [
+    "recall@5",
+    "recall@10",
+    "must_have_recall@5",
+    "mrr"
+  ],
+  "questions": [
+    {
+      "id": "R1-0001",
+      "question": "규제샌드박스가 뭔가요?",
+      "category": "제도정의",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-001",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-137",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-047",
+        "reg_r1-063"
+      ]
+    },
+    {
+      "id": "R1-0002",
+      "question": "신속확인 제도가 뭔가요?",
+      "category": "트랙정의",
+      "track": "신속확인",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-014",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-015",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-016",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-019",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-020",
+        "reg_r1-034"
+      ]
+    },
+    {
+      "id": "R1-0003",
+      "question": "실증특례란 무엇인가요?",
+      "category": "트랙정의",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-020",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-021",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-033",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-014",
+        "reg_r1-034"
+      ]
+    },
+    {
+      "id": "R1-0004",
+      "question": "임시허가 제도에 대해 설명해주세요",
+      "category": "트랙정의",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-034",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-035",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-046",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-080",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-014",
+        "reg_r1-020"
+      ]
+    },
+    {
+      "id": "R1-0005",
+      "question": "신속확인, 실증특례, 임시허가 차이점이 뭔가요?",
+      "category": "트랙비교",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-047",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-048",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-052",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-142",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-036",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-138",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-001",
+        "reg_r1-063"
+      ]
+    },
+    {
+      "id": "R1-0006",
+      "question": "실증특례와 임시허가는 무엇이 다른가요?",
+      "category": "트랙비교",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-036",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-142",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-138",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-014",
+        "reg_r1-001"
+      ]
+    },
+    {
+      "id": "R1-0007",
+      "question": "어떤 트랙을 선택해야 하나요?",
+      "category": "트랙비교",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-049",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-050",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-047",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-051",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-001",
+        "reg_r1-053"
+      ]
+    },
+    {
+      "id": "R1-0008",
+      "question": "규제샌드박스 신청 절차가 어떻게 되나요?",
+      "category": "절차",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-053",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-059",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-054",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-001",
+        "reg_r1-047"
+      ]
+    },
+    {
+      "id": "R1-0009",
+      "question": "신속확인 처리 기한이 어떻게 되나요?",
+      "category": "트랙정의",
+      "track": "신속확인",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-017",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-015",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-014",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-019",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-026",
+        "reg_r1-058"
+      ]
+    },
+    {
+      "id": "R1-0010",
+      "question": "실증특례 유효기간이 얼마나 되나요?",
+      "category": "트랙정의",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-028",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-007",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-021",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-041",
+        "reg_r1-017"
+      ]
+    },
+    {
+      "id": "R1-0011",
+      "question": "임시허가 연장 신청은 어떻게 하나요?",
+      "category": "트랙정의",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-041",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-045",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-029",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-087"
+      ]
+    },
+    {
+      "id": "R1-0012",
+      "question": "실증특례 신청 요건이 뭔가요?",
+      "category": "트랙정의",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-022",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-020",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-037",
+        "reg_r1-060"
+      ]
+    },
+    {
+      "id": "R1-0013",
+      "question": "임시허가 신청 요건이 어떻게 되나요?",
+      "category": "트랙정의",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-037",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-034",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-022",
+        "reg_r1-014"
+      ]
+    },
+    {
+      "id": "R1-0014",
+      "question": "규제샌드박스 심사 기준이 뭔가요?",
+      "category": "심사기준",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-063",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-067",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-139",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-144",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-001",
+        "reg_r1-053"
+      ]
+    },
+    {
+      "id": "R1-0015",
+      "question": "실증특례 심사 기준이 어떻게 되나요?",
+      "category": "심사기준",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-064",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-027",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-065",
+        "reg_r1-040"
+      ]
+    },
+    {
+      "id": "R1-0016",
+      "question": "임시허가 심사 기준 8가지가 뭔가요?",
+      "category": "심사기준",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-065",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-040",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-064",
+        "reg_r1-027"
+      ]
+    },
+    {
+      "id": "R1-0017",
+      "question": "신속확인 제출 서류가 뭔가요?",
+      "category": "제출요건",
+      "track": "신속확인",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-060",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-061",
+        "reg_r1-062"
+      ]
+    },
+    {
+      "id": "R1-0018",
+      "question": "실증특례 제출 서류 목록 알려주세요",
+      "category": "제출요건",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-061",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-023",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-060",
+        "reg_r1-062"
+      ]
+    },
+    {
+      "id": "R1-0019",
+      "question": "임시허가 제출 서류가 어떻게 되나요?",
+      "category": "제출요건",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-062",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-086",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-038",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-060",
+        "reg_r1-061"
+      ]
+    },
+    {
+      "id": "R1-0020",
+      "question": "2026년 규제샌드박스 개정 내용이 뭔가요?",
+      "category": "제도변경",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-007",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-013",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-008",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-011",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-001",
+        "reg_r1-028"
+      ]
+    },
+    {
+      "id": "R1-0021",
+      "question": "규제샌드박스 유효기간이 얼마나 연장됐나요?",
+      "category": "제도변경",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-007",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-028",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-021",
+          "must_have": false
+        },
+        {
+          "chunk_id": "reg_r1-035",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-001",
+        "reg_r1-047"
+      ]
+    },
+    {
+      "id": "R1-0022",
+      "question": "심사는 얼마나 걸리나요?",
+      "category": "절차",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-140",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-145",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-058",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-017",
+        "reg_r1-026"
+      ]
+    },
+    {
+      "id": "R1-0023",
+      "question": "규제샌드박스 신청 비용이 있나요?",
+      "category": "제출요건",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-146",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-147",
+        "reg_r1-060"
+      ]
+    },
+    {
+      "id": "R1-0024",
+      "question": "실증특례 지원 범위가 어떻게 되나요?",
+      "category": "트랙정의",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-031",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-147",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-141",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-044",
+        "reg_r1-001"
+      ]
+    },
+    {
+      "id": "R1-0025",
+      "question": "임시허가 지원 내용이 뭔가요?",
+      "category": "트랙정의",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-044",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-031",
+        "reg_r1-147"
+      ]
+    },
+    {
+      "id": "R1-0026",
+      "question": "실증특례 취소 사유가 뭔가요?",
+      "category": "트랙정의",
+      "track": "실증특례",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-030",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-042",
+        "reg_r1-028"
+      ]
+    },
+    {
+      "id": "R1-0027",
+      "question": "임시허가 취소 사유가 어떻게 되나요?",
+      "category": "트랙정의",
+      "track": "임시허가",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-042",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-030",
+        "reg_r1-041"
+      ]
+    },
+    {
+      "id": "R1-0028",
+      "question": "규제샌드박스 지정 결정은 누가 하나요?",
+      "category": "심사기준",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-144",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-139",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-063",
+        "reg_r1-001"
+      ]
+    },
+    {
+      "id": "R1-0029",
+      "question": "여러 부처 관련된 서비스는 어떻게 신청하나요?",
+      "category": "절차",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-143",
+          "must_have": true
+        },
+        {
+          "chunk_id": "reg_r1-051",
+          "must_have": false
+        }
+      ],
+      "negatives": [
+        "reg_r1-053",
+        "reg_r1-059"
+      ]
+    },
+    {
+      "id": "R1-0030",
+      "question": "신속확인과 실증특례 병행 신청이 가능한가요?",
+      "category": "트랙비교",
+      "track": "all",
+      "gold_chunks": [
+        {
+          "chunk_id": "reg_r1-051",
+          "must_have": true
+        }
+      ],
+      "negatives": [
+        "reg_r1-047",
+        "reg_r1-049"
+      ]
+    }
+  ]
+}

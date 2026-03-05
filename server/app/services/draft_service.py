@@ -7,7 +7,8 @@ import logging
 from datetime import datetime
 
 from app.agents.application_drafter import run_application_drafter
-from app.core.config import supabase
+from app.core.config import settings, supabase
+from app.services.utils import is_flat_structure, unflatten
 
 logger = logging.getLogger(__name__)
 
@@ -45,39 +46,38 @@ def get_project_data_for_draft(project_id: str) -> dict | None:
 def save_draft_result(
     project_id: str,
     application_draft: dict,
-    model_name: str = "gpt-4o-mini",
-) -> dict | None:
+    track: str,
+    similar_cases: list | None = None,
+    domain_laws: list | None = None,
+) -> dict:
     """초안 결과를 projects.application_draft에 저장
 
     Args:
         project_id: 프로젝트 UUID
         application_draft: AI가 개선한 폼 데이터 (application_input과 동일 구조)
-        model_name: 사용된 LLM 모델명
+        track: 초안 생성에 사용된 트랙 ("demo" | "temp_permit" | "quick_check")
+        similar_cases: RAG 검색된 유사 승인 사례
+        domain_laws: RAG 검색된 관련 법령
 
     Returns:
-        업데이트된 projects 레코드 또는 None
+        업데이트된 projects 레코드
     """
     draft_data = {
         "form_values": application_draft,
-        "model_name": model_name,
+        "track": track,
+        "model_name": settings.LLM_MODEL,
         "generated_at": datetime.now().isoformat(),
+        "similar_cases": similar_cases or [],
+        "domain_laws": domain_laws or [],
     }
 
-    try:
-        result = supabase.table("projects") \
-            .update({
-                "application_draft": draft_data,
-                "updated_at": datetime.now().isoformat(),
-            }) \
-            .eq("id", project_id) \
-            .execute()
-    except Exception as e:
-        logger.error("Draft 저장 실패 (project_id=%s): %s", project_id, e)
-        return None
-
-    if not result.data or len(result.data) == 0:
-        logger.warning("Draft 저장 후 데이터 없음 (project_id=%s)", project_id)
-        return None
+    result = supabase.table("projects") \
+        .update({
+            "application_draft": draft_data,
+            "updated_at": datetime.now().isoformat(),
+        }) \
+        .eq("id", project_id) \
+        .execute()
 
     return result.data[0]
 
@@ -86,7 +86,7 @@ def update_draft_card(
     project_id: str,
     card_key: str,
     card_data: dict,
-) -> dict | None:
+) -> dict:
     """특정 카드만 부분 업데이트 (JSON 병합)
 
     기존 application_draft.form_values에서 해당 카드만 업데이트하고
@@ -98,56 +98,49 @@ def update_draft_card(
         card_data: 카드 데이터 (flat된 필드-값 쌍)
 
     Returns:
-        업데이트된 projects 레코드 또는 None
+        업데이트된 projects 레코드
     """
-    try:
-        # 1. 기존 draft 데이터 조회
-        result = supabase.table("projects") \
-            .select("application_draft") \
-            .eq("id", project_id) \
-            .maybe_single() \
-            .execute()
+    # 1. 기존 draft 데이터 조회
+    result = supabase.table("projects") \
+        .select("application_draft") \
+        .eq("id", project_id) \
+        .maybe_single() \
+        .execute()
 
-        if not result.data:
-            logger.warning("프로젝트를 찾을 수 없음 (project_id=%s)", project_id)
-            return None
+    if not result.data:
+        raise DraftServiceError(f"프로젝트를 찾을 수 없음: {project_id}", status_code=404)
 
-        # 2. 기존 데이터에서 form_values 추출 또는 초기화
-        existing_draft = result.data.get("application_draft") or {}
-        existing_form_values = existing_draft.get("form_values") or {}
+    # 2. 기존 데이터에서 form_values 추출 또는 초기화
+    existing_draft = result.data.get("application_draft") or {}
+    existing_form_values = existing_draft.get("form_values") or {}
 
-        # 3. 해당 카드만 업데이트 (병합)
-        updated_form_values = {
-            **existing_form_values,
-            card_key: {"data": card_data},
-        }
+    # 3. flat 구조면 nested로 변환
+    if is_flat_structure(card_data):
+        card_data = unflatten(card_data)
 
-        # 4. 전체 draft 구조 업데이트
-        updated_draft = {
-            **existing_draft,
-            "form_values": updated_form_values,
+    # 4. 해당 카드만 업데이트 (병합)
+    updated_form_values = {
+        **existing_form_values,
+        card_key: {"data": card_data},
+    }
+
+    # 5. 전체 draft 구조 업데이트
+    updated_draft = {
+        **existing_draft,
+        "form_values": updated_form_values,
+        "updated_at": datetime.now().isoformat(),
+    }
+
+    # 6. DB 저장
+    update_result = supabase.table("projects") \
+        .update({
+            "application_draft": updated_draft,
             "updated_at": datetime.now().isoformat(),
-        }
+        }) \
+        .eq("id", project_id) \
+        .execute()
 
-        # 5. DB 저장
-        update_result = supabase.table("projects") \
-            .update({
-                "application_draft": updated_draft,
-                "updated_at": datetime.now().isoformat(),
-            }) \
-            .eq("id", project_id) \
-            .execute()
-
-        if not update_result.data or len(update_result.data) == 0:
-            logger.warning("Draft 카드 업데이트 후 데이터 없음 (project_id=%s)", project_id)
-            return None
-
-        logger.info("Draft 카드 업데이트 완료: project=%s, card=%s", project_id, card_key)
-        return update_result.data[0]
-
-    except Exception as e:
-        logger.error("Draft 카드 업데이트 실패 (project_id=%s, card=%s): %s", project_id, card_key, e)
-        return None
+    return update_result.data[0]
 
 
 async def run_draft(
@@ -181,3 +174,29 @@ async def run_draft(
             message=f"신청서 초안 생성 중 오류가 발생했습니다: {str(e)}",
             status_code=500,
         )
+
+
+def update_project_after_draft(project_id: str) -> dict:
+    """초안 생성 완료 후 프로젝트 업데이트
+
+    - 항상 current_step을 4로 설정 (application_drafter 에이전트 완료)
+    - status: 2 (Step 4가 되면 status=2)
+
+    Args:
+        project_id: 프로젝트 UUID
+
+    Returns:
+        업데이트된 projects 레코드
+    """
+    result = (
+        supabase.table("projects")
+        .update({
+            "current_step": 4,  # draft 에이전트 완료 → Step 4
+            "status": 2,  # Step 4가 되면 status=2
+            "updated_at": datetime.now().isoformat(),
+        })
+        .eq("id", project_id)
+        .execute()
+    )
+
+    return result.data[0]

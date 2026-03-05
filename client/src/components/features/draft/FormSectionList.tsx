@@ -1,62 +1,20 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react"
-import { DynamicFormCard } from "./DynamicFormCard"
-import type { FormType } from "@/stores/wizard-store"
-import { getTodayIso } from "@/lib/utils/date"
 import { useDraftCardUpdateMutation } from "@/hooks/mutations/use-draft-mutation"
-
-// 새로운 스키마 타입 정의
-interface FieldOption {
-    id: string
-    label: string
-    value: string
-}
-
-interface FormField {
-    key: string
-    label: string
-    formType: string
-    dataType: string
-    required: boolean
-    options?: FieldOption[]
-}
-
-interface TableColumn {
-    key: string
-    label: string
-}
-
-interface TableRow {
-    key: string
-    label: string
-    dataType: string
-}
-
-interface FormSection {
-    key: string
-    label: string
-    fields?: FormField[]
-    isArray?: boolean
-    isTable?: boolean
-    columns?: TableColumn[]
-    rows?: TableRow[]
-}
-
-interface FormSchema {
-    formId: string
-    formName: string
-    version: string
-    sections: FormSection[]
-}
+import { agentsApi } from "@/lib/api/agents"
+import { formatDateIso, getTodayIso } from "@/lib/utils/date"
+import type { FormType } from "@/stores/wizard-store"
+import type { FormSchema } from "@/types/draft"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { DynamicFormCard } from "./DynamicFormCard"
 
 type FormData = Record<string, FormSchema>
 
 // 폼 데이터 import
 import counselingData from "@/data/form/counseling.json"
-import temporaryData from "@/data/form/temporary.json"
 import demonstrationData from "@/data/form/demonstration.json"
 import fastcheckData from "@/data/form/fastcheck.json"
+import temporaryData from "@/data/form/temporary.json"
 import formMetaData from "@/data/formData.json"
 
 const formDataMap: Record<FormType, FormData> = {
@@ -90,8 +48,55 @@ const FIELD_COPY_DEFAULTS: Record<string, string> = {
 }
 
 /**
+ * 종료일 필드인지 확인
+ */
+const END_DATE_FIELDS = ["endDate", "period.endDate", "projectInfo.period.endDate"]
+
+function isEndDateField(fieldKey: string): boolean {
+    return END_DATE_FIELDS.some((f) => fieldKey.endsWith(f))
+}
+
+/**
+ * 날짜 필드인지 확인 (필드 키 기반)
+ * 날짜 필드에서만 한국어 날짜 → ISO 변환을 적용
+ */
+const DATE_FIELD_PATTERNS = [
+    "Date", // applicationDate, startDate, endDate, submissionDate
+    "date", // 소문자 버전
+    "establishmentDate",
+]
+
+function isDateField(fieldKey: string): boolean {
+    return DATE_FIELD_PATTERNS.some((p) => fieldKey.includes(p))
+}
+
+/**
+ * 날짜 문자열을 ISO 형식으로 변환
+ * "2025년 11월 24일" → "2025-11-24"
+ * "2026. 02. 06." → "2026-02-06"
+ *
+ * NOTE: isDateField로 확인된 날짜 필드에서만 호출됨
+ */
+function convertDateToIso(value: string, fieldKey: string): string {
+    const isEndDate = isEndDateField(fieldKey)
+    const converted = formatDateIso(value, isEndDate)
+    return converted || value // 변환 실패 시 원본 반환
+}
+
+/**
+ * 배열이 문자열만 포함하는지 확인 (체크박스 그룹용)
+ */
+function isStringArray(arr: unknown[]): arr is string[] {
+    return arr.length > 0 && arr.every((item) => typeof item === "string")
+}
+
+/**
  * 중첩된 객체를 flat한 key 구조로 변환
  * { applicant: { companyName: "ABC" } } → { "applicant.companyName": "ABC" }
+ *
+ * 배열 처리:
+ * - 문자열 배열 (체크박스 그룹): ["a", "b"] → "a,b" (쉼표 구분 문자열)
+ * - 객체 배열 (동적 행): [{...}, {...}] → { "key.0.field": "...", "key.1.field": "..." }
  */
 function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string, string> {
     const result: Record<string, string> = {}
@@ -103,18 +108,28 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
             // null/undefined는 빈 문자열로
             result[newKey] = ""
         } else if (Array.isArray(value)) {
-            // 배열은 인덱스 기반으로 재귀 처리 (DynamicFormCard와 동일한 dot notation 사용)
-            for (let i = 0; i < value.length; i++) {
-                const item = value[i]
-                const arrayKey = `${newKey}.${i}`
+            // 문자열 배열은 체크박스 그룹으로 간주 → 쉼표 구분 문자열로 변환
+            if (isStringArray(value)) {
+                result[newKey] = value.join(",")
+            } else if (value.length === 0) {
+                // 빈 배열은 빈 문자열
+                result[newKey] = ""
+            } else {
+                // 객체 배열은 인덱스 기반으로 재귀 처리 (DynamicFormCard와 동일한 dot notation 사용)
+                for (let i = 0; i < value.length; i++) {
+                    const item = value[i]
+                    const arrayKey = `${newKey}.${i}`
 
-                if (item === null || item === undefined) {
-                    result[arrayKey] = ""
-                } else if (typeof item === "object") {
-                    // 배열 내 객체는 재귀 처리
-                    Object.assign(result, flattenObject(item as Record<string, unknown>, arrayKey))
-                } else {
-                    result[arrayKey] = String(item)
+                    if (item === null || item === undefined) {
+                        result[arrayKey] = ""
+                    } else if (typeof item === "object") {
+                        // 배열 내 객체는 재귀 처리
+                        Object.assign(result, flattenObject(item as Record<string, unknown>, arrayKey))
+                    } else {
+                        // 기타 primitive는 문자열로 변환
+                        const strItem = String(item)
+                        result[arrayKey] = isDateField(arrayKey) ? convertDateToIso(strItem, arrayKey) : strItem
+                    }
                 }
             }
         } else if (typeof value === "object") {
@@ -124,12 +139,17 @@ function flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string
             // boolean은 문자열로 변환
             result[newKey] = value ? "true" : ""
         } else {
-            // 나머지는 문자열로 변환
-            result[newKey] = String(value)
+            // 나머지는 문자열로 변환 (날짜 필드면 ISO로 변환)
+            const strValue = String(value)
+            result[newKey] = isDateField(newKey) ? convertDateToIso(strValue, newKey) : strValue
         }
     }
 
     return result
+}
+
+export interface FormSectionListHandle {
+    saveAll: () => Promise<void>
 }
 
 interface FormSectionListProps {
@@ -138,7 +158,10 @@ interface FormSectionListProps {
     projectId: string
 }
 
-export function FormSectionList({ formType, initialValues, projectId }: FormSectionListProps) {
+export const FormSectionList = forwardRef<FormSectionListHandle, FormSectionListProps>(function FormSectionList(
+    { formType, initialValues, projectId },
+    ref
+) {
     const [formValues, setFormValues] = useState<Record<string, Record<string, string>>>({})
     const prevInitialValuesRef = useRef<Record<string, unknown> | undefined>(undefined)
 
@@ -186,23 +209,29 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
         const prevJson = JSON.stringify(prevInitialValuesRef.current)
         const currentJson = JSON.stringify(initialValues)
 
-        if (prevJson !== currentJson) {
+        // Fast Refresh 등으로 formValues가 초기화된 경우도 처리
+        const isFormValuesEmpty = Object.keys(formValues).length === 0
+        const hasFlattenedData = Object.keys(flattenedInitialValues).length > 0
+
+        if (prevJson !== currentJson || (isFormValuesEmpty && hasFlattenedData)) {
             prevInitialValuesRef.current = initialValues
-            // 새 initialValues로 formValues 덮어쓰기 (사용자 입력보다 AI 초안 우선)
             setFormValues(flattenedInitialValues)
         }
-    }, [initialValues, flattenedInitialValues])
+    }, [initialValues, flattenedInitialValues, formValues])
     const [savedMessage, setSavedMessage] = useState<string | null>(null)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [savingCardKey, setSavingCardKey] = useState<string | null>(null)
 
     // 카드 저장 mutation
     const cardUpdateMutation = useDraftCardUpdateMutation({
         onSuccess: (data) => {
             setSavedMessage(`${getCardName(formType, data.card_key)} 저장 완료`)
+            setSavingCardKey(null)
             setTimeout(() => setSavedMessage(null), 2000)
         },
         onError: (error) => {
             setSaveError(error.message)
+            setSavingCardKey(null)
             setTimeout(() => setSaveError(null), 3000)
         },
     })
@@ -220,14 +249,45 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
         }))
     }, [])
 
-    const handleSave = useCallback((cardKey: string) => {
-        const cardData = formValues[cardKey] || {}
-        cardUpdateMutation.mutate({
-            project_id: projectId,
-            card_key: cardKey,
-            card_data: cardData,
-        })
-    }, [formValues, projectId, cardUpdateMutation])
+    // 전체 카드 일괄 저장 (외부에서 ref로 호출)
+    useImperativeHandle(
+        ref,
+        () => ({
+            saveAll: async () => {
+                const failedCards: string[] = []
+                await Promise.all(
+                    cardKeys.map(async (cardKey) => {
+                        try {
+                            await cardUpdateMutation.mutateAsync({
+                                project_id: projectId,
+                                card_key: cardKey,
+                                card_data: formValues[cardKey] || {},
+                            })
+                        } catch {
+                            failedCards.push(getCardName(formType, cardKey))
+                        }
+                    })
+                )
+                if (failedCards.length > 0) {
+                    throw new Error(`저장 실패: ${failedCards.join(", ")}`)
+                }
+            },
+        }),
+        [cardKeys, formValues, projectId, cardUpdateMutation, formType]
+    )
+
+    const handleSave = useCallback(
+        (cardKey: string) => {
+            setSavingCardKey(cardKey)
+            const cardData = formValues[cardKey] || {}
+            cardUpdateMutation.mutate({
+                project_id: projectId,
+                card_key: cardKey,
+                card_data: cardData,
+            })
+        },
+        [formValues, projectId, cardUpdateMutation]
+    )
 
     return (
         <div className="space-y-4">
@@ -252,9 +312,9 @@ export function FormSectionList({ formType, initialValues, projectId }: FormSect
                     values={formValues[cardKey] || {}}
                     onValueChange={(fieldKey, value) => handleValueChange(cardKey, fieldKey, value)}
                     onSave={() => handleSave(cardKey)}
-                    isSaving={cardUpdateMutation.isPending}
+                    isSaving={savingCardKey === cardKey && cardUpdateMutation.isPending}
                 />
             ))}
         </div>
     )
-}
+})

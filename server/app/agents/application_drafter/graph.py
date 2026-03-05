@@ -6,6 +6,8 @@
 3. generate_draft: form_schema를 템플릿으로 canonical 기반 값 생성
 """
 
+import time
+
 from langgraph.graph import END, StateGraph
 
 from app.agents.application_drafter.nodes import (
@@ -53,6 +55,11 @@ async def run_application_drafter(
     Returns:
         application_draft 딕셔너리
     """
+    from app.agents.utils import run_agent_with_progress
+
+    total_start = time.time()
+    print("\n[Step4] ========== 신청서 초안 생성 시작 ==========")
+
     initial_state: ApplicationDrafterState = {
         "project_id": project_id,
         "canonical": canonical,
@@ -63,16 +70,22 @@ async def run_application_drafter(
         "similar_cases": [],
         "domain_laws": [],
         "application_draft": {},
-        "model_name": "",
     }
 
-    result = await application_drafter_agent.ainvoke(
-        initial_state,
-        config={"recursion_limit": 15},
+    # 에이전트 실행 (진행 상태 추적 포함)
+    result = await run_agent_with_progress(
+        agent=application_drafter_agent,
+        initial_state=initial_state,
+        project_id=project_id,
+        agent_type="application_drafter",
     )
+
+    total_elapsed = time.time() - total_start
+    print(f"[Step4] ========== 신청서 초안 생성 완료 ({total_elapsed:.2f}초) ==========\n")
 
     return {
         "project_id": project_id,
         "application_draft": result.get("application_draft", {}),
-        "model_name": result.get("model_name", ""),
+        "similar_cases": result.get("similar_cases", []),
+        "domain_laws": result.get("domain_laws", []),
     }

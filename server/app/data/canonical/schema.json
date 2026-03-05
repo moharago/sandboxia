@@ -1,0 +1,258 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canonical Structure Schema",
+  "description": "HWP 파싱 결과를 표준화한 구조. service_structurer 에이전트가 생성하고, 다른 에이전트들이 입력으로 사용함.",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "company": {
+      "description": "회사/신청인 기본 정보",
+      "type": "object",
+      "properties": {
+        "company_name": { "type": ["string", "null"], "description": "회사명(성명)" },
+        "representative": { "type": ["string", "null"], "description": "대표자명" },
+        "business_number": { "type": ["string", "null"], "description": "사업자(법인)등록번호" },
+        "address": { "type": ["string", "null"], "description": "주소" },
+        "contact": { "type": ["string", "null"], "description": "전화번호" },
+        "email": { "type": ["string", "null"], "description": "전자우편" },
+        "establishment_date": { "type": ["string", "null"], "description": "설립일자" },
+        "main_business": { "type": ["string", "null"], "description": "주요 사업 (붙임 테이블에서 추출)" },
+        "licenses_and_permits": { "type": ["string", "null"], "description": "주요 인허가 사항 (붙임 테이블에서 추출)" }
+      }
+    },
+    "service": {
+      "description": "신규 기술·서비스 정보",
+      "type": "object",
+      "properties": {
+        "service_name": { "type": ["string", "null"], "description": "서비스/기술 명칭" },
+        "service_type": {
+          "type": ["string", "null"],
+          "description": "유형 (기술/서비스/융합)",
+          "enum": ["기술인 경우", "서비스인 경우", "기술과 서비스가 융합된 경우", null]
+        },
+        "what_action": { "type": ["string", "null"], "description": "어떤 행위/기능 (동사 중심 1-2문장)" },
+        "target_users": { "type": ["string", "null"], "description": "대상 이용자 (누구에게)" },
+        "delivery_method": { "type": ["string", "null"], "description": "제공/전달 방식" },
+        "service_description": { "type": ["string", "null"], "description": "서비스 설명 (주요내용)" },
+        "service_category": { "type": ["string", "null"], "description": "서비스 분야/카테고리" }
+      }
+    },
+    "technology": {
+      "description": "기술/혁신 정보",
+      "type": "object",
+      "properties": {
+        "core_technology": { "type": ["string", "null"], "description": "핵심 기술" },
+        "innovation_points": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "혁신 포인트 (기존 방식과 비교, 2-5개)"
+        },
+        "technologies_and_patents": { "type": ["string", "null"], "description": "보유기술 및 특허 (붙임 테이블에서 추출)" }
+      }
+    },
+    "regulatory": {
+      "description": "규제 관련 정보",
+      "type": "object",
+      "properties": {
+        "related_regulations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "관련 규제 목록"
+        },
+        "regulatory_issues": {
+          "type": "array",
+          "description": "규제 이슈 목록",
+          "items": {
+            "type": "object",
+            "properties": {
+              "summary": { "type": "string", "description": "이슈 요약 (한줄)" },
+              "problematic_action": { "type": "string", "description": "문제가 되는 서비스 행위" },
+              "status": {
+                "type": "string",
+                "enum": ["unclear", "blocked", "license_required", "requirement_mismatch", "no_basis", "allowed_but_conditions"]
+              },
+              "blocking_reason": { "type": "string", "description": "막히는 이유" },
+              "relief_direction": {
+                "type": "string",
+                "enum": ["interpretation_needed", "temporary_permission", "pilot_exception"]
+              }
+            }
+          }
+        },
+        "governing_agency": { "type": ["string", "null"], "description": "소관 부처 (HWP에서 추출, 추론 금지)" },
+        "expected_permit": { "type": ["string", "null"], "description": "예상 허가등 (HWP에서 추출, 추론 금지)" }
+      }
+    },
+    "financial": {
+      "description": "재무현황 (붙임 테이블에서 추출)",
+      "type": "object",
+      "properties": {
+        "yearM2": { "$ref": "#/$defs/financialYear", "description": "M-2년도" },
+        "yearM1": { "$ref": "#/$defs/financialYear", "description": "M-1년도" },
+        "average": { "$ref": "#/$defs/financialYear", "description": "평균" }
+      }
+    },
+    "hr": {
+      "description": "인력현황 (붙임 테이블에서 추출)",
+      "type": "object",
+      "properties": {
+        "organizationChart": { "type": ["string", "null"], "description": "조직도 (텍스트 설명)" },
+        "totalEmployees": { "type": ["string", "null"], "description": "소속 직원 수" },
+        "keyPersonnel": {
+          "type": "array",
+          "description": "주요 인력 목록",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "description": "성명" },
+              "department": { "type": ["string", "null"], "description": "담당부서/소속부서" },
+              "position": { "type": ["string", "null"], "description": "직책/직급" },
+              "qualifications": { "type": ["string", "null"], "description": "자격/보유기술" },
+              "experience": { "type": ["string", "null"], "description": "해당업무 경력" },
+              "responsibilities": { "type": ["string", "null"], "description": "담당업무/역할" }
+            },
+            "required": ["name"]
+          }
+        }
+      }
+    },
+    "project_plan": {
+      "description": "사업/실증 계획 기본 정보",
+      "type": "object",
+      "properties": {
+        "projectName": { "type": ["string", "null"], "description": "사업명" },
+        "startDate": { "type": ["string", "null"], "description": "시작일 (YYYY-MM-DD 또는 YYYY년 M월 D일)" },
+        "endDate": { "type": ["string", "null"], "description": "종료일" },
+        "durationMonths": { "type": ["string", "null"], "description": "기간 (개월)" },
+        "schedule": { "type": ["string", "null"], "description": "일정 계획 텍스트" }
+      }
+    },
+    "applicants": {
+      "description": "신청기관 및 서명 정보",
+      "type": "object",
+      "properties": {
+        "organizations": {
+          "type": "array",
+          "description": "신청기관 목록",
+          "items": {
+            "type": "object",
+            "properties": {
+              "organizationName": { "type": "string", "description": "기관명" },
+              "organizationType": { "type": ["string", "null"], "description": "기관 유형 (법인/개인 등)" },
+              "responsiblePersonName": { "type": ["string", "null"], "description": "책임자명" },
+              "position": { "type": ["string", "null"], "description": "직위" },
+              "phoneNumber": { "type": ["string", "null"], "description": "전화번호" },
+              "email": { "type": ["string", "null"], "description": "이메일" }
+            }
+          }
+        },
+        "submissionDate": { "type": ["string", "null"], "description": "제출일자" },
+        "applicationDate": { "type": ["string", "null"], "description": "신청일자" },
+        "signatures": {
+          "type": "array",
+          "description": "서명 목록 (HWP 하단에서 추출)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "organization_name": { "type": "string", "description": "기관명 (HWP 파서 출력)" },
+              "signer_name": { "type": "string", "description": "성명 (HWP 파서 출력)" },
+              "organizationName": { "type": "string", "description": "기관명 (LLM 출력)" },
+              "name": { "type": "string", "description": "성명 (LLM 출력)" }
+            }
+          }
+        }
+      }
+    },
+    "section_texts": {
+      "description": "HWP 섹션별 원문 텍스트 (그대로 보존, 요약/축약 금지)",
+      "type": "object",
+      "properties": {
+        "detailedDescription": { "type": ["string", "null"], "description": "기술·서비스 세부 내용" },
+        "marketStatusAndOutlook": { "type": ["string", "null"], "description": "시장 현황 및 전망" },
+        "regulationDetails": { "type": ["string", "null"], "description": "규제 내용" },
+        "necessityAndRequest": { "type": ["string", "null"], "description": "임시허가/규제특례 필요성 및 내용" },
+        "objectivesAndScope": { "type": ["string", "null"], "description": "사업/실증 목표 및 범위" },
+        "businessContent": { "type": ["string", "null"], "description": "사업 내용" },
+        "schedule": { "type": ["string", "null"], "description": "사업/실증 기간 및 일정 계획" },
+        "operationPlan": { "type": ["string", "null"], "description": "사업/실증 운영 계획" },
+        "quantitativeEffect": { "type": ["string", "null"], "description": "정량적 기대효과" },
+        "qualitativeEffect": { "type": ["string", "null"], "description": "정성적 기대효과" },
+        "expansionPlan": { "type": ["string", "null"], "description": "사업 확대·확산 계획" },
+        "organizationStructure": { "type": ["string", "null"], "description": "추진 체계" },
+        "budget": { "type": ["string", "null"], "description": "추진 예산" },
+        "safetyVerification": { "type": ["string", "null"], "description": "안전성 검증 자료" },
+        "userProtectionPlan": { "type": ["string", "null"], "description": "이용자 보호 및 대응 계획" },
+        "riskAndResponse": { "type": ["string", "null"], "description": "위험 및 대응 방안" },
+        "stakeholderConflictResolution": { "type": ["string", "null"], "description": "이해관계 충돌 해소 방안" },
+        "justification": { "type": ["string", "null"], "description": "해당여부에 대한 근거 (소명서)" },
+        "mainBusiness": { "type": ["string", "null"], "description": "주요 사업 (붙임 테이블)" },
+        "licensesAndPermits": { "type": ["string", "null"], "description": "주요 인허가 사항 (붙임 테이블)" },
+        "technologiesAndPatents": { "type": ["string", "null"], "description": "보유기술 및 특허 (붙임 테이블)" },
+        "technologyServiceDetails": { "type": ["string", "null"], "description": "기술·서비스 세부내용 (신속확인용)" },
+        "legalIssues": { "type": ["string", "null"], "description": "법·제도 이슈 사항 (신속확인용)" },
+        "additionalQuestions": { "type": ["string", "null"], "description": "기타 질의 사항 (신속확인용)" }
+      }
+    },
+    "form_selections": {
+      "description": "체크박스/라디오 선택값 (HWP 파서 결과 우선)",
+      "type": "object",
+      "properties": {
+        "temporaryPermitReason": {
+          "type": "object",
+          "description": "임시허가 신청 사유 (법 제37조)",
+          "properties": {
+            "noApplicableStandards": { "type": "boolean", "description": "제37조제1항제1호 - 기준·규격·요건 없음" },
+            "unclearOrUnreasonableStandards": { "type": "boolean", "description": "제37조제1항제2호 - 기준 불명확/불합리" }
+          }
+        },
+        "demonstrationReason": {
+          "type": "object",
+          "description": "실증특례 신청 사유 (법 제38조의2)",
+          "properties": {
+            "impossibleToApplyPermit": { "type": "boolean", "description": "제38조의2제1항제1호 - 허가 적용 불가" },
+            "unclearOrUnreasonableCriteria": { "type": "boolean", "description": "제38조의2제1항제2호 - 기준 불명확/불합리" }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "description": "메타데이터",
+      "type": "object",
+      "properties": {
+        "source_type": {
+          "type": ["string", "null"],
+          "description": "원본 HWP 트랙 유형",
+          "enum": ["quick_check", "temp_permit", "demo", null]
+        },
+        "session_id": { "type": ["string", "null"], "description": "세션 ID" },
+        "field_confidence": {
+          "type": "object",
+          "description": "필드별 신뢰도 (1.0=컨설턴트입력, 0.8=HWP추출, 0.5=추론, 0.0=없음)"
+        },
+        "missing_fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "누락된 필드 목록"
+        },
+        "consultant_memo": { "type": ["string", "null"], "description": "컨설턴트 메모" }
+      }
+    }
+  },
+  "$defs": {
+    "financialYear": {
+      "type": "object",
+      "description": "연도별 재무 데이터",
+      "properties": {
+        "totalAssets": { "type": ["string", "number", "null"], "description": "총자산" },
+        "equity": { "type": ["string", "number", "null"], "description": "자기자본" },
+        "currentLiabilities": { "type": ["string", "number", "null"], "description": "유동부채" },
+        "fixedLiabilities": { "type": ["string", "number", "null"], "description": "고정부채" },
+        "currentAssets": { "type": ["string", "number", "null"], "description": "유동자산" },
+        "netIncome": { "type": ["string", "number", "null"], "description": "당기순이익" },
+        "totalRevenue": { "type": ["string", "number", "null"], "description": "총매출액" },
+        "returnOnEquity": { "type": ["string", "number", "null"], "description": "자기자본 이익률 (%)" },
+        "debtRatio": { "type": ["string", "number", "null"], "description": "부채비율 (%)" }
+      }
+    }
+  }
+}

@@ -78,37 +78,28 @@ class StructureService:
         Args:
             project_id: 프로젝트 ID
         """
-        try:
-            # 1. 기존 파일 메타정보 조회
-            result = (
-                supabase.table("project_files")
-                .select("id, storage_path")
-                .eq("project_id", project_id)
-                .execute()
-            )
+        # 1. 기존 파일 메타정보 조회
+        result = (
+            supabase.table("project_files")
+            .select("id, storage_path")
+            .eq("project_id", project_id)
+            .execute()
+        )
 
-            if not result.data:
-                logger.info(f"삭제할 기존 파일 없음: {project_id}")
-                return
+        if not result.data:
+            return
 
-            # 2. Storage에서 파일 삭제
-            storage_paths = [f["storage_path"] for f in result.data if f.get("storage_path")]
-            if storage_paths:
-                try:
-                    supabase.storage.from_(STORAGE_BUCKET).remove(storage_paths)
-                    logger.info(f"Storage 파일 삭제 성공: {len(storage_paths)}개")
-                except Exception as e:
-                    # Storage 삭제 실패해도 메타정보는 삭제 진행
-                    logger.warning(f"Storage 파일 삭제 실패 (무시): {e}")
+        # 2. Storage에서 파일 삭제
+        storage_paths = [f["storage_path"] for f in result.data if f.get("storage_path")]
+        if storage_paths:
+            try:
+                supabase.storage.from_(STORAGE_BUCKET).remove(storage_paths)
+            except Exception as e:
+                # Storage 삭제 실패해도 메타정보는 삭제 진행 (Storage와 DB는 별개 시스템)
+                logger.warning(f"Storage 파일 삭제 실패 (무시): {e}")
 
-            # 3. project_files 테이블에서 메타정보 삭제
-            supabase.table("project_files").delete().eq("project_id", project_id).execute()
-            logger.info(f"기존 파일 메타정보 삭제 성공: {project_id}")
-
-        except Exception as e:
-            logger.error(f"기존 파일 삭제 실패: {e}")
-            # 삭제 실패해도 새 파일 업로드는 진행
-            logger.warning("기존 파일 삭제 실패했지만 새 파일 업로드 진행")
+        # 3. project_files 테이블에서 메타정보 삭제
+        supabase.table("project_files").delete().eq("project_id", project_id).execute()
 
     @staticmethod
     async def upload_file_to_storage(
@@ -142,10 +133,8 @@ class StructureService:
                 file=file_content,
                 file_options={"content-type": "application/octet-stream"},
             )
-            logger.info(f"파일 업로드 성공: {storage_path} (원본: {filename})")
             return storage_path
         except Exception as e:
-            logger.error(f"파일 업로드 실패: {e}")
             raise StructureServiceError(f"파일 업로드 실패: {str(e)}", status_code=500)
 
     @staticmethod
@@ -183,8 +172,7 @@ class StructureService:
                 )
                 .execute()
             )
-            logger.info(f"파일 메타정보 저장 성공: {filename}")
-            return result.data[0] if result.data else {}
+            return result.data[0]
         except Exception as e:
             logger.error(f"파일 메타정보 저장 실패: {e}")
             raise StructureServiceError(
@@ -251,8 +239,8 @@ class StructureService:
         try:
             update_data = {
                 "updated_at": datetime.now().isoformat(),
-                "current_step": 2,  # 서비스 분석 완료 → 시장진단 단계로 이동
-                "status": 1,  # 재분석 시에도 status=1 유지 (Step 1~3은 항상 1)
+                "current_step": 1,  # 서비스 분석 완료 → Step 1 완료
+                "status": 1,  # Step 1~3은 항상 status=1
             }
 
             if application_input is not None:

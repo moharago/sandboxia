@@ -53,6 +53,7 @@ export interface Project {
     track: Track | null
     created_at: string
     updated_at: string
+    application_draft: Record<string, unknown> | null // 에이전트 결과 데이터
 }
 
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -77,17 +78,16 @@ export const TRACK_LABELS: Record<Track, string> = {
     demo: "실증특례",
 }
 
-// 진행률 계산 헬퍼
+// 진행률 계산 헬퍼 (6단계: 20, 40, 60, 80, 90, 100)
 export const calculateProgress = (step: ProjectStep, status: ProjectStatus): number => {
-    if (status === PROJECT_STATUS.COMPLETED || status === PROJECT_STATUS.DIRECT_LAUNCH) return 100
-    return Math.min(step * 25, 100)
+    if (status === PROJECT_STATUS.CONSULTING) return ({ 1: 20, 2: 40, 3: 60, 4: 80 } as Record<number, number>)[step] ?? 0
+    if (status === PROJECT_STATUS.DRAFTING) return 80
+    if (status === PROJECT_STATUS.PENDING) return 90
+    return 100
 }
 
 // 상태 필터링 헬퍼 (완료 필터는 4, 5 모두 포함)
-export const matchesStatusFilter = (
-    projectStatus: ProjectStatus,
-    filterStatus: ProjectStatus | "all"
-): boolean => {
+export const matchesStatusFilter = (projectStatus: ProjectStatus, filterStatus: ProjectStatus | "all"): boolean => {
     if (filterStatus === "all") return true
     if (filterStatus === PROJECT_STATUS.COMPLETED) {
         return projectStatus === PROJECT_STATUS.COMPLETED || projectStatus === PROJECT_STATUS.DIRECT_LAUNCH

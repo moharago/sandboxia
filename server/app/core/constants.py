@@ -5,10 +5,22 @@
 # =============================================================================
 
 # R1: 규제제도 & 절차 (트랙 정의, 절차, 요건, 심사 포인트)
-COLLECTION_REGULATIONS = "r1_data"
+COLLECTION_REGULATIONS = "rag_regulations"
 
 # R2: 승인 사례 (승인/반려 사례, 조건, 실증 범위)
-COLLECTION_CASES = "r2_cases"
+COLLECTION_CASES = "rag_cases"
 
 # R3: 도메인별 법령 (분야별 법령/인허가 체계)
-COLLECTION_LAWS = "domain_laws"
+COLLECTION_LAWS = "rag_laws"
+
+
+# =============================================================================
+# 트랙 관련 상수
+# =============================================================================
+
+# 트랙 코드 → 한글명 매핑
+TRACK_NAME_MAP: dict[str, str] = {
+    "demo": "실증특례",
+    "temp_permit": "임시허가",
+    "quick_check": "신속확인",
+}
