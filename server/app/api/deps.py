@@ -90,10 +90,10 @@ def get_auth_user(
             detail="Invalid authentication token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception:
+    except Exception as e:
         logger.exception("Unexpected error during authentication")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed",
+            detail=f"Authentication failed: {type(e).__name__}: {e}",
             headers={"WWW-Authenticate": "Bearer"},
         )
