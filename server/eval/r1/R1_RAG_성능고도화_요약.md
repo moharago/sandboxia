@@ -120,7 +120,7 @@ retrieval:
 
 ## 핵심 요약
 
-```
+```text
 임베딩: text-embedding-3-small → text-embedding-3-large
 검색:   Vector Search (Hybrid/Reranking 미적용)
 성능:   MRR 72% → 88% (+22%), Latency 197ms → 151ms (-23%)
