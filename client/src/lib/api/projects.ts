@@ -4,18 +4,13 @@
  * Supabase를 직접 호출하여 프로젝트 CRUD 처리
  */
 
-import { createClient } from "@/lib/supabase/client"
-import { useAuthStore } from "@/stores/auth-store"
+import { createClient, getAuthToken } from "@/lib/supabase/client"
 import type { CreateProjectRequest, ProjectResponse } from "@/types/api/project"
 import type { RecommendableTrack } from "@/types/api/track"
 
 // 프로덕션: 비워두면 상대경로로 요청 → Vercel rewrites가 EC2로 프록시
 // 개발: http://localhost:8000 설정
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
-
-async function getAuthToken(): Promise<string | null> {
-    return useAuthStore.getState().getAccessToken()
-}
 
 export interface ProjectFile {
     id: string
@@ -35,11 +30,7 @@ export const projectsApi = {
     getProject: async (id: string): Promise<ProjectResponse> => {
         const supabase = createClient()
 
-        const { data, error } = await supabase
-            .from("projects")
-            .select("*")
-            .eq("id", id)
-            .single()
+        const { data, error } = await supabase.from("projects").select("*").eq("id", id).single()
 
         if (error) {
             throw new Error(error.message)
@@ -54,10 +45,7 @@ export const projectsApi = {
     getMyProjects: async (): Promise<ProjectResponse[]> => {
         const supabase = createClient()
 
-        const { data, error } = await supabase
-            .from("projects")
-            .select("*")
-            .order("updated_at", { ascending: false })
+        const { data, error } = await supabase.from("projects").select("*").order("updated_at", { ascending: false })
 
         if (error) {
             throw new Error(error.message)
@@ -73,26 +61,27 @@ export const projectsApi = {
     createProject: async (request: CreateProjectRequest): Promise<ProjectResponse> => {
         const supabase = createClient()
 
-        // auth store에서 캐시된 유저 사용 (middleware가 토큰 갱신 담당)
-        const user = useAuthStore.getState().user
-        if (!user) {
+        // 로컬 세션 캐시에서 사용자 정보 조회 (네트워크 왕복 없음)
+        const {
+            data: { session },
+        } = await supabase.auth.getSession()
+
+        if (!session?.user) {
             throw new Error("인증이 필요합니다. 로그인 후 다시 시도해주세요.")
         }
 
-        const insertData: Record<string, unknown> = {
-            user_id: user.id,
-            company_name: request.company_name,
-            service_name: request.service_name,
-            status: 1,
-            current_step: 1,
-        }
-        if (request.service_description) {
-            insertData.service_description = request.service_description
-        }
+        const user = session.user
 
         const { data, error } = await supabase
             .from("projects")
-            .insert(insertData)
+            .insert({
+                user_id: user.id,
+                company_name: request.company_name,
+                service_name: request.service_name,
+                service_description: request.service_description,
+                status: 1,
+                current_step: 1,
+            })
             .select()
             .single()
 
@@ -109,10 +98,7 @@ export const projectsApi = {
     deleteProject: async (id: string): Promise<void> => {
         const supabase = createClient()
 
-        const { error } = await supabase
-            .from("projects")
-            .delete()
-            .eq("id", id)
+        const { error } = await supabase.from("projects").delete().eq("id", id)
 
         if (error) {
             throw new Error(error.message)
@@ -130,10 +116,7 @@ export const projectsApi = {
             updateData.current_step = currentStep
         }
 
-        const { error } = await supabase
-            .from("projects")
-            .update(updateData)
-            .eq("id", projectId)
+        const { error } = await supabase.from("projects").update(updateData).eq("id", projectId)
 
         if (error) {
             throw new Error(error.message)
@@ -146,11 +129,7 @@ export const projectsApi = {
     getProjectFiles: async (projectId: string): Promise<ProjectFile[]> => {
         const supabase = createClient()
 
-        const { data, error } = await supabase
-            .from("project_files")
-            .select("*")
-            .eq("project_id", projectId)
-            .order("created_at", { ascending: true })
+        const { data, error } = await supabase.from("project_files").select("*").eq("project_id", projectId).order("created_at", { ascending: true })
 
         if (error) {
             throw new Error(error.message)
@@ -164,10 +143,6 @@ export const projectsApi = {
      */
     getFileDownloadUrl: async (file: ProjectFile): Promise<string> => {
         const token = await getAuthToken()
-
-        if (!token) {
-            throw new Error("로그인이 필요합니다.")
-        }
 
         const response = await fetch(`${API_BASE}/api/v1/files/download/${file.id}`, {
             method: "GET",
@@ -188,10 +163,7 @@ export const projectsApi = {
     /**
      * 프로젝트 트랙 업데이트 (사용자 최종 선택)
      */
-    updateProjectTrack: async (
-        projectId: string,
-        track: RecommendableTrack
-    ): Promise<ProjectResponse> => {
+    updateProjectTrack: async (projectId: string, track: RecommendableTrack): Promise<ProjectResponse> => {
         const supabase = createClient()
 
         const { data, error } = await supabase
