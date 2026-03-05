@@ -23,6 +23,7 @@ from functools import lru_cache
 from typing import Any, Union
 
 import chromadb
+from chromadb.api import ClientAPI
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
@@ -220,7 +221,7 @@ class BaseVectorStore(ABC):
 # =============================================================================
 
 
-def _create_chroma_client() -> chromadb.ClientAPI:
+def _create_chroma_client() -> ClientAPI:
     """ChromaDB 클라이언트 생성 (모드별 분기)
 
     Returns:
@@ -254,7 +255,7 @@ def _create_http_client_with_retry(
     max_retries: int = 5,
     initial_delay: float = 1.0,
     max_delay: float = 30.0,
-) -> chromadb.ClientAPI:
+) -> ClientAPI:
     """ChromaDB HTTP 클라이언트 생성 (재시도 로직 포함)
 
     Args:

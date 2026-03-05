@@ -226,7 +226,7 @@ def screen_node(state: EligibilityState) -> dict:
     """
     start_time = time.time()
     print("[Step2-1/4] 규제 스크리닝 시작...")
-    canonical = state["canonical"]
+    canonical = state.get("canonical", {})
 
     # canonical에서 서비스 정보 추출 (헬퍼 함수 사용)
     service_description = get_service_description(canonical)
@@ -363,7 +363,7 @@ def search_all_rag_node(state: EligibilityState) -> dict:
     start_time = time.time()
     print("[Step2-2/4] RAG 검색 병렬 실행 시작 (R1 + R2 + R3)...")
     screening = state.get("screening_result")
-    canonical = state["canonical"]
+    canonical = state.get("canonical", {})
 
     regulations = []
     cases = []
@@ -411,7 +411,7 @@ def search_regulations_node(state: EligibilityState) -> dict:
 
 def search_cases_node(state: EligibilityState) -> dict:
     """승인 사례 검색 노드 (R2) - deprecated, search_all_rag_node 사용 권장"""
-    return {"case_results": _search_cases(state["canonical"])}
+    return {"case_results": _search_cases(state.get("canonical", {}))}
 
 
 def search_laws_node(state: EligibilityState) -> dict:
@@ -427,17 +427,17 @@ def compose_decision_node(state: EligibilityState) -> dict:
     """
     start_time = time.time()
     print("[Step2-3/4] LLM 판정 통합 시작...")
-    screening = state["screening_result"]
-    regulations = state["regulation_results"]
-    cases = state["case_results"]
-    laws = state["law_results"]
+    screening = state.get("screening_result")
+    regulations = state.get("regulation_results", [])
+    cases = state.get("case_results", [])
+    laws = state.get("law_results", [])
 
     # LLM으로 상세 분석 (canonical + RAG 결과만으로 판단)
     screening_dict = screening.model_dump() if screening else {}
     llm = get_llm()
 
     prompt = COMPOSE_DECISION_PROMPT.format(
-        canonical=json.dumps(state["canonical"], ensure_ascii=False, indent=2),
+        canonical=json.dumps(state.get("canonical", {}), ensure_ascii=False, indent=2),
         screening_result=json.dumps(screening_dict, ensure_ascii=False, indent=2),
         regulation_results=json.dumps(regulations[:3], ensure_ascii=False, indent=2),
         case_results=json.dumps(cases[:3], ensure_ascii=False, indent=2),
@@ -556,10 +556,10 @@ def generate_evidence_node(state: EligibilityState) -> dict:
     """
     start_time = time.time()
     print("[Step2-4/4] 근거 데이터 생성 시작...")
-    cases = state["case_results"]
-    laws = state["law_results"]
-    regulations = state["regulation_results"]
-    canonical = state["canonical"]
+    cases = state.get("case_results", [])
+    laws = state.get("law_results", [])
+    regulations = state.get("regulation_results", [])
+    canonical = state.get("canonical", {})
 
     # 분석 대상 서비스 정보 (LLM 설명 생성용)
     target_service = get_service_description(canonical) or get_service_name(canonical) or "분석 대상 서비스"

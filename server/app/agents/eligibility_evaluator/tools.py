@@ -7,7 +7,6 @@ from langchain_core.tools import tool
 
 from .state import ScreeningResult
 
-
 # ================================
 # 규제 키워드 사전
 # ================================

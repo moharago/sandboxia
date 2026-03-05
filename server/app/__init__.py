@@ -9,5 +9,3 @@ try:
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
     pass
-
-__all__ = ["main"]
