@@ -1,0 +1,27 @@
+%%{init: {'theme': 'neutral', 'themeVariables': {'primaryColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'textColor': '#111'}}}%%
+graph LR
+    subgraph S1[" Step 1: 서비스 분석 "]
+        direction TB
+        I1["<b>INPUT</b><br/>사용자 입력<br/>+ HWP 파일"]
+        P1["<b>PROCESS</b><br/>HWP 파싱<br/>→ LLM 구조화<br/>&nbsp;"]
+        O1["<b>OUTPUT</b><br/>canonical<br/>app_input<br/>project_files"]
+        I1 --> P1 --> O1
+    end
+
+    subgraph S2[" Step 2: 대상성 판단 "]
+        direction TB
+        I2["<b>INPUT</b><br/>canonical<br/>&nbsp;"]
+        P2["<b>PROCESS</b><br/>스크리닝<br/>→ RAG (R1+R2+R3)<br/>→ LLM 판단"]
+        O2["<b>OUTPUT</b><br/>eligibility_label<br/>evidence_data<br/>final_label (사용자)"]
+        I2 --> P2 --> O2
+    end
+
+    subgraph S3[" Step 3: 트랙 추천 "]
+        direction TB
+        I3["<b>INPUT</b><br/>canonical<br/>&nbsp;"]
+        P3["<b>PROCESS</b><br/>사례검색 (R2)<br/>→ LLM 스코어링<br/>→ 정의검색 (R1)"]
+        O3["<b>OUTPUT</b><br/>recommended_track<br/>track_comparison<br/>track (사용자선택)"]
+        I3 --> P3 --> O3
+    end
+
+    S1 -- "canonical" --> S2 -- "canonical" --> S3
