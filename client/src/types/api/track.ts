@@ -3,6 +3,7 @@
  */
 
 import type { Track } from "@/types/data/project"
+import type { ApprovalCase, Regulation } from "./eligibility"
 
 // 트랙 추천 대상 (counseling 제외)
 export type RecommendableTrack = Exclude<Track, "counseling">
@@ -24,6 +25,11 @@ export interface TrackEvidence {
     source_type: "사례" | "법령" | "규제"
     source: string
     description?: string
+    service_name?: string
+    company_name?: string
+    track?: string
+    source_url?: string
+    similarity?: number
 }
 
 // 개별 트랙 비교 데이터
@@ -50,6 +56,9 @@ export interface TrackRecommendResponse {
     confidence_score: number
     result_summary: string
     track_comparison: TrackComparison
+    // 오른쪽 패널용 데이터 (ApprovalCase, Regulation 스키마)
+    similar_cases?: ApprovalCase[]   // 유사 승인 사례
+    domain_constraints?: Regulation[] // 관련 법령
 }
 
 // 트랙 선택 저장 요청

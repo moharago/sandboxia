@@ -51,6 +51,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (event === "SIGNED_IN" && session?.user) {
                 set({ user: session.user })
                 await get().fetchProfile()
+            } else if (event === "TOKEN_REFRESHED" && session?.user) {
+                set({ user: session.user })
             } else if (event === "SIGNED_OUT") {
                 get().reset()
             }

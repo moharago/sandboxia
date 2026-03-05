@@ -1,0 +1,466 @@
+---
+name: rag-eval
+description: "RAG 평가 스크립트 실행. 자연어로 옵션을 지정하면 평가를 수행합니다. 트리거 - /rag-eval, /rag-eval --llm, RAG 평가 실행"
+---
+
+# RAG 평가 실행
+
+사용자가 RAG 시스템 평가를 요청했습니다.
+
+## 명령어 인자: $ARGUMENTS
+
+---
+
+## 실행 모드 판단
+
+인자를 분석하여 실행 모드를 결정하세요:
+
+### 모드 A: 단일 평가 (직접 실행)
+
+단순한 단일 평가 요청일 때 Claude가 직접 실행합니다.
+
+**패턴**: `/rag-eval`, `/rag-eval R3 top-k 10`, `/rag-eval --llm 5개만`
+
+### 모드 A+: 프리셋 적용 + 평가 (직접 실행)
+
+프리셋을 적용하여 **데이터 수집 + Vector DB 생성 + 평가**를 순차 실행합니다.
+
+**패턴**: "C1 적용", "C1으로 평가", "청킹 C2 적용해줘", "E1 임베딩으로"
+
+→ 1단계: `collect_{type}.py --config {프리셋ID}` 실행
+→ 2단계: `run_evaluation.py --output {날짜}_{변경요소}_{프리셋ID}` 실행
+
+### 모드 B: A/B 테스트 (서브에이전트)
+
+여러 설정을 비교하는 요청일 때 서브에이전트를 호출합니다.
+
+**패턴**:
+
+- Top-K 비교: "top-k 5, 10, 15 비교", "k=5랑 k=10 비교해줘" → **병렬 가능**
+- **프리셋 비교**: "C1~C3 각각 평가", "C1, C2, C3 비교", "청킹 프리셋 비교", "E0~E2 비교" → **순차 실행**
+- 조합 비교: "C1 E0, C1 E1 비교", "여러 설정으로 테스트" → **순차 실행**
+
+→ Task tool로 `rag-evaluator` 에이전트 호출
+→ **Top-K 비교**: 동일 Vector DB 사용, 병렬 호출 가능
+→ **프리셋 비교**: Vector DB 재생성(--reset) 필요, **순차 실행 필수** (DB 충돌 방지)
+→ 각각 파일 저장 후 결과 비교표 작성
+
+### 모드 C: 전체 RAG 평가 (서브에이전트)
+
+R1, R2, R3 전체 또는 다수를 평가하는 요청일 때 서브에이전트를 병렬 호출합니다.
+
+**패턴**: "전체 RAG 평가", "R1, R2, R3 다 평가해줘", "모든 RAG"
+
+→ Task tool로 `rag-evaluator` 에이전트를 **병렬 호출** (R1, R2, R3 각각)
+→ 종합 리포트 작성
+
+### 모드 D: 결과 분석 (서브에이전트)
+
+기존 평가 결과를 분석하는 요청일 때 서브에이전트가 분석합니다.
+
+**패턴**: "결과 분석", "이전 평가 비교", "baseline이랑 비교", "지난 결과들 분석"
+
+→ Task tool로 `rag-evaluator` 에이전트 호출 (분석 모드)
+→ 요약 리포트만 메인 컨텍스트로 전달
+
+---
+
+## 모드 A: 단일 평가 실행
+
+### 1. 인자 파싱
+
+`$ARGUMENTS`에서 다음 정보를 추출하세요:
+
+| 추출 항목  | 자연어 예시                                                     | 값                          |
+| ---------- | --------------------------------------------------------------- | --------------------------- |
+| 평가 유형  | `--llm` 포함 여부                                               | retrieval / llm             |
+| RAG 타입   | "R1", "R2", "R3", "r1", "r2", "r3", "규제제도", "사례", "법령"  | r1 / r2 / r3 (기본: r3)     |
+| **프리셋** | "C1 적용", "C3 E1", "청킹 C2", "임베딩 E1" (모드 A+ 트리거)     | 프리셋 ID (C0~Cn, E0~En, H0~Hn) |
+| strategy   | "strategy all", "전략 비교", "structured", "hybrid", "fulltext" | `--strategy {값}` (R2 전용) |
+| top_k      | "top-k 10", "10개씩", "상위 10개"                               | `--top_k 10`                |
+| output     | "~로 저장" (아래 파일명 생성 규칙 참조)                         | `--output {파일명}`         |
+| limit      | "5개만 테스트", "3개로 제한"                                    | `--limit 5`                 |
+| trace      | "LangSmith 추적", "trace 켜줘", "추적해줘"                      | `--trace`                   |
+| vectordb   | "qdrant로", "크로마", "벡터디비 qdrant"                         | `--vectordb qdrant`         |
+| hybrid     | "H1으로", "hybrid H0", "alpha 0.5"                              | `--hybrid H1` (Qdrant 전용) |
+| generate   | "응답도 생성", "답변 포함", "generate"                          | `--generate`                |
+
+**프리셋 감지 패턴** (모드 A+ 트리거 - 단일 프리셋):
+
+- "C1 적용", "C1으로 평가", "청킹 C1 적용해줘"
+- "E1 임베딩으로", "임베딩 E2 적용"
+- "H1 하이브리드로", "Hybrid H0", "alpha 0.5로" (Qdrant 전용)
+- "C3 E1", "C3 E1으로 평가" (청킹 + 임베딩 조합)
+- "C5 H1 qdrant로" (청킹 + Hybrid + Qdrant 조합)
+
+**프리셋 범위/목록 패턴** (모드 B 트리거 - 순차 평가):
+
+- "C1~C3 각각 평가", "C0~C6 비교" → C1, C2, C3 각각 **순차** 실행
+- "E0~E2 비교", "E1, E2 비교" → E0, E1, E2 각각 **순차** 실행
+- "C1, C2, C3 평가" → 쉼표로 구분된 프리셋 각각 **순차** 실행
+
+프리셋 **범위(~) 또는 목록(,)**이 감지되면 **모드 B**로 전환합니다. (Vector DB 충돌 방지를 위해 순차 실행)
+단일 프리셋 ID가 감지되면 **모드 A+**로 전환합니다. **여러 프리셋 조합도 지원** (예: C3 E1).
+
+**R2 전용: strategy 매핑** (R2일 때만 적용):
+
+| 자연어                                   | CLI 옵션                |
+| ---------------------------------------- | ----------------------- |
+| "strategy all", "전략 비교", "전략 전부" | `--strategy all`        |
+| "structured", "구조화", "baseline"       | `--strategy structured` |
+| "hybrid", "하이브리드", "fallback"       | `--strategy hybrid`     |
+| "fulltext", "풀텍스트", "전문"           | `--strategy fulltext`   |
+
+**RAG 타입 매핑**:
+
+- R1, 규제제도, 절차 → `r1`
+- R2, 사례, 승인사례 → `r2`
+- R3, 법령, 도메인 (또는 명시 없음) → `r3`
+
+### 1-1. 파일명 생성 규칙 (output)
+
+"~로 저장"이라고 말하면 **무조건 오늘 날짜를 앞에 붙여서** 파일명을 생성합니다.
+
+**패턴**: `{YYYY-MM-DD}_{변경요소}_{변경값}` 또는 `{YYYY-MM-DD}_{이름}`
+
+**변경요소 매핑**:
+
+| 자연어                           | 변경요소    |
+| -------------------------------- | ----------- |
+| embedding, embed, 임베딩         | `embedding` |
+| topk, top-k, top_k, k값          | `topk`      |
+| chunk, chunking, 청킹, 청크      | `chunking`  |
+| rerank, reranker, 재랭커, 재랭킹 | `reranker`  |
+| strategy, 전략, 데이터전략       | `strategy`  |
+| vectordb, 벡터DB                 | `vectordb`  |
+
+**변경값 매핑**:
+
+| 자연어                      | 변경값       |
+| --------------------------- | ------------ |
+| large, 3-large              | `3-large`    |
+| small, 3-small              | `3-small`    |
+| ada, ada-002                | `ada-002`    |
+| paragraph, 문단             | `paragraph`  |
+| article, 조문               | `article`    |
+| structured, 구조화          | `structured` |
+| hybrid, 하이브리드          | `hybrid`     |
+| fulltext, 풀텍스트          | `fulltext`   |
+| all, 전체                   | `all`        |
+| 프리셋 ID (C0~C6, E0~E3 등) | 그대로       |
+| 숫자 (5, 10, 15 등)         | 그대로       |
+
+**예시 변환**:
+
+| 자연어 입력              | 생성되는 파일명 (오늘 날짜: 2026-02-10) |
+| ------------------------ | --------------------------------------- |
+| "baseline으로 저장"      | `2026-02-10_baseline`                   |
+| "embedding large로 저장" | `2026-02-10_embedding_3-large`          |
+| "topk 10으로 저장"       | `2026-02-10_topk_10`                    |
+| "청킹 paragraph로 저장"  | `2026-02-10_chunking_paragraph`         |
+| "청킹 C1으로 저장"       | `2026-02-10_chunking_C1`                |
+| "임베딩 E1으로 저장"     | `2026-02-10_embedding_E1`               |
+| "rerank cohere로 저장"   | `2026-02-10_reranker_cohere`            |
+| "전략 hybrid로 저장"     | `2026-02-10_strategy_hybrid`            |
+| "v2로 저장"              | `2026-02-10_v2`                         |
+
+**구현**: 오늘 날짜는 `date +%Y-%m-%d` 명령어로 얻거나 현재 날짜 사용
+
+### 2. 스크립트 존재 확인
+
+```bash
+# Retrieval 평가 시
+ls server/eval/{rag_type}/run_evaluation.py 2>/dev/null || echo "NOT_FOUND"
+
+# LLM-as-Judge 평가 시
+ls server/eval/{rag_type}/run_llm_evaluation.py 2>/dev/null || echo "NOT_FOUND"
+```
+
+### 3. 명령어 실행
+
+```bash
+cd server && uv run python eval/{rag_type}/run_{type}.py [옵션]
+```
+
+> 프로젝트 루트에서 `cd server`로 이동하여 실행. 절대 경로 하드코딩 금지.
+
+### 4. 결과 보고
+
+- 주요 지표 요약
+- 결과 파일 저장 위치
+
+---
+
+## 모드 A+: 프리셋 적용 + 평가 실행
+
+프리셋 ID가 감지되면 **데이터 수집 → Vector DB 생성 → 평가**를 순차 실행합니다.
+
+### 1. 프리셋 정보 파싱
+
+| 추출 항목 | 예시       | 값                      |
+| --------- | ---------- | ----------------------- |
+| 프리셋 ID | "C1", "E2" | 그대로 사용             |
+| RAG 타입  | R1, R2, R3 | r1 / r2 / r3 (기본: r3) |
+
+### 2. 프리셋 ID → 변경요소 매핑 (configs/ 조회)
+
+프리셋 ID가 어떤 변경요소인지 **configs/ 파일에서 확인**합니다.
+
+```bash
+# configs/ 디렉토리에서 프리셋 ID 검색
+grep -l "^{프리셋ID}:" server/eval/{rag_type}/configs/*.yaml
+```
+
+**변경요소 = yaml 파일명** (확장자 제외, 자동 매핑)
+
+```
+{파일명}.yaml → 변경요소: {파일명}
+
+chunking.yaml  → chunking (C0~C13)
+embedding.yaml → embedding (E0~E5)
+hybrid.yaml    → hybrid (H0~H7, Qdrant 전용)
+vectordb.yaml  → vectordb
+reranker.yaml  → reranker  (새 파일 추가 시 자동 지원)
+```
+
+**CLI 옵션**:
+- 청킹/임베딩: `--config {프리셋ID}`
+- Hybrid: `--hybrid {프리셋ID}` + `--vectordb qdrant`
+
+```bash
+--config C1           # chunking.yaml에서 찾음 → 변경요소: chunking
+--config E1           # embedding.yaml에서 찾음 → 변경요소: embedding
+--hybrid H1           # hybrid.yaml에서 찾음 → alpha=0.5, SPLADE
+--vectordb qdrant     # Qdrant 사용 (Hybrid Search 기본 활성화)
+```
+
+**Hybrid 프리셋 (H0~H7)**:
+- H0: SPLADE + alpha=0.7 (기본)
+- H1: SPLADE + alpha=0.5 (균형)
+- H2: SPLADE + alpha=0.3 (키워드 중심)
+- H3: BM25 + alpha=0.7
+- H4: BM25 + alpha=0.5 (균형)
+- H5: BM25 + alpha=0.3 (키워드 중심)
+
+### 3. 수집 스크립트 매핑
+
+| RAG 타입 | 수집 스크립트                    |
+| -------- | -------------------------------- |
+| r1       | `scripts/collect_regulations.py` |
+| r2       | `scripts/collect_cases.py`       |
+| r3       | `scripts/collect_laws.py`        |
+
+### 4. 순차 실행
+
+```bash
+cd server
+
+# 1단계: 기존 컬렉션 삭제 + 데이터 수집 + Vector DB 생성
+uv run python scripts/collect_{type}.py --config {프리셋ID들} --reset
+
+# 2단계: 평가 실행
+uv run python eval/{rag_type}/run_evaluation.py --output {날짜}_{변경요소}_{프리셋ID}
+```
+
+**`--reset` 옵션**: 기존 컬렉션을 삭제하고 새로 생성 (프리셋 변경 시 필수)
+
+**예시 1** (`/rag-eval R3 C1 적용해줘`):
+
+```bash
+cd server
+
+# 1단계: 기존 컬렉션 삭제 + C1 청킹 전략으로 법령 데이터 수집 + Vector DB 생성
+uv run python scripts/collect_laws.py --config C1 --reset
+
+# 2단계: 평가 실행 (결과 파일: 2026-02-11_chunking_C1.json)
+uv run python eval/r3/run_evaluation.py --output 2026-02-11_chunking_C1
+```
+
+**예시 2** (`/rag-eval R3 C3 E1 평가` - 청킹 + 임베딩 조합):
+
+```bash
+cd server
+
+# 1단계: C3 청킹 + E1 임베딩으로 데이터 수집 + Vector DB 생성
+uv run python scripts/collect_laws.py --config C3 E1 --reset
+
+# 2단계: 평가 실행 (결과 파일: 2026-02-11_C3_E1.json)
+uv run python eval/r3/run_evaluation.py --output 2026-02-11_C3_E1
+```
+
+**예시 3** (`/rag-eval R3 C5 H1 qdrant로` - Qdrant + Hybrid Search):
+
+```bash
+cd server
+
+# 1단계: C5 청킹 + Qdrant에 데이터 수집 (H1은 alpha=0.5)
+uv run python scripts/collect_laws.py --config C5 H1 --vectordb qdrant --reset
+
+# 2단계: 평가 실행 (Hybrid Search 자동 적용)
+uv run python eval/r3/run_evaluation.py --vectordb qdrant --hybrid H1 --output 2026-02-11_qdrant_H1
+```
+
+**예시 4** (`/rag-eval R3 응답도 생성해줘` - 검색 + LLM 답변 생성):
+
+```bash
+cd server
+
+# 검색 평가 + LLM 답변 생성 (LLM-as-Judge 없이 답변만 포함)
+uv run python eval/r3/run_evaluation.py --generate --output 2026-02-11_with_response
+```
+
+### 5. 결과 보고
+
+- **수집 결과**: 청크 수, Vector DB 저장 위치
+- **평가 결과**: Must-Have Recall@K, Recall@K, MRR, Latency
+- **결과 파일**: `server/eval/{rag_type}/results/retrieval/{날짜}_{변경요소}_{프리셋ID}.json`
+
+---
+
+## 모드 B/C/D: 서브에이전트 호출
+
+Task tool을 사용하여 `rag-evaluator` 에이전트를 호출하세요.
+
+> **⚠️ 순차 실행 필수**: 프리셋 비교(C1/C2/C3, E0/E1 등)는 동일한 Vector DB 컬렉션을 `--reset`으로 덮어쓰므로 **반드시 순차 실행**해야 합니다. 병렬 실행 시 DB 충돌 발생.
+
+### A/B 테스트 예시 (모드 B)
+
+**Top-K 비교 (병렬 가능):**
+
+```
+사용자: "/rag-eval top-k 5, 10, 15 비교해줘"
+
+→ Task tool 3개 **병렬** 호출 (동일 Vector DB, k값만 다름):
+  - prompt: "R3 retrieval 평가 실행. top_k=5, output=compare_k5"
+  - prompt: "R3 retrieval 평가 실행. top_k=10, output=compare_k10"
+  - prompt: "R3 retrieval 평가 실행. top_k=15, output=compare_k15"
+
+→ 결과 비교표 작성
+```
+
+**프리셋 비교 - C1~C3 (순차 실행):**
+
+```
+사용자: "/rag-eval R3 C1~C3 각각 평가해줘"
+
+→ Task tool **순차** 호출 (각각 Vector DB 재생성):
+  1. prompt: "R3 C1 프리셋 평가 실행. 수집부터 평가까지 전체 실행. output=2026-02-12_chunking_C1"
+     → 완료 대기
+  2. prompt: "R3 C2 프리셋 평가 실행. 수집부터 평가까지 전체 실행. output=2026-02-12_chunking_C2"
+     → 완료 대기
+  3. prompt: "R3 C3 프리셋 평가 실행. 수집부터 평가까지 전체 실행. output=2026-02-12_chunking_C3"
+
+→ 각각 파일 저장 (chunking_C1.json, chunking_C2.json, chunking_C3.json)
+→ 결과 비교표 작성
+```
+
+**임베딩 프리셋 비교 (순차 실행):**
+
+```
+사용자: "/rag-eval R3 E0~E1 비교"
+
+→ Task tool **순차** 호출 (각각 Vector DB 재생성):
+  1. prompt: "R3 E0 프리셋 평가 실행. 수집부터 평가까지 전체 실행. output=2026-02-12_embedding_E0"
+     → 완료 대기
+  2. prompt: "R3 E1 프리셋 평가 실행. 수집부터 평가까지 전체 실행. output=2026-02-12_embedding_E1"
+
+→ 결과 비교표 작성
+```
+
+### 전체 RAG 평가 예시 (모드 C)
+
+```
+사용자: "/rag-eval 전체 RAG 평가해줘"
+
+→ Task tool 3개 병렬 호출:
+  - prompt: "R1 retrieval 평가 실행"
+  - prompt: "R2 retrieval 평가 실행"
+  - prompt: "R3 retrieval 평가 실행"
+
+→ 종합 리포트 작성
+```
+
+### 결과 분석 예시 (모드 D)
+
+```
+사용자: "/rag-eval 최근 결과들 분석해줘"
+
+→ Task tool 호출:
+  - prompt: "server/eval/r3/results/ 디렉토리의 최근 평가 결과들을 읽고 비교 분석해줘. 지표 변화 추이, 개선/악화 항목을 정리해줘."
+
+→ 분석 리포트 전달
+```
+
+### 변경요소별 비교 예시 (모드 D)
+
+```
+사용자: "/rag-eval embedding 변경요소끼리 비교해줘"
+
+→ Task tool 호출:
+  - prompt: "server/eval/r3/results/ 디렉토리에서 파일명에 'embedding'이 포함된 결과들을 찾아서 비교 분석해줘. 각 임베딩 모델별 성능 차이를 정리해줘."
+
+→ 변경요소별 비교 리포트 전달
+```
+
+```
+사용자: "/rag-eval topk 값별로 성능 비교"
+
+→ Task tool 호출:
+  - prompt: "server/eval/r3/results/ 디렉토리에서 파일명에 'topk'가 포함된 결과들을 찾아서 비교 분석해줘. Top-K 값에 따른 Recall/MRR 변화를 정리해줘."
+
+→ 변경요소별 비교 리포트 전달
+```
+
+---
+
+## 사용 예시
+
+| 명령어                         | 모드 | 동작                                   | 저장 파일명 예시             |
+| ------------------------------ | ---- | -------------------------------------- | ---------------------------- |
+| `/rag-eval`                    | A    | R3 retrieval 직접 실행                 | (타임스탬프)                 |
+| `/rag-eval baseline으로 저장`  | A    | R3 retrieval + 파일명 지정             | `2026-02-10_baseline`        |
+| `/rag-eval topk 10으로 저장`   | A    | R3 retrieval + 변경요소/값 파싱        | `2026-02-10_topk_10`         |
+| `/rag-eval --llm R3 5개만`     | A    | R3 LLM 평가 직접 실행                  | (타임스탬프)                 |
+| `/rag-eval --generate`         | A    | R3 retrieval + LLM 답변 생성 (Judge 없음) | (타임스탬프)              |
+| `/rag-eval R3 C1 적용해줘`     | A+   | **수집 + VectorDB + 평가** (청킹 C1)   | `2026-02-10_chunking_C1`     |
+| `/rag-eval R3 E1 평가`         | A+   | 수집 + VectorDB + 평가 (임베딩 E1)     | `2026-02-10_embedding_E1`    |
+| `/rag-eval R3 C3 E1 평가`      | A+   | **청킹 C3 + 임베딩 E1 조합** 평가      | `2026-02-10_C3_E1`           |
+| `/rag-eval R3 qdrant H1`       | A+   | **Qdrant + Hybrid H1** 평가            | `2026-02-10_qdrant_H1`       |
+| `/rag-eval R3 C5 H1 qdrant`    | A+   | 청킹 C5 + Qdrant Hybrid 조합           | `2026-02-10_C5_H1`           |
+| `/rag-eval R2 전략 비교`       | A    | R2 retrieval + strategy all            | `2026-02-10_strategy_all`    |
+| `/rag-eval R2 hybrid로 저장`   | A    | R2 retrieval + strategy hybrid         | `2026-02-10_strategy_hybrid` |
+| `/rag-eval top-k 5, 10 비교`   | B    | 서브에이전트 2개 **병렬** → 비교표     | -                            |
+| `/rag-eval R3 C1~C3 각각 평가` | B    | 프리셋별 수집+평가 **순차** → 비교표   | `chunking_C1~C3.json`        |
+| `/rag-eval R3 H0~H2 비교`      | B    | Hybrid 프리셋별 **순차** 평가 (Qdrant) | `hybrid_H0~H2.json`          |
+| `/rag-eval R3 E0~E1 비교`      | B    | 임베딩 프리셋별 **순차** 평가          | `embedding_E0~E1.json`       |
+| `/rag-eval R1, R2, R3 전체`    | C    | 서브에이전트 3개 병렬 → 종합 리포트    | -                            |
+| `/rag-eval 결과 분석`          | D    | 서브에이전트가 결과 파일 분석          | -                            |
+| `/rag-eval embedding끼리 비교` | D    | 서브에이전트가 embedding 변경요소 비교 | -                            |
+
+## 주의사항
+
+- **스크립트 확인 필수**: R1, R2는 미구현일 수 있음
+- **LLM 평가 비용**: 처음 테스트 시 `--limit 3` 권장
+- **컨텍스트 보호**: 대량 분석은 서브에이전트가 처리하여 메인 컨텍스트 보호
+- **실험 프리셋**: 각 RAG는 `server/eval/{r1,r2,r3}/configs/`에서 프리셋 관리 (chunking.yaml, embedding.yaml, vectordb.yaml 등)
+- **모드 A+ 소요 시간**: 데이터 수집 + Vector DB 생성에 시간이 걸릴 수 있음 (법령 수집 시 수 분 소요)
+
+### 병렬 vs 순차 실행 구분
+
+| 비교 유형 | 실행 방식 | 이유 |
+|-----------|-----------|------|
+| **Top-K 비교** (k=5,10,15) | 병렬 가능 | 동일 Vector DB를 읽기만 함 |
+| **프리셋 비교** (C1/C2/C3, E0/E1 등) | **순차 필수** | `--reset`으로 Vector DB 덮어쓰기 → 충돌 방지 |
+| **RAG 타입 비교** (R1/R2/R3) | 병렬 가능 | 서로 다른 컬렉션 사용 |
+
+**프리셋 비교 시 소요시간** = 프리셋 수 × 단일 평가 시간 (순차 실행)
+
+---
+
+## 에이전트 레퍼런스
+
+`rag-evaluator` 에이전트 상세 옵션: `.claude/agents/rag-evaluator.md`
+
+> **주의**: 프리셋 비교(C1~C3, E0~E2 등) 시 `rag-evaluator`를 **순차 호출**해야 합니다. Vector DB를 `--reset`으로 덮어쓰므로 병렬 호출 시 충돌 발생.
+
+지금 바로 평가를 실행해주세요.

@@ -19,7 +19,7 @@ export interface ProjectResponse extends Project {
     application_draft: Record<string, unknown>
 }
 
-// Project 타입으로 변환 (추가 필드 제외)
+// Project 타입으로 변환
 export const toProject = (response: ProjectResponse): Project => ({
     id: response.id,
     user_id: response.user_id,
@@ -33,4 +33,5 @@ export const toProject = (response: ProjectResponse): Project => ({
     track: response.track as Track | null,
     created_at: response.created_at,
     updated_at: response.updated_at,
+    application_draft: response.application_draft ?? null,
 })

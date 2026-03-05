@@ -7,12 +7,8 @@
 import { agentsApi } from "@/lib/api/agents"
 import { projectKeys } from "@/hooks/queries/use-projects-query"
 import type { ServiceParseRequest, ServiceParseResponse } from "@/types/api/structure"
+import type { MutationOptions } from "@/types/hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-interface UseServiceMutationOptions {
-    onSuccess?: (data: ServiceParseResponse) => void
-    onError?: (error: Error) => void
-}
 
 /**
  * 서비스 정보 파싱 mutation 훅
@@ -41,14 +37,12 @@ interface UseServiceMutationOptions {
  * })
  * ```
  */
-export function useServiceMutation(options?: UseServiceMutationOptions) {
+export function useServiceMutation(options?: MutationOptions<ServiceParseResponse>) {
     const queryClient = useQueryClient()
 
     return useMutation<ServiceParseResponse, Error, ServiceParseRequest>({
         mutationFn: agentsApi.parseService,
         onSuccess: (data, variables) => {
-            console.log("HWP 파싱 결과:", data)
-
             // 프로젝트 상세 캐시 무효화 (서비스 정보, current_step 등 업데이트됨)
             queryClient.invalidateQueries({
                 queryKey: projectKeys.detail(variables.sessionId),

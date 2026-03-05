@@ -1,0 +1,170 @@
+# R3 RAG 청킹 전략 프리셋
+# 사용: uv run python scripts/collect_laws.py --config C1
+
+C0:
+  name: C0
+  description: "전체 기준점 - 항 단위 청킹, 추가 옵션 없음"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0
+
+C1:
+  name: C1
+  description: "항 기본형 - C0 대비 prefix+hybrid 효과"
+  chunk_unit: paragraph
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 120
+  max_tokens: 800
+  overlap: 0
+
+C2:
+  name: C2
+  description: "항 멀티형 - 항에서 호 멀티 효과"
+  chunk_unit: paragraph
+  multi_granularity: [paragraph, subparagraph]
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 120
+  max_tokens: 800
+  overlap: 0
+
+C3:
+  name: C3
+  description: "항 Top-k 확장 - 항에서 Top-k 증가 효과"
+  chunk_unit: paragraph
+  multi_granularity: [paragraph, subparagraph]
+  prefix: article_only
+  top_k: 8
+  hybrid: true
+  min_tokens: 150
+  max_tokens: 1000
+  overlap: 0
+
+C4:
+  name: C4
+  description: "단위 비교: 조 - C0와 단위만 비교(항↔조)"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: none
+  top_k: 5
+  hybrid: false
+  min_tokens: null
+  max_tokens: null
+  overlap: 0
+
+C5:
+  name: C5
+  description: "조 기본형 - C4 대비 prefix+hybrid 효과"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 200
+  max_tokens: 1200
+  overlap: 0
+
+C6:
+  name: C6
+  description: "조 멀티 실무형 - 조 기반 조+항 실무 패턴 효과"
+  chunk_unit: article
+  multi_granularity: [article, paragraph]
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 150
+  max_tokens: 1000
+  overlap: 0
+
+C7:
+  name: C7
+  description: "조 Top-k 확장 - 조 기반 Top-k 증가 효과"
+  chunk_unit: article
+  multi_granularity: [article, paragraph]
+  prefix: article_only
+  top_k: 8
+  hybrid: true
+  min_tokens: 200
+  max_tokens: 1400
+  overlap: 0
+
+C8:
+  name: C8
+  description: "조 기본형에서 min/max 변경 - 작은 청크 효과"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 100
+  max_tokens: 800
+  overlap: 0
+
+C9:
+  name: C9
+  description: "더 작은 청크 - C8 대비 max 축소"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 80
+  max_tokens: 600
+  overlap: 0
+
+C10:
+  name: C10
+  description: "극소 청크 - 한계점 탐색"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 60
+  max_tokens: 500
+  overlap: 0
+
+C11:
+  name: C11
+  description: "C8 + overlap - MRR 보완"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 100
+  max_tokens: 800
+  overlap: 50
+
+C12:
+  name: C12
+  description: "작은 청크 + overlap 조합"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 80
+  max_tokens: 600
+  overlap: 30
+
+C13:
+  name: C13
+  description: "극단적 분할 - 하한선 탐색"
+  chunk_unit: article
+  multi_granularity: []
+  prefix: article_only
+  top_k: 5
+  hybrid: true
+  min_tokens: 50
+  max_tokens: 400
+  overlap: 0

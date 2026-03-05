@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Modal, ModalContent, ModalHeader, ModalFooter, ModalTitle, ModalDescription } from "@/components/ui/modal"
+import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal"
 import { useDeleteProjectMutation } from "@/hooks/mutations/use-delete-project-mutation"
+import { AlertTriangle } from "lucide-react"
+import { useState } from "react"
 
 interface DeleteProjectModalProps {
     open: boolean
@@ -23,7 +23,7 @@ export function DeleteProjectModal({ open, onOpenChange, projectId, companyName 
 
     const { mutate: deleteProject, isPending: isDeleting } = useDeleteProjectMutation({
         onSuccess: () => {
-            handleClose()
+            onOpenChange(false)
         },
         onError: (err) => {
             setError(err.message || "삭제에 실패했습니다")
@@ -52,9 +52,7 @@ export function DeleteProjectModal({ open, onOpenChange, projectId, companyName 
                         <AlertTriangle className="h-5 w-5" />
                         <ModalTitle>프로젝트 삭제</ModalTitle>
                     </div>
-                    <ModalDescription className="pt-2">
-                        프로젝트를 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
-                    </ModalDescription>
+                    <ModalDescription className="pt-2">프로젝트를 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.</ModalDescription>
                 </ModalHeader>
 
                 <div className="space-y-2 py-4">

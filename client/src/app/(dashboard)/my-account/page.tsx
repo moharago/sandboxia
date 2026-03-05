@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Modal, ModalContent, ModalHeader, ModalFooter, ModalTitle, ModalDescription } from "@/components/ui/modal"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, getAuthToken } from "@/lib/supabase/client"
 import { useAuthStore } from "@/stores/auth-store"
 import { formatPhoneNumber, hasNonDigit } from "@/lib/utils/phone"
 
 export default function MyAccountPage() {
     const router = useRouter()
     const supabase = createClient()
-    const { user: authUser, profile, fetchProfile, isInitialized } = useAuthStore()
+    const { user: authUser, profile, fetchProfile, signOut, isInitialized } = useAuthStore()
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -124,24 +124,19 @@ export default function MyAccountPage() {
         setDeleteError(null)
 
         try {
-            const { data: { session } } = await supabase.auth.getSession()
-
-            if (!session) {
-                router.push('/login')
-                return
-            }
+            const token = await getAuthToken()
 
             // 계정 삭제는 서버 API 사용 (service_role 필요)
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
             const response = await fetch(`${apiBaseUrl}/api/users/me`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
 
             if (response.ok) {
-                await supabase.auth.signOut()
+                await signOut()
                 setIsDeleteModalOpen(false)
                 router.push("/")
             } else {

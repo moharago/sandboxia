@@ -5,14 +5,6 @@
         "version": "1.0",
         "sections": [
             {
-                "key": "receipt",
-                "label": "접수정보",
-                "fields": [
-                    { "key": "receiptNumber", "label": "접수번호", "formType": "text", "dataType": "string", "required": false },
-                    { "key": "receiptDate", "label": "접수일시", "formType": "date", "dataType": "date", "required": false }
-                ]
-            },
-            {
                 "key": "applicant",
                 "label": "신청인",
                 "fields": [

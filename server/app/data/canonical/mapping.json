@@ -1,0 +1,186 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canonical to Draft Mapping",
+  "description": "canonical 필드 → draft 폼 필드 매핑 규칙. application_drafter 에이전트가 사용.",
+  "version": "1.0.0",
+  "mappings": {
+    "company → applicant (신청인 섹션)": {
+      "target_forms": ["temporary-1", "demonstration-1", "fastcheck-1"],
+      "fields": {
+        "canonical.company.company_name": "draft.applicant.companyName",
+        "canonical.company.representative": "draft.applicant.representativeName",
+        "canonical.company.business_number": "draft.applicant.businessRegistrationNumber",
+        "canonical.company.address": "draft.applicant.address",
+        "canonical.company.contact": "draft.applicant.phoneNumber",
+        "canonical.company.email": "draft.applicant.email"
+      }
+    },
+    "company → organizationProfile.generalInfo (사업계획서)": {
+      "target_forms": ["temporary-2", "demonstration-2"],
+      "fields": {
+        "canonical.company.company_name": "draft.organizationProfile.organizationName",
+        "canonical.company.representative": "draft.organizationProfile.generalInfo.representativeName",
+        "canonical.company.address": "draft.organizationProfile.generalInfo.address",
+        "canonical.company.establishment_date": "draft.organizationProfile.generalInfo.establishmentDate",
+        "canonical.company.main_business": "draft.organizationProfile.mainBusiness",
+        "canonical.company.licenses_and_permits": "draft.organizationProfile.licensesAndPermits"
+      }
+    },
+    "technology → organizationProfile (사업계획서)": {
+      "target_forms": ["temporary-2", "demonstration-2"],
+      "fields": {
+        "canonical.technology.technologies_and_patents": "draft.organizationProfile.technologiesAndPatents"
+      }
+    },
+    "service → technologyService (신청서)": {
+      "target_forms": ["temporary-1", "demonstration-1"],
+      "fields": {
+        "canonical.service.service_name": "draft.technologyService.name",
+        "canonical.service.service_type": "draft.technologyService.type",
+        "canonical.service.service_description": "draft.technologyService.mainContent"
+      },
+      "notes": {
+        "service_type 변환": {
+          "기술인 경우": "technology",
+          "서비스인 경우": "service",
+          "기술과 서비스가 융합된 경우": "technologyAndService"
+        }
+      }
+    },
+    "financial → financialStatus (사업계획서)": {
+      "target_forms": ["temporary-2", "demonstration-2"],
+      "fields": {
+        "canonical.financial.yearM2.*": "draft.financialStatus.*.yearM2",
+        "canonical.financial.yearM1.*": "draft.financialStatus.*.yearM1",
+        "canonical.financial.average.*": "draft.financialStatus.*.average"
+      },
+      "notes": "연도 기준 → 항목 기준으로 전치됨"
+    },
+    "hr → humanResources, keyPersonnel (사업계획서)": {
+      "target_forms": ["temporary-2", "demonstration-2"],
+      "fields": {
+        "canonical.hr.organizationChart": "draft.humanResources.organizationChart",
+        "canonical.hr.totalEmployees": "draft.humanResources.totalEmployees",
+        "canonical.hr.keyPersonnel[].name": "draft.keyPersonnel[].name",
+        "canonical.hr.keyPersonnel[].department": "draft.keyPersonnel[].department",
+        "canonical.hr.keyPersonnel[].position": "draft.keyPersonnel[].position",
+        "canonical.hr.keyPersonnel[].qualifications": "draft.keyPersonnel[].qualificationsOrSkills",
+        "canonical.hr.keyPersonnel[].experience": "draft.keyPersonnel[].experienceYears",
+        "canonical.hr.keyPersonnel[].responsibilities": "draft.keyPersonnel[].responsibilities"
+      },
+      "key_mapping": {
+        "qualifications → qualificationsOrSkills": "키 이름 변환 필요!",
+        "experience → experienceYears": "키 이름 변환 필요!"
+      }
+    },
+    "project_plan → projectInfo (사업계획서)": {
+      "target_forms": ["temporary-2", "demonstration-2"],
+      "fields": {
+        "canonical.project_plan.projectName": "draft.projectInfo.projectName",
+        "canonical.project_plan.startDate": "draft.projectInfo.period.startDate",
+        "canonical.project_plan.endDate": "draft.projectInfo.period.endDate",
+        "canonical.project_plan.durationMonths": "draft.projectInfo.period.durationMonths"
+      }
+    },
+    "applicants → applicantOrganizations, submission (사업계획서)": {
+      "target_forms": ["temporary-2", "demonstration-2"],
+      "fields": {
+        "canonical.applicants.organizations[]": "draft.applicantOrganizations[]",
+        "canonical.applicants.submissionDate": "draft.submissionDate.submissionDate",
+        "canonical.applicants.signatures[].organization_name": "draft.submission[].organizationName",
+        "canonical.applicants.signatures[].signer_name": "draft.submission[].name"
+      },
+      "key_mapping": {
+        "organization_name → organizationName": "snake_case → camelCase 변환",
+        "signer_name → name": "키 이름 변환"
+      }
+    },
+    "applicants → application (신청서)": {
+      "target_forms": ["temporary-1", "demonstration-1", "fastcheck-1"],
+      "fields": {
+        "canonical.applicants.applicationDate": "draft.application.applicationDate",
+        "canonical.company.representative": "draft.application.applicantSignature"
+      }
+    },
+    "form_selections → 체크박스 필드": {
+      "임시허가": {
+        "target_forms": ["temporary-1", "temporary-3"],
+        "fields": {
+          "canonical.form_selections.temporaryPermitReason.noApplicableStandards": "draft.temporaryPermitReason.temporaryPermitReason (배열에 'noApplicableStandards' 포함)",
+          "canonical.form_selections.temporaryPermitReason.unclearOrUnreasonableStandards": "draft.temporaryPermitReason.temporaryPermitReason (배열에 'unclearOrUnreasonableStandards' 포함)"
+        }
+      },
+      "실증특례": {
+        "target_forms": ["demonstration-1", "demonstration-3"],
+        "fields": {
+          "canonical.form_selections.demonstrationReason.impossibleToApplyPermit": "draft.regulatoryExemptionReason.reason1_impossibleToApplyPermit",
+          "canonical.form_selections.demonstrationReason.unclearOrUnreasonableCriteria": "draft.regulatoryExemptionReason.reason2_unclearOrUnreasonableCriteria"
+        }
+      },
+      "실증→임시 변환": {
+        "fields": {
+          "demonstrationReason.impossibleToApplyPermit": "temporaryPermitReason.noApplicableStandards",
+          "demonstrationReason.unclearOrUnreasonableCriteria": "temporaryPermitReason.unclearOrUnreasonableStandards"
+        }
+      }
+    },
+    "section_texts → 서술형 필드 (LLM이 다듬어서 생성)": {
+      "target_forms": ["temporary-2", "demonstration-2", "fastcheck-2"],
+      "fields": {
+        "canonical.section_texts.detailedDescription": "draft.technologyService.detailedDescription",
+        "canonical.section_texts.marketStatusAndOutlook": "draft.technologyService.marketStatusAndOutlook",
+        "canonical.section_texts.regulationDetails": "draft.temporaryPermitRequest.regulationDetails / draft.regulatoryExemption.regulationDetails",
+        "canonical.section_texts.necessityAndRequest": "draft.temporaryPermitRequest.necessityAndRequest / draft.regulatoryExemption.necessityAndRequest",
+        "canonical.section_texts.objectivesAndScope": "draft.businessPlan.objectivesAndScope / draft.testPlan.objectivesAndScope",
+        "canonical.section_texts.businessContent": "draft.businessPlan.businessContent / draft.testPlan.executionMethod",
+        "canonical.section_texts.schedule": "draft.businessPlan.schedule / draft.testPlan.schedule",
+        "canonical.section_texts.operationPlan": "draft.operationPlan.operationPlan",
+        "canonical.section_texts.quantitativeEffect": "draft.expectedEffects.quantitative",
+        "canonical.section_texts.qualitativeEffect": "draft.expectedEffects.qualitative",
+        "canonical.section_texts.expansionPlan": "draft.expansionPlan.expansionPlan / draft.postTestPlan.expansionPlan",
+        "canonical.section_texts.organizationStructure": "draft.organizationAndBudget.organizationStructure",
+        "canonical.section_texts.budget": "draft.organizationAndBudget.budget",
+        "canonical.section_texts.safetyVerification": "draft.safetyVerification.safetyVerification",
+        "canonical.section_texts.userProtectionPlan": "draft.userProtectionPlan.userProtectionPlan",
+        "canonical.section_texts.riskAndResponse": "draft.riskAndResponse.riskAndResponse",
+        "canonical.section_texts.stakeholderConflictResolution": "draft.stakeholderConflictResolution.stakeholderConflictResolution",
+        "canonical.section_texts.justification": "draft.justification.justification"
+      },
+      "notes": "section_texts는 원본 보존. draft 생성 시 LLM이 다듬어서 작성함."
+    },
+    "regulatory → authority (신속확인)": {
+      "target_forms": ["fastcheck-1"],
+      "fields": {
+        "canonical.regulatory.governing_agency": "draft.authority.expectedGoverningAgency",
+        "canonical.regulatory.expected_permit": "draft.authority.expectedPermitOrApproval"
+      }
+    }
+  },
+  "pass_through_fields": {
+    "description": "AI 생성 없이 canonical에서 draft로 그대로 복사하는 필드들",
+    "fields": [
+      "company.*",
+      "financial.*",
+      "hr.keyPersonnel[]",
+      "project_plan.*",
+      "applicants.organizations[]",
+      "applicants.signatures[]",
+      "form_selections.*",
+      "section_texts.justification"
+    ]
+  },
+  "ai_generated_fields": {
+    "description": "트랙 변환 시 원본에 없어서 AI가 생성해야 하는 필드",
+    "임시허가/실증특례 → 신속확인": [
+      "additionalQuestions (기타 질의 사항)"
+    ],
+    "신속확인 → 실증특례": [
+      "regulatoryExemptionReason (신청사유 체크박스)",
+      "justification (해당여부 근거)"
+    ],
+    "신속확인 → 임시허가": [
+      "temporaryPermitReason (신청사유 체크박스)",
+      "justification (해당여부 근거)"
+    ]
+  }
+}

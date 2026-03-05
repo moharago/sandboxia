@@ -6,12 +6,8 @@
 
 import { agentsApi } from "@/lib/api/agents"
 import type { EligibilityRequest, EligibilityResponse } from "@/types/api/eligibility"
+import type { MutationOptions } from "@/types/hooks"
 import { useMutation } from "@tanstack/react-query"
-
-interface UseEligibilityMutationOptions {
-    onSuccess?: (data: EligibilityResponse) => void
-    onError?: (error: Error) => void
-}
 
 /**
  * 대상성 판단 mutation 훅
@@ -34,11 +30,10 @@ interface UseEligibilityMutationOptions {
  * mutate({ project_id: "uuid-..." })
  * ```
  */
-export function useEligibilityMutation(options?: UseEligibilityMutationOptions) {
+export function useEligibilityMutation(options?: MutationOptions<EligibilityResponse>) {
     return useMutation<EligibilityResponse, Error, EligibilityRequest>({
         mutationFn: agentsApi.evaluateEligibility,
         onSuccess: (data) => {
-            console.log("대상성 판단 결과:", data)
             options?.onSuccess?.(data)
         },
         onError: (error) => {

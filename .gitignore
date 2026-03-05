@@ -99,11 +99,15 @@ $RECYCLE.BIN/
 .idea/
 *.local.md
 
+chroma/
 chroma_data/
 chroma_db/
 
 # Vector DB source data
 server/data/
+
+# Evaluation results (reproducible, not source)
+server/eval/r2/results/
 
 # MCP (Model Context Protocol)
 .serena/
@@ -113,3 +117,6 @@ server/data/
 
 # Personal notes
 retrospective.md
+
+# Presentation files
+doc/Presentation_Mid/

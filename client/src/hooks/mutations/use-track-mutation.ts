@@ -6,13 +6,10 @@
 
 import { agentsApi } from "@/lib/api/agents"
 import { projectsApi } from "@/lib/api/projects"
+import type { ProjectResponse } from "@/types/api/project"
 import type { RecommendableTrack, TrackRecommendRequest, TrackRecommendResponse } from "@/types/api/track"
-import { useMutation } from "@tanstack/react-query"
-
-interface UseTrackRecommendMutationOptions {
-    onSuccess?: (data: TrackRecommendResponse) => void
-    onError?: (error: Error) => void
-}
+import type { MutationOptions } from "@/types/hooks"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 /**
  * 트랙 추천 mutation 훅
@@ -20,11 +17,14 @@ interface UseTrackRecommendMutationOptions {
  * 프로젝트의 canonical 데이터를 분석하여
  * 3개 트랙(demo/temp_permit/quick_check) 적합도를 추천합니다.
  */
-export function useTrackRecommendMutation(options?: UseTrackRecommendMutationOptions) {
+export function useTrackRecommendMutation(options?: MutationOptions<TrackRecommendResponse>) {
+    const queryClient = useQueryClient()
+
     return useMutation<TrackRecommendResponse, Error, TrackRecommendRequest>({
         mutationFn: agentsApi.recommendTrack,
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
             console.log("트랙 추천 결과:", data)
+            queryClient.setQueryData(["track", variables.project_id], data)
             options?.onSuccess?.(data)
         },
         onError: (error) => {
@@ -32,11 +32,6 @@ export function useTrackRecommendMutation(options?: UseTrackRecommendMutationOpt
             options?.onError?.(error)
         },
     })
-}
-
-interface UseTrackSelectMutationOptions {
-    onSuccess?: () => void
-    onError?: (error: Error) => void
 }
 
 interface TrackSelectVariables {
@@ -49,11 +44,14 @@ interface TrackSelectVariables {
  *
  * 사용자가 선택한 트랙을 프로젝트에 저장합니다.
  */
-export function useTrackSelectMutation(options?: UseTrackSelectMutationOptions) {
-    return useMutation<unknown, Error, TrackSelectVariables>({
+export function useTrackSelectMutation(options?: MutationOptions<ProjectResponse>) {
+    const queryClient = useQueryClient()
+
+    return useMutation<ProjectResponse, Error, TrackSelectVariables>({
         mutationFn: ({ projectId, track }) => projectsApi.updateProjectTrack(projectId, track),
-        onSuccess: () => {
-            options?.onSuccess?.()
+        onSuccess: (data, variables) => {
+            queryClient.setQueryData(["project", variables.projectId], data)
+            options?.onSuccess?.(data)
         },
         onError: (error) => {
             console.error("트랙 선택 저장 오류:", error)

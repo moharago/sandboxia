@@ -1,17 +1,13 @@
 # =============================================================================
-# Docker Compose - FastAPI + ChromaDB
+# Docker Compose - FastAPI + Qdrant
 # =============================================================================
-# 사용법:
-#   개발: docker-compose up --build
-#   백그라운드: docker-compose up -d --build
-#   종료: docker-compose down
-#   로그: docker-compose logs -f api
 
 services:
   # ---------------------------------------------------------------------------
   # FastAPI Server
   # ---------------------------------------------------------------------------
   api:
+    image: ghcr.io/kernelacademy-aicamp/server-api:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,49 +17,51 @@ services:
     env_file:
       - .env
     environment:
-      # Docker 전용 설정 (컨테이너 내부 경로)
-      - CHROMA_HOST=chroma
-      - CHROMA_PORT=8000
-      - CHROMA_PERSIST_DIR=/app/data/chroma
-    volumes:
-      # ChromaDB 데이터 영속성 (로컬 persist 모드용)
-      - chroma_data:/app/data/chroma
+      - VECTORDB_TYPE=qdrant
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
     depends_on:
-      chroma:
+      qdrant:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
     networks:
       - sandbox-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; import sys; \
+          u=['http://localhost:8000/health','http://localhost:8000/docs']; \
+          ok=False; \
+          for url in u: \
+          try: urllib.request.urlopen(url, timeout=3); ok=True; break; \
+          except Exception: pass; \
+          sys.exit(0 if ok else 1)\"",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
   # ---------------------------------------------------------------------------
-  # ChromaDB (Vector Database)
+  # Qdrant (Vector Database) - Hybrid Search (Dense + Sparse)
   # ---------------------------------------------------------------------------
-  chroma:
-    image: chromadb/chroma:latest
-    container_name: sandbox-chroma
+  qdrant:
+    image: qdrant/qdrant:v1.17.0
+    container_name: sandbox-qdrant
     ports:
-      - "8001:8000"  # 호스트 8001 → 컨테이너 8000
-    environment:
-      - IS_PERSISTENT=TRUE
-      - PERSIST_DIRECTORY=/chroma/chroma
-      - ANONYMIZED_TELEMETRY=FALSE
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
     volumes:
-      - chroma_data:/chroma/chroma
-    restart: unless-stopped
+      - ./data/qdrant:/qdrant/storage
+    restart: always
     networks:
       - sandbox-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "perl -e 'use IO::Socket::INET; exit(IO::Socket::INET->new(q(localhost:6333)) ? 0 : 1)'"]
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 5s
 
 # =============================================================================
 # Networks
@@ -71,10 +69,3 @@ services:
 networks:
   sandbox-network:
     driver: bridge
-
-# =============================================================================
-# Volumes (데이터 영속성)
-# =============================================================================
-volumes:
-  chroma_data:
-    driver: local

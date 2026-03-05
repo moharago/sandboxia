@@ -1,57 +1,25 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { ChevronDown, ChevronUp, Save, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { TiptapEditor } from "@/components/ui/tiptap-editor"
+import { FastcheckApplicationForm } from "./FastcheckApplicationForm"
+import { FastcheckDescriptionForm } from "./FastcheckDescriptionForm"
+import { TemporaryPermitApplicationForm } from "./TemporaryPermitApplicationForm"
+import { TemporaryBusinessPlanForm } from "./TemporaryBusinessPlanForm"
+import { TemporaryPermitReasonForm } from "./TemporaryPermitReasonForm"
+import { TemporarySafetyProtectionForm } from "./TemporarySafetyProtectionForm"
+import { DemonstrationApplicationForm } from "./DemonstrationApplicationForm"
+import { DemonstrationPlanForm } from "./DemonstrationPlanForm"
+import { DemonstrationReasonForm } from "./DemonstrationReasonForm"
+import { DemonstrationProtectionForm } from "./DemonstrationProtectionForm"
 import { cn } from "@/lib/utils/cn"
-
-// 새로운 스키마 타입 정의
-interface FieldOption {
-    id: string
-    label: string
-    value: string
-}
-
-interface FormField {
-    key: string
-    label: string
-    formType: string
-    dataType: string
-    required: boolean
-    options?: FieldOption[]
-}
-
-interface TableColumn {
-    key: string
-    label: string
-}
-
-interface TableRow {
-    key: string
-    label: string
-    dataType: string
-}
-
-interface FormSection {
-    key: string
-    label: string
-    fields?: FormField[]
-    isArray?: boolean
-    isTable?: boolean
-    columns?: TableColumn[]
-    rows?: TableRow[]
-}
-
-interface FormSchema {
-    formId: string
-    formName: string
-    version: string
-    sections: FormSection[]
-}
+import { formatNumber, parseNumber } from "@/lib/utils/form"
+import type { FormSchema, FormField, FormSection } from "@/types/draft"
 
 interface DynamicFormCardProps {
     cardKey: string
@@ -60,9 +28,10 @@ interface DynamicFormCardProps {
     values: Record<string, string>
     onValueChange: (key: string, value: string) => void
     onSave: () => void
+    isSaving?: boolean
 }
 
-export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValueChange, onSave }: DynamicFormCardProps) {
+export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValueChange, onSave, isSaving }: DynamicFormCardProps) {
     const [isOpen, setIsOpen] = useState(true)
     const [listRowCounts, setListRowCounts] = useState<Record<string, number>>({})
 
@@ -89,33 +58,28 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
         return counts
     }, [values, formSchema.sections])
 
-    // values 변경 시 listRowCounts 동기화
-    useEffect(() => {
-        setListRowCounts((prev) => {
-            const updated = { ...prev }
-            Object.entries(computedRowCounts).forEach(([key, count]) => {
-                // 기존 값보다 computed 값이 크면 업데이트
-                if (!updated[key] || updated[key] < count) {
-                    updated[key] = count
-                }
-            })
-            return updated
-        })
-    }, [computedRowCounts])
-
+    // rerender-derived-state-no-effect: useEffect 대신 렌더링 중 파생
+    // listRowCounts는 사용자가 추가한 빈 행만 추적
     const getRowCount = (sectionKey: string) => {
-        return listRowCounts[sectionKey] ?? computedRowCounts[sectionKey] ?? 1
+        const computed = computedRowCounts[sectionKey] ?? 1
+        const userSet = listRowCounts[sectionKey] ?? 0
+        return Math.max(computed, userSet)
     }
 
     const addRow = (sectionKey: string) => {
-        setListRowCounts((prev) => ({
-            ...prev,
-            [sectionKey]: (prev[sectionKey] ?? 1) + 1,
-        }))
+        setListRowCounts((prev) => {
+            const computed = computedRowCounts[sectionKey] ?? 1
+            const userSet = prev[sectionKey] ?? 0
+            const currentCount = Math.max(computed, userSet)
+            return {
+                ...prev,
+                [sectionKey]: currentCount + 1,
+            }
+        })
     }
 
     const removeRow = (sectionKey: string, rowIndex: number) => {
-        const currentCount = listRowCounts[sectionKey] ?? 1
+        const currentCount = getRowCount(sectionKey)
         if (currentCount <= 1) return
 
         // 삭제할 행 이후의 데이터를 한 칸씩 앞으로 이동
@@ -157,25 +121,24 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                     <div key={fieldKey} className="space-y-1.5">
                         <Label htmlFor={fieldKey} className="text-sm">
                             {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
                         </Label>
-                        <Input id={fieldKey} value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" />
+                        <Input id={fieldKey} value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" required={field.required} />
                     </div>
                 )
 
             case "textarea":
                 return (
                     <div key={fieldKey} className="space-y-1.5">
-                        <Label htmlFor={fieldKey} className="text-sm">
-                            {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
-                        <Textarea
-                            id={fieldKey}
-                            value={value}
-                            onChange={(e) => onValueChange(fieldKey, e.target.value)}
-                            rows={4}
-                            className="resize-none"
+                        {field.label && (
+                            <Label htmlFor={fieldKey} className="text-sm">
+                                {field.label}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                        )}
+                        <TiptapEditor
+                            content={value}
+                            onChange={(newContent) => onValueChange(fieldKey, newContent)}
+                            placeholder={field.label ? `${field.label}을(를) 입력하세요...` : "내용을 입력하세요..."}
                         />
                     </div>
                 )
@@ -185,19 +148,25 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                     <div key={fieldKey} className="space-y-1.5">
                         <Label htmlFor={fieldKey} className="text-sm">
                             {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
                         </Label>
-                        <Input id={fieldKey} type="date" value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" />
+                        <Input id={fieldKey} type="date" value={value} onChange={(e) => onValueChange(fieldKey, e.target.value)} className="h-9" required={field.required} />
                     </div>
                 )
 
             case "radio":
                 return (
                     <div key={fieldKey} className="space-y-2">
-                        <Label className="text-sm">
-                            {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <Label className="text-sm">
+                                {field.label}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                            {field.required && !value && (
+                                <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
+                                    선택 필요
+                                </span>
+                            )}
+                        </div>
                         <div className="space-y-1.5">
                             {field.options?.map((option) => (
                                 <label key={option.id} className="flex items-center gap-2 cursor-pointer">
@@ -220,15 +189,18 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                 // options가 있으면 체크박스 그룹, 없으면 단독 체크박스
                 if (field.options && field.options.length > 0) {
                     // 체크박스 그룹
+                    const checkedValues = value ? value.split(",").filter(Boolean) : []
+
                     return (
                         <div key={fieldKey} className="space-y-2">
-                            <Label className="text-sm">
-                                {field.label}
-                                {field.required && <span className="text-destructive ml-1">*</span>}
-                            </Label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Label className="text-sm">
+                                    {field.label}
+                                    {field.required && <span className="text-destructive ml-1">*</span>}
+                                </Label>
+                            </div>
                             <div className="space-y-1.5">
                                 {field.options.map((option) => {
-                                    const checkedValues = value ? value.split(",") : []
                                     const isChecked = checkedValues.includes(option.value)
 
                                     return (
@@ -302,11 +274,20 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
                                     {columns.map((col) => {
                                         const cellKey = `${section.key}.${row.key}.${col.key}`
                                         const cellValue = values[cellKey] ?? ""
+                                        const isNumber = row.dataType === "number"
+                                        // 숫자 타입이면 천 단위 구분자 표시
+                                        const displayValue = isNumber ? formatNumber(cellValue) : cellValue
                                         return (
                                             <td key={col.key} className="px-2 py-1.5 border-b border-border">
                                                 <Input
-                                                    value={cellValue}
-                                                    onChange={(e) => onValueChange(cellKey, e.target.value)}
+                                                    value={displayValue}
+                                                    onChange={(e) => {
+                                                        // 숫자 타입이면 콤마 제거 후 저장
+                                                        const newValue = isNumber
+                                                            ? parseNumber(e.target.value)
+                                                            : e.target.value
+                                                        onValueChange(cellKey, newValue)
+                                                    }}
                                                     className="h-8 text-center"
                                                 />
                                             </td>
@@ -411,9 +392,32 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
             return null
         }
 
+        // 체크박스만 있는 섹션인지 확인 (법적 책임 항목 등)
+        const isCheckboxOnlySection = section.fields.every((f) => f.formType === "checkbox")
+        const hasRequiredCheckbox = section.fields.some((f) => f.formType === "checkbox" && f.required)
+        const hasAnyCheckboxSelected = isCheckboxOnlySection && section.fields.some((field) => {
+            const fieldKey = `${section.key}.${field.key}`
+            const value = values[fieldKey]
+            // 단일 체크박스: "true", 체크박스 그룹: 콤마 구분 문자열 (예: "option1,option2")
+            return value === "true" || (typeof value === "string" && value.trim() !== "")
+        })
+
+        // 라벨 없는 필수 필드가 있는지 확인 (섹션 제목에 * 표시용)
+        const hasRequiredFieldWithoutLabel = section.fields.some((f) => f.required && !f.label)
+
         return (
             <div key={section.key} className="space-y-4">
-                <h4 className="font-bold border-b border-gray-300 pb-2">{section.label}</h4>
+                <div className="flex items-center gap-2 flex-wrap border-b border-gray-300 pb-2">
+                    <h4 className="font-bold">
+                        {section.label}
+                        {hasRequiredFieldWithoutLabel && <span className="text-destructive ml-1">*</span>}
+                    </h4>
+                    {isCheckboxOnlySection && hasRequiredCheckbox && !hasAnyCheckboxSelected && (
+                        <span className="text-xs text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">
+                            체크 필요
+                        </span>
+                    )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {section.fields.map((field) => {
                         // textarea, radio, checkbox는 전체 너비
@@ -461,20 +465,76 @@ export function DynamicFormCard({ cardKey, cardName, formSchema, values, onValue
 
             <div className={cn("overflow-hidden transition-all duration-300", isOpen ? "opacity-100" : "max-h-0 opacity-0")}>
                 <CardContent className="space-y-6">
-                    {formSchema.sections.map(renderSection)}
+                    {/* 커스텀 양식 폼 컴포넌트 */}
+                    {cardKey === "fastcheck-1" ? (
+                        <FastcheckApplicationForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "fastcheck-2" ? (
+                        <FastcheckDescriptionForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-1" ? (
+                        <TemporaryPermitApplicationForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-2" ? (
+                        <TemporaryBusinessPlanForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-3" ? (
+                        <TemporaryPermitReasonForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "temporary-4" ? (
+                        <TemporarySafetyProtectionForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-1" ? (
+                        <DemonstrationApplicationForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-2" ? (
+                        <DemonstrationPlanForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-3" ? (
+                        <DemonstrationReasonForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : cardKey === "demonstration-4" ? (
+                        <DemonstrationProtectionForm
+                            values={values}
+                            onValueChange={onValueChange}
+                        />
+                    ) : (
+                        formSchema.sections.map(renderSection)
+                    )}
 
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-end gap-3">
+                        <span className="text-xs text-muted-foreground">
+                            수정 후 저장 버튼을 클릭해야 변경사항이 반영됩니다
+                        </span>
                         <Button
-                            variant="outline"
                             size="sm"
                             className="gap-2"
+                            disabled={isSaving}
                             onClick={(e) => {
                                 e.stopPropagation()
                                 onSave()
                             }}
                         >
                             <Save className="h-4 w-4" />
-                            임시저장
+                            {isSaving ? "저장 중..." : "저장"}
                         </Button>
                     </div>
                 </CardContent>

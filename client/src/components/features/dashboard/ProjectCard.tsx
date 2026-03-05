@@ -4,10 +4,13 @@ import { DeleteProjectModal } from "@/components/features/projects/DeleteProject
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
+import { projectsApi } from "@/lib/api/projects"
 import { getProjectPathFromProject } from "@/lib/utils/project-path"
 import type { Project, ProjectStatus } from "@/types/data/project"
-import { PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress } from "@/types/data/project"
-import { ArrowRight, Trash2 } from "lucide-react"
+import { PROJECT_STATUS, PROJECT_STATUS_LABELS, TRACK_LABELS, calculateProgress } from "@/types/data/project"
+import { useQueryClient } from "@tanstack/react-query"
+import { CheckCircle2, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -25,7 +28,11 @@ const statusBadgeVariant: Record<ProjectStatus, "success" | "warning" | "info" |
 }
 
 export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
+    const queryClient = useQueryClient()
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+    const [isCompleting, setIsCompleting] = useState(false)
+    const isCompleted = project.status === PROJECT_STATUS.COMPLETED || project.status === PROJECT_STATUS.DIRECT_LAUNCH
 
     const formattedDate = new Date(project.updated_at)
         .toLocaleDateString("ko-KR", {
@@ -37,6 +44,25 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
         .replace(/\.$/, "")
 
     const progress = calculateProgress(project.current_step, project.status)
+
+    const handleCompleteClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsCompleteModalOpen(true)
+    }
+
+    const handleCompleteConfirm = async () => {
+        setIsCompleting(true)
+        try {
+            await projectsApi.updateStatus(project.id, PROJECT_STATUS.COMPLETED)
+            setIsCompleteModalOpen(false)
+            queryClient.invalidateQueries({ queryKey: ["projects"] })
+        } catch (error) {
+            console.error("완료 처리 실패:", error)
+        } finally {
+            setIsCompleting(false)
+        }
+    }
 
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.preventDefault()
@@ -63,15 +89,27 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
                             <span className="w-20 text-right">{formattedDate}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <Button variant="text" size="sm" className="gap-1 group-hover:text-primary transition-colors">
-                                상세보기 <ArrowRight className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost-destructive" size="icon-sm" className="h-8 w-8" onClick={handleDeleteClick}>
-                                <Trash2 className="h-4 w-4" />
+                            {!isCompleted && (
+                                <Button variant="ghost-success" size="icon-sm" className="h-8 w-8" onClick={handleCompleteClick} title="완료 처리">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                </Button>
+                            )}
+                            <Button variant="ghost-destructive" size="icon-sm" className="h-8 w-8" onClick={handleDeleteClick} title="삭제">
+                                <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                         </div>
                     </div>
                 </Link>
+                <ConfirmModal
+                    isOpen={isCompleteModalOpen}
+                    onClose={() => setIsCompleteModalOpen(false)}
+                    onConfirm={handleCompleteConfirm}
+                    title="프로젝트 완료"
+                    description={`"${project.company_name}" 프로젝트를 완료 처리하시겠습니까?`}
+                    confirmLabel="완료 처리"
+                    cancelLabel="취소"
+                    isLoading={isCompleting}
+                />
                 <DeleteProjectModal
                     open={isDeleteModalOpen}
                     onOpenChange={setIsDeleteModalOpen}
@@ -109,12 +147,13 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
 
                             <div className="flex items-center justify-between text-sm pt-2">
                                 <span className="text-muted-foreground">{formattedDate}</span>
-                                <div className="flex items-center gap-1">
-                                    <Button size="sm" variant="text" className="px-0 group-hover:text-primary transition-colors">
-                                        상세보기
-                                        <ArrowRight className="h-3 w-3" />
-                                    </Button>
-                                    <Button variant="ghost-destructive" size="icon-sm" onClick={handleDeleteClick}>
+                                <div className="flex items-center">
+                                    {!isCompleted && (
+                                        <Button variant="ghost-success" size="icon-sm" onClick={handleCompleteClick} title="완료 처리">
+                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    )}
+                                    <Button variant="ghost-destructive" size="icon-sm" onClick={handleDeleteClick} title="삭제">
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>
@@ -123,6 +162,15 @@ export function ProjectCard({ project, viewMode = "grid" }: ProjectCardProps) {
                     </CardContent>
                 </Card>
             </Link>
+            <ConfirmModal
+                isOpen={isCompleteModalOpen}
+                onClose={() => setIsCompleteModalOpen(false)}
+                onConfirm={handleCompleteConfirm}
+                title="프로젝트 완료"
+                description={`"${project.company_name}" 프로젝트를 완료 처리하시겠습니까?`}
+                confirmLabel="완료 처리"
+                cancelLabel="취소"
+            />
             <DeleteProjectModal
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}

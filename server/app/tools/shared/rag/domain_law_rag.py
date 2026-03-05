@@ -9,7 +9,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from app.core.constants import COLLECTION_LAWS
-from app.db.vector import SearchResult, get_vector_store
+from app.db.vector import Eq, FilterExpr, SearchResult, get_vector_store
 
 
 class DomainLawResult(BaseModel):
@@ -127,18 +127,29 @@ def search_domain_law(
     normalized_domain = normalize_domain(domain)
 
     # 필터 조건 설정
-    filter_dict = None
+    filter_expr: FilterExpr | None = None
     if normalized_domain:
-        filter_dict = {"domain": normalized_domain}
+        filter_expr = Eq("domain", normalized_domain)
 
-    # 유사도 검색 (추상화된 인터페이스 사용)
-    search_results = vector_store.similarity_search(
+    # Hybrid Search (E1 + H3: Dense 70% + Sparse 30%)
+    search_results = vector_store.hybrid_search(
         query=query,
         k=top_k,
-        filter=filter_dict,
+        filter=filter_expr,
     )
 
     results = [_build_domain_law_result(result) for result in search_results]
+
+    # DEBUG: 에이전트 실행 중 RAG 검색 결과 확인
+    print(f"\n{'='*60}")
+    print(f"[R3 도메인법령 RAG] query='{query}', domain={normalized_domain}, top_k={top_k}")
+    print(f"{'='*60}")
+    for i, r in enumerate(results, 1):
+        print(f"{'-'*60}")
+        print(f"  {i}. [{r.citation}] (점수: {r.relevance_score})")
+        print(f"     도메인: {r.domain_label}")
+        print(f"     내용: {r.content[:150]}...")
+    print(f"{'='*60}\n")
 
     return DomainLawSearchOutput(
         results=results,

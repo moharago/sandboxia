@@ -1,41 +1,41 @@
-"use client"
-
-import { use, useEffect, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import { StepNav } from "@/components/features/project/StepNav"
-import { useProjectQuery } from "@/hooks/queries/use-projects-query"
+import { getProject } from "@/lib/api/projects.server"
+import { notFound } from "next/navigation"
+import { Suspense, type ReactNode } from "react"
+import { ProjectLayoutSkeleton } from "./loading"
 
 interface ProjectLayoutProps {
     children: ReactNode
     params: Promise<{ id: string }>
 }
 
-export default function ProjectLayout({ children, params }: ProjectLayoutProps) {
-    const { id } = use(params)
-    const router = useRouter()
-    const { data: project, isLoading, error } = useProjectQuery(id)
+/**
+ * Project Layout (Server Component)
+ *
+ * async-suspense-boundaries: 서버에서 프로젝트 데이터를 fetch하고
+ * Suspense로 children을 감싸서 waterfall을 제거합니다.
+ */
+export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
+    const { id } = await params
 
-    useEffect(() => {
-        if (!isLoading && (error || !project)) {
-            router.replace("/not-found")
-        }
-    }, [isLoading, error, project, router])
+    // 서버에서 프로젝트 데이터 fetch
+    const project = await getProject(id)
 
-    if (isLoading || !project) {
-        return (
-            <div className="flex flex-col h-full">
-                <div className="h-14 border-b bg-background" /> {/* StepNav placeholder */}
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
-            </div>
-        )
+    // 프로젝트가 없으면 404
+    if (!project) {
+        notFound()
     }
 
     return (
         <div className="flex flex-col h-full">
-            <StepNav projectId={id} company={project.company_name} service={project.service_name || ""} />
-            {children}
+            <StepNav
+                projectId={id}
+                company={project.company_name}
+                service={project.service_name || ""}
+            />
+            <Suspense fallback={<ProjectLayoutSkeleton />}>
+                {children}
+            </Suspense>
         </div>
     )
 }
