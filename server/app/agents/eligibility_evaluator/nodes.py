@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.llm import get_fast_llm, get_llm
 from app.tools.shared.rag.case_rag import search_case
-from app.tools.shared.rag.domain_law_rag import search_domain_law
+from app.tools.shared.rag.domain_law_rag import DOMAIN_MAPPING, search_domain_law
 from app.tools.shared.rag.regulation_rag import search_regulation
 
 from .prompts import (
@@ -320,15 +320,21 @@ def _search_cases(canonical: dict) -> list[dict]:
 
 
 def _search_laws(screening) -> list[dict]:
-    """R3 도메인별 법령 검색 (내부 함수)"""
+    """R3 도메인별 법령 검색 (내부 함수)
+
+    DOMAIN_MAPPING에 있는 도메인만 검색, 없으면 빈 결과 반환
+    """
     domains = screening.detected_domains if screening else []
     keywords = screening.search_keywords if screening else []
 
-    if not domains:
-        domains = ["data"]
+    # DOMAIN_MAPPING에 있는 도메인만 필터링 (매핑 안 된 도메인은 검색 안 함)
+    valid_domains = [d for d in domains if d.lower() in DOMAIN_MAPPING]
+
+    if not valid_domains:
+        return []
 
     laws = []
-    for domain in domains[:3]:
+    for domain in valid_domains[:3]:
         query = " ".join(keywords[:3]) if keywords else domain
         result = search_domain_law.invoke({"query": query, "domain": domain, "top_k": 3})
 
