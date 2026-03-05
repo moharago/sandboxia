@@ -27,7 +27,7 @@
     --cyan-dim: rgba(8, 145, 178, 0.10);
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; word-break: keep-all; overflow-wrap: break-word; }
 
   html {
     height: 100%;
@@ -528,12 +528,15 @@
         </div>
       </div>
     </div>
-    <div class="card flex flex-col center" style="width:600px; height:250px; background:var(--surface2);">
-      <p class="dim small" style="margin-bottom:12px;">Target User</p>
-      <p style="font-size:20px; font-weight:700; margin-bottom:20px; text-align:center;">규제 샌드박스<br>신청 컨설턴트</p>
-      <div class="flex gap-12" style="border-top:1px solid var(--border); padding-top:16px; width:100%;">
-        <div class="card card-sm flex center" style="flex:1; text-align:center; font-size:14px;">공공기관 컨설턴트<br><span class="dim small">(ICT융합 지원기관)</span></div>
-        <div class="card card-sm flex center" style="flex:1; text-align:center; font-size:14px;">민간 행정사</div>
+    <div class="flex flex-col gap-12" style="width:600px;">
+      <img src="regulatory_sandbox_tracks.png" alt="규제 샌드박스 트랙 구조" style="width:100%; border-radius:12px; border:1px solid var(--border);" />
+      <div class="card flex flex-col center" style="background:var(--surface2); padding:14px 18px;">
+        <p class="dim small" style="margin-bottom:8px;">Target User</p>
+        <p style="font-size:18px; font-weight:700; margin-bottom:14px; text-align:center;">규제 샌드박스 신청 컨설턴트</p>
+        <div class="flex gap-12" style="border-top:1px solid var(--border); padding-top:12px; width:100%;">
+          <div class="card card-sm flex center" style="flex:1; text-align:center; font-size:13px;">공공기관 컨설턴트<br><span class="dim small">(ICT융합 지원기관)</span></div>
+          <div class="card card-sm flex center" style="flex:1; text-align:center; font-size:13px;">민간 행정사</div>
+        </div>
       </div>
     </div>
   </div>
@@ -638,7 +641,7 @@
         <div class="flex justify-between"><span>Agent</span><span class="mono dim">LangGraph 1.0</span></div>
         <div class="flex justify-between"><span>LLM</span><span class="mono dim">GPT-4o</span></div>
         <div class="flex justify-between"><span>Embedding</span><span class="mono dim">3-small (E0)</span></div>
-        <div class="flex justify-between"><span>Vector DB</span><span class="mono dim">ChromaDB</span></div>
+        <div class="flex justify-between"><span>Vector DB</span><span class="mono dim">Qdrant</span></div>
         <div class="flex justify-between"><span>RAG Eval</span><span class="mono dim">RAGAS 0.2+</span></div>
         <div class="flex justify-between"><span>Doc Gen</span><span class="mono dim">docxtpl</span></div>
         <div class="flex justify-between"><span>Package</span><span class="mono dim">uv</span></div>
@@ -896,6 +899,23 @@
           <span class="dim small">&rarr; judgment_summary(좌측 패널) + approval_cases(우측 탭) + regulations(우측 탭)</span>
         </div>
       </div>
+      <!-- Data Flow -->
+      <div style="background:var(--surface2); border-radius:12px; padding:12px 16px; border:1px solid var(--border);">
+        <p style="font-size:11px; font-weight:600; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Data Flow</p>
+        <div class="flex items-center gap-6" style="flex-wrap:wrap;">
+          <div class="box box-green" style="font-size:12px; padding:6px 10px;">Screen<br><span class="dim" style="font-size:10px;">키워드 매칭</span></div>
+          <span class="arrow" style="font-size:14px;">&#8594;</span>
+          <div class="flex gap-4">
+            <div class="box" style="font-size:10px; padding:4px 8px; border-color:var(--green);">R1</div>
+            <div class="box" style="font-size:10px; padding:4px 8px; border-color:var(--green);">R2</div>
+            <div class="box" style="font-size:10px; padding:4px 8px; border-color:var(--green);">R3</div>
+          </div>
+          <span class="arrow" style="font-size:14px;">&#8594;</span>
+          <div class="box" style="font-size:12px; padding:6px 10px; border-color:var(--amber); background:var(--amber-dim);">GPT-4o<br><span class="dim" style="font-size:10px;">종합 판단</span></div>
+          <span class="arrow" style="font-size:14px;">&#8594;</span>
+          <div class="box" style="font-size:12px; padding:6px 10px; border-color:var(--green); background:var(--green-dim);">9-LLM<br><span class="dim" style="font-size:10px;">근거 병렬 생성</span></div>
+        </div>
+      </div>
     </div>
     <!-- 오른쪽: 스크린샷 + 판정 결과 -->
     <div class="flex flex-col gap-10" style="flex:none; width:550px;">
@@ -949,6 +969,23 @@
           <strong style="color:var(--cyan);">4. Generate Recommendation</strong> &mdash; 최종 순위 + 추천 사유 생성<br>
           <span class="dim small">R1(정의) + R2(사례) + R3(법령) + 스코어를 종합하여 트랙별 5개 추천 사유 + 근거 작성</span><br>
           <span class="dim small">&rarr; 출처 검증: LLM이 생성한 인용이 실제 RAG 결과와 일치하는지 후처리로 검증</span>
+        </div>
+      </div>
+      <!-- Data Flow -->
+      <div style="background:var(--surface2); border-radius:12px; padding:12px 16px; border:1px solid var(--border);">
+        <p style="font-size:11px; font-weight:600; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Data Flow</p>
+        <div class="flex items-center gap-6" style="flex-wrap:wrap;">
+          <div class="box box-cyan" style="font-size:12px; padding:6px 10px;">R2 사례<br><span class="dim" style="font-size:10px;">의미 검색</span></div>
+          <span class="arrow" style="font-size:14px;">&#8594;</span>
+          <div class="flex gap-4">
+            <div class="box" style="font-size:10px; padding:4px 8px; border-color:var(--cyan);">실증</div>
+            <div class="box" style="font-size:10px; padding:4px 8px; border-color:var(--amber);">임시</div>
+            <div class="box" style="font-size:10px; padding:4px 8px; border-color:var(--accent);">신속</div>
+          </div>
+          <span class="arrow" style="font-size:14px;">&#8594;</span>
+          <div class="box" style="font-size:12px; padding:6px 10px; border-color:var(--cyan); background:var(--cyan-dim);">R1 정의<br><span class="dim" style="font-size:10px;">R3 페널티</span></div>
+          <span class="arrow" style="font-size:14px;">&#8594;</span>
+          <div class="box" style="font-size:12px; padding:6px 10px; border-color:var(--green); background:var(--green-dim);">추천 사유<br><span class="dim" style="font-size:10px;">출처 검증</span></div>
         </div>
       </div>
       <!-- 트랙별 평가 기준 -->
@@ -1139,7 +1176,7 @@
         <span class="tag tag-amber" style="font-size:14px;">Data</span>
       </div>
       <div class="box box-amber">Supabase<br><span style="opacity:0.7; font-size:11px;">PostgreSQL + Auth + Storage</span></div>
-      <div class="box">ChromaDB<br><span class="dim" style="font-size:11px;">Vector Store :8001</span></div>
+      <div class="box">Qdrant<br><span class="dim" style="font-size:11px;">Vector Store :6333</span></div>
       <div class="box" style="font-size:13px;">Docker Compose</div>
     </div>
   </div>
@@ -1195,7 +1232,7 @@
   <div class="card flex items-center gap-32" style="margin-top:12px; padding:10px 16px;">
     <p class="dim small" style="flex-shrink:0;">공통 인프라</p>
     <div class="flex gap-16 wrap">
-      <span class="tag tag-accent">ChromaDB (Vector DB)</span>
+      <span class="tag tag-accent">Qdrant (Vector DB)</span>
       <span class="tag tag-green">text-embedding-3-small</span>
       <span class="tag tag-cyan">BaseVectorStore ABC</span>
       <span class="tag tag-amber">persistent / http / ephemeral 3모드</span>
@@ -1411,67 +1448,95 @@
   <div class="section-label">07 &mdash; Agent Architecture</div>
   <h2>LangGraph 멀티 에이전트 파이프라인</h2>
 
-  <!-- 상단: 텍스트 설명 -->
-  <div class="flex gap-16" style="margin-bottom:10px;">
-    <div class="card card-sm flex flex-col gap-4" style="flex:1; padding:12px 14px;">
+  <!-- 상단: 4 Agent 순차 플로우 -->
+  <div class="flex gap-12 grow" style="margin-bottom:10px;">
+    <!-- Agent 1 -->
+    <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
       <div class="flex items-center gap-6">
         <div class="num" style="background:var(--accent); width:22px; height:22px; font-size:11px;">1</div>
-        <strong style="font-size:14px;">Service Structurer</strong>
+        <strong style="font-size:13px;">Service Structurer</strong>
       </div>
-      <p style="font-size:13px; color:var(--text-dim); line-height:1.5;">HWP/PDF 파싱 &rarr; 문서 병합 &rarr; LLM이 비정형 텍스트를 <strong>Canonical Structure</strong>(통일 JSON)로 변환. 이후 모든 Agent의 공통 입력.</p>
-      <div class="flex gap-4 wrap"><span class="tag tag-accent" style="font-size:10px;">HWP Parser</span><span class="tag tag-green" style="font-size:10px;">R3 RAG</span></div>
+      <div class="flex flex-col gap-3" style="flex:1;">
+        <div class="box box-accent" style="font-size:11px; padding:5px 10px; text-align:center;">HWP/PDF 파싱<br><span class="dim" style="font-size:10px;">olefile + zlib</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box box-accent" style="font-size:11px; padding:5px 10px; text-align:center;">문서 병합<br><span class="dim" style="font-size:10px;">8그룹 first-win</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--accent); background:var(--accent-glow); font-weight:600;">Canonical Structure<br><span class="dim" style="font-size:10px; font-weight:400;">통일 JSON &rarr; 전 Agent 공유</span></div>
+      </div>
+      <div class="flex gap-4 wrap"><span class="tag tag-accent" style="font-size:10px;">HWP Parser</span></div>
     </div>
-    <div class="card card-sm flex flex-col gap-4" style="flex:1; padding:12px 14px;">
+    <!-- Agent 2 -->
+    <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
       <div class="flex items-center gap-6">
         <div class="num" style="background:var(--green); width:22px; height:22px; font-size:11px;">2</div>
-        <strong style="font-size:14px;">Eligibility Evaluator</strong>
+        <strong style="font-size:13px;">Eligibility Evaluator</strong>
       </div>
-      <p style="font-size:13px; color:var(--text-dim); line-height:1.5;">도메인 키워드 <strong>사전 스크리닝</strong> &rarr; R1+R2+R3 <strong>병렬 검색</strong>(ThreadPoolExecutor) &rarr; 검색 결과 종합하여 대상성 판정 + 근거 생성.</p>
+      <div class="flex flex-col gap-3" style="flex:1;">
+        <div class="box box-green" style="font-size:11px; padding:5px 10px; text-align:center;">키워드 스크리닝<br><span class="dim" style="font-size:10px;">5개 도메인 매칭</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box box-green" style="font-size:11px; padding:5px 10px; text-align:center;">R1+R2+R3 병렬 검색<br><span class="dim" style="font-size:10px;">ThreadPoolExecutor</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--green); background:var(--green-dim); font-weight:600;">대상성 판정 + 근거<br><span class="dim" style="font-size:10px; font-weight:400;">9개 병렬 LLM 생성</span></div>
+      </div>
       <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:10px;">R1</span><span class="tag tag-green" style="font-size:10px;">R2</span><span class="tag tag-green" style="font-size:10px;">R3</span></div>
     </div>
-    <div class="card card-sm flex flex-col gap-4" style="flex:1; padding:12px 14px;">
+    <!-- Agent 3 -->
+    <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
       <div class="flex items-center gap-6">
         <div class="num" style="background:var(--cyan); width:22px; height:22px; font-size:11px;">3</div>
-        <strong style="font-size:14px;">Track Recommender</strong>
+        <strong style="font-size:13px;">Track Recommender</strong>
       </div>
-      <p style="font-size:13px; color:var(--text-dim); line-height:1.5;">유사 승인 사례 검색 &rarr; 3개 트랙 <strong>체크리스트 스코어링</strong>(0~100점) &rarr; R3 법령 기반 <strong>도메인 페널티</strong> 적용(최대 -30점).</p>
+      <div class="flex flex-col gap-3" style="flex:1;">
+        <div class="box box-cyan" style="font-size:11px; padding:5px 10px; text-align:center;">유사 사례 검색<br><span class="dim" style="font-size:10px;">R2 의미 기반</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box box-cyan" style="font-size:11px; padding:5px 10px; text-align:center;">체크리스트 스코어링<br><span class="dim" style="font-size:10px;">트랙별 0~100점</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--cyan); background:var(--cyan-dim); font-weight:600;">추천 순위 + 사유<br><span class="dim" style="font-size:10px; font-weight:400;">R3 페널티 최대 -30점</span></div>
+      </div>
       <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:10px;">R1</span><span class="tag tag-green" style="font-size:10px;">R2</span><span class="tag tag-green" style="font-size:10px;">R3</span></div>
     </div>
-    <div class="card card-sm flex flex-col gap-4" style="flex:1; padding:12px 14px;">
+    <!-- Agent 4 -->
+    <div class="card card-sm flex flex-col gap-6" style="flex:1; padding:12px 14px;">
       <div class="flex items-center gap-6">
         <div class="num" style="background:var(--amber); width:22px; height:22px; font-size:11px;">4</div>
-        <strong style="font-size:14px;">Application Drafter</strong>
+        <strong style="font-size:13px;">Application Drafter</strong>
       </div>
-      <p style="font-size:13px; color:var(--text-dim); line-height:1.5;">트랙별 <strong>양식 스키마</strong> 로드 &rarr; R1+R2 컨텍스트 검색 &rarr; 필드별 초안 생성 &rarr; <strong>Tiptap 에디터</strong>로 편집 + DOCX 다운로드.</p>
+      <div class="flex flex-col gap-3" style="flex:1;">
+        <div class="box box-amber" style="font-size:11px; padding:5px 10px; text-align:center;">양식 스키마 로드<br><span class="dim" style="font-size:10px;">트랙별 JSON</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box box-amber" style="font-size:11px; padding:5px 10px; text-align:center;">R1+R2 컨텍스트 검색<br><span class="dim" style="font-size:10px;">가이드 + 사례</span></div>
+        <div style="text-align:center; color:var(--border); font-size:12px; line-height:1;">&#8595;</div>
+        <div class="box" style="font-size:11px; padding:5px 10px; text-align:center; border-color:var(--amber); background:var(--amber-dim); font-weight:600;">초안 생성 + 편집<br><span class="dim" style="font-size:10px; font-weight:400;">Tiptap &rarr; DOCX</span></div>
+      </div>
       <div class="flex gap-4 wrap"><span class="tag tag-green" style="font-size:10px;">R1</span><span class="tag tag-green" style="font-size:10px;">R2</span><span class="tag tag-amber" style="font-size:10px;">docxtpl</span></div>
     </div>
   </div>
 
   <!-- 하단: 파이프라인 시각화 -->
-  <div class="card" style="background:var(--surface2); padding:12px 16px;">
-    <h3 style="font-size:13px; margin:0 0 10px 0;">End-to-End Pipeline Flow</h3>
-    <div class="flex items-center gap-6" style="justify-content:center;">
-      <div class="box box-accent" style="font-size:12px; padding:6px 10px;">
-        <strong>HWP/PDF</strong><br><span class="dim" style="font-size:10px;">업로드</span>
+  <div class="card" style="background:var(--surface2); padding:18px 24px; margin-top:12px;">
+    <h3 style="font-size:14px; margin:0 0 14px 0;">End-to-End Pipeline Flow</h3>
+    <div class="flex items-center gap-10" style="justify-content:center;">
+      <div class="box box-accent" style="font-size:14px; padding:10px 16px;">
+        <strong>HWP/PDF</strong><br><span class="dim" style="font-size:11px;">문서 업로드</span>
       </div>
-      <span class="arrow" style="font-size:14px;">&#8594;</span>
-      <div class="box box-accent" style="font-size:12px; padding:6px 10px;">
-        <strong>Agent 1</strong><br><span class="dim" style="font-size:10px;">파싱 &rarr; 구조화</span>
+      <span class="arrow" style="font-size:20px;">&#8594;</span>
+      <div class="box box-accent" style="font-size:14px; padding:10px 16px;">
+        <strong>Agent 1</strong><br><span class="dim" style="font-size:11px;">파싱 &rarr; 구조화</span>
       </div>
-      <span class="arrow" style="font-size:14px;">&#8594;</span>
-      <div style="border:2px solid var(--accent); border-radius:8px; padding:6px 12px; background:var(--accent-glow); text-align:center;">
-        <strong style="font-size:12px; color:var(--accent);">Canonical Structure</strong><br>
-        <span class="dim" style="font-size:10px;">통일 JSON</span>
+      <span class="arrow" style="font-size:20px;">&#8594;</span>
+      <div style="border:2px solid var(--accent); border-radius:10px; padding:10px 18px; background:var(--accent-glow); text-align:center;">
+        <strong style="font-size:14px; color:var(--accent);">Canonical Structure</strong><br>
+        <span class="dim" style="font-size:11px;">통일 JSON &mdash; 모든 Agent 공유</span>
       </div>
-      <span class="arrow" style="font-size:14px;">&#8594;</span>
-      <div class="flex flex-col gap-3">
-        <div class="box box-green" style="font-size:11px; padding:4px 10px; text-align:center;"><strong>Agent 2</strong> 대상성</div>
-        <div class="box box-cyan" style="font-size:11px; padding:4px 10px; text-align:center;"><strong>Agent 3</strong> 트랙</div>
-        <div class="box box-amber" style="font-size:11px; padding:4px 10px; text-align:center;"><strong>Agent 4</strong> 초안</div>
+      <span class="arrow" style="font-size:20px;">&#8594;</span>
+      <div class="flex flex-col gap-4">
+        <div class="box box-green" style="font-size:13px; padding:6px 14px; text-align:center;"><strong>Agent 2</strong> 대상성 판정</div>
+        <div class="box box-cyan" style="font-size:13px; padding:6px 14px; text-align:center;"><strong>Agent 3</strong> 트랙 추천</div>
+        <div class="box box-amber" style="font-size:13px; padding:6px 14px; text-align:center;"><strong>Agent 4</strong> 신청서 초안</div>
       </div>
-      <span class="arrow" style="font-size:14px;">&#8594;</span>
-      <div class="box box-green" style="font-size:12px; padding:6px 10px;">
-        <strong>결과</strong><br><span class="dim" style="font-size:10px;">판정 + 추천 + 초안</span>
+      <span class="arrow" style="font-size:20px;">&#8594;</span>
+      <div class="box box-green" style="font-size:14px; padding:10px 16px;">
+        <strong>결과</strong><br><span class="dim" style="font-size:11px;">판정 + 추천 + 초안</span>
       </div>
     </div>
   </div>
@@ -1482,7 +1547,7 @@
   <div class="section-label">08 &mdash; Service Completion</div>
   <h2>서비스 완성</h2>
   <div class="flex flex-col gap-16 grow">
-    <div class="card" style="background:var(--surface2); text-align:center; flex:1;">
+    <div class="card" style="background:var(--surface2); text-align:center;">
       <p class="dim small" style="margin-bottom:12px;">시연 영상</p>
       <div class="flex gap-12 wrap center" style="margin-bottom:10px;">
         <div class="card card-sm flex items-center gap-8" style="min-width:160px;">
@@ -1506,7 +1571,7 @@
           <span style="font-size:14px;">신청서 초안 + 다운로드</span>
         </div>
       </div>
-      <div style="width:100%; height:240px; border:2px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center;">
+      <div style="width:100%; height:160px; border:2px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.06);">
         <p class="dim" style="font-size:16px;">&#9654;&nbsp; 시연 영상 재생</p>
       </div>
     </div>
@@ -1542,7 +1607,7 @@
             <div class="box box-accent" style="min-width:120px;">Server</div>
             <div>
               <p style="font-weight:600; font-size:14px;">Docker Compose</p>
-              <p class="dim small">FastAPI + ChromaDB &middot; ghcr.io 레지스트리</p>
+              <p class="dim small">FastAPI + Qdrant &middot; ghcr.io 레지스트리</p>
             </div>
           </div>
           <div class="card card-sm flex gap-16 items-center">
@@ -1594,7 +1659,7 @@
         <div class="flex flex-col gap-8" style="font-size:14px;">
           <div class="flex justify-between"><span>Client</span><span class="mono dim">localhost:3000 / Vercel</span></div>
           <div class="flex justify-between"><span>Server</span><span class="mono dim">localhost:8000 / Docker</span></div>
-          <div class="flex justify-between"><span>ChromaDB</span><span class="mono dim">localhost:8001 / Docker</span></div>
+          <div class="flex justify-between"><span>Qdrant</span><span class="mono dim">localhost:6333 / Docker</span></div>
           <div class="flex justify-between"><span>Database</span><span class="mono dim">Supabase Cloud</span></div>
         </div>
       </div>
@@ -1611,72 +1676,68 @@
   </div>
 </div>
 
-<!-- ==================== SLIDE 18: Lesson Learned 1 — R2 RAG 체계적 평가 ==================== -->
+<!-- ==================== SLIDE 18: 핵심 개발 이슈 1 — RAG 데이터 & 평가 ==================== -->
 <div class="slide wide" id="slide-19">
-  <div class="section-label">10 &mdash; Lesson Learned (1/3)</div>
-  <h2>R2 승인 사례 RAG &mdash; 체계적 평가로 최적 구성 도출</h2>
+  <div class="section-label">10 &mdash; Dev Issues (1/2)</div>
+  <h2>핵심 개발 이슈 & 해결 (1)</h2>
   <div class="two-col grow">
-    <!-- 좌: 문제 → 해결 -->
-    <div class="flex flex-col gap-12">
-      <div class="card card-sm flex gap-10 items-start">
-        <span class="tag" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.3); font-size:11px; flex-shrink:0;">Problem</span>
-        <div>
-          <p style="font-size:14px;"><strong>RAG 성능 개선이 &lsquo;감&rsquo;에 의존</strong></p>
-          <p class="dim" style="font-size:14px; margin-top:4px; line-height:1.6;">281건 승인 사례 RAG에서 데이터 전략, 임베딩 모델, 생성 모델, top_k 등 튜닝 변수가 많아 체계 없이는 최적 구성을 찾기 불가능.</p>
+    <!-- 좌: R3 법령 RAG 데이터 수집·청킹 -->
+    <div class="card flex flex-col gap-10">
+      <h3 style="font-size:14px;">R3 법령 RAG &mdash; 데이터 수집부터 청킹 전략까지</h3>
+      <div class="flex flex-col gap-8" style="font-size:14px;">
+        <div class="flex gap-8 items-start">
+          <span class="tag" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.3); font-size:10px; flex-shrink:0;">Problem</span>
+          <p>법령 조문은 <strong>항(paragraph) 단위가 너무 짧고</strong>, 같은 조의 항들이 서로 경쟁하여 검색 누락 발생. 한국어 BM25는 띄어쓰기 기반 토큰화로 서브워드 분해 불가.</p>
         </div>
-      </div>
-      <div class="card card-sm flex gap-10 items-start">
-        <span class="tag" style="background:rgba(74,222,128,0.15); color:var(--green); border:1px solid rgba(74,222,128,0.3); font-size:11px; flex-shrink:0;">Solution</span>
-        <div>
-          <p style="font-size:14px;"><strong>6단계 평가 파이프라인 &mdash; 한 번에 하나의 변수만 변경</strong></p>
-          <p class="dim" style="font-size:14px; margin-top:4px; line-height:1.6;">각 단계에서 최적 값을 확정한 뒤 고정하고 다음 단계로 진행.</p>
-          <div class="flex flex-col gap-6" style="margin-top:8px;">
-            <div class="flex items-center gap-6"><div class="num" style="background:var(--accent); width:18px; height:18px; font-size:10px;">0</div><span style="font-size:14px;"><strong>평가셋</strong> &mdash; 30개 쿼리 + Gold 정답 매핑</span></div>
-            <div class="flex items-center gap-6"><div class="num" style="background:var(--accent); width:18px; height:18px; font-size:10px;">1</div><span style="font-size:14px;"><strong>데이터 전략</strong> &mdash; structured / hybrid / fulltext</span></div>
-            <div class="flex items-center gap-6"><div class="num" style="background:var(--green); width:18px; height:18px; font-size:10px;">2</div><span style="font-size:14px;"><strong>임베딩</strong> &mdash; E0(3-small) / E1 / E4(BGE) / E5(KURE)</span></div>
-            <div class="flex items-center gap-6"><div class="num" style="background:var(--cyan); width:18px; height:18px; font-size:10px;">3</div><span style="font-size:14px;"><strong>생성 모델</strong> &mdash; 4o / 4o-mini / 4.1 / 4.1-mini</span></div>
-            <div class="flex items-center gap-6"><div class="num" style="background:var(--amber); width:18px; height:18px; font-size:10px;">4</div><span style="font-size:14px;"><strong>구성 튜닝</strong> &mdash; top_k + score threshold</span></div>
-            <div class="flex items-center gap-6"><div class="num" style="background:var(--green); width:18px; height:18px; font-size:10px;">5</div><span style="font-size:14px;"><strong>안정 구간</strong> &mdash; 확정 구성의 재현성 검증</span></div>
+        <div class="flex gap-8 items-start">
+          <span class="tag" style="background:rgba(74,222,128,0.15); color:var(--green); border:1px solid rgba(74,222,128,0.3); font-size:10px; flex-shrink:0;">Solution</span>
+          <div>
+            <p>국가법령정보센터 API에서 <strong>11개 법률</strong> 수집 후 3단계 실험:</p>
+            <div class="flex flex-col gap-4" style="margin-top:6px; font-size:13px;">
+              <div class="flex items-center gap-4"><div class="num" style="background:var(--cyan); width:16px; height:16px; font-size:9px;">1</div><span><strong>청킹</strong> 9개 전략(C0~C8) &rarr; 조 단위(C8) 확정</span></div>
+              <div class="flex items-center gap-4"><div class="num" style="background:var(--green); width:16px; height:16px; font-size:9px;">2</div><span><strong>임베딩</strong> 6종 &rarr; E1(3-large) MH-R +10%p</span></div>
+              <div class="flex items-center gap-4"><div class="num" style="background:var(--amber); width:16px; height:16px; font-size:9px;">3</div><span><strong>Hybrid</strong> Qdrant+SPLADE MRR +8~13%p</span></div>
+            </div>
           </div>
+        </div>
+        <div class="flex gap-8 items-start">
+          <span class="tag" style="background:rgba(56,189,248,0.15); color:var(--cyan); border:1px solid rgba(56,189,248,0.3); font-size:10px; flex-shrink:0;">Result</span>
+          <p>조 단위가 항 단위 대비 <strong>MH-R +13%p</strong>. SPLADE의 WordPiece 토크나이저가 한국어 서브워드 일관 분해. 최종 MH-R <strong style="color:var(--green);">96.7%</strong>.</p>
         </div>
       </div>
     </div>
 
-    <!-- 우: 결과 -->
-    <div class="flex flex-col gap-12">
-      <div class="card card-sm flex gap-10 items-start">
-        <span class="tag" style="background:rgba(56,189,248,0.15); color:var(--cyan); border:1px solid rgba(56,189,248,0.3); font-size:11px; flex-shrink:0;">Result</span>
-        <div>
-          <p style="font-size:14px;"><strong>데이터 품질 &gt; 모델 성능</strong></p>
-          <p class="dim" style="font-size:14px; margin-top:4px; line-height:1.6;">1단계 enriched 처리(GPT-4o로 50건 보강)가 MRR 0.91&rarr;0.95 (+4%p)로 가장 큰 향상. 임베딩 모델 간 차이는 ~2.5%p에 불과.</p>
+    <!-- 우: 도메인 데이터 수집 + 공통 교훈 -->
+    <div class="flex flex-col gap-10">
+      <div class="card flex flex-col gap-10">
+        <h3 style="font-size:14px;">규제 도메인 데이터 수집 & 정제</h3>
+        <div class="flex flex-col gap-8" style="font-size:14px;">
+          <div class="flex gap-8 items-start">
+            <span class="tag" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.3); font-size:10px; flex-shrink:0;">Problem</span>
+            <p>승인 사례 281건 중 <strong>구조화 가능 데이터가 제한적</strong>. 법령 데이터는 조문 구조 불일관. 도메인 편중(ICT 과다, 바이오 부족).</p>
+          </div>
+          <div class="flex gap-8 items-start">
+            <span class="tag" style="background:rgba(74,222,128,0.15); color:var(--green); border:1px solid rgba(74,222,128,0.3); font-size:10px; flex-shrink:0;">Solution</span>
+            <p>GPT-4o로 <strong>50건 보강</strong>(enriched) + 30개 쿼리 클러스터 분석으로 gold_cases 전수 조사. 법령은 <strong>조 단위(C8) 청킹</strong> + 메타데이터 보존.</p>
+          </div>
+          <div class="flex gap-8 items-start">
+            <span class="tag" style="background:rgba(56,189,248,0.15); color:var(--cyan); border:1px solid rgba(56,189,248,0.3); font-size:10px; flex-shrink:0;">Result</span>
+            <p>Enriched로 MRR 0.91&rarr;0.95. Score threshold(0.3)는 52% 필터링으로 <strong>유해</strong> &rarr; 사용하지 않음.</p>
+          </div>
         </div>
       </div>
-      <div class="card card-sm flex gap-10 items-start">
-        <span class="tag" style="background:rgba(56,189,248,0.15); color:var(--cyan); border:1px solid rgba(56,189,248,0.3); font-size:11px; flex-shrink:0;">Result</span>
-        <div>
-          <p style="font-size:14px;"><strong>Score threshold는 유해할 수 있다</strong></p>
-          <p class="dim" style="font-size:14px; margin-top:4px; line-height:1.6;">Score 분포(0.08~0.58)가 좁아 threshold 적용 시 gold 결과가 먼저 필터링됨. threshold=0.3에서 52% 필터링, MH-R 0.617로 급락.</p>
-        </div>
-      </div>
-      <div class="card card-sm flex gap-10 items-start">
-        <span class="tag" style="background:rgba(56,189,248,0.15); color:var(--cyan); border:1px solid rgba(56,189,248,0.3); font-size:11px; flex-shrink:0;">Result</span>
-        <div>
-          <p style="font-size:14px;"><strong>검색 vs 생성 트레이드오프</strong></p>
-          <p class="dim" style="font-size:14px; margin-top:4px; line-height:1.6;">top_k=7은 Recall +6.7%p이지만 Answer Relevancy -8.4%p, Latency +64%. 추가 context가 노이즈로 작용 &rarr; top_k=5가 최적 균형.</p>
-        </div>
-      </div>
-      <div class="card card-sm" style="background:var(--surface2); padding:12px 16px; margin-top:auto;">
-        <p style="font-size:14px; font-weight:600; color:var(--accent2); margin-bottom:6px;">핵심 교훈</p>
-        <p style="font-size:14px; line-height:1.6; color:var(--text-dim);">&ldquo;한 번에 하나의 변수만 변경&rdquo; 원칙으로 각 변수의 실제 영향을 분리 측정. 재현 가능하고 설명 가능한 최적 구성을 도출할 수 있었다.</p>
+      <div class="card" style="background:var(--surface2); margin-top:auto;">
+        <p style="font-size:14px; font-weight:600; color:var(--accent2); margin-bottom:6px;">RAG 공통 교훈</p>
+        <p style="font-size:14px; line-height:1.6; color:var(--text-dim);">R2와 R3 모두 <strong>데이터 정제와 청킹 전략</strong>이 임베딩 모델 교체보다 큰 성능 향상을 가져왔다. &ldquo;한 번에 하나의 변수만 변경&rdquo; 원칙으로 재현 가능한 최적 구성 도출.</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 19: Lesson Learned 2 — 개발 이슈 해결 ==================== -->
+<!-- ==================== SLIDE 19: 핵심 개발 이슈 2 — 기술 이슈 해결 ==================== -->
 <div class="slide wide" id="slide-20">
-  <div class="section-label">10 &mdash; Lesson Learned (2/3)</div>
-  <h2>핵심 개발 이슈 & 해결</h2>
+  <div class="section-label">10 &mdash; Dev Issues (2/2)</div>
+  <h2>핵심 개발 이슈 & 해결 (2)</h2>
   <div class="two-col grow">
     <!-- 이슈 1: HWP 파싱 -->
     <div class="card flex flex-col gap-10">
@@ -1735,21 +1796,21 @@
       </div>
     </div>
 
-    <!-- 이슈 4: 도메인 데이터 수집 -->
+    <!-- 이슈 4: ChromaDB → Qdrant 전환 -->
     <div class="card flex flex-col gap-10">
-      <h3 style="font-size:14px;">규제 도메인 데이터 수집 & 정제</h3>
+      <h3 style="font-size:14px;">ChromaDB &rarr; Qdrant 하이브리드 검색 전환</h3>
       <div class="flex flex-col gap-8" style="font-size:14px;">
         <div class="flex gap-8 items-start">
           <span class="tag" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.3); font-size:10px; flex-shrink:0;">Problem</span>
-          <p>규제 샌드박스 승인 사례 281건 중 <strong>구조화 가능 데이터가 제한적</strong>. 법령 데이터는 조문 구조가 일관되지 않아 자동 파싱이 어려움. 도메인 편중(ICT 과다, 바이오 부족) 존재.</p>
+          <p>ChromaDB Dense 검색만으로는 법령 조문의 <strong>키워드 매칭이 부족</strong>. 한국어 BM25는 띄어쓰기 기반 토큰화로 서브워드 분해 불가.</p>
         </div>
         <div class="flex gap-8 items-start">
           <span class="tag" style="background:rgba(74,222,128,0.15); color:var(--green); border:1px solid rgba(74,222,128,0.3); font-size:10px; flex-shrink:0;">Solution</span>
-          <p>GPT-4o로 <strong>50건 데이터 보강</strong>(enriched) &rarr; 30개 쿼리 클러스터 분석으로 gold_cases 전수 조사 &rarr; 법령은 <strong>조 단위(C8) 청킹</strong> + 메타데이터 보존으로 구조화.</p>
+          <p>Qdrant + <strong>SPLADE Hybrid Search</strong> 도입. BaseVectorStore ABC로 추상화하여 ChromaDB/Qdrant 교체 가능한 설계. Docker Compose로 Qdrant :6333 통합.</p>
         </div>
         <div class="flex gap-8 items-start">
           <span class="tag" style="background:rgba(56,189,248,0.15); color:var(--cyan); border:1px solid rgba(56,189,248,0.3); font-size:10px; flex-shrink:0;">Result</span>
-          <p>Enriched 데이터로 MRR 0.91&rarr;0.95 향상. <strong>데이터 품질 > 모델 성능</strong>이라는 핵심 교훈 도출.</p>
+          <p>SPLADE가 BM25 대비 <strong>MRR +8~13%p</strong>. R3 최종 MH-R 96.7%, Recall 91.7% 달성.</p>
         </div>
       </div>
     </div>
@@ -1758,7 +1819,7 @@
 
 <!-- ==================== SLIDE 20: Lesson Learned 3 — 회고 + 향후 ==================== -->
 <div class="slide wide" id="slide-21">
-  <div class="section-label">10 &mdash; Lesson Learned (3/3)</div>
+  <div class="section-label">10 &mdash; Retrospective</div>
   <h2>프로젝트 회고 & 향후 과제</h2>
   <div class="two-col grow">
     <!-- 좌: 중간발표 피드백 반영 + 프로젝트 회고 -->
