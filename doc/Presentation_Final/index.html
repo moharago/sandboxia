@@ -389,6 +389,45 @@
 
   .winner { background: var(--green-dim); }
   .winner td { color: var(--green); font-weight: 600; }
+
+  @media print {
+    *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    @page { size: 1500px 900px; margin: 0; }
+    html {
+      display: block !important;
+      height: auto !important;
+      align-items: stretch !important;
+      justify-content: flex-start !important;
+      background: none !important;
+    }
+    body {
+      display: block !important;
+      width: 1500px !important;
+      height: auto !important;
+      overflow: visible !important;
+      box-shadow: none !important;
+      position: static !important;
+      background: none !important;
+    }
+    .slide {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      opacity: 1 !important;
+      width: 1500px !important;
+      height: 900px !important;
+      overflow: hidden !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      flex-shrink: 0 !important;
+      background: var(--bg) !important;
+    }
+    .slide:last-child { page-break-after: avoid !important; break-after: avoid !important; }
+    .cover-grid, .cover-dots { position: absolute; inset: 0; }
+    .nav, .progress-bar, .slide-counter { display: none !important; }
+  }
 </style>
 </head>
 <body>
