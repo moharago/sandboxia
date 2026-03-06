@@ -573,7 +573,7 @@ def _extract_financial_hr_sections(hwp_parse_results: list[dict[str, Any]]) -> s
                 break
 
     if not sections:
-        print("[Step1] ⚠️ 필요 섹션 추출 실패")
+        print("[Step1] [WARNING] 필요 섹션 추출 실패")
         return ""
 
     result = "\n\n".join(sections)
