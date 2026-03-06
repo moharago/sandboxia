@@ -7,7 +7,7 @@
 
 ## Slide 1 — 표지 (40초)
 
-안녕하세요, 4th Law SandboxIA 팀입니다.
+안녕하세요, 1th Law SandboxIA 팀입니다.
 
 저희가 만든 서비스는 **SandboxIA**, AI 멀티 에이전트 기반 규제 샌드박스 컨설팅 지원 시스템입니다.
 
