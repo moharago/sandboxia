@@ -423,10 +423,26 @@ class ChromaVectorStore(BaseVectorStore):
 # 로컬 모드 QdrantClient 싱글톤 (같은 디렉토리에 하나의 클라이언트만 허용)
 _qdrant_local_client: Any = None
 _qdrant_local_path: str | None = None
+_qdrant_client_lock = threading.Lock()
+
+
+def close_qdrant_client():
+    """Qdrant 로컬 클라이언트 종료 및 lock 해제 (서버 shutdown 시 호출)"""
+    global _qdrant_local_client, _qdrant_local_path
+    with _qdrant_client_lock:
+        if _qdrant_local_client is not None:
+            try:
+                _qdrant_local_client.close()
+                logger.info("Qdrant embedded 클라이언트 종료 완료")
+            except Exception as e:
+                logger.warning(f"Qdrant 클라이언트 종료 중 오류: {e}")
+            finally:
+                _qdrant_local_client = None
+                _qdrant_local_path = None
 
 
 def _get_qdrant_client():
-    """QdrantClient 인스턴스 반환 (로컬 모드에서는 싱글톤으로 재사용)"""
+    """QdrantClient 인스턴스 반환 (로컬 모드에서는 싱글톤으로 재사용, 스레드 안전)"""
     global _qdrant_local_client, _qdrant_local_path
     from qdrant_client import QdrantClient
 
@@ -440,13 +456,25 @@ def _get_qdrant_client():
         )
     elif getattr(settings, "QDRANT_MODE", "server") == "local":
         persist_dir = getattr(settings, "QDRANT_PERSIST_DIR", "./data/qdrant")
+        # 빠른 경로: 이미 생성된 싱글톤 반환 (Lock 없이)
         if _qdrant_local_client is not None and _qdrant_local_path == persist_dir:
-            logger.debug(f"Qdrant embedded 모드 (재사용): {persist_dir}")
             return _qdrant_local_client
-        logger.info(f"Qdrant embedded 모드 (로컬): {persist_dir}")
-        _qdrant_local_client = QdrantClient(path=persist_dir)
-        _qdrant_local_path = persist_dir
-        return _qdrant_local_client
+        # 느린 경로: Lock으로 스레드 안전하게 싱글톤 생성
+        with _qdrant_client_lock:
+            # Double-check: Lock 대기 중 다른 스레드가 생성했을 수 있음
+            if _qdrant_local_client is not None and _qdrant_local_path == persist_dir:
+                return _qdrant_local_client
+            # stale lock 파일 제거 (이전 프로세스가 비정상 종료된 경우)
+            import os
+
+            lock_file = os.path.join(persist_dir, ".lock")
+            if os.path.exists(lock_file):
+                logger.warning(f"Qdrant stale lock 파일 제거: {lock_file}")
+                os.remove(lock_file)
+            logger.info(f"Qdrant embedded 모드 (로컬): {persist_dir}")
+            _qdrant_local_client = QdrantClient(path=persist_dir)
+            _qdrant_local_path = persist_dir
+            return _qdrant_local_client
     else:
         logger.info(f"Qdrant 서버 모드: {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
         return QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
@@ -765,6 +793,7 @@ def get_embeddings() -> OpenAIEmbeddings:
 
 # 컬렉션별 VectorStore 캐시
 _vectorstore_cache: dict[str, BaseVectorStore] = {}
+_vectorstore_cache_lock = threading.Lock()
 
 
 def create_vector_store(
@@ -838,9 +867,12 @@ def get_vector_store(
     if isinstance(vectordb_type, str):
         vectordb_type = VectorDBType(vectordb_type.lower())
     cache_key = f"{vectordb_type.value}:{collection_name}"
-    if cache_key not in _vectorstore_cache:
-        _vectorstore_cache[cache_key] = create_vector_store(
-            collection_name=collection_name,
-            vectordb_type=vectordb_type,
-        )
-    return _vectorstore_cache[cache_key]
+    if cache_key in _vectorstore_cache:
+        return _vectorstore_cache[cache_key]
+    with _vectorstore_cache_lock:
+        if cache_key not in _vectorstore_cache:
+            _vectorstore_cache[cache_key] = create_vector_store(
+                collection_name=collection_name,
+                vectordb_type=vectordb_type,
+            )
+        return _vectorstore_cache[cache_key]

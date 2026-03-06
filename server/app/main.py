@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,11 +11,21 @@ from app.api.routes.users import router as users_router
 from app.core.config import settings
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    # shutdown: Qdrant 로컬 클라이언트 정리
+    from app.db.vector import close_qdrant_client
+
+    close_qdrant_client()
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="SandboxIA API",
         description="규제 샌드박스 컨설팅 AI 서비스 API",
         version="0.1.0",
+        lifespan=lifespan,
     )
 
     # CORS Origins 설정
