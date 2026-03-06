@@ -78,6 +78,11 @@ jobs:
           script: |
             cd ${{ secrets.EC2_APP_PATH }} &&
             git pull origin main &&
+            echo "=== 디스크 정리 시작 ===" &&
+            docker image prune -af &&
+            docker builder prune -af &&
+            echo "=== 디스크 상태 ===" &&
+            df -h / &&
+            echo "=== 배포 시작 ===" &&
             docker compose pull &&
-            docker compose up -d --remove-orphans &&
-            docker image prune -f
+            docker compose up -d --remove-orphans
