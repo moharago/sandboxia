@@ -803,9 +803,9 @@ def create_vector_store(
         vectordb_type = VectorDBType(vectordb_type.lower())
 
     if vectordb_type == VectorDBType.QDRANT:
-        # Qdrant: Hybrid Search 기본 활성화
+        # Qdrant: Dense only (Hybrid Search 비활성화 - 메모리 절약 + R1 평가 결과 Dense가 더 우수)
         if hybrid_config is None:
-            hybrid_config = HybridSearchConfig(enabled=True, alpha=0.7)
+            hybrid_config = HybridSearchConfig(enabled=False)
         return QdrantVectorStore(
             collection_name=collection_name,
             embeddings=embeddings,
