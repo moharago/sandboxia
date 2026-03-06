@@ -640,7 +640,7 @@
         <div class="flex justify-between"><span>Runtime</span><span class="mono dim">Python 3.12</span></div>
         <div class="flex justify-between"><span>Agent</span><span class="mono dim">LangGraph 1.0</span></div>
         <div class="flex justify-between"><span>LLM</span><span class="mono dim">GPT-4o</span></div>
-        <div class="flex justify-between"><span>Embedding</span><span class="mono dim">3-small (E0)</span></div>
+        <div class="flex justify-between"><span>Embedding</span><span class="mono dim">3-large (E1)</span></div>
         <div class="flex justify-between"><span>Vector DB</span><span class="mono dim">Qdrant</span></div>
         <div class="flex justify-between"><span>RAG Eval</span><span class="mono dim">RAGAS 0.2+</span></div>
         <div class="flex justify-between"><span>Doc Gen</span><span class="mono dim">docxtpl</span></div>
@@ -1162,7 +1162,7 @@
         <div class="box box-green grow" style="font-size:11px; padding:8px;">R3 RAG<br><span style="opacity:0.7">법령</span></div>
       </div>
       <div class="box" style="font-size:13px;">
-        <strong>GPT-4o</strong> (생성) &middot; <strong>text-embedding-3-small</strong> (R1/R2) &middot; <strong>text-embedding-3-large</strong> (R3)
+        <strong>GPT-4o</strong> (생성) &middot; <strong>text-embedding-3-large</strong> (R1/R2/R3 공통)
       </div>
     </div>
 
@@ -1175,7 +1175,7 @@
       <div class="flex items-center gap-8" style="margin-bottom:4px;">
         <span class="tag tag-amber" style="font-size:14px;">Data</span>
       </div>
-      <div class="box box-amber">Supabase<br><span style="opacity:0.7; font-size:11px;">PostgreSQL + Auth + Storage</span></div>
+      <div class="box">Supabase<br><span class="dim" style="font-size:11px;">PostgreSQL + Auth + Storage</span></div>
       <div class="box">Qdrant<br><span class="dim" style="font-size:11px;">Vector Store :6333</span></div>
       <div class="box" style="font-size:13px;">Docker Compose</div>
     </div>
@@ -1233,7 +1233,7 @@
     <p class="dim small" style="flex-shrink:0;">공통 인프라</p>
     <div class="flex gap-16 wrap">
       <span class="tag tag-accent">Qdrant (Vector DB)</span>
-      <span class="tag tag-green">text-embedding-3-small</span>
+      <span class="tag tag-green">text-embedding-3-large</span>
       <span class="tag tag-cyan">BaseVectorStore ABC</span>
       <span class="tag tag-amber">persistent / http / ephemeral 3모드</span>
     </div>
@@ -1386,8 +1386,8 @@
           <tr><td>E5 KURE-v1</td><td>0.850</td><td>0.917</td><td>0.233</td></tr>
         </table>
       </div>
-      <p class="dim small"><strong>핵심</strong>: 모델 간 차이 ~2.5%p 소폭. E0가 MRR 0.950 1위 &mdash; 1건=1문서라 경량 모델로 충분.</p>
-      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">E0 (text-embedding-3-small) 채택</div>
+      <p class="dim small"><strong>핵심</strong>: 모델 간 차이 ~2.5%p 소폭. E0 MRR 1위이나, R1/R3과 임베딩 모델 통일 필요 &rarr; <strong>E1 채택</strong>.</p>
+      <div class="tag tag-green" style="align-self:flex-start; font-size:11px; margin-top:auto;">E1 (text-embedding-3-large) 채택 &mdash; 3-RAG 통일</div>
     </div>
 
     <div class="card flex flex-col gap-8" style="padding:12px;">
@@ -1420,7 +1420,7 @@
         <p style="font-size:13px; font-weight:600; color:var(--accent); margin-bottom:6px;">R2 최종 확정</p>
         <div class="flex gap-8 wrap center">
           <span class="tag tag-accent" style="font-size:10px;">enriched</span>
-          <span class="tag tag-cyan" style="font-size:10px;">E0</span>
+          <span class="tag tag-cyan" style="font-size:10px;">E1</span>
           <span class="tag tag-green" style="font-size:10px;">gpt-4o</span>
           <span class="tag tag-amber" style="font-size:10px;">top_k=5</span>
         </div>
