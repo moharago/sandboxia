@@ -1,0 +1,30 @@
+%%{init: {'theme': 'neutral', 'themeVariables': {'primaryColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'textColor': '#111'}, 'flowchart': {'rankSpacing': 40, 'nodeSpacing': 30}}}%%
+graph TB
+    subgraph LEFT[" "]
+        direction TB
+        subgraph CLIENT[" Client · Next.js 16 · :3000 "]
+            C["React 19 / TailwindCSS 4<br/>TanStack Query / Zustand"]
+        end
+        CLIENT -.- DB
+        subgraph DB[" Supabase "]
+            D["Auth + PostgreSQL<br/>Storage + RLS"]
+        end
+    end
+
+    subgraph SERVER[" Server · FastAPI · :8000 "]
+        direction TB
+        subgraph SUP[" Supervisor — LangGraph "]
+            direction LR
+            A1["Agent 1<br/>Service Structurer"] ~~~ A2["Agent 2<br/>Eligibility Evaluator"] ~~~ A3["Agent 3<br/>Track Recommender"] ~~~ A4["Agent 4~6<br/>Drafter / Strategy / Risk"]
+        end
+        SUP --> RAG
+        subgraph RAG[" Shared RAG — ChromaDB "]
+            direction LR
+            R1["R1 규제·절차"] ~~~ R2["R2 승인사례"] ~~~ R3["R3 법령"]
+        end
+    end
+
+    CLIENT -- "REST API" --> SUP
+    SERVER --> DB
+
+    style LEFT fill:none,stroke:none

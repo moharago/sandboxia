@@ -4,6 +4,7 @@ LangGraph 에이전트 실행 시 progress_store와 연동하여 진행 상태�
 """
 
 import logging
+import time
 from typing import Any
 
 from app.core.progress_store import progress_store
@@ -36,6 +37,7 @@ async def run_agent_with_progress(
     if config is None:
         config = {"recursion_limit": 15}
 
+    start_time = time.time()
     logger.info(f"[Streaming] 에이전트 실행 시작: {agent_type}, project={project_id}")
 
     # 진행 상태 추적 시작
@@ -66,12 +68,16 @@ async def run_agent_with_progress(
                     # 노드 완료 이벤트 (UI에서 체크 표시용)
                     progress_store.update_node(project_id, node_name, "node_end")
 
-        logger.info(f"[Streaming] 에이전트 실행 완료: {agent_type}")
+        elapsed = time.time() - start_time
+        print(f"\n[{agent_type}] 총 실행 시간: {elapsed:.2f}초\n")
+        logger.info(f"[Streaming] 에이전트 실행 완료: {agent_type} ({elapsed:.2f}초)")
 
         # 진행 상태 완료
         progress_store.end(project_id)
 
     except Exception as e:
+        elapsed = time.time() - start_time
+        print(f"\n[{agent_type}] 실행 실패: {elapsed:.2f}초\n")
         progress_store.end(project_id, error=str(e))
         raise
 

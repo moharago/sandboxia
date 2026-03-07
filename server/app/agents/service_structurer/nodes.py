@@ -148,6 +148,7 @@ async def build_structure_node(state: ServiceStructurerState) -> dict[str, Any]:
 
         # 프롬프트 직접 구성 (ChatPromptTemplate의 중괄호 문제 완전 회피)
         from langchain_core.messages import HumanMessage, SystemMessage
+
         from app.agents.service_structurer.prompts import SYSTEM_PROMPT_OPTIMIZED
 
         consultant_input_str = json.dumps(consultant_input, ensure_ascii=False, indent=2)
@@ -572,7 +573,7 @@ def _extract_financial_hr_sections(hwp_parse_results: list[dict[str, Any]]) -> s
                 break
 
     if not sections:
-        print("[Step1] ⚠️ 필요 섹션 추출 실패")
+        print("[Step1] [WARNING] 필요 섹션 추출 실패")
         return ""
 
     result = "\n\n".join(sections)

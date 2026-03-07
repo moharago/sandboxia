@@ -14,7 +14,7 @@ from docx.table import Table
 from docxtpl import DocxTemplate
 from jinja2 import Environment, Undefined
 
-from app.core.config import settings   
+from app.core.config import settings
 from app.services.utils import is_flat_structure, unflatten
 
 
@@ -216,20 +216,19 @@ def generate_docx(
     if not template_name:
         raise ValueError(f"템플릿이 없습니다: {track}/{form_id}")
 
+    def _download_templates_from_drive():
+        """Google Drive에서 템플릿 폴더 다운로드"""
+        if not settings.TEMPLATE_FOLDER_ID:
+            return
+        folder_url = f"{settings.GOOGLE_DRIVE_URL}{settings.TEMPLATE_FOLDER_ID}"
+        TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+        gdown.download_folder(folder_url, output=str(TEMPLATES_DIR), quiet=False)
+
     template_path = TEMPLATES_DIR / template_name
     if not template_path.exists():
-        _download_templates_from_drive()  # 없으면 다운로드                    
-        if not template_path.exists():            
-            raise FileNotFoundError(f"템플릿 파일이 없습니다: {template_path}")
-        
-    def _download_templates_from_drive():                                      
-      """Google Drive에서 템플릿 폴더 다운로드"""                            
-      if not settings.TEMPLATE_FOLDER_ID:                                    
-          return                                                             
-      folder_url =f"{settings.GOOGLE_DRIVE_URL}{settings.TEMPLATE_FOLDER_ID}"                
-      TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)                       
-      gdown.download_folder(folder_url, output=str(TEMPLATES_DIR),           
-  quiet=False)         
+        _download_templates_from_drive()  # 없으면 다운로드
+        if not template_path.exists():
+            raise FileNotFoundError(f"템플릿 파일이 없습니다: {template_path}")         
 
     # 템플릿 로드
     doc = DocxTemplate(template_path)

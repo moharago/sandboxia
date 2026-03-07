@@ -4,18 +4,11 @@ import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { DownloadModal } from "@/components/features/draft/DownloadModal"
 import { FormSectionList, type FormSectionListHandle } from "@/components/features/draft/FormSectionList"
 import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
-import dynamic from "next/dynamic"
-
-// async-suspense-boundaries: ReferencePanel lazy loading
-const ReferencePanel = dynamic(
-    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
-    { ssr: false }
-)
 import { Button } from "@/components/ui/button"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { NoResultsView } from "@/components/ui/no-results-view"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { PageLoader } from "@/components/ui/page-loader"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDraftGenerateMutation } from "@/hooks/mutations/use-draft-mutation"
 import { useAgentNodesQuery } from "@/hooks/queries/use-agent-nodes-query"
 import { draftKeys, useDraftQuery } from "@/hooks/queries/use-draft-query"
@@ -29,8 +22,12 @@ import type { ApprovalCase, Regulation } from "@/types/api/eligibility"
 import { PROJECT_STATUS, TRACK_TO_FORM_ID, type Track } from "@/types/data/project"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle, CheckCircle2, Download, Sparkles } from "lucide-react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { use, useEffect, useRef, useState } from "react"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(() => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel), { ssr: false })
 
 /** Track 타입 가드: TRACK_TO_FORM_ID에 존재하는 유효한 Track인지 확인 */
 const isTrack = (value: string | null | undefined): value is Track => value != null && Object.prototype.hasOwnProperty.call(TRACK_TO_FORM_ID, value)
@@ -291,7 +288,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                             onAnalyze={!hasDraftData || isTrackMismatch ? runDraftGeneration : undefined}
                             nextLabel="작성 완료"
                             nextTooltip={
-                                (project?.status === PROJECT_STATUS.PENDING || project?.status === PROJECT_STATUS.COMPLETED)
+                                project?.status === PROJECT_STATUS.PENDING || project?.status === PROJECT_STATUS.COMPLETED
                                     ? "신청서 작성을 완료하고 결과를 기다립니다"
                                     : undefined
                             }
@@ -319,7 +316,9 @@ export default function DraftPage({ params }: DraftPageProps) {
                                 </>
                             }
                             rightExtraButtons={
-                                hasDraftData && !isTrackMismatch && (project?.status === PROJECT_STATUS.PENDING || project?.status === PROJECT_STATUS.COMPLETED) && (
+                                hasDraftData &&
+                                !isTrackMismatch &&
+                                (project?.status === PROJECT_STATUS.PENDING || project?.status === PROJECT_STATUS.COMPLETED) && (
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -328,9 +327,7 @@ export default function DraftPage({ params }: DraftPageProps) {
                                                     <CheckCircle2 className="h-4 w-4" />
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent>
-                                                결과 확인 후 프로젝트를 최종 종료합니다
-                                            </TooltipContent>
+                                            <TooltipContent>결과 확인 후 프로젝트를 최종 종료합니다</TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 )
@@ -414,7 +411,7 @@ export default function DraftPage({ params }: DraftPageProps) {
 
                     {/* 오른쪽: 참고 패널 */}
                     <div className={isReferencePanelOpen ? "flex-1 min-w-0" : ""}>
-                        <div className="sticky top-16">
+                        <div className="sticky top-24">
                             <ReferencePanel
                                 isOpen={isReferencePanelOpen}
                                 onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}

@@ -9,7 +9,7 @@ from pathlib import Path
 from app.core.config import settings
 from app.core.constants import COLLECTION_LAWS
 from app.db.export import save_chunks_json
-from app.db.vector import create_embeddings, create_vector_store, HybridSearchConfig
+from app.db.vector import HybridSearchConfig, create_embeddings, create_vector_store
 from app.rag.chunkers.r3_law import LawChunker
 from app.rag.config import ChunkingConfig, EmbeddingConfig, HybridConfig
 from app.services.law_api import law_api_client

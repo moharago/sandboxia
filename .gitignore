@@ -113,11 +113,10 @@ server/eval/r2/results/
 .serena/
 
 # Claude Code local settings
+.claude/hooks/
+.claude/settings.json
 .claude/settings.local.json
 
-# Personal notes
-retrospective.md
-
-# Presentation files
-doc/Presentation_Mid/
+# Personal portfolio
 doc/DS_portfolio
+doc/TH_portfolio

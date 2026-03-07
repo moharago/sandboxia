@@ -76,8 +76,8 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ${{ secrets.EC2_APP_PATH }}
-            git pull origin main
-            docker compose pull
-            docker compose up -d --remove-orphans
+            cd ${{ secrets.EC2_APP_PATH }} &&
+            git pull origin main &&
+            docker compose pull &&
+            docker compose up -d --remove-orphans &&
             docker image prune -f

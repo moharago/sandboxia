@@ -2,13 +2,6 @@
 
 import { AIAnalysisCard } from "@/components/features/analysis/AIAnalysisCard"
 import { WizardNavigation } from "@/components/features/wizard/WizardNavigation"
-import dynamic from "next/dynamic"
-
-// async-suspense-boundaries: ReferencePanel lazy loading
-const ReferencePanel = dynamic(
-    () => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel),
-    { ssr: false }
-)
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmModal } from "@/components/ui/confirm-modal"
@@ -29,8 +22,12 @@ import { useWizardStore } from "@/stores/wizard-store"
 import type { ApprovalCase, EligibilityResponse, EligibilityResult, JudgmentType, Regulation } from "@/types/api/eligibility"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, CheckCircle2, ExternalLink, Scale } from "lucide-react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useState } from "react"
+import { use, useEffect, useRef, useState } from "react"
+
+// async-suspense-boundaries: ReferencePanel lazy loading
+const ReferencePanel = dynamic(() => import("@/components/features/draft/ReferencePanel").then((mod) => mod.ReferencePanel), { ssr: false })
 
 type ReasonCategory = "law" | "regulation" | "case"
 
@@ -107,8 +104,8 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const { devIsAnalyzed, devHasChanges, showGlobalAILoader, updateGlobalAILoader, hideGlobalAILoader } = useUIStore()
 
     // 프로젝트 정보 조회 (refetchOnMount: "always"로 자동 refetch)
-    const { data: project, isPending: isLoadingProject } = useProjectQuery(id)
-    const { data: existingResult, isPending: isLoadingExisting } = useEligibilityQuery(id)
+    const { data: project, isPending: isLoadingProject, isFetching: isFetchingProject } = useProjectQuery(id)
+    const { data: existingResult, isPending: isLoadingExisting, isFetching: isFetchingExisting } = useEligibilityQuery(id)
 
     // 에이전트 노드 목록 조회
     const { data: eligibilityNodes } = useAgentNodesQuery("eligibility_evaluator")
@@ -154,10 +151,13 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
     const [staleDataModalOpen, setStaleDataModalOpen] = useState(false) // 이전 단계 재분석으로 인한 재분석 필요 모달
     const [errorModalOpen, setErrorModalOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+    const staleModalOpenedRef = useRef(false)
 
     // current_step < PAGE_STEP이고 기존 데이터가 있는 경우 재분석 필요 모달 표시
+    // isLoading(초기 로드)을 사용하여 background refetch로 인한 모달 재오픈 방지
     useEffect(() => {
-        if (!isLoadingExisting && !isLoadingProject && isBehindCurrentStep && hasExistingResult) {
+        if (!isLoadingExisting && !isLoadingProject && isBehindCurrentStep && hasExistingResult && !staleModalOpenedRef.current) {
+            staleModalOpenedRef.current = true
             setStaleDataModalOpen(true)
         }
     }, [isLoadingExisting, isLoadingProject, isBehindCurrentStep, hasExistingResult])
@@ -250,10 +250,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
             if (selectedDecision === "direct") {
                 // async-parallel: 독립적인 API 호출 병렬화
-                await Promise.all([
-                    eligibilityApi.updateFinalDecision(id, finalLabel),
-                    projectsApi.updateStatus(id, 4, 2),
-                ])
+                await Promise.all([eligibilityApi.updateFinalDecision(id, finalLabel), projectsApi.updateStatus(id, 4, 2)])
                 // invalidateQueries는 await 불필요 (백그라운드 실행)
                 queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -356,10 +353,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
 
             if (mappedData.recommendation === "direct") {
                 // async-parallel: 독립적인 API 호출 병렬화
-                await Promise.all([
-                    eligibilityApi.updateFinalDecision(id, finalLabel),
-                    projectsApi.updateStatus(id, 4, 2),
-                ])
+                await Promise.all([eligibilityApi.updateFinalDecision(id, finalLabel), projectsApi.updateStatus(id, 4, 2)])
                 // invalidateQueries는 await 불필요 (백그라운드 실행)
                 queryClient.invalidateQueries({ queryKey: ["eligibility"] })
                 queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -680,7 +674,7 @@ export default function EligibilityPage({ params }: EligibilityPageProps) {
                     </div>
 
                     <div className={isReferencePanelOpen ? "flex-1 min-w-0" : ""}>
-                        <div className="sticky top-16">
+                        <div className="sticky top-24">
                             <ReferencePanel
                                 isOpen={isReferencePanelOpen}
                                 onToggle={() => setIsReferencePanelOpen(!isReferencePanelOpen)}
